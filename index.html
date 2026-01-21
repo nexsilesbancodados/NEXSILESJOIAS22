@@ -1,26 +1,68 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- App Title and Description -->
+    <title>Nexsiles</title>
+    <meta name="description" content="Sistema completo de gestão para lojas de semijoias. Controle de estoque, vendas, revendedoras e catálogos digitais.">
+    <meta name="author" content="Nexsiles" />
+    <meta name="keywords" content="semijoias, gestão, estoque, vendas, revendedoras, catálogo digital">
 
-    <!-- TODO: Update og:title to match your application name -->
-    <meta property="og:title" content="Lovable App" />
-    <meta property="og:description" content="Lovable Generated Project" />
+    <!-- Preconnect to font origins for faster loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.gpteng.co" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://cdn.gpteng.co" />
+    
+    <!-- Premium Fonts - Load asynchronously to avoid render blocking -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    
+    <!-- Preload critical font -->
+    <link rel="preload" href="https://cdn.gpteng.co/mcp-widgets/v1/fonts/CameraPlainVariable.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Favicon -->
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/8UHxURPpChcDNhAckH5FnpckNPp2/uploads/1768913074076-logo.png">
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#B8860B" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Nexsiles" />
+
+    <!-- Open Graph -->
+    
+    
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/8UHxURPpChcDNhAckH5FnpckNPp2/social-images/social-1768913065970-logo.png">
 
+    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
+    
+    
+    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/8UHxURPpChcDNhAckH5FnpckNPp2/social-images/social-1768913065970-logo.png">
+    <meta property="og:title" content="Nexsiles">
+  <meta name="twitter:title" content="Nexsiles">
+  <meta property="og:description" content="Sistema completo de gestão para lojas de semijoias. Controle de estoque, vendas, revendedoras e catálogos digitais.">
+  <meta name="twitter:description" content="Sistema completo de gestão para lojas de semijoias. Controle de estoque, vendas, revendedoras e catálogos digitais.">
+</head>
 
   <body>
     <div id="root"></div>
+    <script>
+      // Clear stale module cache
+      if ('caches' in window) {
+        caches.keys().then(names => names.forEach(name => caches.delete(name)));
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

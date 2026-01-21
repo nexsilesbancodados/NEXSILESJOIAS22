@@ -1,0 +1,22 @@
+-- Adicionar campos de configuração de etiquetas
+ALTER TABLE public.modelos_etiquetas
+ADD COLUMN IF NOT EXISTS tipo text DEFAULT 'preco',
+ADD COLUMN IF NOT EXISTS formato text DEFAULT 'retangular',
+ADD COLUMN IF NOT EXISTS tamanho_id text,
+ADD COLUMN IF NOT EXISTS cor_fundo text DEFAULT '#FFFFFF',
+ADD COLUMN IF NOT EXISTS cor_texto text DEFAULT '#000000',
+ADD COLUMN IF NOT EXISTS cor_borda text DEFAULT '#D4AF37',
+ADD COLUMN IF NOT EXISTS fonte text DEFAULT 'Arial',
+ADD COLUMN IF NOT EXISTS tamanho_fonte integer DEFAULT 10,
+ADD COLUMN IF NOT EXISTS mostrar_logo boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS mostrar_preco boolean DEFAULT true,
+ADD COLUMN IF NOT EXISTS mostrar_codigo boolean DEFAULT true,
+ADD COLUMN IF NOT EXISTS mostrar_nome boolean DEFAULT true,
+ADD COLUMN IF NOT EXISTS mostrar_qrcode boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS mostrar_codigo_barras boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS mostrar_banho boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS mostrar_numeracao boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS borda_arredondada integer DEFAULT 4,
+ADD COLUMN IF NOT EXISTS margem_interna integer DEFAULT 4,
+ADD COLUMN IF NOT EXISTS descricao text,
+ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now();
