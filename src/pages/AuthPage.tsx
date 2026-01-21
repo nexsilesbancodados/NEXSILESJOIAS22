@@ -174,7 +174,7 @@ export default function AuthPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-24 h-24 mx-auto mb-4 rounded-2xl glass-card flex items-center justify-center shadow-[var(--shadow-large)]">
-            <img src={logo} alt="Nexsiles" className="w-16 h-16 object-contain" width={64} height={64} decoding="async" fetchPriority="high" />
+            <img src={logo} alt="Nexsiles" className="w-16 h-16 object-contain" width={64} height={64} decoding="async" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-gradient">
             Nexsiles

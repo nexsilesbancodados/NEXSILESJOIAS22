@@ -721,6 +721,30 @@
     -webkit-mask-composite: xor;
     mask-composite: exclude;
   }
+
+  /* Gold Button for Auth */
+  .btn-gold {
+    background: var(--gradient-primary);
+    @apply text-white font-medium transition-all duration-300;
+    box-shadow: var(--shadow-purple);
+  }
+
+  .btn-gold:hover {
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    filter: brightness(1.05);
+  }
+
+  .btn-gold:active {
+    transform: translateY(1px);
+  }
+
+  /* Text Gradient */
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 }
 
 @layer utilities {
