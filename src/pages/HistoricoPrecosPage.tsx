@@ -141,9 +141,11 @@ export default function HistoricoPrecosPage() {
     }
     
     try {
+      // Filter out promocional since the bulk update doesn't support it
+      const validTipoPreco = bulkForm.tipoPreco === 'promocional' ? 'venda' : bulkForm.tipoPreco;
       await atualizarPrecosEmMassa.mutateAsync({
         pecaIds: selectedPecas,
-        tipoPreco: bulkForm.tipoPreco,
+        tipoPreco: validTipoPreco as 'custo' | 'venda' | 'revenda' | 'atacado',
         percentualAjuste: percentual,
         motivo: bulkForm.motivo || `Ajuste em massa: ${percentual > 0 ? '+' : ''}${percentual}%`,
       });
@@ -183,25 +185,25 @@ export default function HistoricoPrecosPage() {
           icon={History}
           label="Total de Alterações"
           value={totalAlteracoes}
-          gradient="from-blue-500 to-cyan-500"
+          gradient="blue"
         />
         <MiniGradientCard
           icon={TrendingUp}
           label="Aumentos"
           value={aumentos}
-          gradient="from-green-500 to-emerald-500"
+          gradient="green"
         />
         <MiniGradientCard
           icon={TrendingDown}
           label="Reduções"
           value={reducoes}
-          gradient="from-red-500 to-orange-500"
+          gradient="orange"
         />
         <MiniGradientCard
           icon={Percent}
           label="Variação Média"
           value={`${variacaoMedia >= 0 ? '+' : ''}${variacaoMedia.toFixed(1)}%`}
-          gradient="from-purple-500 to-pink-500"
+          gradient="purple"
         />
       </div>
       
