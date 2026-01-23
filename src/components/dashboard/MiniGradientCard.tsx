@@ -2,7 +2,8 @@ import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MiniGradientCardProps {
-  title: string;
+  title?: string;
+  label?: string;
   value: string | number;
   icon: LucideIcon;
   gradient: 'pink' | 'purple' | 'teal' | 'orange' | 'cyan' | 'rose' | 'emerald' | 'amber' | 'green' | 'blue';
@@ -23,10 +24,13 @@ const gradientStyles = {
 
 export function MiniGradientCard({
   title,
+  label,
   value,
   icon: Icon,
   gradient,
 }: MiniGradientCardProps) {
+  const displayLabel = label || title || '';
+
   return (
     <div className={cn(
       'relative overflow-hidden rounded-2xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-[1.02]',
@@ -43,7 +47,7 @@ export function MiniGradientCard({
           <Icon className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white/80 text-xs font-medium">{title}</p>
+          <p className="text-white/80 text-xs font-medium">{displayLabel}</p>
           <p className="text-white text-xl font-bold tracking-tight truncate">{value}</p>
         </div>
       </div>

@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Loose-typed supabase client for tables not yet in schema
+const db = supabase as any;
+
 export interface NivelFidelidade {
   id: string;
   user_id: string;
@@ -58,14 +61,14 @@ export function useNiveisFidelidade() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('niveis_fidelidade')
         .select('*')
         .eq('user_id', user.id)
         .order('pontos_minimos');
       
       if (error) throw error;
-      return data as NivelFidelidade[];
+      return (data || []) as NivelFidelidade[];
     },
   });
 }
@@ -78,7 +81,7 @@ export function useAddNivelFidelidade() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('niveis_fidelidade')
         .insert({ ...nivel, user_id: user.id })
         .select()
@@ -102,7 +105,7 @@ export function useUpdateNivelFidelidade() {
   
   return useMutation({
     mutationFn: async ({ id, ...updateData }: Partial<NivelFidelidade> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('niveis_fidelidade')
         .update(updateData)
         .eq('id', id)
@@ -127,7 +130,7 @@ export function useDeleteNivelFidelidade() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await db
         .from('niveis_fidelidade')
         .delete()
         .eq('id', id);
@@ -152,20 +155,25 @@ export function usePontosFidelidade(clienteId?: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return clienteId ? null : [];
       
-      let query = supabase
-        .from('pontos_fidelidade')
-        .select('*, nivel:niveis_fidelidade(*)')
-        .eq('user_id', user.id);
-      
       if (clienteId) {
-        query = query.eq('cliente_id', clienteId).single();
-        const { data, error } = await query;
-        if (error && error.code !== 'PGRST116') throw error;
+        const { data, error } = await db
+          .from('pontos_fidelidade')
+          .select('*, nivel:niveis_fidelidade(*)')
+          .eq('user_id', user.id)
+          .eq('cliente_id', clienteId)
+          .maybeSingle();
+        
+        if (error) throw error;
         return data as PontosFidelidade | null;
       } else {
-        const { data, error } = await query.order('pontos_totais', { ascending: false });
+        const { data, error } = await db
+          .from('pontos_fidelidade')
+          .select('*, nivel:niveis_fidelidade(*)')
+          .eq('user_id', user.id)
+          .order('pontos_totais', { ascending: false });
+        
         if (error) throw error;
-        return data as PontosFidelidade[];
+        return (data || []) as PontosFidelidade[];
       }
     },
     enabled: clienteId ? !!clienteId : true,
@@ -193,18 +201,18 @@ export function useAddPontos() {
       if (!user) throw new Error('User not authenticated');
       
       // Check if client has points record
-      const { data: existingPontos } = await supabase
+      const { data: existingPontos } = await db
         .from('pontos_fidelidade')
         .select('*')
         .eq('cliente_id', clienteId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       let pontosId = existingPontos?.id;
       
       if (!existingPontos) {
         // Create new points record
-        const { data: newPontos, error: createError } = await supabase
+        const { data: newPontos, error: createError } = await db
           .from('pontos_fidelidade')
           .insert({
             user_id: user.id,
@@ -223,7 +231,7 @@ export function useAddPontos() {
           ? existingPontos.pontos_disponiveis - quantidade
           : existingPontos.pontos_disponiveis + quantidade;
         
-        const { error: updateError } = await supabase
+        const { error: updateError } = await db
           .from('pontos_fidelidade')
           .update({
             pontos_totais: tipo !== 'debito' 
@@ -238,7 +246,7 @@ export function useAddPontos() {
       }
       
       // Add movement record
-      const { error: movError } = await supabase
+      const { error: movError } = await db
         .from('movimentos_pontos')
         .insert({
           pontos_fidelidade_id: pontosId,
@@ -274,7 +282,7 @@ export function useRecompensas() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('recompensas_fidelidade')
         .select('*')
         .eq('user_id', user.id)
@@ -282,7 +290,7 @@ export function useRecompensas() {
         .order('pontos_necessarios');
       
       if (error) throw error;
-      return data as RecompensaFidelidade[];
+      return (data || []) as RecompensaFidelidade[];
     },
   });
 }
@@ -295,7 +303,7 @@ export function useAddRecompensa() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('recompensas_fidelidade')
         .insert({ ...recompensa, user_id: user.id })
         .select()
@@ -329,7 +337,7 @@ export function useResgatarRecompensa() {
       if (!user) throw new Error('User not authenticated');
       
       // Get reward details
-      const { data: recompensa, error: rError } = await supabase
+      const { data: recompensa, error: rError } = await db
         .from('recompensas_fidelidade')
         .select('*')
         .eq('id', recompensaId)
@@ -338,7 +346,7 @@ export function useResgatarRecompensa() {
       if (rError) throw rError;
       
       // Get client points
-      const { data: pontos, error: pError } = await supabase
+      const { data: pontos, error: pError } = await db
         .from('pontos_fidelidade')
         .select('*')
         .eq('cliente_id', clienteId)
@@ -352,7 +360,7 @@ export function useResgatarRecompensa() {
       }
       
       // Debit points
-      const { error: updateError } = await supabase
+      const { error: updateError } = await db
         .from('pontos_fidelidade')
         .update({
           pontos_disponiveis: pontos.pontos_disponiveis - recompensa.pontos_necessarios,
@@ -363,7 +371,7 @@ export function useResgatarRecompensa() {
       if (updateError) throw updateError;
       
       // Add movement
-      await supabase
+      await db
         .from('movimentos_pontos')
         .insert({
           pontos_fidelidade_id: pontos.id,
@@ -374,7 +382,7 @@ export function useResgatarRecompensa() {
       
       // Update reward quantity if limited
       if (recompensa.quantidade_disponivel !== null) {
-        await supabase
+        await db
           .from('recompensas_fidelidade')
           .update({ quantidade_disponivel: recompensa.quantidade_disponivel - 1 })
           .eq('id', recompensaId);

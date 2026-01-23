@@ -226,25 +226,25 @@ export default function EntregasPage() {
           icon={Package}
           label="Total de Envios"
           value={stats.total}
-          gradient="from-blue-500 to-cyan-500"
+          gradient="blue"
         />
         <MiniGradientCard
           icon={Clock}
           label="Preparando"
           value={stats.preparando}
-          gradient="from-yellow-500 to-orange-500"
+          gradient="amber"
         />
         <MiniGradientCard
           icon={Truck}
           label="Em Trânsito"
           value={stats.emTransito}
-          gradient="from-purple-500 to-pink-500"
+          gradient="purple"
         />
         <MiniGradientCard
           icon={CheckCircle2}
           label="Entregues"
           value={stats.entregues}
-          gradient="from-green-500 to-emerald-500"
+          gradient="green"
         />
       </div>
       

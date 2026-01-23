@@ -219,7 +219,10 @@ export default function FidelidadePage() {
   const handleCreateDefaultNiveis = async () => {
     try {
       for (const nivel of defaultNiveis) {
-        await addNivelMutation.mutateAsync(nivel);
+        await addNivelMutation.mutateAsync({
+          ...nivel,
+          beneficios: null,
+        });
       }
       toast.success('Níveis padrão criados!');
     } catch (error) {
@@ -284,25 +287,25 @@ export default function FidelidadePage() {
           icon={Users}
           label="Clientes Participantes"
           value={clientesComPontos}
-          gradient="from-blue-500 to-cyan-500"
+          gradient="blue"
         />
         <MiniGradientCard
           icon={Star}
           label="Total de Pontos"
           value={totalPontos.toLocaleString('pt-BR')}
-          gradient="from-yellow-500 to-orange-500"
+          gradient="amber"
         />
         <MiniGradientCard
           icon={Trophy}
           label="Níveis Cadastrados"
           value={niveis.length}
-          gradient="from-purple-500 to-pink-500"
+          gradient="purple"
         />
         <MiniGradientCard
           icon={Gift}
           label="Recompensas Ativas"
           value={recompensas.length}
-          gradient="from-green-500 to-emerald-500"
+          gradient="green"
         />
       </div>
       
