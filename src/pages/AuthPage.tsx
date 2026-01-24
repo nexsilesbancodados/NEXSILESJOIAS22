@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail, Lock, User, ArrowRight, Sparkles, Shield, Zap, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logo from '@/assets/logo.png';
 import { ValidatedInput } from '@/components/ui/validated-input';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres');
@@ -21,7 +21,6 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   
-  // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/', { replace: true });
@@ -183,277 +182,460 @@ export default function AuthPage() {
     toast.success('Email de recuperação enviado!');
   };
 
-  // Show loading while checking auth status
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+            <Loader2 className="w-8 h-8 animate-spin text-white" />
+          </div>
+          <p className="text-muted-foreground text-sm">Carregando...</p>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="auth-background flex items-center justify-center p-4">
-      {/* Floating shapes */}
-      <div className="floating-shape w-96 h-96 bg-primary -top-48 -left-48" style={{ animationDelay: '0s' }} />
-      <div className="floating-shape w-80 h-80 bg-accent -bottom-40 -right-40" style={{ animationDelay: '-5s' }} />
-      <div className="floating-shape w-64 h-64 bg-primary top-1/2 left-1/4" style={{ animationDelay: '-10s' }} />
-
-      <div className="relative z-10 w-full max-w-md animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-2xl glass-card flex items-center justify-center shadow-[var(--shadow-large)]">
-            <img src={logo} alt="Nexsiles" className="w-16 h-16 object-contain" width={64} height={64} decoding="async" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gradient">
-            Nexsiles
-          </h1>
-          <p className="text-muted-foreground text-sm mt-2">Sistema de Gestão de Semijoias</p>
+    <div className="min-h-screen w-full flex">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/80">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }} />
         </div>
+        
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 opacity-10" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+          backgroundSize: '40px 40px'
+        }} />
 
-        <Card className="auth-card">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-2">
-              <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Entrar
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                Criar Conta
-              </TabsTrigger>
-            </TabsList>
+        {/* Content */}
+        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
+          {/* Logo */}
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex items-center gap-4"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-xl">
+              <img src={logo} alt="Nexsiles" className="w-9 h-9 object-contain" />
+            </div>
+            <span className="text-2xl font-bold tracking-tight">Nexsiles</span>
+          </motion.div>
 
-            <TabsContent value="login" className="animate-fade-in">
-              <form onSubmit={handleLogin}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-semibold">Bem-vindo de volta</CardTitle>
-                  <CardDescription className="text-sm">Entre com suas credenciais para acessar</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ValidatedInput
-                    id="login-email"
-                    type="email"
-                    label="Email"
-                    placeholder="seu@email.com"
-                    value={loginEmail}
-                    onChange={(e) => {
-                      setLoginEmail(e.target.value);
-                      if (loginTouched.email) {
-                        setLoginErrors(prev => ({ ...prev, email: validateLoginField('email', e.target.value) }));
-                      }
-                    }}
-                    onBlur={() => handleLoginBlur('email', loginEmail)}
-                    error={loginErrors.email}
-                    touched={loginTouched.email}
-                    required
-                    className="h-11"
-                  />
-                  <ValidatedInput
-                    id="login-password"
-                    type="password"
-                    label="Senha"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => {
-                      setLoginPassword(e.target.value);
-                      if (loginTouched.password) {
-                        setLoginErrors(prev => ({ ...prev, password: validateLoginField('password', e.target.value) }));
-                      }
-                    }}
-                    onBlur={() => handleLoginBlur('password', loginPassword)}
-                    error={loginErrors.password}
-                    touched={loginTouched.password}
-                    required
-                    className="h-11"
-                  />
-                </CardContent>
-                <CardFooter className="flex-col gap-3">
-                  <Button type="submit" className="w-full btn-gold h-11" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Entrando...
-                      </>
-                    ) : (
-                      'Entrar'
-                    )}
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="text-sm text-muted-foreground"
-                    onClick={() => setActiveTab('reset')}
-                  >
-                    Esqueceu sua senha?
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
+          {/* Main Content */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="space-y-8"
+          >
+            <div className="space-y-4">
+              <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
+                Gestão completa para seu negócio de semijoias
+              </h1>
+              <p className="text-xl text-white/80 max-w-md">
+                Controle vendas, estoque, revendedoras e muito mais em uma única plataforma.
+              </p>
+            </div>
 
-            <TabsContent value="signup" className="animate-fade-in">
-              <form onSubmit={handleSignup}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-semibold">Criar nova conta</CardTitle>
-                  <CardDescription className="text-sm">Preencha os dados para começar</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ValidatedInput
-                    id="signup-nome"
-                    label="Nome"
-                    placeholder="Seu nome"
-                    value={signupNome}
-                    onChange={(e) => {
-                      setSignupNome(e.target.value);
-                      if (signupTouched.nome) {
-                        setSignupErrors(prev => ({ ...prev, nome: validateSignupField('nome', e.target.value) }));
-                      }
-                    }}
-                    onBlur={() => handleSignupBlur('nome', signupNome)}
-                    error={signupErrors.nome}
-                    touched={signupTouched.nome}
-                    required
-                    className="h-11"
-                  />
-                  <ValidatedInput
-                    id="signup-email"
-                    type="email"
-                    label="Email"
-                    placeholder="seu@email.com"
-                    value={signupEmail}
-                    onChange={(e) => {
-                      setSignupEmail(e.target.value);
-                      if (signupTouched.email) {
-                        setSignupErrors(prev => ({ ...prev, email: validateSignupField('email', e.target.value) }));
-                      }
-                    }}
-                    onBlur={() => handleSignupBlur('email', signupEmail)}
-                    error={signupErrors.email}
-                    touched={signupTouched.email}
-                    required
-                    className="h-11"
-                  />
-                  <ValidatedInput
-                    id="signup-password"
-                    type="password"
-                    label="Senha"
-                    placeholder="••••••••"
-                    value={signupPassword}
-                    onChange={(e) => {
-                      setSignupPassword(e.target.value);
-                      if (signupTouched.password) {
-                        setSignupErrors(prev => ({ ...prev, password: validateSignupField('password', e.target.value) }));
-                      }
-                    }}
-                    onBlur={() => handleSignupBlur('password', signupPassword)}
-                    error={signupErrors.password}
-                    touched={signupTouched.password}
-                    required
-                    className="h-11"
-                  />
-                  <ValidatedInput
-                    id="signup-confirm"
-                    type="password"
-                    label="Confirmar Senha"
-                    placeholder="••••••••"
-                    value={signupConfirmPassword}
-                    onChange={(e) => {
-                      setSignupConfirmPassword(e.target.value);
-                      if (signupTouched.confirmPassword) {
-                        setSignupErrors(prev => ({ ...prev, confirmPassword: validateSignupField('confirmPassword', e.target.value) }));
-                      }
-                    }}
-                    onBlur={() => handleSignupBlur('confirmPassword', signupConfirmPassword)}
-                    error={signupErrors.confirmPassword}
-                    touched={signupTouched.confirmPassword}
-                    required
-                    className="h-11"
-                  />
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full btn-gold h-11" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Criando conta...
-                      </>
-                    ) : (
-                      'Criar Conta'
-                    )}
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
+            {/* Features */}
+            <div className="grid gap-4 max-w-md">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Zap className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">PDV Rápido</p>
+                  <p className="text-sm text-white/70">Vendas em segundos com interface intuitiva</p>
+                </div>
+              </motion.div>
 
-            <TabsContent value="reset" className="animate-fade-in">
-              <form onSubmit={handleResetPassword}>
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-semibold">Recuperar Senha</CardTitle>
-                  <CardDescription className="text-sm">
-                    {resetSent 
-                      ? 'Verifique seu email para redefinir sua senha'
-                      : 'Digite seu email para receber o link de recuperação'
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {!resetSent && (
-                    <ValidatedInput
-                      id="reset-email"
-                      type="email"
-                      label="Email"
-                      placeholder="seu@email.com"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      required
-                      className="h-11"
-                    />
-                  )}
-                </CardContent>
-                <CardFooter className="flex-col gap-3">
-                  {!resetSent ? (
-                    <Button type="submit" className="w-full btn-gold h-11" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Enviando...
-                        </>
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.5 }}
+                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">Catálogos Online</p>
+                  <p className="text-sm text-white/70">Compartilhe produtos via WhatsApp</p>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.6 }}
+                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">Dados Seguros</p>
+                  <p className="text-sm text-white/70">Seus dados protegidos na nuvem</p>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Footer */}
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="text-sm text-white/60"
+          >
+            © 2024 Nexsiles. Todos os direitos reservados.
+          </motion.p>
+        </div>
+      </div>
+
+      {/* Right Side - Auth Form */}
+      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/25">
+              <img src={logo} alt="Nexsiles" className="w-12 h-12 object-contain" />
+            </div>
+            <h1 className="text-2xl font-bold text-gradient">Nexsiles</h1>
+            <p className="text-sm text-muted-foreground mt-1">Sistema de Gestão de Semijoias</p>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {activeTab === 'reset' ? (
+              <motion.div
+                key="reset"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-0 shadow-xl shadow-black/5 bg-card/80 backdrop-blur-sm">
+                  <form onSubmit={handleResetPassword}>
+                    <CardHeader className="pb-4 space-y-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="w-fit -ml-2 text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setActiveTab('login');
+                          setResetSent(false);
+                        }}
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Voltar
+                      </Button>
+                      <CardTitle className="text-2xl font-bold">Recuperar Senha</CardTitle>
+                      <CardDescription>
+                        {resetSent 
+                          ? 'Enviamos um link de recuperação para seu email.'
+                          : 'Digite seu email para receber o link de recuperação.'
+                        }
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {!resetSent ? (
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                            <ValidatedInput
+                              id="reset-email"
+                              type="email"
+                              placeholder="seu@email.com"
+                              value={resetEmail}
+                              onChange={(e) => setResetEmail(e.target.value)}
+                              required
+                              className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                            />
+                          </div>
+                        </div>
                       ) : (
-                        'Enviar Link'
+                        <div className="py-8 text-center">
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-success/10 flex items-center justify-center">
+                            <Mail className="w-8 h-8 text-success" />
+                          </div>
+                          <p className="text-muted-foreground">
+                            Verifique sua caixa de entrada e spam.
+                          </p>
+                        </div>
                       )}
-                    </Button>
-                  ) : (
-                    <Button 
-                      type="button" 
-                      className="w-full btn-gold h-11"
-                      onClick={() => {
-                        setActiveTab('login');
-                        setResetSent(false);
-                        setResetEmail('');
-                      }}
-                    >
-                      Voltar ao Login
-                    </Button>
-                  )}
-                  <Button 
-                    type="button" 
-                    variant="link" 
-                    className="text-sm text-muted-foreground"
-                    onClick={() => {
-                      setActiveTab('login');
-                      setResetSent(false);
-                    }}
-                  >
-                    Voltar
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </Card>
+                    </CardContent>
+                    <CardFooter className="flex-col gap-3">
+                      {!resetSent ? (
+                        <Button type="submit" className="w-full h-12 btn-gold text-base font-medium" disabled={loading}>
+                          {loading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <>
+                              Enviar Link
+                              <ArrowRight className="w-5 h-5 ml-2" />
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button 
+                          type="button" 
+                          className="w-full h-12 btn-gold text-base font-medium"
+                          onClick={() => {
+                            setActiveTab('login');
+                            setResetSent(false);
+                            setResetEmail('');
+                          }}
+                        >
+                          Voltar ao Login
+                        </Button>
+                      )}
+                    </CardFooter>
+                  </form>
+                </Card>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="auth"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="border-0 shadow-xl shadow-black/5 bg-card/80 backdrop-blur-sm">
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <CardHeader className="pb-2">
+                      <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-muted/50">
+                        <TabsTrigger 
+                          value="login" 
+                          className="h-10 text-base font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        >
+                          Entrar
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="signup" 
+                          className="h-10 text-base font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        >
+                          Criar Conta
+                        </TabsTrigger>
+                      </TabsList>
+                    </CardHeader>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2024 Nexsiles. Todos os direitos reservados.
-        </p>
+                    <TabsContent value="login" className="mt-0">
+                      <form onSubmit={handleLogin}>
+                        <CardHeader className="pt-4 pb-2">
+                          <CardTitle className="text-2xl font-bold">Bem-vindo de volta</CardTitle>
+                          <CardDescription>Entre com suas credenciais para acessar</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                              <ValidatedInput
+                                id="login-email"
+                                type="email"
+                                placeholder="seu@email.com"
+                                value={loginEmail}
+                                onChange={(e) => {
+                                  setLoginEmail(e.target.value);
+                                  if (loginTouched.email) {
+                                    setLoginErrors(prev => ({ ...prev, email: validateLoginField('email', e.target.value) }));
+                                  }
+                                }}
+                                onBlur={() => handleLoginBlur('email', loginEmail)}
+                                error={loginErrors.email}
+                                touched={loginTouched.email}
+                                required
+                                className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                              <ValidatedInput
+                                id="login-password"
+                                type="password"
+                                placeholder="••••••••"
+                                value={loginPassword}
+                                onChange={(e) => {
+                                  setLoginPassword(e.target.value);
+                                  if (loginTouched.password) {
+                                    setLoginErrors(prev => ({ ...prev, password: validateLoginField('password', e.target.value) }));
+                                  }
+                                }}
+                                onBlur={() => handleLoginBlur('password', loginPassword)}
+                                error={loginErrors.password}
+                                touched={loginTouched.password}
+                                required
+                                className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                              />
+                            </div>
+                          </div>
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            className="px-0 text-sm text-muted-foreground hover:text-primary"
+                            onClick={() => setActiveTab('reset')}
+                          >
+                            Esqueceu sua senha?
+                          </Button>
+                        </CardContent>
+                        <CardFooter>
+                          <Button type="submit" className="w-full h-12 btn-gold text-base font-medium" disabled={loading}>
+                            {loading ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <>
+                                Entrar
+                                <ArrowRight className="w-5 h-5 ml-2" />
+                              </>
+                            )}
+                          </Button>
+                        </CardFooter>
+                      </form>
+                    </TabsContent>
+
+                    <TabsContent value="signup" className="mt-0">
+                      <form onSubmit={handleSignup}>
+                        <CardHeader className="pt-4 pb-2">
+                          <CardTitle className="text-2xl font-bold">Criar nova conta</CardTitle>
+                          <CardDescription>Preencha seus dados para começar</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                              <ValidatedInput
+                                id="signup-nome"
+                                placeholder="Seu nome"
+                                value={signupNome}
+                                onChange={(e) => {
+                                  setSignupNome(e.target.value);
+                                  if (signupTouched.nome) {
+                                    setSignupErrors(prev => ({ ...prev, nome: validateSignupField('nome', e.target.value) }));
+                                  }
+                                }}
+                                onBlur={() => handleSignupBlur('nome', signupNome)}
+                                error={signupErrors.nome}
+                                touched={signupTouched.nome}
+                                required
+                                className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                              <ValidatedInput
+                                id="signup-email"
+                                type="email"
+                                placeholder="seu@email.com"
+                                value={signupEmail}
+                                onChange={(e) => {
+                                  setSignupEmail(e.target.value);
+                                  if (signupTouched.email) {
+                                    setSignupErrors(prev => ({ ...prev, email: validateSignupField('email', e.target.value) }));
+                                  }
+                                }}
+                                onBlur={() => handleSignupBlur('email', signupEmail)}
+                                error={signupErrors.email}
+                                touched={signupTouched.email}
+                                required
+                                className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                              <ValidatedInput
+                                id="signup-password"
+                                type="password"
+                                placeholder="Senha (mín. 6 caracteres)"
+                                value={signupPassword}
+                                onChange={(e) => {
+                                  setSignupPassword(e.target.value);
+                                  if (signupTouched.password) {
+                                    setSignupErrors(prev => ({ ...prev, password: validateSignupField('password', e.target.value) }));
+                                  }
+                                }}
+                                onBlur={() => handleSignupBlur('password', signupPassword)}
+                                error={signupErrors.password}
+                                touched={signupTouched.password}
+                                required
+                                className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                              />
+                            </div>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                              <ValidatedInput
+                                id="signup-confirm"
+                                type="password"
+                                placeholder="Confirmar senha"
+                                value={signupConfirmPassword}
+                                onChange={(e) => {
+                                  setSignupConfirmPassword(e.target.value);
+                                  if (signupTouched.confirmPassword) {
+                                    setSignupErrors(prev => ({ ...prev, confirmPassword: validateSignupField('confirmPassword', e.target.value) }));
+                                  }
+                                }}
+                                onBlur={() => handleSignupBlur('confirmPassword', signupConfirmPassword)}
+                                error={signupErrors.confirmPassword}
+                                touched={signupTouched.confirmPassword}
+                                required
+                                className="h-12 pl-11 bg-muted/50 border-muted-foreground/20 focus:border-primary"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button type="submit" className="w-full h-12 btn-gold text-base font-medium" disabled={loading}>
+                            {loading ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <>
+                                Criar Conta
+                                <ArrowRight className="w-5 h-5 ml-2" />
+                              </>
+                            )}
+                          </Button>
+                        </CardFooter>
+                      </form>
+                    </TabsContent>
+                  </Tabs>
+                </Card>
+
+                {/* Terms */}
+                <p className="text-center text-xs text-muted-foreground mt-6">
+                  Ao criar uma conta, você concorda com nossos{' '}
+                  <button className="text-primary hover:underline">Termos de Uso</button>
+                  {' '}e{' '}
+                  <button className="text-primary hover:underline">Política de Privacidade</button>
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Mobile Footer */}
+          <p className="lg:hidden text-center text-xs text-muted-foreground mt-8">
+            © 2024 Nexsiles. Todos os direitos reservados.
+          </p>
+        </motion.div>
       </div>
     </div>
   );
