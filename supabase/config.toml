@@ -1,7 +1,1 @@
-project_id = "acmgwqjkvnuncplnypcm"
-
-[functions.verificar-alertas]
-verify_jwt = false
-
-[functions.calcular-frete]
-verify_jwt = false
+project_id = "ljofnwcvpzqlhagejgbk"
