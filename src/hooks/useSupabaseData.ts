@@ -1588,29 +1588,37 @@ export function useAddMovimento() {
   });
 }
 
+// Hook para histórico de sessões de caixa
+export function useHistoricoCaixas() {
+  return useQuery({
+    queryKey: ['historico-caixas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('caixa_sessoes')
+        .select('*')
+        .eq('status', 'fechado')
+        .order('data_fechamento', { ascending: false })
+        .limit(50);
+      
+      if (error) throw error;
+      return data as CaixaSessao[];
+    },
+  });
+}
+
 // ========== CONFIGURAÇÕES ==========
-// Persist configurations to Supabase configuracoes table
+// Persist configurations to Supabase configuracoes table (global settings)
 export function useConfiguracoes() {
   return useQuery({
     queryKey: ['configuracoes'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return {};
-      
       const { data, error } = await supabase
         .from('configuracoes')
-        .select('chave, valor')
-        .eq('user_id', user.id);
+        .select('chave, valor');
       
       if (error) {
         console.error('Error fetching configuracoes:', error);
-        // Fallback to localStorage for migration
-        try {
-          const saved = localStorage.getItem('app_configuracoes');
-          return saved ? JSON.parse(saved) : {};
-        } catch {
-          return {};
-        }
+        return {};
       }
       
       // Convert array of {chave, valor} to object
@@ -1631,27 +1639,28 @@ export function useSaveConfiguracoes() {
   
   return useMutation({
     mutationFn: async (configs: Record<string, string>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-      
       // Upsert each config key-value pair
-      const upserts = Object.entries(configs).map(([chave, valor]) => ({
-        user_id: user.id,
-        chave,
-        valor,
-        updated_at: new Date().toISOString(),
-      }));
-      
-      for (const item of upserts) {
-        const { error } = await supabase
+      for (const [chave, valor] of Object.entries(configs)) {
+        // Check if config exists
+        const { data: existing } = await supabase
           .from('configuracoes')
-          .upsert(item, { onConflict: 'user_id,chave' });
+          .select('id')
+          .eq('chave', chave)
+          .maybeSingle();
         
-        if (error) throw error;
+        if (existing) {
+          const { error } = await supabase
+            .from('configuracoes')
+            .update({ valor, updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from('configuracoes')
+            .insert({ chave, valor });
+          if (error) throw error;
+        }
       }
-      
-      // Clear localStorage after successful migration
-      localStorage.removeItem('app_configuracoes');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['configuracoes'] });
