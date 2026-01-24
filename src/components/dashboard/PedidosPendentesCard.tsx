@@ -3,6 +3,9 @@ import { ShoppingBag, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Use loose typing to bypass schema validation until migrations are applied
+const db = supabase as any;
+
 interface PedidoStats {
   pendentes: number;
   confirmados: number;
@@ -18,18 +21,18 @@ export const PedidosPendentesCard = memo(function PedidosPendentesCard() {
       if (!user) return { pendentes: 0, confirmados: 0, cancelados: 0, total: 0 };
       
       // First get user's catalogs
-      const { data: userCatalogos } = await supabase
+      const { data: userCatalogos } = await db
         .from('catalogos')
         .select('id')
         .eq('user_id', user.id);
       
-      const catalogoIds = userCatalogos?.map(c => c.id) || [];
+      const catalogoIds = userCatalogos?.map((c: any) => c.id) || [];
       if (catalogoIds.length === 0) {
         return { pendentes: 0, confirmados: 0, cancelados: 0, total: 0 };
       }
       
       // Then get orders from those catalogs
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('pedidos_catalogo')
         .select('status')
         .in('catalogo_id', catalogoIds);

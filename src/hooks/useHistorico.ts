@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+// Use loose typing to bypass schema validation until migrations are applied
+const db = supabase as any;
+
 export interface HistoricoAtividade {
   id: string;
   tipo: 'criacao' | 'atualizacao' | 'exclusao';
@@ -45,7 +48,7 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
-      let query = supabase
+      let query = db
         .from('historico_atividades')
         .select('*')
         .eq('user_id', user.id)
