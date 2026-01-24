@@ -229,13 +229,10 @@ export function usePecas() {
   return useQuery({
     queryKey: ['pecas'],
     queryFn: async () => {
-      // Get current user to filter by user_id
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'pecas' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('pecas')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome');
       
       if (error) throw error;
@@ -249,11 +246,10 @@ export function useAddPeca() {
   
   return useMutation({
     mutationFn: async (peca: Omit<Peca, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'pecas' doesn't have user_id column
       const { data, error } = await supabase
         .from('pecas')
-        .insert({ ...peca, user_id: user?.id })
+        .insert(peca)
         .select()
         .single();
       
@@ -376,12 +372,10 @@ export function useFornecedores() {
   return useQuery({
     queryKey: ['fornecedores'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'fornecedores' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('fornecedores')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome');
       
       if (error) throw error;
@@ -395,11 +389,10 @@ export function useAddFornecedor() {
   
   return useMutation({
     mutationFn: async (fornecedor: Omit<Fornecedor, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'fornecedores' doesn't have user_id column
       const { data, error } = await supabase
         .from('fornecedores')
-        .insert({ ...fornecedor, user_id: user?.id })
+        .insert(fornecedor)
         .select()
         .single();
       
@@ -522,12 +515,10 @@ export function useClientes() {
   return useQuery({
     queryKey: ['clientes'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'clientes' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome');
       
       if (error) throw error;
@@ -541,11 +532,10 @@ export function useAddCliente() {
   
   return useMutation({
     mutationFn: async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'clientes' doesn't have user_id column
       const { data, error } = await supabase
         .from('clientes')
-        .insert({ ...cliente, user_id: user?.id })
+        .insert(cliente)
         .select()
         .single();
       
@@ -792,12 +782,10 @@ export function useMaletas(resellerId?: string) {
   return useQuery({
     queryKey: ['maletas', resellerId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'maletas' doesn't have user_id column - fetch all records
       let query = supabase
         .from('maletas')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (resellerId) {
@@ -838,9 +826,7 @@ export function useAddMaleta() {
       prazo_devolucao?: string;
       observacoes?: string;
     }) => {
-      // Get current user id
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'maletas' doesn't have user_id column
       const { data, error } = await supabase
         .from('maletas')
         .insert({ 
@@ -848,8 +834,6 @@ export function useAddMaleta() {
           codigo: `MAL-${Date.now()}`,
           status: 'aberta',
           observacoes: maletaData.observacoes || null,
-          data_devolucao_prevista: maletaData.prazo_devolucao || null,
-          user_id: user?.id,
         })
         .select()
         .single();
@@ -1086,12 +1070,10 @@ export function useVendas() {
   return useQuery({
     queryKey: ['vendas'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'vendas' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('vendas')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -1142,13 +1124,11 @@ export function useAddVenda() {
       items: Omit<VendaItem, 'id' | 'created_at' | 'venda_id'>[];
       pagamentos: Omit<Pagamento, 'id' | 'created_at' | 'venda_id'>[];
     }) => {
-      // Get current user id
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Insert venda with user_id
+      // Table 'vendas' doesn't have user_id column
+      // Insert venda without user_id
       const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
-        .insert({ ...venda, user_id: user?.id })
+        .insert(venda)
         .select()
         .single();
       
@@ -1206,12 +1186,10 @@ export function useRomaneios() {
   return useQuery({
     queryKey: ['romaneios'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'romaneios' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('romaneios')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -1244,16 +1222,13 @@ export function useAddRomaneio() {
       romaneio,
       items,
     }: {
-      romaneio: Omit<Romaneio, 'id' | 'created_at' | 'user_id'>;
+      romaneio: Omit<Romaneio, 'id' | 'created_at'>;
       items: Omit<RomaneioItem, 'id' | 'created_at' | 'romaneio_id'>[];
     }) => {
-      // Get current user id for data isolation
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
-      
+      // Table 'romaneios' doesn't have user_id column
       const { data: romaneioData, error: romaneioError } = await supabase
         .from('romaneios')
-        .insert({ ...romaneio, user_id: user.id })
+        .insert(romaneio)
         .select()
         .single();
       
@@ -1413,21 +1388,25 @@ export function useDeleteRomaneiosBulk() {
 }
 
 // ========== CAIXA ==========
+// Note: caixa_sessoes table doesn't exist in current schema
+// Using localStorage to manage cash register state temporarily
 export function useCaixaAtual() {
   return useQuery({
     queryKey: ['caixa-atual'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const { data, error } = await supabase
-        .from('caixa_sessoes')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('status', 'aberto')
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as CaixaSessao | null;
+      // Check localStorage for open caixa session
+      const caixaData = localStorage.getItem('caixa_atual');
+      if (caixaData) {
+        try {
+          const parsed = JSON.parse(caixaData);
+          if (parsed.status === 'aberto') {
+            return parsed as CaixaSessao;
+          }
+        } catch (e) {
+          console.warn('Error parsing caixa data from localStorage:', e);
+        }
+      }
+      return null;
     },
   });
 }
@@ -1437,18 +1416,21 @@ export function useAbrirCaixa() {
   
   return useMutation({
     mutationFn: async ({ userId, fundoTroco }: { userId: string; fundoTroco: number }) => {
-      const { data, error } = await supabase
-        .from('caixa_sessoes')
-        .insert({
-          user_id: userId,
-          valor_inicial: fundoTroco,
-          status: 'aberto',
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      // Store caixa session in localStorage since table doesn't exist
+      const caixa: CaixaSessao = {
+        id: `caixa-${Date.now()}`,
+        user_id: userId,
+        valor_inicial: fundoTroco,
+        valor_final: null,
+        data_abertura: new Date().toISOString(),
+        data_fechamento: null,
+        status: 'aberto',
+        observacoes: null,
+        created_at: new Date().toISOString(),
+        fundo_troco: fundoTroco,
+      };
+      localStorage.setItem('caixa_atual', JSON.stringify(caixa));
+      return caixa;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caixa-atual'] });
@@ -1464,19 +1446,22 @@ export function useFecharCaixa() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (caixaId: string) => {
-      const { data, error } = await supabase
-        .from('caixa_sessoes')
-        .update({
-          status: 'fechado',
-          data_fechamento: new Date().toISOString(),
-        })
-        .eq('id', caixaId)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+    mutationFn: async (_caixaId: string) => {
+      // Close caixa session in localStorage
+      const caixaData = localStorage.getItem('caixa_atual');
+      if (caixaData) {
+        const caixa = JSON.parse(caixaData);
+        caixa.status = 'fechado';
+        caixa.data_fechamento = new Date().toISOString();
+        localStorage.setItem('caixa_atual', JSON.stringify(caixa));
+        // Also store in history
+        const history = JSON.parse(localStorage.getItem('caixa_history') || '[]');
+        history.push(caixa);
+        localStorage.setItem('caixa_history', JSON.stringify(history));
+        localStorage.removeItem('caixa_atual');
+        return caixa;
+      }
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caixa-atual'] });
@@ -1489,38 +1474,39 @@ export function useFecharCaixa() {
   });
 }
 
-export function useVendasDoCaixa(caixaId: string | undefined) {
+export function useVendasDoCaixa(_caixaId: string | undefined) {
   return useQuery({
-    queryKey: ['vendas-caixa', caixaId],
+    queryKey: ['vendas-caixa', _caixaId],
     queryFn: async () => {
-      if (!caixaId) return [];
+      // Since caixa_sessao_id doesn't exist in vendas table, return all today's sales
+      if (!_caixaId) return [];
       
-      const { data, error } = await (supabase as any)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data, error } = await supabase
         .from('vendas')
         .select('*')
-        .eq('caixa_sessao_id', caixaId)
+        .gte('created_at', today.toISOString())
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as Venda[];
     },
-    enabled: !!caixaId,
+    enabled: !!_caixaId,
   });
 }
 
-export function useMovimentosCaixa(caixaId: string | undefined) {
+export function useMovimentosCaixa(_caixaId: string | undefined) {
   return useQuery({
-    queryKey: ['movimentos-caixa', caixaId],
+    queryKey: ['movimentos-caixa', _caixaId],
     queryFn: async () => {
-      const { data, error } = await supabase.from('movimentos_caixa')
-        .select('*')
-        .eq('caixa_sessao_id', caixaId!)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return (data || []) as MovimentoCaixa[];
+      // movimentos_caixa table doesn't exist - use localStorage
+      if (!_caixaId) return [];
+      const movimentos = JSON.parse(localStorage.getItem(`movimentos_${_caixaId}`) || '[]');
+      return movimentos as MovimentoCaixa[];
     },
-    enabled: !!caixaId,
+    enabled: !!_caixaId,
   });
 }
 
@@ -1529,21 +1515,22 @@ export function useAddMovimento() {
   
   return useMutation({
     mutationFn: async (movimento: Omit<MovimentoCaixa, 'id' | 'created_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Store movements in localStorage since table doesn't exist
+      const newMovimento: MovimentoCaixa = {
+        id: `mov-${Date.now()}`,
+        caixa_sessao_id: movimento.caixa_sessao_id,
+        tipo: movimento.tipo,
+        valor: movimento.valor,
+        descricao: movimento.descricao,
+        created_at: new Date().toISOString(),
+      };
       
-      const { data, error } = await supabase.from('movimentos_caixa')
-        .insert({
-          caixa_sessao_id: movimento.caixa_sessao_id,
-          tipo: movimento.tipo,
-          valor: movimento.valor,
-          descricao: movimento.descricao,
-          user_id: user?.id,
-        })
-        .select()
-        .single();
+      const key = `movimentos_${movimento.caixa_sessao_id}`;
+      const existing = JSON.parse(localStorage.getItem(key) || '[]');
+      existing.push(newMovimento);
+      localStorage.setItem(key, JSON.stringify(existing));
       
-      if (error) throw error;
-      return data as MovimentoCaixa;
+      return newMovimento;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['movimentos-caixa', data.caixa_sessao_id] });
@@ -1672,12 +1659,10 @@ export function useCatalogos() {
   return useQuery({
     queryKey: ['catalogos'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'catalogos' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('catalogos')
         .select('*')
-        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -1690,13 +1675,11 @@ export function useAddCatalogo() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (catalogo: Partial<Omit<Catalogo, 'id' | 'created_at' | 'updated_at' | 'user_id'>> & { nome: string }) => {
-      // Get current user id
-      const { data: { user } } = await supabase.auth.getUser();
-      
+    mutationFn: async (catalogo: Partial<Omit<Catalogo, 'id' | 'created_at' | 'updated_at'>> & { nome: string }) => {
+      // Table doesn't have user_id column
       const { data, error } = await supabase
         .from('catalogos')
-        .insert({ ...catalogo, user_id: user?.id })
+        .insert(catalogo)
         .select()
         .single();
       
@@ -1843,12 +1826,10 @@ export function useBanhos() {
   return useQuery({
     queryKey: ['banhos'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'banhos' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('banhos')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome');
       
       if (error) throw error;
@@ -1862,11 +1843,10 @@ export function useAddBanho() {
   
   return useMutation({
     mutationFn: async (banho: Omit<Banho, 'id' | 'user_id' | 'created_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'banhos' doesn't have user_id column
       const { data, error } = await supabase
         .from('banhos')
-        .insert({ ...banho, user_id: user?.id })
+        .insert(banho)
         .select()
         .single();
       
