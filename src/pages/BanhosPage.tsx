@@ -67,7 +67,7 @@ import {
   Banho,
   EnvioGalvanica
 } from '@/hooks/useSupabaseData';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Eye, Lightbulb, Info } from 'lucide-react';

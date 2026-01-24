@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 import { toast } from '@/hooks/use-toast';
 
-// Use loose typing to bypass schema validation until migrations are applied
-const db = supabase as any;
+const db = supabase;
 
 export interface Cliente {
   id: string;

@@ -1,9 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 import { toast } from 'sonner';
 
-// Loose-typed supabase client for tables not yet in schema
-const db = supabase as any;
+const db = supabase;
 
 export interface HistoricoPreco {
   id: string;

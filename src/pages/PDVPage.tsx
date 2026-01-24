@@ -68,7 +68,7 @@ import { FechamentoCaixaReport } from '@/components/pdv/FechamentoCaixaReport';
 import { toast } from 'sonner';
 import { CupomInput } from '@/components/pdv/CupomInput';
 import { useUsarCupom, type ValidacaoCupom } from '@/hooks/useCampanhas';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 import { 
   usePecas, 
   useCaixaAtual, 

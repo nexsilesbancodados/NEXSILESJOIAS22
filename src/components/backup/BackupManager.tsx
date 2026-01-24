@@ -26,7 +26,7 @@ import {
   ShoppingBag
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { db, supabase } from '@/lib/supabase-db';
 import { useAuth } from '@/contexts/AuthContext';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -119,8 +119,8 @@ export function BackupManager() {
   };
 
   const fetchTableData = async (tableName: string) => {
-    const { data, error } = await supabase
-      .from(tableName as any)
+    const { data, error } = await db
+      .from(tableName)
       .select('*');
     
     if (error) {
@@ -318,8 +318,8 @@ export function BackupManager() {
             cleanRow.user_id = user?.id;
           }
           
-          const { error } = await supabase
-            .from(tableName as any)
+          const { error } = await db
+            .from(tableName)
             .upsert(cleanRow, { onConflict: 'id' });
 
           if (error) {
@@ -835,9 +835,9 @@ export function BackupManager() {
         try {
           const data = mapRowToTable(row, selectedImportType);
           
-          const { error } = await supabase
+          const { error } = await db
             .from(selectedImportType)
-            .insert(data as any);
+            .insert(data);
 
           if (error) {
             console.error(`Error inserting row ${i + 1}:`, error);

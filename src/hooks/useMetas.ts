@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { db, supabase } from '@/lib/supabase-db';
 import { toast } from '@/hooks/use-toast';
 
 export interface Meta {
@@ -21,7 +21,7 @@ export function useMetas(ano?: number) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('metas')
         .select('*')
         .eq('user_id', user.id)
@@ -44,7 +44,7 @@ export function useMetaAtual() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('metas')
         .select('*')
         .eq('user_id', user.id)
@@ -67,7 +67,7 @@ export function useAddMeta() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('metas')
         .upsert({
           ...meta,
@@ -100,7 +100,7 @@ export function useDeleteMeta() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
       
-      const { error } = await supabase
+      const { error } = await db
         .from('metas')
         .delete()
         .eq('id', id)

@@ -1,10 +1,7 @@
 import { useState, memo, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { db, supabase } from '@/lib/supabase-db';
 import { Card, CardContent } from '@/components/ui/card';
-
-// Use loose typing to bypass schema validation until migrations are applied
-const db = supabase as any;
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -89,18 +86,18 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
       const { data: { user } } = await supabase.auth.getUser();
       
       // First get the user's catalogs
-      const { data: userCatalogos } = await supabase
+      const { data: userCatalogos } = await db
         .from('catalogos')
         .select('id')
         .eq('user_id', user?.id);
       
-      const catalogoIds = userCatalogos?.map(c => c.id) || [];
+      const catalogoIds = userCatalogos?.map((c: any) => c.id) || [];
       
       if (catalogoIds.length === 0) {
         return [];
       }
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('pedidos_catalogo')
         .select(`
           *,
@@ -116,7 +113,7 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status, pedido }: { id: string; status: string; pedido?: PedidoCatalogo }) => {
-      const { error } = await supabase
+      const { error } = await db
         .from('pedidos_catalogo')
         .update({ status })
         .eq('id', id);
@@ -124,24 +121,24 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
 
       // Se confirmado (vendido), atualizar estoque das peças
       if (status === 'confirmado') {
-        const { data: itens } = await supabase
+        const { data: itens } = await db
           .from('pedidos_catalogo_itens')
           .select('*')
           .eq('pedido_id', id);
 
         if (itens) {
-          for (const item of itens) {
+          for (const item of itens as any[]) {
             // Buscar estoque atual
-            const { data: peca } = await supabase
+            const { data: peca } = await db
               .from('pecas')
               .select('estoque')
               .eq('id', item.peca_id)
               .single();
               
             if (peca) {
-              await supabase
+              await db
                 .from('pecas')
-                .update({ estoque: Math.max(0, peca.estoque - item.quantidade) })
+                .update({ estoque: Math.max(0, (peca as any).estoque - item.quantidade) })
                 .eq('id', item.peca_id);
             }
           }
@@ -171,7 +168,7 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
 
   const deletePedido = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await db
         .from('pedidos_catalogo')
         .delete()
         .eq('id', id);
