@@ -1388,25 +1388,21 @@ export function useDeleteRomaneiosBulk() {
 }
 
 // ========== CAIXA ==========
-// Note: caixa_sessoes table doesn't exist in current schema
-// Using localStorage to manage cash register state temporarily
+// Using caixa_sessoes and movimentos_caixa tables in Supabase
 export function useCaixaAtual() {
   return useQuery({
     queryKey: ['caixa-atual'],
     queryFn: async () => {
-      // Check localStorage for open caixa session
-      const caixaData = localStorage.getItem('caixa_atual');
-      if (caixaData) {
-        try {
-          const parsed = JSON.parse(caixaData);
-          if (parsed.status === 'aberto') {
-            return parsed as CaixaSessao;
-          }
-        } catch (e) {
-          console.warn('Error parsing caixa data from localStorage:', e);
-        }
-      }
-      return null;
+      const { data, error } = await supabase
+        .from('caixa_sessoes')
+        .select('*')
+        .eq('status', 'aberto')
+        .order('data_abertura', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data as CaixaSessao | null;
     },
   });
 }
@@ -1416,21 +1412,18 @@ export function useAbrirCaixa() {
   
   return useMutation({
     mutationFn: async ({ userId, fundoTroco }: { userId: string; fundoTroco: number }) => {
-      // Store caixa session in localStorage since table doesn't exist
-      const caixa: CaixaSessao = {
-        id: `caixa-${Date.now()}`,
-        user_id: userId,
-        valor_inicial: fundoTroco,
-        valor_final: null,
-        data_abertura: new Date().toISOString(),
-        data_fechamento: null,
-        status: 'aberto',
-        observacoes: null,
-        created_at: new Date().toISOString(),
-        fundo_troco: fundoTroco,
-      };
-      localStorage.setItem('caixa_atual', JSON.stringify(caixa));
-      return caixa;
+      const { data, error } = await supabase
+        .from('caixa_sessoes')
+        .insert({
+          operador_id: userId,
+          valor_inicial: fundoTroco,
+          status: 'aberto',
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data as CaixaSessao;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caixa-atual'] });
@@ -1446,22 +1439,56 @@ export function useFecharCaixa() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (_caixaId: string) => {
-      // Close caixa session in localStorage
-      const caixaData = localStorage.getItem('caixa_atual');
-      if (caixaData) {
-        const caixa = JSON.parse(caixaData);
-        caixa.status = 'fechado';
-        caixa.data_fechamento = new Date().toISOString();
-        localStorage.setItem('caixa_atual', JSON.stringify(caixa));
-        // Also store in history
-        const history = JSON.parse(localStorage.getItem('caixa_history') || '[]');
-        history.push(caixa);
-        localStorage.setItem('caixa_history', JSON.stringify(history));
-        localStorage.removeItem('caixa_atual');
-        return caixa;
-      }
-      return null;
+    mutationFn: async (caixaId: string) => {
+      // Calculate totals from movimentos
+      const { data: movimentos } = await supabase
+        .from('movimentos_caixa')
+        .select('tipo, valor')
+        .eq('sessao_id', caixaId);
+      
+      let valorVendas = 0;
+      let valorSangrias = 0;
+      let valorSuprimentos = 0;
+      
+      movimentos?.forEach(mov => {
+        switch (mov.tipo) {
+          case 'venda':
+            valorVendas += mov.valor;
+            break;
+          case 'sangria':
+            valorSangrias += mov.valor;
+            break;
+          case 'suprimento':
+            valorSuprimentos += mov.valor;
+            break;
+        }
+      });
+      
+      // Get initial value to calculate final
+      const { data: sessao } = await supabase
+        .from('caixa_sessoes')
+        .select('valor_inicial')
+        .eq('id', caixaId)
+        .single();
+      
+      const valorFinal = (sessao?.valor_inicial || 0) + valorVendas + valorSuprimentos - valorSangrias;
+      
+      const { data, error } = await supabase
+        .from('caixa_sessoes')
+        .update({
+          status: 'fechado',
+          data_fechamento: new Date().toISOString(),
+          valor_final: valorFinal,
+          valor_vendas: valorVendas,
+          valor_sangrias: valorSangrias,
+          valor_suprimentos: valorSuprimentos,
+        })
+        .eq('id', caixaId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['caixa-atual'] });
@@ -1474,39 +1501,58 @@ export function useFecharCaixa() {
   });
 }
 
-export function useVendasDoCaixa(_caixaId: string | undefined) {
+export function useVendasDoCaixa(caixaId: string | undefined) {
   return useQuery({
-    queryKey: ['vendas-caixa', _caixaId],
+    queryKey: ['vendas-caixa', caixaId],
     queryFn: async () => {
-      // Since caixa_sessao_id doesn't exist in vendas table, return all today's sales
-      if (!_caixaId) return [];
+      if (!caixaId) return [];
       
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      // Get movements of type 'venda' for this session
+      const { data: movimentos, error: movError } = await supabase
+        .from('movimentos_caixa')
+        .select('venda_id')
+        .eq('sessao_id', caixaId)
+        .eq('tipo', 'venda');
+      
+      if (movError) throw movError;
+      
+      const vendaIds = movimentos?.map(m => m.venda_id).filter(Boolean) || [];
+      if (vendaIds.length === 0) return [];
       
       const { data, error } = await supabase
         .from('vendas')
         .select('*')
-        .gte('created_at', today.toISOString())
+        .in('id', vendaIds)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as Venda[];
     },
-    enabled: !!_caixaId,
+    enabled: !!caixaId,
   });
 }
 
-export function useMovimentosCaixa(_caixaId: string | undefined) {
+export function useMovimentosCaixa(caixaId: string | undefined) {
   return useQuery({
-    queryKey: ['movimentos-caixa', _caixaId],
+    queryKey: ['movimentos-caixa', caixaId],
     queryFn: async () => {
-      // movimentos_caixa table doesn't exist - use localStorage
-      if (!_caixaId) return [];
-      const movimentos = JSON.parse(localStorage.getItem(`movimentos_${_caixaId}`) || '[]');
-      return movimentos as MovimentoCaixa[];
+      if (!caixaId) return [];
+      
+      const { data, error } = await supabase
+        .from('movimentos_caixa')
+        .select('*')
+        .eq('sessao_id', caixaId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Map to expected interface
+      return (data || []).map(m => ({
+        ...m,
+        caixa_sessao_id: m.sessao_id,
+      })) as MovimentoCaixa[];
     },
-    enabled: !!_caixaId,
+    enabled: !!caixaId,
   });
 }
 
@@ -1515,22 +1561,22 @@ export function useAddMovimento() {
   
   return useMutation({
     mutationFn: async (movimento: Omit<MovimentoCaixa, 'id' | 'created_at'>) => {
-      // Store movements in localStorage since table doesn't exist
-      const newMovimento: MovimentoCaixa = {
-        id: `mov-${Date.now()}`,
-        caixa_sessao_id: movimento.caixa_sessao_id,
-        tipo: movimento.tipo,
-        valor: movimento.valor,
-        descricao: movimento.descricao,
-        created_at: new Date().toISOString(),
-      };
+      const { data: { user } } = await supabase.auth.getUser();
       
-      const key = `movimentos_${movimento.caixa_sessao_id}`;
-      const existing = JSON.parse(localStorage.getItem(key) || '[]');
-      existing.push(newMovimento);
-      localStorage.setItem(key, JSON.stringify(existing));
+      const { data, error } = await supabase
+        .from('movimentos_caixa')
+        .insert({
+          sessao_id: movimento.caixa_sessao_id,
+          tipo: movimento.tipo,
+          valor: movimento.valor,
+          descricao: movimento.descricao,
+          operador_id: user?.id,
+        })
+        .select()
+        .single();
       
-      return newMovimento;
+      if (error) throw error;
+      return { ...data, caixa_sessao_id: data.sessao_id } as MovimentoCaixa;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['movimentos-caixa', data.caixa_sessao_id] });

@@ -50,6 +50,54 @@ export type Database = {
         }
         Relationships: []
       }
+      caixa_sessoes: {
+        Row: {
+          created_at: string
+          data_abertura: string
+          data_fechamento: string | null
+          id: string
+          observacoes: string | null
+          operador_id: string | null
+          status: string
+          updated_at: string
+          valor_final: number | null
+          valor_inicial: number
+          valor_sangrias: number | null
+          valor_suprimentos: number | null
+          valor_vendas: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_abertura?: string
+          data_fechamento?: string | null
+          id?: string
+          observacoes?: string | null
+          operador_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_final?: number | null
+          valor_inicial?: number
+          valor_sangrias?: number | null
+          valor_suprimentos?: number | null
+          valor_vendas?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_abertura?: string
+          data_fechamento?: string | null
+          id?: string
+          observacoes?: string | null
+          operador_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_final?: number | null
+          valor_inicial?: number
+          valor_sangrias?: number | null
+          valor_suprimentos?: number | null
+          valor_vendas?: number | null
+        }
+        Relationships: []
+      }
       campanhas: {
         Row: {
           ativa: boolean | null
@@ -638,6 +686,54 @@ export type Database = {
             columns: ["revendedora_id"]
             isOneToOne: false
             referencedRelation: "revendedoras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentos_caixa: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          operador_id: string | null
+          sessao_id: string
+          tipo: string
+          valor: number
+          venda_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          operador_id?: string | null
+          sessao_id: string
+          tipo: string
+          valor: number
+          venda_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          operador_id?: string | null
+          sessao_id?: string
+          tipo?: string
+          valor?: number
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentos_caixa_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "caixa_sessoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentos_caixa_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
             referencedColumns: ["id"]
           },
         ]
