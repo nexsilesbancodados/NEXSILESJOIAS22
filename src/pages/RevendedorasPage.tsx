@@ -93,7 +93,7 @@ import { ComissaoEscala, FaixaComissao, calcularComissaoPorEscala, serializeFaix
 
 // Hook para atualizar maleta
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 
 function useUpdateMaleta() {
   const queryClient = useQueryClient();

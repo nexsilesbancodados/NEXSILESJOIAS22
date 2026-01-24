@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { db, dbRpc, supabase } from '@/lib/supabase-db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -79,7 +79,7 @@ export function useRealtimeRomaneios() {
 
           // Create notification in database
           try {
-            await supabase.rpc('criar_notificacao', {
+            await dbRpc('criar_notificacao', {
               p_user_id: user.id,
               p_tipo: 'venda_portal',
               p_titulo: 'Nova Venda no Portal',

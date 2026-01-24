@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { db, supabase } from '@/lib/supabase-db';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -32,11 +32,11 @@ export function useRealtimeOrders() {
           const newOrder = payload.new as NewOrder;
           
           // Fetch catalog name for better notification
-          const { data: catalogo } = await supabase
+          const { data: catalogo } = await db
             .from('catalogos')
             .select('nome')
             .eq('id', newOrder.catalogo_id)
-            .single();
+            .maybeSingle();
 
           const formatCurrency = (value: number) => {
             return new Intl.NumberFormat('pt-BR', {

@@ -1,10 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { db, supabase } from '@/lib/supabase-db';
 import { toast } from 'sonner';
-
-// Use type-loose client while schema types are being synced
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const from = (table: string) => (supabase as any).from(table);
 
 // Types based on actual database schema
 export interface Peca {

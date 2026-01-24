@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Use loose typing to bypass schema validation until migrations are applied
-const db = supabase as any;
+const db = supabase;
 interface Profile {
   id: string;
   user_id: string;

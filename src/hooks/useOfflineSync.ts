@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { db, supabase } from '@/lib/supabase-db';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   initDB,
@@ -102,7 +102,7 @@ export function useOfflineSync(): UseOfflineSyncReturn {
       for (const venda of pendingVendas) {
         try {
           // Insert venda
-          const { data: vendaData, error: vendaError } = await supabase
+          const { data: vendaData, error: vendaError } = await db
             .from('vendas')
             .insert({
               total: venda.total,
@@ -116,9 +116,10 @@ export function useOfflineSync(): UseOfflineSyncReturn {
             .single();
 
           if (vendaError) throw vendaError;
+          if (!vendaData) throw new Error('Venda não criada');
 
           // Insert venda items
-          const { error: itensError } = await supabase
+          const { error: itensError } = await db
             .from('venda_itens')
             .insert(
               venda.itens.map(item => ({
@@ -134,14 +135,14 @@ export function useOfflineSync(): UseOfflineSyncReturn {
 
           // Update stock - fetch current and decrement
           for (const item of venda.itens) {
-            const { data: peca } = await supabase
+            const { data: peca } = await db
               .from('pecas')
               .select('estoque')
               .eq('id', item.peca_id)
               .single();
             
             if (peca) {
-              await supabase
+              await db
                 .from('pecas')
                 .update({ estoque: Math.max(0, peca.estoque - item.quantidade) })
                 .eq('id', item.peca_id);

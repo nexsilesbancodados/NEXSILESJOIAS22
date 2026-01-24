@@ -1,10 +1,9 @@
 import { memo } from 'react';
 import { ShoppingBag, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 
-// Use loose typing to bypass schema validation until migrations are applied
-const db = supabase as any;
+const db = supabase;
 
 interface PedidoStats {
   pendentes: number;
