@@ -27,6 +27,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   isAdmin: boolean;
 }
 
@@ -127,22 +128,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/auth?tab=reset`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      return { error };
+    } catch (error) {
+      return { error: error as Error };
+    }
+  };
+
   const signOut = useCallback(async () => {
-    // Clear React Query cache
     queryClient.clear();
-    
-    // Clear Zustand persisted store
     localStorage.removeItem('nexsiles-storage');
-    
-    // Clear any other local storage items related to the app
     localStorage.removeItem('menuMode');
     localStorage.removeItem('sidebarExpanded');
     localStorage.removeItem('sidebarPinned');
-    
-    // Sign out from Supabase
     await supabase.auth.signOut();
-    
-    // Reset local state
     setUser(null);
     setSession(null);
     setProfile(null);
@@ -160,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        resetPassword,
         isAdmin,
       }}
     >

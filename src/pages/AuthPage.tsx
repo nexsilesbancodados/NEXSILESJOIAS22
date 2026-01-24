@@ -17,7 +17,7 @@ const nomeSchema = z.string().min(2, 'Nome deve ter pelo menos 2 caracteres');
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { signIn, signUp, user, loading: authLoading } = useAuth();
+  const { signIn, signUp, resetPassword, user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('login');
   
@@ -41,6 +41,10 @@ export default function AuthPage() {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [signupTouched, setSignupTouched] = useState<Record<string, boolean>>({});
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
+
+  // Reset password form
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   const validateLoginField = (field: string, value: string): string => {
     switch (field) {
@@ -154,6 +158,31 @@ export default function AuthPage() {
     navigate('/');
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      emailSchema.parse(resetEmail);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
+    setLoading(true);
+    const { error } = await resetPassword(resetEmail);
+    setLoading(false);
+
+    if (error) {
+      toast.error('Erro ao enviar email. Tente novamente.');
+      return;
+    }
+
+    setResetSent(true);
+    toast.success('Email de recuperação enviado!');
+  };
+
   // Show loading while checking auth status
   if (authLoading) {
     return (
@@ -237,7 +266,7 @@ export default function AuthPage() {
                     className="h-11"
                   />
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex-col gap-3">
                   <Button type="submit" className="w-full btn-gold h-11" disabled={loading}>
                     {loading ? (
                       <>
@@ -247,6 +276,14 @@ export default function AuthPage() {
                     ) : (
                       'Entrar'
                     )}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="text-sm text-muted-foreground"
+                    onClick={() => setActiveTab('reset')}
+                  >
+                    Esqueceu sua senha?
                   </Button>
                 </CardFooter>
               </form>
@@ -341,6 +378,71 @@ export default function AuthPage() {
                     ) : (
                       'Criar Conta'
                     )}
+                  </Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="reset" className="animate-fade-in">
+              <form onSubmit={handleResetPassword}>
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl font-semibold">Recuperar Senha</CardTitle>
+                  <CardDescription className="text-sm">
+                    {resetSent 
+                      ? 'Verifique seu email para redefinir sua senha'
+                      : 'Digite seu email para receber o link de recuperação'
+                    }
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!resetSent && (
+                    <ValidatedInput
+                      id="reset-email"
+                      type="email"
+                      label="Email"
+                      placeholder="seu@email.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                      className="h-11"
+                    />
+                  )}
+                </CardContent>
+                <CardFooter className="flex-col gap-3">
+                  {!resetSent ? (
+                    <Button type="submit" className="w-full btn-gold h-11" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        'Enviar Link'
+                      )}
+                    </Button>
+                  ) : (
+                    <Button 
+                      type="button" 
+                      className="w-full btn-gold h-11"
+                      onClick={() => {
+                        setActiveTab('login');
+                        setResetSent(false);
+                        setResetEmail('');
+                      }}
+                    >
+                      Voltar ao Login
+                    </Button>
+                  )}
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="text-sm text-muted-foreground"
+                    onClick={() => {
+                      setActiveTab('login');
+                      setResetSent(false);
+                    }}
+                  >
+                    Voltar
                   </Button>
                 </CardFooter>
               </form>
