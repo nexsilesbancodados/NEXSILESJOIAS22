@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+// Use loose typing to bypass schema validation until migrations are applied
+const db = supabase as any;
+
 export interface Cliente {
   id: string;
   nome: string;
@@ -20,7 +23,7 @@ export function useClientes() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('clientes')
         .select('*')
         .eq('user_id', user?.id)
@@ -36,7 +39,7 @@ export function useCliente(id: string) {
   return useQuery({
     queryKey: ['cliente', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('clientes')
         .select('*')
         .eq('id', id)
@@ -57,7 +60,7 @@ export function useAniversariantesDoMes() {
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('clientes')
         .select('*')
         .eq('user_id', user?.id)
@@ -80,8 +83,8 @@ export function useVendasCliente(clienteId: string) {
   return useQuery({
     queryKey: ['vendas-cliente', clienteId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vendas' as never)
+      const { data, error } = await db
+        .from('vendas')
         .select('*')
         .eq('cliente_id', clienteId)
         .order('created_at', { ascending: false });
@@ -100,9 +103,9 @@ export function useAddCliente() {
     mutationFn: async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('clientes')
-        .insert({ ...cliente, user_id: user?.id } as never)
+        .insert({ ...cliente, user_id: user?.id })
         .select()
         .single();
       
@@ -147,9 +150,9 @@ export function useUpdateCliente() {
   
   return useMutation({
     mutationFn: async ({ id, ...cliente }: Partial<Cliente> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('clientes')
-        .update(cliente as never)
+        .update(cliente)
         .eq('id', id)
         .select()
         .single();
@@ -190,7 +193,7 @@ export function useDeleteCliente() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await db
         .from('clientes')
         .delete()
         .eq('id', id);

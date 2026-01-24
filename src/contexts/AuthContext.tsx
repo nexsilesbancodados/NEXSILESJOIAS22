@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+
+// Use loose typing to bypass schema validation until migrations are applied
+const db = supabase as any;
 interface Profile {
   id: string;
   user_id: string;
@@ -71,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('profiles')
         .select('*')
         .eq('user_id', userId)

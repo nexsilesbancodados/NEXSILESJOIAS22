@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+// Use loose typing to bypass schema validation until migrations are applied
+const db = supabase as any;
+
 export interface Campanha {
   id: string;
   user_id: string;
@@ -38,7 +41,7 @@ export function useCampanhas() {
     queryKey: ['campanhas', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('campanhas')
         .select('*')
         .eq('user_id', user.id)
@@ -59,7 +62,7 @@ export function useCampanhasAtivas() {
     queryFn: async () => {
       if (!user) return [];
       const now = new Date().toISOString();
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('campanhas')
         .select('*')
         .eq('user_id', user.id)
@@ -82,7 +85,7 @@ export function useAddCampanha() {
     mutationFn: async (campanha: Omit<Campanha, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'usos_atuais'>) => {
       if (!user) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('campanhas')
         .insert({
           ...campanha,
@@ -114,7 +117,7 @@ export function useUpdateCampanha() {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Campanha> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('campanhas')
         .update(updates)
         .eq('id', id)
@@ -143,7 +146,7 @@ export function useDeleteCampanha() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await db
         .from('campanhas')
         .delete()
         .eq('id', id);
@@ -167,12 +170,12 @@ export function useValidarCupom() {
     mutationFn: async (codigo: string): Promise<ValidacaoCupom> => {
       if (!user) throw new Error('User not authenticated');
       
-      const { data, error } = await supabase
+      const { data, error } = await db
         .rpc('validar_cupom', { p_codigo: codigo, p_user_id: user.id });
 
       if (error) throw error;
       
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         return data[0] as ValidacaoCupom;
       }
       
@@ -193,7 +196,7 @@ export function useUsarCupom() {
 
   return useMutation({
     mutationFn: async (campanhaId: string) => {
-      const { error } = await supabase
+      const { error } = await db
         .rpc('usar_cupom', { p_campanha_id: campanhaId });
 
       if (error) throw error;

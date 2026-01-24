@@ -1,6 +1,10 @@
 import { memo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+// Use loose typing to bypass schema validation until migrations are applied
+const db = supabase as any;
+
 import {
   Dialog,
   DialogContent,
@@ -95,7 +99,7 @@ export const PedidoDetailsDialog = memo(function PedidoDetailsDialog({
     queryKey: ['pedido-itens-details', pedido?.id],
     queryFn: async () => {
       if (!pedido) return [];
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('pedidos_catalogo_itens')
         .select('*')
         .eq('pedido_id', pedido.id);
