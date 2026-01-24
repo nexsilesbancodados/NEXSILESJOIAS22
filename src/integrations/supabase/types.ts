@@ -1131,6 +1131,33 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          valor: string | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          valor?: string | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valor?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

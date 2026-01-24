@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect, memo, useCallback, useMemo, lazy, Suspense } from 'react';
+import { ReactNode, useState, useEffect, memo, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
 import { Sidebar } from './Sidebar';
 import { HeaderNav } from './HeaderNav';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +7,7 @@ import { LogOut, PanelLeft, LayoutGrid, Moon, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import logo from '@/assets/logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUserPreferences, useSaveUserPreference, PREFERENCE_KEYS } from '@/hooks/useUserPreferences';
 
 // Lazy load heavy components
 const NotificationBell = lazy(() => import('@/components/notifications/NotificationBell').then(m => ({ default: m.NotificationBell })));
@@ -165,52 +166,71 @@ const Header = memo(({
 Header.displayName = 'Header';
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const [menuMode, setMenuMode] = useState<MenuMode>(() => {
-    const saved = localStorage.getItem('menuMode');
-    return (saved as MenuMode) || 'sidebar';
-  });
-
-  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
-    const saved = localStorage.getItem('sidebarExpanded');
-    return saved !== 'false';
-  });
-
-  const [sidebarPinned, setSidebarPinned] = useState(() => {
-    const saved = localStorage.getItem('sidebarPinned');
-    return saved === 'true';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('menuMode', menuMode);
-  }, [menuMode]);
-
-  useEffect(() => {
-    localStorage.setItem('sidebarExpanded', String(sidebarExpanded));
-  }, [sidebarExpanded]);
-
-  useEffect(() => {
-    localStorage.setItem('sidebarPinned', String(sidebarPinned));
-  }, [sidebarPinned]);
-  
   const { user, profile, signOut } = useAuth();
+  const { data: preferences, isLoading: prefsLoading } = useUserPreferences();
+  const savePreference = useSaveUserPreference();
+  const initializedRef = useRef(false);
+
+  // Initialize state from preferences or localStorage fallback
+  const [menuMode, setMenuMode] = useState<MenuMode>('sidebar');
+  const [sidebarExpanded, setSidebarExpanded] = useState(true);
+  const [sidebarPinned, setSidebarPinned] = useState(false);
+
+  // Load preferences once available
+  useEffect(() => {
+    if (!prefsLoading && preferences && !initializedRef.current) {
+      initializedRef.current = true;
+      
+      // Use DB preferences or fallback to localStorage
+      const savedMenuMode = preferences[PREFERENCE_KEYS.MENU_MODE] || localStorage.getItem('menuMode');
+      const savedExpanded = preferences[PREFERENCE_KEYS.SIDEBAR_EXPANDED] ?? localStorage.getItem('sidebarExpanded');
+      const savedPinned = preferences[PREFERENCE_KEYS.SIDEBAR_PINNED] ?? localStorage.getItem('sidebarPinned');
+      
+      if (savedMenuMode) setMenuMode(savedMenuMode as MenuMode);
+      if (savedExpanded !== null && savedExpanded !== undefined) setSidebarExpanded(savedExpanded !== 'false');
+      if (savedPinned !== null && savedPinned !== undefined) setSidebarPinned(savedPinned === 'true');
+    }
+  }, [preferences, prefsLoading]);
+
+  // Save to database when preferences change
+  const saveToDb = useCallback((key: string, value: string) => {
+    if (user?.id) {
+      savePreference.mutate({ chave: key, valor: value });
+    }
+    // Also keep localStorage as fallback
+    localStorage.setItem(key, value);
+  }, [user?.id, savePreference]);
 
   const toggleMenuMode = useCallback(() => {
-    setMenuMode(prev => prev === 'sidebar' ? 'floating' : 'sidebar');
-  }, []);
+    setMenuMode(prev => {
+      const newValue = prev === 'sidebar' ? 'floating' : 'sidebar';
+      saveToDb(PREFERENCE_KEYS.MENU_MODE, newValue);
+      return newValue;
+    });
+  }, [saveToDb]);
 
   const toggleSidebar = useCallback(() => {
     if (!sidebarPinned) {
-      setSidebarExpanded(prev => !prev);
+      setSidebarExpanded(prev => {
+        const newValue = !prev;
+        saveToDb(PREFERENCE_KEYS.SIDEBAR_EXPANDED, String(newValue));
+        return newValue;
+      });
     }
-  }, [sidebarPinned]);
+  }, [sidebarPinned, saveToDb]);
 
   const toggleSidebarPin = useCallback(() => {
-    setSidebarPinned(prev => !prev);
-  }, []);
+    setSidebarPinned(prev => {
+      const newValue = !prev;
+      saveToDb(PREFERENCE_KEYS.SIDEBAR_PINNED, String(newValue));
+      return newValue;
+    });
+  }, [saveToDb]);
 
   const handleSignOut = useCallback(() => {
     signOut();
   }, [signOut]);
+
 
   const sidebarWidth = menuMode === 'sidebar' ? (sidebarExpanded ? 280 : 80) : 0;
 
