@@ -111,6 +111,8 @@ export default function AuthPage() {
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
         toast.error('Email ou senha incorretos');
+      } else if (error.message.includes('Email not confirmed') || error.message.includes('email_not_confirmed')) {
+        toast.error('Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada.');
       } else {
         toast.error('Erro ao fazer login. Tente novamente.');
       }
@@ -153,8 +155,10 @@ export default function AuthPage() {
       return;
     }
 
-    toast.success('Conta criada com sucesso!');
-    navigate('/');
+    toast.success('Conta criada! Verifique seu email para confirmar o cadastro.', {
+      duration: 6000,
+    });
+    setActiveTab('login');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
