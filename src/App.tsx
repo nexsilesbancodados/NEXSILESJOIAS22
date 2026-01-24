@@ -29,6 +29,7 @@ const EtiquetasPage = lazy(() => import("./pages/EtiquetasPage"));
 const BanhosPage = lazy(() => import("./pages/BanhosPage"));
 const FornecedoresPage = lazy(() => import("./pages/FornecedoresPage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const FuncionariosPage = lazy(() => import("./pages/FuncionariosPage"));
 const DesempenhoRevendedorasPage = lazy(() => import("./pages/DesempenhoRevendedorasPage"));
 const CampanhasPage = lazy(() => import("./pages/CampanhasPage"));
@@ -62,8 +63,9 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Auth page - Public */}
+        {/* Auth pages - Public */}
         <Route path="/auth" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         
         {/* Catálogo Público - Public page */}
         <Route path="/catalogo/:catalogoId" element={<CatalogoPublicoPage />} />
