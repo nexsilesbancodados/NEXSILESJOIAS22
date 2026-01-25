@@ -262,24 +262,20 @@ export default function AuthPage() {
         © 2024 Nexsiles. Todos os direitos reservados.
       </motion.p>
 
-      {/* Auth Form - Circular Compact Design */}
+      {/* Auth Form - Rectangular Card Design */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
-        className="relative z-10"
+        className="relative z-10 w-full max-w-md mx-4"
       >
-        {/* Outer glow ring - golden to match jewelry background */}
-        <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-400/40 via-yellow-500/30 to-orange-400/40 blur-2xl scale-110" />
+        {/* Outer glow - golden to match jewelry background */}
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-400/30 via-yellow-500/20 to-orange-400/30 blur-2xl scale-105" />
         
-        {/* Circular Container - Warm golden theme */}
-        <div className="relative w-[340px] h-[340px] sm:w-[400px] sm:h-[400px] rounded-full bg-gradient-to-br from-amber-50/95 via-white/95 to-yellow-50/95 dark:from-amber-950/95 dark:via-card/95 dark:to-yellow-950/95 backdrop-blur-xl shadow-2xl shadow-amber-900/30 flex items-center justify-center p-8">
-          {/* Decorative rings - golden theme */}
-          <div className="absolute inset-3 rounded-full border border-amber-400/20 pointer-events-none" />
-          <div className="absolute inset-6 rounded-full border border-amber-300/10 pointer-events-none" />
-          
+        {/* Card Container - Warm golden theme */}
+        <div className="relative rounded-2xl bg-gradient-to-br from-amber-50/95 via-white/95 to-yellow-50/95 dark:from-amber-950/95 dark:via-card/95 dark:to-yellow-950/95 backdrop-blur-xl shadow-2xl shadow-amber-900/30 border border-amber-200/50 dark:border-amber-700/30 p-8">
           {/* Inner content container */}
-          <div className="w-full max-w-[260px] sm:max-w-[280px] relative z-10">
+          <div className="w-full relative z-10">
             <AnimatePresence mode="wait">
               {activeTab === 'reset' ? (
                 <motion.div
