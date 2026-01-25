@@ -249,21 +249,18 @@ export default function PecasPage() {
       }
     }
 
-    const pecaData: any = {
+    const pecaData = {
       nome: formData.nome.trim(),
       codigo: formData.codigo.trim(),
       estoque: parseInt(formData.estoque) || 0,
       estoque_minimo: parseInt(formData.estoque_minimo) || 5,
-      custo: parseFloat(formData.preco_custo) || 0,
-      preco: parseFloat(formData.preco_venda) || 0,
+      preco_custo: parseFloat(formData.preco_custo) || 0,
+      preco_venda: parseFloat(formData.preco_venda) || 0,
       preco_revenda: parseFloat(formData.preco_venda) || 0,
-      preco_promocional: formData.preco_promocional ? parseFloat(formData.preco_promocional) : null,
-      preco_atacado: formData.preco_atacado ? parseFloat(formData.preco_atacado) : null,
-      qtd_min_atacado: formData.qtd_min_atacado ? parseInt(formData.qtd_min_atacado) : null,
       categoria: formData.categoria || null,
+      subcategoria: formData.subcategoria || null,
       material: formData.material || null,
       fornecedor_id: formData.fornecedor_id || null,
-      banho_id: null,
       imagem_url: formData.imagem_url || null,
       descricao: formData.descricao || null,
       peso: null,
