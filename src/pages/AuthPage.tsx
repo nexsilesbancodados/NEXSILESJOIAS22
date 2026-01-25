@@ -262,7 +262,7 @@ export default function AuthPage() {
         © 2024 Nexsiles. Todos os direitos reservados.
       </motion.p>
 
-      {/* Auth Form - Circular Design */}
+      {/* Auth Form - Circular Compact Design */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -272,14 +272,14 @@ export default function AuthPage() {
         {/* Outer glow ring */}
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-purple-500/20 to-amber-500/30 blur-2xl scale-110" />
         
-        {/* Circular Container */}
-        <div className="relative w-[420px] h-[420px] sm:w-[480px] sm:h-[480px] rounded-full bg-white/90 dark:bg-card/90 backdrop-blur-xl shadow-2xl shadow-black/20 flex items-center justify-center p-8 overflow-hidden">
+        {/* Circular Container - Compact */}
+        <div className="relative w-[300px] h-[300px] sm:w-[340px] sm:h-[340px] rounded-full bg-white/90 dark:bg-card/90 backdrop-blur-xl shadow-2xl shadow-black/20 flex items-center justify-center p-5 overflow-hidden">
           {/* Decorative rings */}
-          <div className="absolute inset-4 rounded-full border border-primary/10" />
-          <div className="absolute inset-8 rounded-full border border-primary/5" />
+          <div className="absolute inset-2 rounded-full border border-primary/10" />
+          <div className="absolute inset-4 rounded-full border border-primary/5" />
           
           {/* Inner content container */}
-          <div className="w-full max-w-[280px] sm:max-w-[320px]">
+          <div className="w-full max-w-[210px] sm:max-w-[230px]">
             <AnimatePresence mode="wait">
               {activeTab === 'reset' ? (
                 <motion.div
@@ -290,12 +290,12 @@ export default function AuthPage() {
                   transition={{ duration: 0.4 }}
                   className="text-center"
                 >
-                  <form onSubmit={handleResetPassword} className="space-y-4">
+                  <form onSubmit={handleResetPassword} className="space-y-3">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-muted-foreground hover:text-foreground mb-2"
+                      className="text-muted-foreground hover:text-foreground mb-1"
                       onClick={() => {
                         setActiveTab('login');
                         setResetSent(false);
@@ -306,7 +306,7 @@ export default function AuthPage() {
                     </Button>
                     
                     <div className="space-y-1">
-                      <h2 className="text-xl font-bold text-foreground">Recuperar Senha</h2>
+                      <h2 className="text-lg font-bold text-foreground">Recuperar Senha</h2>
                       <p className="text-xs text-muted-foreground">
                         {resetSent 
                           ? 'Verifique seu email'
@@ -326,21 +326,21 @@ export default function AuthPage() {
                             value={resetEmail}
                             onChange={(e) => setResetEmail(e.target.value)}
                             required
-                            className="h-11 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
-                        <Button type="submit" className="w-full h-11 btn-gold text-sm font-medium rounded-full" disabled={loading}>
+                        <Button type="submit" className="w-full h-10 btn-gold text-sm font-medium rounded-full" disabled={loading}>
                           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enviar Link'}
                         </Button>
                       </>
                     ) : (
-                      <div className="py-4">
-                        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-success/10 flex items-center justify-center">
-                          <Mail className="w-7 h-7 text-success" />
+                      <div className="py-3">
+                        <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-success/10 flex items-center justify-center">
+                          <Mail className="w-6 h-6 text-success" />
                         </div>
                         <Button 
                           type="button" 
-                          className="w-full h-11 btn-gold text-sm font-medium rounded-full"
+                          className="w-full h-10 btn-gold text-sm font-medium rounded-full"
                           onClick={() => {
                             setActiveTab('login');
                             setResetSent(false);
@@ -361,32 +361,32 @@ export default function AuthPage() {
                   exit={{ opacity: 0, rotateY: 90 }}
                   transition={{ duration: 0.4 }}
                 >
-                  <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-2">
                     {/* Logo */}
-                    <div className="text-center mb-2">
-                      <div className="w-14 h-14 mx-auto mb-2 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                        <img src={logo} alt="Nexsiles" className="w-9 h-9 object-contain" />
+                    <div className="text-center mb-1">
+                      <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                        <img src={logo} alt="Nexsiles" className="w-5 h-5 object-contain" />
                       </div>
-                      <h1 className="text-lg font-bold text-gradient">Nexsiles</h1>
+                      <h1 className="text-xs font-bold text-gradient">Nexsiles</h1>
                     </div>
                     
-                    <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-muted/50 rounded-full">
+                    <TabsList className="grid w-full grid-cols-2 h-7 p-0.5 bg-muted/50 rounded-full">
                       <TabsTrigger 
                         value="login" 
-                        className="h-8 text-sm font-medium rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        className="h-6 text-xs font-medium rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
                       >
                         Entrar
                       </TabsTrigger>
                       <TabsTrigger 
                         value="signup" 
-                        className="h-8 text-sm font-medium rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                        className="h-6 text-xs font-medium rounded-full data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
                       >
                         Criar Conta
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="login" className="mt-0 space-y-3">
-                      <form onSubmit={handleLogin} className="space-y-3">
+                    <TabsContent value="login" className="mt-0 space-y-2">
+                      <form onSubmit={handleLogin} className="space-y-2">
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <ValidatedInput
@@ -404,7 +404,7 @@ export default function AuthPage() {
                             error={loginErrors.email}
                             touched={loginTouched.email}
                             required
-                            className="h-11 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
                         <div className="relative">
@@ -424,7 +424,7 @@ export default function AuthPage() {
                             error={loginErrors.password}
                             touched={loginTouched.password}
                             required
-                            className="h-11 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
                         <Button 
@@ -435,7 +435,7 @@ export default function AuthPage() {
                         >
                           Esqueceu sua senha?
                         </Button>
-                        <Button type="submit" className="w-full h-11 btn-gold text-sm font-medium rounded-full" disabled={loading}>
+                        <Button type="submit" className="w-full h-10 btn-gold text-sm font-medium rounded-full" disabled={loading}>
                           {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
@@ -448,8 +448,8 @@ export default function AuthPage() {
                       </form>
                     </TabsContent>
 
-                    <TabsContent value="signup" className="mt-0 space-y-3">
-                      <form onSubmit={handleSignup} className="space-y-3">
+                    <TabsContent value="signup" className="mt-0 space-y-2">
+                      <form onSubmit={handleSignup} className="space-y-2">
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <ValidatedInput
@@ -466,7 +466,7 @@ export default function AuthPage() {
                             error={signupErrors.nome}
                             touched={signupTouched.nome}
                             required
-                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-9 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
                         <div className="relative">
@@ -486,7 +486,7 @@ export default function AuthPage() {
                             error={signupErrors.email}
                             touched={signupTouched.email}
                             required
-                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-9 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
                         <div className="relative">
@@ -506,7 +506,7 @@ export default function AuthPage() {
                             error={signupErrors.password}
                             touched={signupTouched.password}
                             required
-                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-9 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
                         <div className="relative">
@@ -526,10 +526,10 @@ export default function AuthPage() {
                             error={signupErrors.confirmPassword}
                             touched={signupTouched.confirmPassword}
                             required
-                            className="h-10 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
+                            className="h-9 pl-10 bg-muted/50 border-muted-foreground/20 focus:border-primary rounded-full text-sm"
                           />
                         </div>
-                        <Button type="submit" className="w-full h-10 btn-gold text-sm font-medium rounded-full" disabled={loading}>
+                        <Button type="submit" className="w-full h-9 btn-gold text-sm font-medium rounded-full" disabled={loading}>
                           {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
