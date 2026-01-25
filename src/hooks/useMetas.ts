@@ -4,19 +4,23 @@ import { toast } from '@/hooks/use-toast';
 
 export interface Meta {
   id: string;
-  tipo: string;
-  valor: number;
-  mes: number;
-  ano: number;
-  user_id: string | null;
-  created_at: string;
+  titulo: string;
+  descricao?: string | null;
+  tipo?: string | null;
+  valor_meta: number;
+  valor_atual?: number | null;
+  data_inicio?: string | null;
+  data_fim?: string | null;
+  revendedora_id?: string | null;
+  campanha_id?: string | null;
+  atingida?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
-export function useMetas(ano?: number) {
-  const currentYear = ano || new Date().getFullYear();
-  
+export function useMetas() {
   return useQuery({
-    queryKey: ['metas', currentYear],
+    queryKey: ['metas'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -24,33 +28,29 @@ export function useMetas(ano?: number) {
       const { data, error } = await db
         .from('metas')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('ano', currentYear)
-        .order('mes', { ascending: true });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as Meta[];
+      return (data || []) as Meta[];
     },
   });
 }
 
 export function useMetaAtual() {
-  const mes = new Date().getMonth() + 1;
-  const ano = new Date().getFullYear();
-  
   return useQuery({
-    queryKey: ['meta-atual', mes, ano],
+    queryKey: ['meta-atual'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
       
+      const hoje = new Date().toISOString().split('T')[0];
+      
       const { data, error } = await db
         .from('metas')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('mes', mes)
-        .eq('ano', ano)
         .eq('tipo', 'faturamento')
+        .lte('data_inicio', hoje)
+        .gte('data_fim', hoje)
         .maybeSingle();
       
       if (error) throw error;
@@ -63,17 +63,23 @@ export function useAddMeta() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (meta: Omit<Meta, 'id' | 'created_at' | 'user_id'>) => {
+    mutationFn: async (meta: Omit<Meta, 'id' | 'created_at' | 'updated_at'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
       
       const { data, error } = await db
         .from('metas')
-        .upsert({
-          ...meta,
-          user_id: user.id,
-        }, {
-          onConflict: 'tipo,mes,ano,user_id'
+        .insert({
+          titulo: meta.titulo,
+          descricao: meta.descricao,
+          tipo: meta.tipo,
+          valor_meta: meta.valor_meta,
+          valor_atual: meta.valor_atual || 0,
+          data_inicio: meta.data_inicio,
+          data_fim: meta.data_fim,
+          revendedora_id: meta.revendedora_id,
+          campanha_id: meta.campanha_id,
+          atingida: meta.atingida || false,
         })
         .select()
         .single();
@@ -92,6 +98,38 @@ export function useAddMeta() {
   });
 }
 
+export function useUpdateMeta() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...meta }: Partial<Meta> & { id: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      
+      const { data, error } = await db
+        .from('metas')
+        .update({
+          ...meta,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['metas'] });
+      queryClient.invalidateQueries({ queryKey: ['meta-atual'] });
+      toast({ title: 'Meta atualizada com sucesso!' });
+    },
+    onError: (error) => {
+      toast({ title: 'Erro ao atualizar meta', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
 export function useDeleteMeta() {
   const queryClient = useQueryClient();
   
@@ -103,8 +141,7 @@ export function useDeleteMeta() {
       const { error } = await db
         .from('metas')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
       
       if (error) throw error;
     },

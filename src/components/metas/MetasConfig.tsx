@@ -14,24 +14,35 @@ const meses = [
 
 export function MetasConfig() {
   const anoAtual = new Date().getFullYear();
-  const mesAtual = new Date().getMonth() + 1;
+  const mesAtual = new Date().getMonth();
   
-  const [ano, setAno] = useState(anoAtual);
   const [mesSelecionado, setMesSelecionado] = useState(mesAtual.toString());
+  const [anoSelecionado, setAnoSelecionado] = useState(anoAtual.toString());
   const [valorMeta, setValorMeta] = useState('');
   
-  const { data: metas = [], isLoading } = useMetas(ano);
+  const { data: metas = [], isLoading } = useMetas();
   const addMeta = useAddMeta();
   const deleteMeta = useDeleteMeta();
 
   const handleSaveMeta = () => {
     if (!valorMeta || !mesSelecionado) return;
     
+    const mesIndex = parseInt(mesSelecionado);
+    const ano = parseInt(anoSelecionado);
+    
+    // Calculate start and end dates for the selected month
+    const dataInicio = new Date(ano, mesIndex, 1).toISOString().split('T')[0];
+    const dataFim = new Date(ano, mesIndex + 1, 0).toISOString().split('T')[0];
+    
     addMeta.mutate({
+      titulo: `Meta ${meses[mesIndex]} ${ano}`,
+      descricao: `Meta de faturamento para ${meses[mesIndex]} de ${ano}`,
       tipo: 'faturamento',
-      valor: parseFloat(valorMeta),
-      mes: parseInt(mesSelecionado),
-      ano,
+      valor_meta: parseFloat(valorMeta),
+      valor_atual: 0,
+      data_inicio: dataInicio,
+      data_fim: dataFim,
+      atingida: false,
     });
     
     setValorMeta('');
@@ -42,6 +53,20 @@ export function MetasConfig() {
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  const getMonthFromMeta = (meta: { data_inicio?: string | null; titulo: string }) => {
+    if (meta.data_inicio) {
+      const date = new Date(meta.data_inicio);
+      return meses[date.getMonth()];
+    }
+    // Fallback: try to extract from title
+    for (const mes of meses) {
+      if (meta.titulo.includes(mes)) {
+        return mes;
+      }
+    }
+    return meta.titulo;
   };
 
   if (isLoading) {
@@ -68,7 +93,7 @@ export function MetasConfig() {
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="ano">Ano</Label>
-              <Select value={ano.toString()} onValueChange={(v) => setAno(parseInt(v))}>
+              <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -89,7 +114,7 @@ export function MetasConfig() {
                 </SelectTrigger>
                 <SelectContent>
                   {meses.map((mes, index) => (
-                    <SelectItem key={index + 1} value={(index + 1).toString()}>
+                    <SelectItem key={index} value={index.toString()}>
                       {mes}
                     </SelectItem>
                   ))}
@@ -126,12 +151,12 @@ export function MetasConfig() {
 
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="font-display">Metas de {ano}</CardTitle>
-          <CardDescription>Metas configuradas para o ano selecionado</CardDescription>
+          <CardTitle className="font-display">Metas Configuradas</CardTitle>
+          <CardDescription>Todas as metas de faturamento</CardDescription>
         </CardHeader>
         <CardContent>
           {metas.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Nenhuma meta configurada para este ano.</p>
+            <p className="text-muted-foreground text-sm">Nenhuma meta configurada.</p>
           ) : (
             <div className="space-y-2">
               {metas.map((meta) => (
@@ -140,9 +165,10 @@ export function MetasConfig() {
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                 >
                   <div>
-                    <p className="font-medium">{meses[meta.mes - 1]}</p>
+                    <p className="font-medium">{meta.titulo}</p>
                     <p className="text-sm text-muted-foreground">
-                      Meta: {formatCurrency(meta.valor)}
+                      Meta: {formatCurrency(meta.valor_meta)}
+                      {meta.valor_atual ? ` | Atual: ${formatCurrency(meta.valor_atual)}` : ''}
                     </p>
                   </div>
                   <Button

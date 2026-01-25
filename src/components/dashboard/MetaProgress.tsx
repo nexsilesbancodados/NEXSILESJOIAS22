@@ -38,8 +38,8 @@ export function MetaProgress() {
     ? ((faturamentoMesAtual - faturamentoMesAnterior) / faturamentoMesAnterior) * 100
     : 0;
 
-  // Calculate progress towards goal
-  const valorMeta = metaAtual?.valor || 0;
+  // Calculate progress towards goal - use valor_meta from the new schema
+  const valorMeta = metaAtual?.valor_meta || 0;
   const progressoMeta = valorMeta > 0 ? (faturamentoMesAtual / valorMeta) * 100 : 0;
 
   // Days remaining in month
@@ -92,7 +92,7 @@ export function MetaProgress() {
       </div>
       
       {/* Title */}
-      <h3 className="font-semibold text-foreground mb-1">Meta de {getNomeMes(mesAtual)}</h3>
+      <h3 className="font-semibold text-foreground mb-1">{metaAtual.titulo || `Meta de ${getNomeMes(mesAtual)}`}</h3>
       <p className="text-sm text-muted-foreground mb-4">
         {formatCurrency(faturamentoMesAtual)} de {formatCurrency(valorMeta)}
       </p>
