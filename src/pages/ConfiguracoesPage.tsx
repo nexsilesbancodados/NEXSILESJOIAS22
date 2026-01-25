@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, Target, Database, MessageCircle } from 'lucide-react';
+import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, Target, Database, MessageCircle, User, Crown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfiguracoes, useSaveConfiguracoes } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,8 @@ import { MetasConfig } from '@/components/metas/MetasConfig';
 import { BackupManager } from '@/components/backup/BackupManager';
 import { PrinterSettings } from '@/components/printer/PrinterSettings';
 import { SeedDatabaseCard } from '@/components/admin/SeedDatabaseCard';
+import { ProfileCard } from '@/components/profile/ProfileCard';
+import { SubscriptionNotifications } from '@/components/profile/SubscriptionNotifications';
 
 export default function ConfiguracoesPage() {
   const navigate = useNavigate();
@@ -95,8 +97,12 @@ export default function ConfiguracoesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="loja" className="max-w-3xl">
+      <Tabs defaultValue="perfil" className="max-w-4xl">
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
+          <TabsTrigger value="perfil" className="gap-1">
+            <User className="w-3 h-3" />
+            Meu Perfil
+          </TabsTrigger>
           <TabsTrigger value="loja">Dados da Loja</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="metas">Metas</TabsTrigger>
@@ -104,8 +110,14 @@ export default function ConfiguracoesPage() {
           <TabsTrigger value="impressao">Impressão</TabsTrigger>
           <TabsTrigger value="aparencia">Aparência</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
-          <TabsTrigger value="conta">Minha Conta</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="perfil" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ProfileCard />
+            <SubscriptionNotifications />
+          </div>
+        </TabsContent>
 
         <TabsContent value="loja" className="space-y-6">
           <Card className="glass-card">
@@ -315,7 +327,7 @@ export default function ConfiguracoesPage() {
           <Card className="glass-card">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-green-500" />
+                <MessageCircle className="w-5 h-5 text-success" />
                 <CardTitle className="font-display">Configurações do WhatsApp</CardTitle>
               </div>
               <CardDescription>Configure mensagens automáticas e templates</CardDescription>
@@ -389,37 +401,9 @@ export default function ConfiguracoesPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="conta" className="space-y-6">
-          <Card className="glass-card">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Palette className="w-5 h-5 text-primary" />
-                <CardTitle className="font-display">Minha Conta</CardTitle>
-              </div>
-              <CardDescription>Informações do seu perfil</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input value={profile?.nome || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input value={profile?.email || ''} disabled />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de Conta</Label>
-                <Input 
-                  value={profile?.role === 'admin' ? 'Administrador' : 'Revendedora'} 
-                  disabled 
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
-      <div className="mt-6 max-w-3xl">
+      <div className="mt-6 max-w-4xl">
         <Button 
           onClick={handleSave} 
           className="btn-gold w-full" 
