@@ -502,31 +502,42 @@ export default function PDVPage() {
   return (
     <div className="h-screen flex animate-fade-in">
       {/* Produtos Grid */}
-      <div className="flex-1 flex flex-col p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col p-4 lg:p-6 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-primary-foreground" />
+        <div className="flex flex-col gap-4 mb-4">
+          {/* Top Row - Title and Main Actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+                <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl lg:text-2xl font-display font-semibold">PDV</h1>
+                <p className="text-xs lg:text-sm text-muted-foreground">
+                  Aberto às {formatTime(caixaAtual.data_abertura)} • {vendasCaixa.length} vendas
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-display font-semibold">PDV</h1>
-              <p className="text-sm text-muted-foreground">
-                Caixa aberto às{' '}
-                {formatTime(caixaAtual.data_abertura)}
-                {' • '}
-                {vendasCaixa.length} vendas
-              </p>
+            
+            <div className="flex items-center gap-2">
+              <OfflineSyncDashboard />
+              <OfflineIndicator />
+              <ShortcutsHelp />
+              <BarcodeScanner
+                enabled={barcodeScannerEnabled}
+                onEnabledChange={setBarcodeScannerEnabled}
+                onBarcodeScanned={handleBarcodeScanned}
+              />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <OfflineSyncDashboard />
-            <OfflineIndicator />
+          
+          {/* Bottom Row - Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
             <Sheet open={isHistoricoOpen} onOpenChange={setIsHistoricoOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm">
                   <History className="w-4 h-4 mr-1" />
-                  Histórico
+                  <span className="hidden sm:inline">Histórico</span>
                 </Button>
               </SheetTrigger>
               <SheetContent className="w-[400px]">
@@ -576,6 +587,7 @@ export default function PDVPage() {
                 </ScrollArea>
               </SheetContent>
             </Sheet>
+            
             <Button
               variant="outline"
               size="sm"
@@ -583,17 +595,21 @@ export default function PDVPage() {
               className="text-destructive border-destructive/30 hover:bg-destructive/10"
             >
               <ArrowDownCircle className="w-4 h-4 mr-1" />
-              Sangria
+              <span className="hidden sm:inline">Sangria</span>
             </Button>
+            
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsSuprimentoOpen(true)}
-              className="text-success border-success/30 hover:bg-success/10"
+              className="text-green-600 border-green-600/30 hover:bg-green-600/10"
             >
               <ArrowUpCircle className="w-4 h-4 mr-1" />
-              Suprimento
+              <span className="hidden sm:inline">Suprimento</span>
             </Button>
+            
+            <div className="flex-1" />
+            
             <Button
               variant="outline"
               size="sm"
@@ -602,12 +618,6 @@ export default function PDVPage() {
               <Lock className="w-4 h-4 mr-1" />
               Fechar Caixa
             </Button>
-            <ShortcutsHelp />
-            <BarcodeScanner
-              enabled={barcodeScannerEnabled}
-              onEnabledChange={setBarcodeScannerEnabled}
-              onBarcodeScanned={handleBarcodeScanned}
-            />
           </div>
         </div>
 
@@ -620,7 +630,7 @@ export default function PDVPage() {
         />
 
         {/* Toolbar */}
-        <div className="flex items-center justify-between py-3 border-b mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 py-3 border-b mb-4">
           <PDVToolbar
             onCalculator={() => setIsCalculatorOpen(true)}
             onDesconto={() => setIsDescontoOpen(true)}
@@ -645,26 +655,29 @@ export default function PDVPage() {
             vendaPausada={!!vendaPausada}
             ultimaVendaId={ultimaVenda?.id}
           />
-          {clienteSelecionado && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-              <User className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">{clienteSelecionado.nome}</span>
-              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setClienteSelecionado(null)}>
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
-          {descontoAplicado && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 rounded-full">
-              <Percent className="w-4 h-4 text-destructive" />
-              <span className="text-sm font-medium">
-                {descontoAplicado.tipo === 'percentual' ? `${descontoAplicado.valor}%` : `R$ ${descontoAplicado.valor.toFixed(2)}`}
-              </span>
-              <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setDescontoAplicado(null)}>
-                <X className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
+          
+          <div className="flex items-center gap-2 flex-wrap">
+            {clienteSelecionado && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                <User className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium truncate max-w-[120px]">{clienteSelecionado.nome}</span>
+                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setClienteSelecionado(null)}>
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+            {descontoAplicado && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 rounded-full">
+                <Percent className="w-4 h-4 text-destructive" />
+                <span className="text-sm font-medium">
+                  {descontoAplicado.tipo === 'percentual' ? `${descontoAplicado.valor}%` : `R$ ${descontoAplicado.valor.toFixed(2)}`}
+                </span>
+                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setDescontoAplicado(null)}>
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search */}
