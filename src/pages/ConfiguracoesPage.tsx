@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { MetasConfig } from '@/components/metas/MetasConfig';
 import { BackupManager } from '@/components/backup/BackupManager';
 import { PrinterSettings } from '@/components/printer/PrinterSettings';
+import { SeedDatabaseCard } from '@/components/admin/SeedDatabaseCard';
 
 export default function ConfiguracoesPage() {
   const navigate = useNavigate();
@@ -307,6 +308,7 @@ export default function ConfiguracoesPage() {
 
         <TabsContent value="backup" className="space-y-6">
           <BackupManager />
+          <SeedDatabaseCard />
         </TabsContent>
 
         <TabsContent value="whatsapp" className="space-y-6">
