@@ -98,6 +98,12 @@ export default function DashboardPage() {
     [vendas]
   );
 
+  // Map romaneios to include 'total' alias for components that expect it
+  const romaneiosWithTotal = useMemo(() => 
+    romaneios.map(r => ({ ...r, total: r.valor_frete || 0, reseller_id: r.revendedora_id })),
+    [romaneios]
+  );
+
   return (
     <div className="p-6 lg:p-8 animate-fade-in space-y-6 bg-background min-h-screen">
       {/* Interactive Tour */}
@@ -221,9 +227,9 @@ export default function DashboardPage() {
 
       {/* Insights, Top Vendedoras & Recent Activity */}
       <div className="grid lg:grid-cols-3 gap-4">
-        <InsightsCard vendas={vendasWithTotal} pecas={pecas as any} romaneios={romaneios} />
-        <TopVendedorasCard romaneios={romaneios} />
-        <RecentActivityCard vendas={vendasWithTotal} romaneios={romaneios} />
+        <InsightsCard vendas={vendasWithTotal} pecas={pecas as any} romaneios={romaneiosWithTotal as any} />
+        <TopVendedorasCard romaneios={romaneiosWithTotal as any} />
+        <RecentActivityCard vendas={vendasWithTotal} romaneios={romaneiosWithTotal as any} />
       </div>
 
       {/* Alerts Section - Clean Style */}

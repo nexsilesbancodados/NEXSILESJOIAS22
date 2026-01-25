@@ -56,7 +56,6 @@ export function ClienteFielModal({
   const handleAddNovoCliente = () => {
     if (!novoCliente.nome.trim()) return;
     onAddCliente({
-      user_id: '', // Will be set by the mutation
       nome: novoCliente.nome,
       telefone: novoCliente.telefone || null,
       email: novoCliente.email || null,

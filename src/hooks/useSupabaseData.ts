@@ -42,36 +42,37 @@ export interface Profile {
 
 export interface Fornecedor {
   id: string;
-  user_id: string;
   nome: string;
-  telefone: string | null;
-  email: string | null;
-  cnpj: string | null;
-  endereco: string | null;
-  cidade: string | null;
-  estado: string | null;
-  cep: string | null;
-  contato: string | null;
-  observacoes: string | null;
-  created_at: string;
-  updated_at: string;
+  telefone?: string | null;
+  email?: string | null;
+  cnpj?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  observacoes?: string | null;
+  ativo?: boolean | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Cliente {
   id: string;
-  user_id: string;
   nome: string;
-  telefone: string | null;
-  email: string | null;
-  cpf: string | null;
-  endereco: string | null;
-  cidade: string | null;
-  estado: string | null;
-  cep: string | null;
-  data_nascimento: string | null;
-  observacoes: string | null;
-  created_at: string;
-  updated_at: string;
+  telefone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  cpf?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  data_nascimento?: string | null;
+  observacoes?: string | null;
+  pontos_fidelidade?: number | null;
+  ativo?: boolean | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Maleta {
@@ -147,32 +148,39 @@ export interface VendaItem {
 
 export interface Romaneio {
   id: string;
-  user_id: string;
-  reseller_id: string | null;
-  reseller_nome: string | null;
-  maleta_id: string | null;
-  cliente_nome: string | null;
-  total: number;
-  comissao: number;
-  status: string;
-  data: string | null;
-  observacoes: string | null;
-  created_at: string;
-  updated_at: string;
-  // Aliases for backward compatibility
-  numero?: number;
-  revendedora_nome?: string | null;
+  numero?: string | null;
+  revendedora_id?: string | null;
+  endereco_entrega?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  valor_frete?: number | null;
+  data_criacao?: string | null;
+  data_previsao?: string | null;
   data_entrega?: string | null;
+  status?: string | null;
+  observacoes?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  // Aliases for backward compatibility
+  total?: number;
+  reseller_id?: string | null;
+  reseller_nome?: string | null;
+  revendedora_nome?: string | null;
+  cliente_nome?: string | null;
+  data?: string | null;
 }
 
 export interface RomaneioItem {
   id: string;
   romaneio_id: string;
-  peca_id: string | null;
-  peca_nome: string | null;
+  peca_id: string;
   quantidade: number;
-  preco_unitario: number | null;
-  created_at: string;
+  created_at?: string;
+  peca?: Peca;
+  // Aliases for backward compatibility
+  peca_nome?: string | null;
+  preco_unitario?: number | null;
 }
 
 export interface CaixaSessao {
@@ -818,8 +826,9 @@ export function useMaletaItems(maletaId: string) {
   return useQuery({
     queryKey: ['maleta-items', maletaId],
     queryFn: async () => {
+      // Correct table name is 'maletas_pecas' not 'maleta_itens'
       const { data, error } = await supabase
-        .from('maleta_itens')
+        .from('maletas_pecas')
         .select('*, peca:pecas(*)')
         .eq('maleta_id', maletaId);
       
@@ -871,10 +880,10 @@ export function useAddMaletaItem() {
   
   return useMutation({
     mutationFn: async ({ maletaId, pecaId }: { maletaId: string; pecaId: string }) => {
-      // Add item to maleta
+      // Add item to maleta - correct table name is 'maletas_pecas'
       const { data, error } = await supabase
-        .from('maleta_itens')
-        .insert({ maleta_id: maletaId, peca_id: pecaId, status: 'pendente' })
+        .from('maletas_pecas')
+        .insert({ maleta_id: maletaId, peca_id: pecaId, quantidade: 1 })
         .select()
         .single();
       
@@ -917,9 +926,10 @@ export function useUpdateMaletaItem() {
       pecaId: string;
       statusAnterior?: 'pendente' | 'vendido' | 'devolvido';
     }) => {
+      // Correct table name is 'maletas_pecas'
       const { data, error } = await supabase
-        .from('maleta_itens')
-        .update({ status })
+        .from('maletas_pecas')
+        .update({ vendida: status === 'vendido', data_venda: status === 'vendido' ? new Date().toISOString().split('T')[0] : null })
         .eq('id', id)
         .select()
         .single();
@@ -988,21 +998,14 @@ export function useCloseMaleta() {
     mutationFn: async ({ maletaId, returnPendingToStock = true }: { maletaId: string; returnPendingToStock?: boolean }) => {
       // If returnPendingToStock is true, return all pending items to stock
       if (returnPendingToStock) {
-        // Get all pending items
+        // Get all non-sold items (vendida = false) - correct table name is 'maletas_pecas'
         const { data: pendingItems } = await supabase
-          .from('maleta_itens')
-          .select('id, peca_id')
+          .from('maletas_pecas')
+          .select('id, peca_id, quantidade')
           .eq('maleta_id', maletaId)
-          .eq('status', 'pendente');
+          .eq('vendida', false);
 
         if (pendingItems && pendingItems.length > 0) {
-          // Update all pending items to devolvido
-          await supabase
-            .from('maleta_itens')
-            .update({ status: 'devolvido' })
-            .eq('maleta_id', maletaId)
-            .eq('status', 'pendente');
-
           // Return each piece to stock
           for (const item of pendingItems) {
             const { data: pecaData } = await supabase
@@ -1014,10 +1017,17 @@ export function useCloseMaleta() {
             if (pecaData) {
               await supabase
                 .from('pecas')
-                .update({ estoque: pecaData.estoque + 1 })
+                .update({ estoque: (pecaData.estoque || 0) + (item.quantidade || 1) })
                 .eq('id', item.peca_id);
             }
           }
+
+          // Delete non-sold items from maleta
+          await supabase
+            .from('maletas_pecas')
+            .delete()
+            .eq('maleta_id', maletaId)
+            .eq('vendida', false);
         }
       }
 
@@ -1258,9 +1268,10 @@ export function useRomaneioItems(romaneioId: string) {
   return useQuery({
     queryKey: ['romaneio-items', romaneioId],
     queryFn: async () => {
+      // Correct table name is 'romaneios_pecas'
       const { data, error } = await supabase
-        .from('romaneio_itens')
-        .select('*')
+        .from('romaneios_pecas')
+        .select('*, peca:pecas(*)')
         .eq('romaneio_id', romaneioId);
       
       if (error) throw error;
@@ -1295,8 +1306,9 @@ export function useAddRomaneio() {
         romaneio_id: romaneioData.id,
       }));
       
+      // Correct table name is 'romaneios_pecas'
       const { error: itemsError } = await supabase
-        .from('romaneio_itens')
+        .from('romaneios_pecas')
         .insert(itemsWithRomaneioId);
       
       if (itemsError) throw itemsError;
@@ -1360,8 +1372,9 @@ export function useDeleteRomaneio() {
   
   return useMutation({
     mutationFn: async (id: string) => {
+      // Correct table name is 'romaneios_pecas'
       const { error: itemsError } = await supabase
-        .from('romaneio_itens')
+        .from('romaneios_pecas')
         .delete()
         .eq('romaneio_id', id);
       
@@ -1404,8 +1417,9 @@ export function useDeleteRomaneiosBulk() {
   
   return useMutation({
     mutationFn: async (ids: string[]) => {
+      // Correct table name is 'romaneios_pecas'
       const { error: itemsError } = await supabase
-        .from('romaneio_itens')
+        .from('romaneios_pecas')
         .delete()
         .in('romaneio_id', ids);
       
@@ -1858,8 +1872,9 @@ export function useCatalogoItems(catalogoId: string) {
   return useQuery({
     queryKey: ['catalogo-items', catalogoId],
     queryFn: async () => {
+      // Correct table name is 'catalogos_pecas'
       const { data, error } = await supabase
-        .from('catalogo_pecas')
+        .from('catalogos_pecas')
         .select('*, peca:pecas(*)')
         .eq('catalogo_id', catalogoId)
         .order('ordem', { ascending: true });
@@ -1876,8 +1891,9 @@ export function useAddCatalogoItem() {
   
   return useMutation({
     mutationFn: async (item: Omit<CatalogoItem, 'id' | 'created_at' | 'peca'>) => {
+      // Correct table name is 'catalogos_pecas'
       const { data, error } = await supabase
-        .from('catalogo_pecas')
+        .from('catalogos_pecas')
         .insert(item)
         .select()
         .single();
@@ -1900,8 +1916,9 @@ export function useDeleteCatalogoItem() {
   
   return useMutation({
     mutationFn: async (id: string) => {
+      // Correct table name is 'catalogos_pecas'
       const { error } = await supabase
-        .from('catalogo_pecas')
+        .from('catalogos_pecas')
         .delete()
         .eq('id', id);
       

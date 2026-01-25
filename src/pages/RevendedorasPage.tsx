@@ -236,9 +236,10 @@ export default function RevendedorasPage() {
     queryKey: ['romaneios-maleta', selectedMaleta?.id],
     queryFn: async () => {
       if (!selectedMaleta?.id) return [];
+      // Correct join table name is 'romaneios_pecas'
       const { data, error } = await supabase
         .from('romaneios')
-        .select('*, romaneio_itens(*)')
+        .select('*, romaneios_pecas(*)')
         .eq('maleta_id', selectedMaleta.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
