@@ -58,6 +58,7 @@ import { cn } from '@/lib/utils';
 import { useRomaneios, useRomaneioItems, useUpdateRomaneioStatus, useDeleteRomaneiosBulk, type Romaneio } from '@/hooks/useSupabaseData';
 import { EtiquetaEnvioModal } from '@/components/romaneio/EtiquetaEnvioModal';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 export default function RomaneiosPage() {
   const { data: romaneios = [], isLoading } = useRomaneios();
@@ -243,14 +244,16 @@ export default function RomaneiosPage() {
           >
             Limpar seleção
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setIsDeleteDialogOpen(true)}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Excluir selecionados
-          </Button>
+          <ReadOnlyGuard>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Excluir selecionados
+            </Button>
+          </ReadOnlyGuard>
         </div>
       )}
 

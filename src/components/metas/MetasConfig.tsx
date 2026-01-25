@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Target, Loader2, Trash2 } from 'lucide-react';
 import { useMetas, useAddMeta, useDeleteMeta } from '@/hooks/useMetas';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 const meses = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -132,20 +133,22 @@ export function MetasConfig() {
               />
             </div>
           </div>
-          <Button 
-            onClick={handleSaveMeta} 
-            disabled={!valorMeta || addMeta.isPending}
-            className="btn-gold"
-          >
-            {addMeta.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              'Salvar Meta'
-            )}
-          </Button>
+          <ReadOnlyGuard>
+            <Button 
+              onClick={handleSaveMeta} 
+              disabled={!valorMeta || addMeta.isPending}
+              className="btn-gold"
+            >
+              {addMeta.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Salvar Meta'
+              )}
+            </Button>
+          </ReadOnlyGuard>
         </CardContent>
       </Card>
 

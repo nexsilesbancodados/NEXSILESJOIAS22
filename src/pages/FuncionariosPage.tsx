@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Plus, Users, Shield, Edit, Trash2, Loader2 } from 'lucide-react';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 const MODULOS = [
   { id: 'dashboard', nome: 'Dashboard' },
@@ -243,12 +244,14 @@ export default function FuncionariosPage() {
           </div>
 
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="btn-gold">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Funcionário
-              </Button>
-            </DialogTrigger>
+            <ReadOnlyGuard>
+              <DialogTrigger asChild>
+                <Button className="btn-gold">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Funcionário
+                </Button>
+              </DialogTrigger>
+            </ReadOnlyGuard>
             <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
               <form onSubmit={handleCreateFuncionario} className="flex flex-col h-full">
                 <DialogHeader className="shrink-0">

@@ -68,6 +68,7 @@ import {
   generateCouponCode,
   type Campanha,
 } from '@/hooks/useCampanhas';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 type CampanhaTipo = 'percentual' | 'valor_fixo' | 'frete_gratis';
 
@@ -254,10 +255,12 @@ export default function CampanhasPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => handleOpenForm()} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nova Campanha
-        </Button>
+        <ReadOnlyGuard>
+          <Button onClick={() => handleOpenForm()} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nova Campanha
+          </Button>
+        </ReadOnlyGuard>
       </div>
 
       {/* Stats Cards */}

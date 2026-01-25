@@ -62,6 +62,7 @@ import { toast } from 'sonner';
 import { PedidosCatalogoList } from '@/components/catalogo/PedidosCatalogoList';
 import { ShareCatalogButton } from '@/components/catalogo/ShareCatalogButton';
 import { ImageUpload } from '@/components/ImageUpload';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 const STATUS_OPTIONS = [
   { value: 'em_preparacao', label: 'Em Preparação', color: 'bg-yellow-500/20 text-yellow-600' },
@@ -319,10 +320,12 @@ export default function CatalogosPage() {
             className="pl-10 input-search"
           />
         </div>
-        <Button onClick={() => handleOpenForm()} className="btn-gold">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Catálogo
-        </Button>
+        <ReadOnlyGuard>
+          <Button onClick={() => handleOpenForm()} className="btn-gold">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Catálogo
+          </Button>
+        </ReadOnlyGuard>
       </div>
 
       {/* Catalogos Grid */}
