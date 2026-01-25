@@ -231,6 +231,12 @@ const TIPOS_BANHO = [
   { value: 'vintage', label: 'Vintage', cor: '#8E7618', categoria: 'vintage' },
 ];
 
+// Helper function to get color from banho
+const getBanhoColor = (banho: Banho): string => {
+  const tipo = TIPOS_BANHO.find(t => t.label === banho.nome || t.value === banho.tipo);
+  return tipo?.cor || '#C0C0C0';
+};
+
 // ============ ACABAMENTOS ============
 const ACABAMENTOS = [
   { value: 'brilhante', label: 'Brilhante' },
@@ -554,7 +560,7 @@ export default function BanhosPage() {
       // Se mudou banho_id, atualizar o preço por grama
       if (campo === 'banho_id') {
         const banho = banhos.find(b => b.id === valor);
-        updated.preco_por_grama = banho?.preco_por_grama || 0;
+        updated.preco_por_grama = banho?.custo_por_grama || 0;
       }
       
       // Recalcular subtotal
@@ -595,8 +601,8 @@ export default function BanhosPage() {
         nome: banho.nome,
         tipo: tipoEncontrado?.value || banho.tipo || '',
         categoria: tipoEncontrado?.categoria || '',
-        cor: banho.cor || '#C0C0C0',
-        preco_por_grama: banho.preco_por_grama?.toString() || '',
+        cor: getBanhoColor(banho),
+        preco_por_grama: banho.custo_por_grama?.toString() || '',
         acabamento: '',
         qualidade: '',
         espessura_microns: '',
@@ -660,10 +666,10 @@ export default function BanhosPage() {
     // Usar apenas campos que existem na tabela banhos
     const banhoData = {
       nome: tipoSelecionado?.label || formData.nome,
-      cor: tipoSelecionado?.cor.startsWith('linear') ? '#C0C0C0' : (tipoSelecionado?.cor || formData.cor),
-      custo: formData.preco_por_grama ? parseFloat(formData.preco_por_grama) : null,
-      descricao: `Tipo: ${formData.tipo}${formData.categoria ? ` | Categoria: ${formData.categoria}` : ''}`,
-      updated_at: new Date().toISOString(),
+      tipo: formData.tipo,
+      custo_por_grama: formData.preco_por_grama ? parseFloat(formData.preco_por_grama) : null,
+      descricao: `${formData.categoria ? `Categoria: ${formData.categoria} | ` : ''}Cor: ${tipoSelecionado?.cor || '#C0C0C0'}`,
+      ativo: true,
     };
 
     if (selectedBanho) {
@@ -707,7 +713,7 @@ export default function BanhosPage() {
         quantidade_pecas: 0,
         peso_enviado: envio.peso_total || 0,
         peso_cobrado: envio.peso_total || 0,
-        preco_por_grama: banho?.preco_por_grama || 0,
+        preco_por_grama: banho?.custo_por_grama || 0,
         subtotal: envio.valor_total || 0,
       }]);
       // Carregar peças do envio existente
@@ -932,14 +938,15 @@ export default function BanhosPage() {
                       <div className="flex items-center gap-3">
                         {(() => {
                           const tipo = TIPOS_BANHO.find(t => t.label === banho.nome);
+                          const banhoColor = getBanhoColor(banho);
                           const isGradient = tipo?.cor.startsWith('linear');
                           return (
                             <div 
                               className="w-10 h-10 rounded-full border-2"
                               style={{ 
-                                background: isGradient ? tipo?.cor : banho.cor || '#C0C0C0',
-                                backgroundColor: !isGradient ? banho.cor || '#C0C0C0' : undefined,
-                                borderColor: banho.cor === '#FFFFFF' ? '#e5e5e5' : (isGradient ? '#ccc' : banho.cor || '#C0C0C0')
+                                background: isGradient ? tipo?.cor : banhoColor,
+                                backgroundColor: !isGradient ? banhoColor : undefined,
+                                borderColor: banhoColor === '#FFFFFF' ? '#e5e5e5' : (isGradient ? '#ccc' : banhoColor)
                               }}
                             />
                           );
@@ -949,9 +956,9 @@ export default function BanhosPage() {
                           <Badge 
                             className="text-xs mt-1"
                             style={{ 
-                              backgroundColor: banho.cor === '#FFFFFF' ? '#f5f5f5' : (banho.cor || '#C0C0C0') + '20',
-                              color: banho.cor === '#FFFFFF' || banho.cor === '#FFFFF0' ? '#666' : banho.cor || '#C0C0C0',
-                              borderColor: banho.cor === '#FFFFFF' ? '#e5e5e5' : banho.cor || '#C0C0C0'
+                              backgroundColor: getBanhoColor(banho) === '#FFFFFF' ? '#f5f5f5' : (getBanhoColor(banho)) + '20',
+                              color: getBanhoColor(banho) === '#FFFFFF' || getBanhoColor(banho) === '#FFFFF0' ? '#666' : getBanhoColor(banho),
+                              borderColor: getBanhoColor(banho) === '#FFFFFF' ? '#e5e5e5' : getBanhoColor(banho)
                             }}
                           >
                             {banho.nome}
@@ -984,8 +991,8 @@ export default function BanhosPage() {
                       {banho.tipo && (
                         <p><span className="font-medium">Tipo:</span> {banho.tipo}</p>
                       )}
-                      {banho.preco_por_grama !== null && banho.preco_por_grama !== undefined && (
-                        <p><span className="font-medium">Preço/grama:</span> R$ {Number(banho.preco_por_grama).toFixed(2)}</p>
+                      {banho.custo_por_grama !== null && banho.custo_por_grama !== undefined && (
+                        <p><span className="font-medium">Preço/grama:</span> R$ {Number(banho.custo_por_grama).toFixed(2)}</p>
                       )}
                       <p>
                         <span className="font-medium">Status:</span>{' '}
@@ -1681,12 +1688,12 @@ export default function BanhosPage() {
                                     <div className="flex items-center gap-2">
                                       <div 
                                         className="w-3 h-3 rounded-full shrink-0"
-                                        style={{ backgroundColor: banho.cor || '#C0C0C0' }}
+                                        style={{ backgroundColor: getBanhoColor(banho) }}
                                       />
                                       <span className="truncate">{banho.nome}</span>
-                                      {banho.preco_por_grama && (
+                                      {banho.custo_por_grama && (
                                         <span className="text-xs text-muted-foreground">
-                                          (R$ {banho.preco_por_grama}/g)
+                                          (R$ {banho.custo_por_grama}/g)
                                         </span>
                                       )}
                                     </div>

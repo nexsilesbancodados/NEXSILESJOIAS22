@@ -1856,16 +1856,14 @@ export function useDeleteCatalogoItem() {
 // Aligned with actual database schema
 export interface Banho {
   id: string;
-  user_id: string;
   nome: string;
-  cor: string | null;
-  custo: number | null;
+  tipo: string | null;
   descricao: string | null;
-  tipo?: string | null;
-  preco_por_grama?: number | null;
-  ativo?: boolean | null;
-  created_at: string;
-  updated_at: string;
+  custo_por_grama: number | null;
+  tempo_medio_minutos: number | null;
+  ativo: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export function useBanhos() {
@@ -1888,8 +1886,7 @@ export function useAddBanho() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (banho: Omit<Banho, 'id' | 'user_id' | 'created_at'>) => {
-      // Table 'banhos' doesn't have user_id column
+    mutationFn: async (banho: Partial<Omit<Banho, 'id' | 'created_at' | 'updated_at'>>) => {
       const { data, error } = await supabase
         .from('banhos')
         .insert(banho)
@@ -1903,7 +1900,8 @@ export function useAddBanho() {
       queryClient.invalidateQueries({ queryKey: ['banhos'] });
       toast.success('Banho adicionado com sucesso!');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error adding banho:', error);
       toast.error('Erro ao adicionar banho');
     },
   });
