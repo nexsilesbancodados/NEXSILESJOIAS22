@@ -1,5 +1,5 @@
 import { Progress } from '@/components/ui/progress';
-import { Target, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Target, TrendingUp, TrendingDown, Calendar, ArrowUpRight } from 'lucide-react';
 import { useMetaAtual } from '@/hooks/useMetas';
 import { useVendas } from '@/hooks/useSupabaseData';
 
@@ -55,86 +55,77 @@ export function MetaProgress() {
 
   if (!metaAtual) {
     return (
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-400 via-gray-500 to-gray-600 p-5 shadow-lg">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/20" />
-        </div>
-        <div className="relative z-10 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Target className="w-6 h-6 text-white" />
+      <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-start justify-between mb-4">
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+            <Target className="w-5 h-5 text-muted-foreground" />
           </div>
-          <div>
-            <h3 className="font-semibold text-white">Meta do Mês</h3>
-            <p className="text-sm text-white/70">
-              Nenhuma meta definida para {getNomeMes(mesAtual)}
-            </p>
-          </div>
+          <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 text-muted-foreground transition-colors">
+            <ArrowUpRight className="w-4 h-4" />
+          </button>
         </div>
+        <h3 className="font-semibold text-foreground mb-1">Meta do Mês</h3>
+        <p className="text-sm text-muted-foreground">
+          Nenhuma meta definida para {getNomeMes(mesAtual)}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-500 p-5 shadow-lg">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/20" />
-        <div className="absolute -left-4 -bottom-4 w-24 h-24 rounded-full bg-white/10" />
+    <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-10 h-10 rounded-full bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center">
+          <Target className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+        </div>
+        <div className="text-right">
+          <span className="text-2xl font-bold text-foreground">
+            {Math.min(progressoMeta, 100).toFixed(0)}%
+          </span>
+        </div>
       </div>
       
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Target className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Meta de {getNomeMes(mesAtual)}</h3>
-              <p className="text-sm text-white/70">
-                {formatCurrency(faturamentoMesAtual)} de {formatCurrency(valorMeta)}
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-white">
-              {Math.min(progressoMeta, 100).toFixed(0)}%
-            </p>
-          </div>
-        </div>
+      {/* Title */}
+      <h3 className="font-semibold text-foreground mb-1">Meta de {getNomeMes(mesAtual)}</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        {formatCurrency(faturamentoMesAtual)} de {formatCurrency(valorMeta)}
+      </p>
 
-        <div className="h-3 bg-white/20 rounded-full overflow-hidden mb-4">
-          <div 
-            className="h-full bg-white/80 rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(progressoMeta, 100)}%` }}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-white/10 backdrop-blur-sm">
-            {variacaoPercentual >= 0 ? (
-              <TrendingUp className="w-4 h-4 text-white" />
-            ) : (
-              <TrendingDown className="w-4 h-4 text-white" />
-            )}
-            <span className="text-white font-medium">
-              {variacaoPercentual >= 0 ? '+' : ''}{variacaoPercentual.toFixed(1)}%
-            </span>
-            <span className="text-white/70 text-xs">vs anterior</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-white/10 backdrop-blur-sm justify-end">
-            <Calendar className="w-4 h-4 text-white" />
-            <span className="text-white/70 text-xs">
-              {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'} restantes
-            </span>
-          </div>
-        </div>
-
-        {progressoMeta >= 100 && (
-          <div className="mt-4 p-3 bg-white/20 backdrop-blur-sm rounded-lg text-center">
-            <p className="text-white font-medium">🎉 Meta atingida!</p>
-          </div>
-        )}
+      {/* Progress bar */}
+      <div className="h-2 bg-muted rounded-full overflow-hidden mb-4">
+        <div 
+          className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500"
+          style={{ width: `${Math.min(progressoMeta, 100)}%` }}
+        />
       </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+          {variacaoPercentual >= 0 ? (
+            <TrendingUp className="w-4 h-4 text-emerald-500" />
+          ) : (
+            <TrendingDown className="w-4 h-4 text-destructive" />
+          )}
+          <span className={variacaoPercentual >= 0 ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-destructive font-medium'}>
+            {variacaoPercentual >= 0 ? '+' : ''}{variacaoPercentual.toFixed(1)}%
+          </span>
+          <span className="text-muted-foreground text-xs">vs anterior</span>
+        </div>
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 justify-end">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <span className="text-muted-foreground text-xs">
+            {diasRestantes} dias restantes
+          </span>
+        </div>
+      </div>
+
+      {progressoMeta >= 100 && (
+        <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-center">
+          <p className="text-emerald-600 dark:text-emerald-400 font-medium">🎉 Meta atingida!</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -15,16 +15,15 @@ import {
   FileText,
   Bell,
   DollarSign,
-  HelpCircle
+  TrendingUp
 } from 'lucide-react';
 import { usePecas, useVendas, useRevendedoras, useRomaneios, useCaixaAtual } from '@/hooks/useSupabaseData';
 import { MetaProgress } from '@/components/dashboard/MetaProgress';
 import { AniversariantesCard } from '@/components/dashboard/AniversariantesCard';
-import { GradientStatCard } from '@/components/dashboard/GradientStatCard';
+import { ModernStatCard } from '@/components/dashboard/ModernStatCard';
 import { TopVendedorasCard } from '@/components/dashboard/TopVendedorasCard';
 import { InsightsCard } from '@/components/dashboard/InsightsCard';
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
-import { QuickStatsRow } from '@/components/dashboard/QuickStatsRow';
 import { PedidosPendentesCard } from '@/components/dashboard/PedidosPendentesCard';
 import { InteractiveTour } from '@/components/onboarding/InteractiveTour';
 import { useTourManager, DASHBOARD_TOUR_STEPS } from '@/hooks/useTourManager';
@@ -34,28 +33,25 @@ const DashboardCharts = lazy(() => import('@/components/dashboard/DashboardChart
 
 // Skeleton components for loading states
 const StatCardSkeleton = () => (
-  <Card className="glass-card overflow-hidden">
-    <CardContent className="p-4">
-      <div className="flex items-center gap-3">
-        <Skeleton className="h-12 w-12 rounded-xl" />
-        <div className="space-y-2 flex-1">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
+  <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+    <div className="flex items-start justify-between mb-4">
+      <Skeleton className="h-10 w-10 rounded-full" />
+      <Skeleton className="h-8 w-8 rounded-lg" />
+    </div>
+    <Skeleton className="h-3 w-20 mb-2" />
+    <Skeleton className="h-7 w-32" />
+  </div>
 );
 
 const ChartsSkeleton = () => (
   <div className="grid md:grid-cols-2 gap-4">
-    <Card className="glass-card">
+    <Card className="bg-card border border-border/50 rounded-2xl">
       <CardContent className="p-6">
         <Skeleton className="h-6 w-32 mb-4" />
         <Skeleton className="h-[200px] w-full" />
       </CardContent>
     </Card>
-    <Card className="glass-card">
+    <Card className="bg-card border border-border/50 rounded-2xl">
       <CardContent className="p-6">
         <Skeleton className="h-6 w-32 mb-4" />
         <Skeleton className="h-[200px] w-full" />
@@ -79,21 +75,21 @@ export default function DashboardPage() {
     }).format(value);
   };
 
-  const totalEstoque = pecas.reduce((acc, p) => acc + (p.estoque || 0), 0);
-  const estoqueValor = pecas.reduce((acc, p) => acc + (p.estoque || 0) * Number(p.preco || 0), 0);
-  const estoqueBaixo = pecas.filter((p) => (p.estoque || 0) <= 5).length;
-  const faturamentoTotal = vendas.reduce((acc, v) => acc + Number(v.total || 0), 0);
-  const romaneiosPendentes = romaneios.filter((r) => r.status === 'pendente').length;
+  // Calculate stats
+  const stats = useMemo(() => {
+    const today = new Date().toDateString();
+    const vendasHoje = vendas.filter(v => new Date(v.created_at).toDateString() === today);
+    const totalHoje = vendasHoje.reduce((acc, v) => acc + Number(v.total || 0), 0);
+    const faturamentoTotal = vendas.reduce((acc, v) => acc + Number(v.total || 0), 0);
+    const totalEstoque = pecas.reduce((acc, p) => acc + (p.estoque || 0), 0);
+    const estoqueBaixo = pecas.filter((p) => (p.estoque || 0) <= 5).length;
+    const romaneiosPendentes = romaneios.filter((r) => r.status === 'pendente').length;
 
-  const quickActions = [
-    { icon: Gem, label: 'Peças', path: '/pecas', gradient: true },
-    { icon: ShoppingCart, label: 'PDV', path: '/pdv', color: 'bg-success/10 text-success' },
-    { icon: Users, label: 'Revendedoras', path: '/revendedoras', color: 'bg-accent/10 text-accent' },
-    { icon: BarChart3, label: 'Relatórios', path: '/relatorios', color: 'bg-primary/10 text-primary' },
-  ];
+    return { totalHoje, vendasHoje, faturamentoTotal, totalEstoque, estoqueBaixo, romaneiosPendentes };
+  }, [vendas, pecas, romaneios]);
 
   return (
-    <div className="p-6 lg:p-8 animate-fade-in space-y-6">
+    <div className="p-6 lg:p-8 animate-fade-in space-y-6 bg-background min-h-screen">
       {/* Interactive Tour */}
       {showTour && (
         <InteractiveTour
@@ -103,25 +99,24 @@ export default function DashboardPage() {
           storageKey="tour_dashboard_completed"
         />
       )}
+
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight mb-1">
-            Bem-vindo ao <span className="text-gradient">Nexsiles</span>
+          <p className="text-muted-foreground text-sm mb-1">Bom dia,</p>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
+            Nexsiles <Badge variant="outline" className="ml-2 text-xs font-normal">Sistema de Gestão</Badge>
           </h1>
-          <p className="text-muted-foreground text-sm">
-            Seu sistema completo de gestão de semijoias
-          </p>
         </div>
         <div className="flex items-center gap-2">
           {caixaAtual ? (
-            <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1.5 px-3 py-1.5">
+            <Badge className="bg-success/10 text-success border-success/30 gap-1.5 px-3 py-1.5">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
               Caixa Aberto
             </Badge>
           ) : (
             <Link to="/pdv">
-              <Button size="sm" className="btn-gold gap-2">
+              <Button size="sm" className="gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 Abrir Caixa
               </Button>
@@ -130,77 +125,76 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Stats Row */}
-      <QuickStatsRow vendas={vendas} romaneios={romaneios} />
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {quickActions.map((action) => (
-          <Link key={action.path} to={action.path}>
-            <Card className="glass-card cursor-pointer group hover:scale-[1.02] transition-all">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                  action.gradient ? 'gold-gradient text-white' : action.color
-                }`}>
-                  <action.icon className="w-5 h-5" />
-                </div>
-                <p className="font-medium text-foreground">{action.label}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* Gradient Stats Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {loadingPecas ? (
-          <>
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </>
+      {/* Main Stats Grid - Modern Style */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {loadingVendas ? (
+          <StatCardSkeleton />
         ) : (
-          <>
-            <GradientStatCard
-              title="Peças em Estoque"
-              value={totalEstoque.toLocaleString('pt-BR')}
-              subtitle={`${pecas.length} tipos diferentes`}
-              icon={Package}
-              gradient="purple"
-            />
-            
-            <GradientStatCard
-              title="Valor do Estoque"
-              value={formatCurrency(estoqueValor)}
-              subtitle="Investimento total"
-              icon={Gem}
-              gradient="green"
-            />
-          </>
+          <ModernStatCard
+            title="Vendas Hoje"
+            value={formatCurrency(stats.totalHoje)}
+            subtitle={`${stats.vendasHoje.length} vendas`}
+            icon={DollarSign}
+            variant="primary"
+          />
         )}
         
         {loadingVendas ? (
           <StatCardSkeleton />
         ) : (
-          <GradientStatCard
-            title="Faturamento Total"
-            value={formatCurrency(faturamentoTotal)}
-            subtitle={`${vendas.length} vendas realizadas`}
-            icon={DollarSign}
-            gradient="blue"
+          <ModernStatCard
+            title="Total Vendas"
+            value={formatCurrency(stats.faturamentoTotal)}
+            icon={TrendingUp}
+            trend={{ value: 12 }}
+            variant="default"
+          />
+        )}
+        
+        {loadingPecas ? (
+          <StatCardSkeleton />
+        ) : (
+          <ModernStatCard
+            title="Peças Estoque"
+            value={stats.totalEstoque.toLocaleString('pt-BR')}
+            subtitle={`${pecas.length} tipos`}
+            icon={Package}
+            variant="success"
           />
         )}
         
         {loadingRevendedoras ? (
           <StatCardSkeleton />
         ) : (
-          <GradientStatCard
-            title="Revendedoras Ativas"
+          <ModernStatCard
+            title="Revendedoras"
             value={revendedoras.length}
-            subtitle="Parceiras cadastradas"
+            subtitle="Parceiras ativas"
             icon={Users}
-            gradient="orange"
+            variant="info"
           />
         )}
+      </div>
+
+      {/* Quick Actions - Clean Style */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { icon: Gem, label: 'Peças', path: '/pecas', color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+          { icon: ShoppingCart, label: 'PDV', path: '/pdv', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+          { icon: Users, label: 'Revendedoras', path: '/revendedoras', color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { icon: BarChart3, label: 'Relatórios', path: '/relatorios', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+        ].map((action) => (
+          <Link key={action.path} to={action.path}>
+            <div className="bg-card border border-border/50 rounded-2xl p-4 cursor-pointer group hover:shadow-md hover:border-primary/20 transition-all duration-200">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${action.bg}`}>
+                  <action.icon className={`w-5 h-5 ${action.color}`} />
+                </div>
+                <p className="font-medium text-foreground">{action.label}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
 
       {/* Meta Progress, Pedidos & Aniversariantes */}
@@ -222,125 +216,117 @@ export default function DashboardPage() {
         <RecentActivityCard vendas={vendas} romaneios={romaneios} />
       </div>
 
-      {/* Alerts Section */}
+      {/* Alerts Section - Clean Style */}
       <div className="grid md:grid-cols-2 gap-4">
         {/* Romaneios Pendentes */}
-        {romaneiosPendentes > 0 && (
-          <Card className="glass-card border-warning/30 bg-warning/5">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-4">
-                <div className="icon-container-warning flex-shrink-0">
-                  <Bell className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold">Romaneios Pendentes</h3>
-                    <Badge className="bg-warning text-warning-foreground">
-                      {romaneiosPendentes} novo{romaneiosPendentes > 1 ? 's' : ''}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Vendas das revendedoras aguardando confirmação.
-                  </p>
-                  <Link to="/romaneios">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      Ver Romaneios
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Low Stock Alert */}
-        {estoqueBaixo > 0 && (
-          <Card className="glass-card border-destructive/30 bg-destructive/5">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-4">
-                <div className="icon-container-destructive flex-shrink-0">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Atenção ao Estoque</h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    <span className="font-medium text-destructive">{estoqueBaixo} peças</span> com
-                    estoque baixo (≤ 5 unidades).
-                  </p>
-                  <Link to="/pecas">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      Ver Peças
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Cash Register Status */}
-        {!romaneiosPendentes && !estoqueBaixo && (
-          <Card className="glass-card">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  caixaAtual ? 'bg-success/10' : 'bg-muted'
-                }`}>
-                  <ShoppingCart className={`w-5 h-5 ${caixaAtual ? 'text-success' : 'text-muted-foreground'}`} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">
-                    {caixaAtual ? 'Caixa Aberto' : 'Caixa Fechado'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {caixaAtual
-                      ? `Aberto às ${new Date(caixaAtual.data_abertura).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}`
-                      : 'Abra o caixa para registrar vendas'}
-                  </p>
-                  <Link to="/pdv">
-                    <Button variant={caixaAtual ? 'default' : 'outline'} size="sm" className={`gap-2 ${caixaAtual ? 'btn-gold' : ''}`}>
-                      {caixaAtual ? 'Ir para PDV' : 'Abrir Caixa'}
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Romaneios Quick View */}
-        <Card className="glass-card">
-          <CardContent className="p-5">
+        {stats.romaneiosPendentes > 0 && (
+          <div className="bg-card border border-warning/30 rounded-2xl p-5 shadow-sm">
             <div className="flex items-start gap-4">
-              <div className="icon-container-primary flex-shrink-0">
-                <FileText className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center flex-shrink-0">
+                <Bell className="w-5 h-5 text-warning" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">Vendas Revendedoras</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold">Romaneios Pendentes</h3>
+                  <Badge className="bg-warning text-warning-foreground text-xs">
+                    {stats.romaneiosPendentes}
+                  </Badge>
+                </div>
                 <p className="text-sm text-muted-foreground mb-3">
-                  {romaneios.length} romaneios • {' '}
-                  {formatCurrency(
-                    romaneios
-                      .filter((r) => r.status === 'confirmado')
-                      .reduce((acc, r) => acc + Number(r.total), 0)
-                  )} confirmados
+                  Vendas das revendedoras aguardando confirmação.
                 </p>
                 <Link to="/romaneios">
                   <Button variant="outline" size="sm" className="gap-2">
-                    Ver Todos
+                    Ver Romaneios
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Low Stock Alert */}
+        {stats.estoqueBaixo > 0 && (
+          <div className="bg-card border border-destructive/30 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">Atenção ao Estoque</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  <span className="font-medium text-destructive">{stats.estoqueBaixo} peças</span> com
+                  estoque baixo (≤ 5 unidades).
+                </p>
+                <Link to="/pecas">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    Ver Peças
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cash Register Status */}
+        {!stats.romaneiosPendentes && !stats.estoqueBaixo && (
+          <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                caixaAtual ? 'bg-success/10' : 'bg-muted'
+              }`}>
+                <ShoppingCart className={`w-5 h-5 ${caixaAtual ? 'text-success' : 'text-muted-foreground'}`} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">
+                  {caixaAtual ? 'Caixa Aberto' : 'Caixa Fechado'}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {caixaAtual
+                    ? `Aberto às ${new Date(caixaAtual.data_abertura).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}`
+                    : 'Abra o caixa para registrar vendas'}
+                </p>
+                <Link to="/pdv">
+                  <Button variant={caixaAtual ? 'default' : 'outline'} size="sm" className="gap-2">
+                    {caixaAtual ? 'Ir para PDV' : 'Abrir Caixa'}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Romaneios Quick View */}
+        <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold mb-1">Vendas Revendedoras</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                {romaneios.length} romaneios • {' '}
+                {formatCurrency(
+                  romaneios
+                    .filter((r) => r.status === 'confirmado')
+                    .reduce((acc, r) => acc + Number(r.total), 0)
+                )} confirmados
+              </p>
+              <Link to="/romaneios">
+                <Button variant="outline" size="sm" className="gap-2">
+                  Ver Todos
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

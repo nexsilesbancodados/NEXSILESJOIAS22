@@ -11,7 +11,9 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  AreaChart,
+  Area
 } from 'recharts';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 
@@ -31,15 +33,15 @@ interface DashboardChartsProps {
 }
 
 const COLORS = {
-  pink: '#ec4899',
-  purple: '#8b5cf6',
-  teal: '#14b8a6',
-  orange: '#f97316',
-  cyan: '#06b6d4',
-  rose: '#f43f5e',
+  emerald: 'hsl(158 64% 45%)',
+  blue: 'hsl(217 91% 60%)',
+  purple: 'hsl(263 70% 50%)',
+  amber: 'hsl(38 92% 50%)',
+  rose: 'hsl(340 80% 60%)',
+  cyan: 'hsl(187 85% 50%)',
 };
 
-const PIE_COLORS = [COLORS.pink, COLORS.purple, COLORS.teal, COLORS.orange, COLORS.cyan, COLORS.rose];
+const PIE_COLORS = [COLORS.emerald, COLORS.blue, COLORS.purple, COLORS.amber, COLORS.rose, COLORS.cyan];
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
@@ -52,9 +54,9 @@ const formatCurrency = (value: number) => {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
+      <div className="bg-card border border-border rounded-xl p-3 shadow-lg">
         <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-sm text-purple-500 font-semibold">
+        <p className="text-sm text-primary font-semibold">
           {formatCurrency(payload[0].value)}
         </p>
       </div>
@@ -66,7 +68,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-card/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
+      <div className="bg-card border border-border rounded-xl p-3 shadow-lg">
         <p className="text-sm font-medium text-foreground">{payload[0].name}</p>
         <p className="text-sm font-semibold" style={{ color: payload[0].payload.fill }}>
           {payload[0].value} peças
@@ -79,7 +81,7 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 
 export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: DashboardChartsProps) {
   // Process sales data by month - memoized
-  const barData = useMemo(() => {
+  const areaData = useMemo(() => {
     const vendasPorMes = vendas.reduce((acc, venda) => {
       const date = new Date(venda.created_at);
       const monthKey = date.toLocaleDateString('pt-BR', { month: 'short' });
@@ -92,7 +94,7 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
     }, {} as Record<string, number>);
 
     return Object.entries(vendasPorMes)
-      .slice(-6)
+      .slice(-12)
       .map(([name, valor]) => ({
         name: name.charAt(0).toUpperCase() + name.slice(1),
         valor: Math.round(valor),
@@ -116,57 +118,72 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
       .slice(0, 6);
   }, [pecas]);
 
+  // Calculate highlight
+  const totalVendas = useMemo(() => areaData.reduce((acc, d) => acc + d.valor, 0), [areaData]);
+  const maxMonth = useMemo(() => areaData.reduce((max, d) => d.valor > max.valor ? d : max, areaData[0] || { name: '', valor: 0 }), [areaData]);
+
   return (
-    <div className="grid lg:grid-cols-2 gap-6 mb-8">
-      {/* Bar Chart - Sales */}
-      <Card className="glass-card overflow-hidden">
+    <div className="grid lg:grid-cols-2 gap-6">
+      {/* Area Chart - Sales */}
+      <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-white" />
-            </div>
+          <div className="flex items-start justify-between">
             <div>
-              <CardTitle className="text-lg">Vendas por Mês</CardTitle>
-              <p className="text-sm text-muted-foreground">Últimos 6 meses</p>
+              <CardTitle className="text-base font-semibold">Total de Vendas</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Clientes que compraram no último ano</p>
             </div>
+            <button className="text-muted-foreground hover:text-foreground transition-colors p-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
           </div>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="h-[280px]">
-            {barData.length > 0 ? (
+          <div className="h-[220px] relative">
+            {areaData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <AreaChart data={areaData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={COLORS.purple} stopOpacity={1} />
-                      <stop offset="100%" stopColor={COLORS.pink} stopOpacity={0.8} />
+                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(158 64% 45%)" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="hsl(158 64% 45%)" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                   <XAxis 
                     dataKey="name" 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
+                    dy={10}
                   />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                    tickFormatter={(value) => formatCurrency(value)}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.3 }} />
-                  <Bar 
+                  <YAxis hide />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area 
+                    type="monotone" 
                     dataKey="valor" 
-                    fill="url(#barGradient)" 
-                    radius={[6, 6, 0, 0]}
-                    maxBarSize={50}
+                    stroke="hsl(158 64% 45%)" 
+                    strokeWidth={2}
+                    fill="url(#areaGradient)"
+                    dot={false}
+                    activeDot={{ r: 4, fill: 'hsl(158 64% 45%)' }}
                   />
-                </BarChart>
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-muted-foreground">
                 Nenhuma venda registrada
+              </div>
+            )}
+
+            {/* Highlight bubble */}
+            {areaData.length > 0 && maxMonth.valor > 0 && (
+              <div 
+                className="absolute bg-gradient-to-br from-lime-300 to-emerald-400 text-foreground px-3 py-1.5 rounded-full text-xs font-semibold shadow-md"
+                style={{ left: '35%', top: '15%' }}
+              >
+                <span className="text-sm font-bold">+{((maxMonth.valor / totalVendas) * 100).toFixed(0)}%</span>
+                <span className="block text-[10px] opacity-80">Mês destaque</span>
               </div>
             )}
           </div>
@@ -174,20 +191,22 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
       </Card>
 
       {/* Pie Chart - Categories */}
-      <Card className="glass-card overflow-hidden">
+      <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-500 flex items-center justify-center">
-              <PieChartIcon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Estoque por Categoria</CardTitle>
-              <p className="text-sm text-muted-foreground">Distribuição atual</p>
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+                <PieChartIcon className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Estoque por Categoria</CardTitle>
+                <p className="text-xs text-muted-foreground">Distribuição atual</p>
+              </div>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="h-[280px]">
+          <div className="h-[220px]">
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -195,8 +214,8 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
+                    innerRadius={55}
+                    outerRadius={85}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -214,9 +233,9 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
                     align="right" 
                     verticalAlign="middle"
                     iconType="circle"
-                    iconSize={10}
+                    iconSize={8}
                     formatter={(value) => (
-                      <span className="text-sm text-foreground">{value}</span>
+                      <span className="text-xs text-foreground">{value}</span>
                     )}
                   />
                 </PieChart>
