@@ -2,6 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, supabase } from '@/lib/supabase-db';
 import { toast } from 'sonner';
 
+// Helper function to get current user ID
+async function getCurrentUserId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Usuário não autenticado');
+  return user.id;
+}
+
 // Types based on actual database schema
 export interface Peca {
   id: string;
@@ -42,6 +49,7 @@ export interface Profile {
 
 export interface Fornecedor {
   id: string;
+  user_id?: string | null;
   nome: string;
   telefone?: string | null;
   email?: string | null;
@@ -58,6 +66,7 @@ export interface Fornecedor {
 
 export interface Cliente {
   id: string;
+  user_id?: string | null;
   nome: string;
   telefone?: string | null;
   whatsapp?: string | null;
@@ -231,10 +240,11 @@ export function usePecas() {
   return useQuery({
     queryKey: ['pecas'],
     queryFn: async () => {
-      // Table 'pecas' doesn't have user_id column - fetch all records
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('pecas')
         .select('*')
+        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -248,10 +258,10 @@ export function useAddPeca() {
   
   return useMutation({
     mutationFn: async (peca: Omit<Peca, 'id' | 'created_at' | 'updated_at'>) => {
-      // Table 'pecas' doesn't have user_id column
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('pecas')
-        .insert(peca)
+        .insert({ ...peca, user_id: userId })
         .select()
         .single();
       
@@ -374,10 +384,11 @@ export function useFornecedores() {
   return useQuery({
     queryKey: ['fornecedores'],
     queryFn: async () => {
-      // Table 'fornecedores' doesn't have user_id column - fetch all records
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('fornecedores')
         .select('*')
+        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -391,10 +402,10 @@ export function useAddFornecedor() {
   
   return useMutation({
     mutationFn: async (fornecedor: Omit<Fornecedor, 'id' | 'created_at' | 'updated_at'>) => {
-      // Table 'fornecedores' doesn't have user_id column
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('fornecedores')
-        .insert(fornecedor)
+        .insert({ ...fornecedor, user_id: userId })
         .select()
         .single();
       
@@ -517,10 +528,11 @@ export function useClientes() {
   return useQuery({
     queryKey: ['clientes'],
     queryFn: async () => {
-      // Table 'clientes' doesn't have user_id column - fetch all records
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
+        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -534,10 +546,10 @@ export function useAddCliente() {
   
   return useMutation({
     mutationFn: async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
-      // Table 'clientes' doesn't have user_id column
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('clientes')
-        .insert(cliente)
+        .insert({ ...cliente, user_id: userId })
         .select()
         .single();
       
@@ -687,10 +699,11 @@ export function useRevendedoras() {
   return useQuery({
     queryKey: ['revendedoras'],
     queryFn: async () => {
-      // Table 'revendedoras' - fetch all records (no user_id filtering needed for shared data)
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('revendedoras')
         .select('*')
+        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -704,10 +717,11 @@ export function useAddRevendedora() {
   
   return useMutation({
     mutationFn: async (revendedora: Partial<Omit<Revendedora, 'id' | 'created_at' | 'updated_at'>>) => {
-      // Insert matching actual database schema (no user_id, profile_id columns)
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('revendedoras')
         .insert({
+          user_id: userId,
           nome: revendedora.nome || '',
           telefone: revendedora.telefone || null,
           whatsapp: revendedora.whatsapp || null,
@@ -805,10 +819,11 @@ export function useMaletas(resellerId?: string) {
   return useQuery({
     queryKey: ['maletas', resellerId],
     queryFn: async () => {
-      // Table 'maletas' doesn't have user_id column - fetch all records
+      const userId = await getCurrentUserId();
       let query = supabase
         .from('maletas')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (resellerId) {
@@ -850,10 +865,11 @@ export function useAddMaleta() {
       prazo_devolucao?: string;
       observacoes?: string;
     }) => {
-      // Table 'maletas' doesn't have user_id column
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('maletas')
-        .insert({ 
+        .insert({
+          user_id: userId,
           revendedora_id: maletaData.reseller_id, 
           codigo: `MAL-${Date.now()}`,
           status: 'aberta',
@@ -1095,10 +1111,11 @@ export function useVendas() {
   return useQuery({
     queryKey: ['vendas'],
     queryFn: async () => {
-      // Table 'vendas' doesn't have user_id column - fetch all records
+      const userId = await getCurrentUserId();
       const { data, error } = await supabase
         .from('vendas')
         .select('*')
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -1165,10 +1182,12 @@ export function useAddVenda() {
       }[];
       caixaSessaoId?: string;
     }) => {
+      const userId = await getCurrentUserId();
       // Insert venda into vendas table (matching actual DB schema)
       const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
         .insert({
+          user_id: userId,
           valor_total: venda.valor_total,
           subtotal: venda.subtotal,
           desconto: venda.desconto || 0,
