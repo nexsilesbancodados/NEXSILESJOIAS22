@@ -249,16 +249,16 @@ export default function FuncionariosPage() {
                 Novo Funcionário
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <form onSubmit={handleCreateFuncionario}>
-                <DialogHeader>
+            <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+              <form onSubmit={handleCreateFuncionario} className="flex flex-col h-full">
+                <DialogHeader className="shrink-0">
                   <DialogTitle>Novo Funcionário</DialogTitle>
                   <DialogDescription>
                     Crie uma conta para um novo funcionário
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
+                <div className="flex-1 overflow-y-auto space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="nome">Nome</Label>
                     <Input
@@ -309,7 +309,7 @@ export default function FuncionariosPage() {
                   </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="shrink-0 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancelar
                   </Button>
