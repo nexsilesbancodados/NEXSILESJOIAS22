@@ -205,118 +205,65 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex">
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden">
-        {/* Background Image */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${loginBg})` }}
-        />
-        
-        {/* Subtle dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/20" />
-        
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
-          {/* Logo */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-4"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-xl">
-              <img src={logo} alt="Nexsiles" className="w-9 h-9 object-contain" />
-            </div>
-            <span className="text-2xl font-bold tracking-tight">Nexsiles</span>
-          </motion.div>
-
-          {/* Main Content */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="space-y-8"
-          >
-            <div className="space-y-4">
-              <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
-                Gestão completa para seu negócio de semijoias
-              </h1>
-              <p className="text-xl text-white/80 max-w-md">
-                Controle vendas, estoque, revendedoras e muito mais em uma única plataforma.
-              </p>
-            </div>
-
-            {/* Features */}
-            <div className="grid gap-4 max-w-md">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.4 }}
-                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Zap className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">PDV Rápido</p>
-                  <p className="text-sm text-white/70">Vendas em segundos com interface intuitiva</p>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.5 }}
-                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">Catálogos Online</p>
-                  <p className="text-sm text-white/70">Compartilhe produtos via WhatsApp</p>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.6 }}
-                className="flex items-center gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-medium">Dados Seguros</p>
-                  <p className="text-sm text-white/70">Seus dados protegidos na nuvem</p>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-
-          {/* Footer */}
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="text-sm text-white/60"
-          >
-            © 2024 Nexsiles. Todos os direitos reservados.
-          </motion.p>
-        </div>
+    <div 
+      className="min-h-screen w-full flex items-center justify-center relative"
+      style={{ backgroundImage: `url(${loginBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+    >
+      {/* Dark overlay for readability */}
+      <div className="absolute inset-0 bg-black/40" />
+      
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      {/* Right Side - Auth Form */}
-      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-background">
+      {/* Branding - Top Left */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="absolute top-6 left-6 z-20 flex items-center gap-3"
+      >
+        <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-xl">
+          <img src={logo} alt="Nexsiles" className="w-8 h-8 object-contain" />
+        </div>
+        <span className="text-xl font-bold text-white tracking-tight">Nexsiles</span>
+      </motion.div>
+
+      {/* Features - Bottom Left (hidden on mobile) */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+        className="absolute bottom-6 left-6 z-20 hidden lg:flex items-center gap-6 text-white"
+      >
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+          <Zap className="w-4 h-4" />
+          <span className="text-sm font-medium">PDV Rápido</span>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+          <Sparkles className="w-4 h-4" />
+          <span className="text-sm font-medium">Catálogos Online</span>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm">
+          <Shield className="w-4 h-4" />
+          <span className="text-sm font-medium">Dados Seguros</span>
+        </div>
+      </motion.div>
+
+      {/* Footer - Bottom Right */}
+      <motion.p 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.8 }}
+        className="absolute bottom-6 right-6 z-20 text-sm text-white/60 hidden lg:block"
+      >
+        © 2024 Nexsiles. Todos os direitos reservados.
+      </motion.p>
+
+      {/* Auth Form - Center */}
+      <div className="relative z-10 w-full max-w-md mx-4 sm:mx-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -639,7 +586,7 @@ export default function AuthPage() {
           </AnimatePresence>
 
           {/* Mobile Footer */}
-          <p className="lg:hidden text-center text-xs text-muted-foreground mt-8">
+          <p className="lg:hidden text-center text-xs text-white/60 mt-8">
             © 2024 Nexsiles. Todos os direitos reservados.
           </p>
         </motion.div>
