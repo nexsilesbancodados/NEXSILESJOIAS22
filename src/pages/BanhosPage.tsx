@@ -54,6 +54,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import { 
   useBanhos, 
   useAddBanho, 
@@ -913,10 +914,12 @@ export default function BanhosPage() {
                 className="pl-10 input-search"
               />
             </div>
-            <Button onClick={() => handleOpenForm()} className="btn-gold" data-tour="btn-novo-banho">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Banho
-            </Button>
+            <ReadOnlyGuard>
+              <Button onClick={() => handleOpenForm()} className="btn-gold" data-tour="btn-novo-banho">
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Banho
+              </Button>
+            </ReadOnlyGuard>
           </div>
 
           {/* Banhos Grid */}

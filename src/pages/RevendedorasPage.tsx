@@ -58,6 +58,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -1538,10 +1539,12 @@ export default function RevendedorasPage() {
             <p className="text-sm text-muted-foreground">Sua equipe de vendas consignadas</p>
           </div>
         </div>
-        <Button onClick={() => handleOpenForm()} className="btn-gold">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Nova Revendedora
-        </Button>
+        <ReadOnlyGuard>
+          <Button onClick={() => handleOpenForm()} className="btn-gold">
+            <UserPlus className="w-4 h-4 mr-2" />
+            Nova Revendedora
+          </Button>
+        </ReadOnlyGuard>
       </div>
 
       {/* Stats Cards */}

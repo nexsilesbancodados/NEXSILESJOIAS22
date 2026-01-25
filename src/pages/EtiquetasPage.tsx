@@ -82,7 +82,7 @@ import {
   ModeloEtiqueta,
   Peca
 } from '@/hooks/useSupabaseData';
-
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 // Tipos de etiqueta
 type TipoEtiqueta = 'preco' | 'codigo' | 'produto' | 'personalizada';
 type FormatoEtiqueta = 'retangular' | 'quadrada' | 'circular' | 'oval';
@@ -1540,10 +1540,12 @@ export default function EtiquetasPage() {
         <Card className="glass-card">
           <CardContent className="p-4">
             <p className="text-sm text-muted-foreground mb-2">Ação rápida</p>
-            <Button onClick={() => handleOpenForm()} className="w-full btn-gold">
-              <Wand2 className="w-4 h-4 mr-2" />
-              Criar Nova Etiqueta
-            </Button>
+            <ReadOnlyGuard>
+              <Button onClick={() => handleOpenForm()} className="w-full btn-gold">
+                <Wand2 className="w-4 h-4 mr-2" />
+                Criar Nova Etiqueta
+              </Button>
+            </ReadOnlyGuard>
           </CardContent>
         </Card>
         <Card className="glass-card">
@@ -1646,10 +1648,12 @@ export default function EtiquetasPage() {
             className="pl-10"
           />
         </div>
-        <Button onClick={() => handleOpenForm()} variant="outline">
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Modelo
-        </Button>
+        <ReadOnlyGuard>
+          <Button onClick={() => handleOpenForm()} variant="outline">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Modelo
+          </Button>
+        </ReadOnlyGuard>
       </div>
 
       {/* Meus Modelos Salvos */}
@@ -1670,10 +1674,12 @@ export default function EtiquetasPage() {
             </div>
             <h3 className="text-lg font-medium mb-2">Nenhum modelo encontrado</h3>
             <p className="text-muted-foreground mb-6">Crie seu primeiro modelo de etiqueta para começar</p>
-            <Button onClick={() => handleOpenForm()} className="btn-gold">
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Modelo
-            </Button>
+            <ReadOnlyGuard>
+              <Button onClick={() => handleOpenForm()} className="btn-gold">
+                <Plus className="w-4 h-4 mr-2" />
+                Criar Modelo
+              </Button>
+            </ReadOnlyGuard>
           </CardContent>
         </Card>
       ) : (
