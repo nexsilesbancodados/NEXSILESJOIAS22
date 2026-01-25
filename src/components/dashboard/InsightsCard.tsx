@@ -51,8 +51,12 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     }).format(value);
   };
 
-  // Generate dynamic insights
+  // Generate dynamic insights with null safety
   const generateInsights = (): Insight[] => {
+    const safeVendas = vendas || [];
+    const safePecas = pecas || [];
+    const safeRomaneios = romaneios || [];
+    
     const insights: Insight[] = [];
     const now = new Date();
     const thisMonth = now.getMonth();
@@ -61,17 +65,19 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
 
     // Sales comparison
-    const vendasMesAtual = vendas.filter(v => {
+    const vendasMesAtual = safeVendas.filter(v => {
+      if (!v?.created_at) return false;
       const d = new Date(v.created_at);
       return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
     });
-    const vendasMesAnterior = vendas.filter(v => {
+    const vendasMesAnterior = safeVendas.filter(v => {
+      if (!v?.created_at) return false;
       const d = new Date(v.created_at);
       return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
     });
 
-    const totalMesAtual = vendasMesAtual.reduce((acc, v) => acc + Number(v.total), 0);
-    const totalMesAnterior = vendasMesAnterior.reduce((acc, v) => acc + Number(v.total), 0);
+    const totalMesAtual = vendasMesAtual.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const totalMesAnterior = vendasMesAnterior.reduce((acc, v) => acc + Number(v?.total || 0), 0);
 
     if (totalMesAnterior > 0) {
       const variacao = ((totalMesAtual - totalMesAnterior) / totalMesAnterior) * 100;
@@ -93,7 +99,7 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     }
 
     // Low stock products
-    const pecasEstoqueBaixo = pecas.filter(p => p.estoque <= 5 && p.estoque > 0);
+    const pecasEstoqueBaixo = safePecas.filter(p => p && (p.estoque || 0) <= 5 && (p.estoque || 0) > 0);
     if (pecasEstoqueBaixo.length > 0) {
       insights.push({
         type: 'warning',
@@ -104,7 +110,7 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     }
 
     // Out of stock
-    const pecasSemEstoque = pecas.filter(p => p.estoque === 0);
+    const pecasSemEstoque = safePecas.filter(p => p && (p.estoque || 0) === 0);
     if (pecasSemEstoque.length > 0) {
       insights.push({
         type: 'warning',
@@ -115,7 +121,8 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     }
 
     // Best selling category insight
-    const categorias = pecas.reduce((acc, p) => {
+    const categorias = safePecas.reduce((acc, p) => {
+      if (!p) return acc;
       const cat = p.categoria || 'Sem Categoria';
       if (!acc[cat]) acc[cat] = 0;
       acc[cat] += p.estoque;
@@ -135,10 +142,10 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     }
 
     // Reseller performance
-    const romaneiosConfirmados = romaneios.filter(r => r.status === 'confirmado');
-    const totalRevendedoras = romaneiosConfirmados.reduce((acc, r) => acc + Number(r.total), 0);
+    const romaneiosConfirmados = safeRomaneios.filter(r => r?.status === 'confirmado');
+    const totalRevendedoras = romaneiosConfirmados.reduce((acc, r) => acc + Number(r?.total || 0), 0);
     
-    if (totalRevendedoras > 0 && vendas.length > 0) {
+    if (totalRevendedoras > 0 && safeVendas.length > 0) {
       const percentualRevendedoras = (totalRevendedoras / (totalMesAtual + totalRevendedoras)) * 100;
       if (percentualRevendedoras > 30) {
         insights.push({
@@ -151,8 +158,8 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     }
 
     // Average ticket
-    if (vendas.length > 0) {
-      const ticketMedio = vendas.reduce((acc, v) => acc + Number(v.total), 0) / vendas.length;
+    if (safeVendas.length > 0) {
+      const ticketMedio = safeVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0) / safeVendas.length;
       insights.push({
         type: 'info',
         icon: DollarSign,

@@ -35,17 +35,20 @@ export function PDVStats({
   metaDiaria = 5000,
 }: PDVStatsProps) {
   const stats = useMemo(() => {
-    const totalVendas = vendasCaixa.reduce((acc, v) => acc + Number(v.total), 0);
-    const qtdVendas = vendasCaixa.length;
-    const ticketMedio = qtdVendas > 0 ? totalVendas / qtdVendas : 0;
-    const clientesIdentificados = vendasCaixa.filter(v => v.cliente_nome).length;
+    const safeVendas = vendasCaixa || [];
+    const safeMovimentos = movimentosCaixa || [];
     
-    const sangrias = movimentosCaixa
-      .filter(m => m.tipo === 'sangria')
-      .reduce((acc, s) => acc + Number(s.valor), 0);
-    const suprimentos = movimentosCaixa
-      .filter(m => m.tipo === 'suprimento')
-      .reduce((acc, s) => acc + Number(s.valor), 0);
+    const totalVendas = safeVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const qtdVendas = safeVendas.length;
+    const ticketMedio = qtdVendas > 0 ? totalVendas / qtdVendas : 0;
+    const clientesIdentificados = safeVendas.filter(v => v?.cliente_nome).length;
+    
+    const sangrias = safeMovimentos
+      .filter(m => m?.tipo === 'sangria')
+      .reduce((acc, s) => acc + Number(s?.valor || 0), 0);
+    const suprimentos = safeMovimentos
+      .filter(m => m?.tipo === 'suprimento')
+      .reduce((acc, s) => acc + Number(s?.valor || 0), 0);
     
     const saldoAtual = fundoTroco + totalVendas + suprimentos - sangrias;
     const progressoMeta = (totalVendas / metaDiaria) * 100;

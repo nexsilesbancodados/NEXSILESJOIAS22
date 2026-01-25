@@ -114,9 +114,11 @@ export default function RelatoriosPage() {
   const isLoading = loadingVendas || loadingPecas || loadingRevendedoras || loadingRomaneios || loadingEnvios || loadingBanhos;
 
   const filteredVendas = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return vendas;
+    const safeVendas = vendas || [];
+    if (!dateRange?.from || !dateRange?.to) return safeVendas;
     
-    return vendas.filter((venda) => {
+    return safeVendas.filter((venda) => {
+      if (!venda?.created_at) return false;
       const vendaDate = new Date(venda.created_at);
       return isWithinInterval(vendaDate, {
         start: startOfDay(dateRange.from!),
@@ -126,17 +128,20 @@ export default function RelatoriosPage() {
   }, [vendas, dateRange]);
 
   const stats = useMemo(() => {
-    const faturamento = filteredVendas.reduce((acc, v) => acc + Number(v.total), 0);
-    const vendasPDV = filteredVendas.filter(v => v.tipo === 'pdv');
-    const vendasRevendedoras = filteredVendas.filter(v => v.tipo === 'revendedora');
-    const ticketMedio = filteredVendas.length > 0 ? faturamento / filteredVendas.length : 0;
-    const romaneiosPendentes = romaneios.filter(r => r.status === 'pendente').length;
-    const comissaoTotal = vendasRevendedoras.reduce((acc, v) => acc + Number(v.total) * 0.1, 0); // Assuming 10% default
+    const safeFilteredVendas = filteredVendas || [];
+    const safeRomaneios = romaneios || [];
+    
+    const faturamento = safeFilteredVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const vendasPDV = safeFilteredVendas.filter(v => v?.tipo === 'pdv');
+    const vendasRevendedoras = safeFilteredVendas.filter(v => v?.tipo === 'revendedora');
+    const ticketMedio = safeFilteredVendas.length > 0 ? faturamento / safeFilteredVendas.length : 0;
+    const romaneiosPendentes = safeRomaneios.filter(r => r?.status === 'pendente').length;
+    const comissaoTotal = vendasRevendedoras.reduce((acc, v) => acc + Number(v?.total || 0) * 0.1, 0);
 
     return { 
       faturamento, 
       ticketMedio, 
-      totalVendas: filteredVendas.length,
+      totalVendas: safeFilteredVendas.length,
       vendasPDV: vendasPDV.length,
       vendasRevendedoras: vendasRevendedoras.length,
       romaneiosPendentes,
@@ -217,9 +222,11 @@ export default function RelatoriosPage() {
 
   // ============ DADOS GALVÂNICA ============
   const filteredEnviosGalvanica = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return enviosGalvanica;
+    const safeEnvios = enviosGalvanica || [];
+    if (!dateRange?.from || !dateRange?.to) return safeEnvios;
     
-    return enviosGalvanica.filter((envio) => {
+    return safeEnvios.filter((envio) => {
+      if (!envio) return false;
       const envioDate = new Date(envio.data_envio || envio.created_at);
       return isWithinInterval(envioDate, {
         start: startOfDay(dateRange.from!),
@@ -229,11 +236,12 @@ export default function RelatoriosPage() {
   }, [enviosGalvanica, dateRange]);
 
   const galvanicaStats = useMemo(() => {
-    const custoTotal = filteredEnviosGalvanica.reduce((acc, e) => acc + Number(e.valor_total || 0), 0);
-    const pesoTotal = filteredEnviosGalvanica.reduce((acc, e) => acc + Number(e.peso_total || 0), 0);
-    const totalEnvios = filteredEnviosGalvanica.length;
-    const enviosPendentes = filteredEnviosGalvanica.filter(e => e.status === 'pendente' || e.status === 'enviado').length;
-    const enviosRetornados = filteredEnviosGalvanica.filter(e => e.status === 'retornado' || e.status === 'concluído').length;
+    const safeEnvios = filteredEnviosGalvanica || [];
+    const custoTotal = safeEnvios.reduce((acc, e) => acc + Number(e?.valor_total || 0), 0);
+    const pesoTotal = safeEnvios.reduce((acc, e) => acc + Number(e?.peso_total || 0), 0);
+    const totalEnvios = safeEnvios.length;
+    const enviosPendentes = safeEnvios.filter(e => e?.status === 'pendente' || e?.status === 'enviado').length;
+    const enviosRetornados = safeEnvios.filter(e => e?.status === 'retornado' || e?.status === 'concluído').length;
     const custoMedioKg = pesoTotal > 0 ? custoTotal / (pesoTotal / 1000) : 0;
 
     return {

@@ -80,16 +80,18 @@ const CustomPieTooltip = ({ active, payload }: any) => {
 };
 
 export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: DashboardChartsProps) {
-  // Process sales data by month - memoized
+  // Process sales data by month - memoized with null safety
   const areaData = useMemo(() => {
-    const vendasPorMes = vendas.reduce((acc, venda) => {
+    const safeVendas = vendas || [];
+    const vendasPorMes = safeVendas.reduce((acc, venda) => {
+      if (!venda?.created_at) return acc;
       const date = new Date(venda.created_at);
       const monthKey = date.toLocaleDateString('pt-BR', { month: 'short' });
       
       if (!acc[monthKey]) {
         acc[monthKey] = 0;
       }
-      acc[monthKey] += Number(venda.total);
+      acc[monthKey] += Number(venda.total || 0);
       return acc;
     }, {} as Record<string, number>);
 
@@ -101,14 +103,16 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
       }));
   }, [vendas]);
 
-  // Process pieces by category - memoized
+  // Process pieces by category - memoized with null safety
   const pieData = useMemo(() => {
-    const pecasPorCategoria = pecas.reduce((acc, peca) => {
+    const safePecas = pecas || [];
+    const pecasPorCategoria = safePecas.reduce((acc, peca) => {
+      if (!peca) return acc;
       const categoria = peca.categoria || 'Sem Categoria';
       if (!acc[categoria]) {
         acc[categoria] = 0;
       }
-      acc[categoria] += peca.estoque;
+      acc[categoria] += peca.estoque || 0;
       return acc;
     }, {} as Record<string, number>);
 
