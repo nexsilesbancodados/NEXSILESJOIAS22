@@ -129,11 +129,12 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
             variant="ghost" 
             size="icon"
             className={cn('h-8 w-8', className)}
+            onClick={(e) => e.stopPropagation()}
           >
             <Share2 className="w-4 h-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-80 p-4 bg-popover">
+        <PopoverContent align="end" className="w-80 p-4 bg-popover" onClick={(e) => e.stopPropagation()}>
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-1">Compartilhar Vitrine</h4>
@@ -171,7 +172,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
                     onClick={handleCopyLink}
                   >
                     {copied ? (
-                      <Check className="w-4 h-4 text-green-500" />
+                      <Check className="w-4 h-4 text-success" />
                     ) : (
                       <Copy className="w-4 h-4" />
                     )}
@@ -184,7 +185,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
                     className="flex-1 h-9 text-xs"
                     onClick={handleShareWhatsApp}
                   >
-                    <MessageCircle className="w-4 h-4 mr-1.5 text-green-500" />
+                    <MessageCircle className="w-4 h-4 mr-1.5 text-success" />
                     WhatsApp
                   </Button>
                   {'share' in navigator && (
@@ -219,12 +220,13 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
           variant="outline" 
           size="sm"
           className={cn('gap-2', className)}
+          onClick={(e) => e.stopPropagation()}
         >
           <Share2 className="w-4 h-4" />
           Compartilhar
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-4 bg-popover">
+      <PopoverContent align="end" className="w-80 p-4 bg-popover" onClick={(e) => e.stopPropagation()}>
         <div className="space-y-4">
           <div>
             <h4 className="font-semibold mb-1">Compartilhar Vitrine</h4>
@@ -265,7 +267,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
                   onClick={handleCopyLink}
                 >
                   {copied ? (
-                    <Check className="w-4 h-4 text-green-500" />
+                    <Check className="w-4 h-4 text-success" />
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}
@@ -278,7 +280,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
                   className="w-full"
                   onClick={handleShareWhatsApp}
                 >
-                  <MessageCircle className="w-4 h-4 mr-2 text-green-500" />
+                  <MessageCircle className="w-4 h-4 mr-2 text-success" />
                   WhatsApp
                 </Button>
                 {'share' in navigator && (
