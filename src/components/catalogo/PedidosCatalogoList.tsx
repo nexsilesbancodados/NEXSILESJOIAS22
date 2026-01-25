@@ -181,8 +181,9 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
             preco_unitario: item.preco_unitario,
           }));
 
+          // Correct table name is 'romaneios_pecas'
           const { error: itensRomaneioError } = await db
-            .from('romaneio_itens')
+            .from('romaneios_pecas')
             .insert(romaneioItens);
 
           if (itensRomaneioError) {

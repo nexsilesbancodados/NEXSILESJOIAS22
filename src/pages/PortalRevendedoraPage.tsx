@@ -239,8 +239,9 @@ export default function PortalRevendedoraPage() {
         preco_unitario: c.item.peca.preco_venda,
       }));
 
+      // Correct table name is 'romaneios_pecas'
       const { error: itemsError } = await supabase
-        .from('romaneio_itens')
+        .from('romaneios_pecas')
         .insert(romaneioItems);
       
       if (itemsError) throw itemsError;
