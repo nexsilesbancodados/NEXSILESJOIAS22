@@ -6,11 +6,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QueryErrorHandler } from "@/components/QueryErrorHandler";
+import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
 
 // Lazy load all pages for code-splitting
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -82,30 +84,33 @@ function AppRoutes() {
           path="/*"
           element={
             <ProtectedRoute>
-              <RealtimeNotifications />
-              <MainLayout>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    <Route path="/" element={<DashboardPage />} />
-                    <Route path="/pecas" element={<PecasPage />} />
-                    <Route path="/etiquetas" element={<EtiquetasPage />} />
-                    <Route path="/banhos" element={<BanhosPage />} />
-                    <Route path="/pdv" element={<PDVPage />} />
-                    <Route path="/catalogos" element={<CatalogosPage />} />
-                    <Route path="/revendedoras" element={<RevendedorasPage />} />
-                    <Route path="/revendedoras/desempenho" element={<DesempenhoRevendedorasPage />} />
-                    <Route path="/fornecedores" element={<FornecedoresPage />} />
-                    <Route path="/romaneios" element={<RomaneiosPage />} />
-                    <Route path="/relatorios" element={<RelatoriosPage />} />
-                    <Route path="/historico" element={<HistoricoPage />} />
-                    <Route path="/clientes" element={<ClientesPage />} />
-                    <Route path="/configuracoes" element={<ConfiguracoesPage />} />
-                    <Route path="/funcionarios" element={<FuncionariosPage />} />
-                    <Route path="/campanhas" element={<CampanhasPage />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </MainLayout>
+              <SubscriptionProvider>
+                <RealtimeNotifications />
+                <ReadOnlyBanner />
+                <MainLayout>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/" element={<DashboardPage />} />
+                      <Route path="/pecas" element={<PecasPage />} />
+                      <Route path="/etiquetas" element={<EtiquetasPage />} />
+                      <Route path="/banhos" element={<BanhosPage />} />
+                      <Route path="/pdv" element={<PDVPage />} />
+                      <Route path="/catalogos" element={<CatalogosPage />} />
+                      <Route path="/revendedoras" element={<RevendedorasPage />} />
+                      <Route path="/revendedoras/desempenho" element={<DesempenhoRevendedorasPage />} />
+                      <Route path="/fornecedores" element={<FornecedoresPage />} />
+                      <Route path="/romaneios" element={<RomaneiosPage />} />
+                      <Route path="/relatorios" element={<RelatoriosPage />} />
+                      <Route path="/historico" element={<HistoricoPage />} />
+                      <Route path="/clientes" element={<ClientesPage />} />
+                      <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+                      <Route path="/funcionarios" element={<FuncionariosPage />} />
+                      <Route path="/campanhas" element={<CampanhasPage />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </MainLayout>
+              </SubscriptionProvider>
             </ProtectedRoute>
           }
         />

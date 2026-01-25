@@ -71,6 +71,7 @@ import { toast } from 'sonner';
 import { CupomInput } from '@/components/pdv/CupomInput';
 import { useUsarCupom, type ValidacaoCupom } from '@/hooks/useCampanhas';
 import { useFullscreen } from '@/hooks/useFullscreen';
+import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase-db';
 import { 
   usePecas, 
@@ -109,6 +110,7 @@ interface VendaLocal {
 
 export default function PDVPage() {
   const { user } = useAuth();
+  const { isReadOnly } = useSubscriptionSafe();
   const queryClient = useQueryClient();
   const { data: pecas = [], isLoading: loadingPecas } = usePecas();
   const { data: caixaAtual, isLoading: loadingCaixa } = useCaixaAtual();
@@ -862,11 +864,11 @@ export default function PDVPage() {
           <Button
             className="w-full btn-gold"
             size="lg"
-            disabled={carrinho.length === 0}
+            disabled={carrinho.length === 0 || isReadOnly}
             onClick={() => setIsPagamentoOpen(true)}
           >
             <DollarSign className="w-5 h-5 mr-2" />
-            Finalizar Venda (F12)
+            {isReadOnly ? 'Modo Leitura' : 'Finalizar Venda (F12)'}
           </Button>
         </div>
       </aside>
