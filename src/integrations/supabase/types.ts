@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      assinaturas: {
+        Row: {
+          created_at: string
+          data_inicio: string
+          data_vencimento: string
+          id: string
+          notificacao_3dias_enviada: boolean | null
+          notificacao_vencimento_enviada: boolean | null
+          plano: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+          valor_mensal: number
+        }
+        Insert: {
+          created_at?: string
+          data_inicio?: string
+          data_vencimento: string
+          id?: string
+          notificacao_3dias_enviada?: boolean | null
+          notificacao_vencimento_enviada?: boolean | null
+          plano: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+          valor_mensal: number
+        }
+        Update: {
+          created_at?: string
+          data_inicio?: string
+          data_vencimento?: string
+          id?: string
+          notificacao_3dias_enviada?: boolean | null
+          notificacao_vencimento_enviada?: boolean | null
+          plano?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valor_mensal?: number
+        }
+        Relationships: []
+      }
       banhos: {
         Row: {
           ativo: boolean | null
@@ -893,6 +941,39 @@ export type Database = {
           tipo?: string | null
           titulo?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      notificacoes_assinatura: {
+        Row: {
+          created_at: string
+          email_enviado: boolean | null
+          id: string
+          lida: boolean | null
+          mensagem: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enviado?: boolean | null
+          id?: string
+          lida?: boolean | null
+          mensagem: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enviado?: boolean | null
+          id?: string
+          lida?: boolean | null
+          mensagem?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
         }
         Relationships: []
       }
