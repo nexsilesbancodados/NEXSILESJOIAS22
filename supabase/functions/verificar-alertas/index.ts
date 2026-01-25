@@ -9,14 +9,12 @@ interface AlertConfig {
   estoque_minimo: number;
   dias_maleta_vencendo: number;
   dias_romaneio_pendente: number;
-  percentual_meta: number;
 }
 
 const defaultConfig: AlertConfig = {
   estoque_minimo: 5,
   dias_maleta_vencendo: 3,
   dias_romaneio_pendente: 7,
-  percentual_meta: 80,
 };
 
 Deno.serve(async (req) => {
@@ -30,235 +28,269 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get all users to check alerts for each
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('user_id, nome')
-      .eq('ativo', true);
-
-    if (profilesError) throw profilesError;
-
     const alertsCreated: string[] = [];
     const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
 
-    for (const profile of profiles || []) {
-      const userId = profile.user_id;
+    console.log('Iniciando verificação de alertas...');
 
-      // 1. Check low stock pieces
-      const { data: lowStockPieces } = await supabase
-        .from('pecas')
-        .select('id, nome, estoque, estoque_minimo')
-        .eq('user_id', userId)
-        .eq('ativo', true)
-        .or(`estoque.lte.${defaultConfig.estoque_minimo},estoque.lte.estoque_minimo`);
+    // 1. Check low stock pieces (sem filtro por user_id - tabela não tem essa coluna)
+    const { data: lowStockPieces, error: lowStockError } = await supabase
+      .from('pecas')
+      .select('id, nome, codigo, estoque, estoque_minimo')
+      .eq('ativo', true);
 
+    if (lowStockError) {
+      console.error('Erro ao buscar peças:', lowStockError);
+    } else {
+      console.log(`Encontradas ${lowStockPieces?.length || 0} peças ativas`);
+      
       for (const peca of lowStockPieces || []) {
         const minimo = peca.estoque_minimo || defaultConfig.estoque_minimo;
-        if ((peca.estoque || 0) <= minimo) {
+        const estoqueAtual = peca.estoque || 0;
+        
+        if (estoqueAtual <= minimo) {
           // Check if notification already exists for today
-          const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+          const todayStart = new Date(today);
+          todayStart.setHours(0, 0, 0, 0);
+          
           const { data: existingNotif } = await supabase
             .from('notificacoes')
             .select('id')
-            .eq('user_id', userId)
             .eq('tipo', 'estoque_baixo')
-            .eq('entidade_id', peca.id)
-            .gte('created_at', todayStart)
+            .ilike('mensagem', `%${peca.nome}%`)
+            .gte('created_at', todayStart.toISOString())
             .limit(1);
 
           if (!existingNotif?.length) {
-            await supabase.from('notificacoes').insert({
-              user_id: userId,
+            const { error: insertError } = await supabase.from('notificacoes').insert({
               titulo: 'Estoque Baixo',
-              mensagem: `A peça "${peca.nome}" está com apenas ${peca.estoque} unidades em estoque.`,
+              mensagem: `A peça "${peca.nome}" (${peca.codigo || 'S/C'}) está com apenas ${estoqueAtual} unidades em estoque.`,
               tipo: 'estoque_baixo',
-              entidade_tipo: 'peca',
-              entidade_id: peca.id,
-              dados: { estoque: peca.estoque, minimo }
+              link: '/pecas'
             });
-            alertsCreated.push(`Estoque baixo: ${peca.nome}`);
+            
+            if (!insertError) {
+              alertsCreated.push(`Estoque baixo: ${peca.nome} (${estoqueAtual}/${minimo})`);
+              console.log(`Alerta criado: Estoque baixo - ${peca.nome}`);
+            }
           }
         }
       }
+    }
 
-      // 2. Check customer birthdays
+    // 2. Check customer birthdays (sem filtro por user_id)
+    const { data: clientes, error: clientesError } = await supabase
+      .from('clientes')
+      .select('id, nome, data_nascimento, telefone, whatsapp')
+      .eq('ativo', true)
+      .not('data_nascimento', 'is', null);
+
+    if (clientesError) {
+      console.error('Erro ao buscar clientes:', clientesError);
+    } else {
+      console.log(`Encontrados ${clientes?.length || 0} clientes com data de nascimento`);
+      
       const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const { data: birthdayClients } = await supabase
-        .from('clientes')
-        .select('id, nome, data_nascimento')
-        .eq('user_id', userId)
-        .not('data_nascimento', 'is', null);
-
-      for (const cliente of birthdayClients || []) {
+      
+      for (const cliente of clientes || []) {
         if (cliente.data_nascimento) {
           const birthDate = new Date(cliente.data_nascimento);
           const birthMonthDay = `${String(birthDate.getMonth() + 1).padStart(2, '0')}-${String(birthDate.getDate()).padStart(2, '0')}`;
           
           if (birthMonthDay === todayMonthDay) {
-            const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+            const todayStart = new Date(today);
+            todayStart.setHours(0, 0, 0, 0);
+            
             const { data: existingNotif } = await supabase
               .from('notificacoes')
               .select('id')
-              .eq('user_id', userId)
               .eq('tipo', 'aniversario')
-              .eq('entidade_id', cliente.id)
-              .gte('created_at', todayStart)
+              .ilike('mensagem', `%${cliente.nome}%`)
+              .gte('created_at', todayStart.toISOString())
               .limit(1);
 
             if (!existingNotif?.length) {
-              await supabase.from('notificacoes').insert({
-                user_id: userId,
-                titulo: 'Aniversário de Cliente',
+              const { error: insertError } = await supabase.from('notificacoes').insert({
+                titulo: '🎂 Aniversário de Cliente',
                 mensagem: `Hoje é aniversário de ${cliente.nome}! Que tal enviar uma mensagem especial?`,
                 tipo: 'aniversario',
-                entidade_tipo: 'cliente',
-                entidade_id: cliente.id,
-                dados: { nome: cliente.nome }
+                link: '/clientes'
               });
-              alertsCreated.push(`Aniversário: ${cliente.nome}`);
+              
+              if (!insertError) {
+                alertsCreated.push(`Aniversário: ${cliente.nome}`);
+                console.log(`Alerta criado: Aniversário - ${cliente.nome}`);
+              }
             }
           }
         }
       }
+    }
 
-      // 3. Check expiring briefcases (maletas)
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + defaultConfig.dias_maleta_vencendo);
+    // 3. Check expiring briefcases (maletas vencendo)
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + defaultConfig.dias_maleta_vencendo);
+    
+    const { data: maletas, error: maletasError } = await supabase
+      .from('maletas')
+      .select(`
+        id, 
+        codigo, 
+        nome,
+        data_devolucao, 
+        revendedora_id,
+        revendedoras (nome)
+      `)
+      .eq('status', 'emprestada')
+      .not('data_devolucao', 'is', null)
+      .lte('data_devolucao', futureDate.toISOString().split('T')[0])
+      .gte('data_devolucao', today.toISOString().split('T')[0]);
+
+    if (maletasError) {
+      console.error('Erro ao buscar maletas:', maletasError);
+    } else {
+      console.log(`Encontradas ${maletas?.length || 0} maletas vencendo`);
       
-      const { data: expiringMaletas } = await supabase
-        .from('maletas')
-        .select('id, codigo, data_devolucao_prevista, revendedora_id, revendedoras(nome)')
-        .eq('user_id', userId)
-        .eq('status', 'emprestada')
-        .lte('data_devolucao_prevista', futureDate.toISOString().split('T')[0])
-        .gte('data_devolucao_prevista', today.toISOString().split('T')[0]);
-
-      for (const maleta of expiringMaletas || []) {
-        const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+      for (const maleta of maletas || []) {
+        const todayStart = new Date(today);
+        todayStart.setHours(0, 0, 0, 0);
+        
         const { data: existingNotif } = await supabase
           .from('notificacoes')
           .select('id')
-          .eq('user_id', userId)
           .eq('tipo', 'maleta_vencendo')
-          .eq('entidade_id', maleta.id)
-          .gte('created_at', todayStart)
+          .ilike('mensagem', `%${maleta.codigo || maleta.nome}%`)
+          .gte('created_at', todayStart.toISOString())
           .limit(1);
 
         if (!existingNotif?.length) {
           const revendedoraNome = (maleta.revendedoras as any)?.nome || 'Revendedora';
           const diasRestantes = Math.ceil(
-            (new Date(maleta.data_devolucao_prevista!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            (new Date(maleta.data_devolucao!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
           );
           
-          await supabase.from('notificacoes').insert({
-            user_id: userId,
-            titulo: 'Maleta Vencendo',
-            mensagem: `A maleta ${maleta.codigo} com ${revendedoraNome} vence em ${diasRestantes} dia(s).`,
+          const { error: insertError } = await supabase.from('notificacoes').insert({
+            titulo: '📦 Maleta Vencendo',
+            mensagem: `A maleta ${maleta.codigo || maleta.nome} com ${revendedoraNome} vence em ${diasRestantes} dia(s).`,
             tipo: 'maleta_vencendo',
-            entidade_tipo: 'maleta',
-            entidade_id: maleta.id,
-            dados: { codigo: maleta.codigo, dias_restantes: diasRestantes, revendedora: revendedoraNome }
+            link: '/revendedoras'
           });
-          alertsCreated.push(`Maleta vencendo: ${maleta.codigo}`);
+          
+          if (!insertError) {
+            alertsCreated.push(`Maleta vencendo: ${maleta.codigo || maleta.nome} (${diasRestantes} dias)`);
+            console.log(`Alerta criado: Maleta vencendo - ${maleta.codigo || maleta.nome}`);
+          }
         }
       }
+    }
 
-      // 4. Check monthly goals progress
-      const { data: metas } = await supabase
-        .from('metas')
-        .select('id, valor, tipo')
-        .eq('user_id', userId)
-        .eq('mes', currentMonth)
-        .eq('ano', currentYear);
+    // 4. Check pending romaneios (romaneios pendentes)
+    const oldDate = new Date();
+    oldDate.setDate(oldDate.getDate() - defaultConfig.dias_romaneio_pendente);
+    
+    const { data: romaneios, error: romaneiosError } = await supabase
+      .from('romaneios')
+      .select(`
+        id, 
+        numero,
+        revendedora_id,
+        revendedoras (nome)
+      `)
+      .eq('status', 'pendente')
+      .lte('created_at', oldDate.toISOString());
 
-      // Get total sales for current month
-      const monthStart = new Date(currentYear, currentMonth - 1, 1).toISOString();
-      const monthEnd = new Date(currentYear, currentMonth, 0).toISOString();
+    if (romaneiosError) {
+      console.error('Erro ao buscar romaneios:', romaneiosError);
+    } else {
+      console.log(`Encontrados ${romaneios?.length || 0} romaneios pendentes`);
       
-      const { data: vendas } = await supabase
-        .from('vendas')
-        .select('total')
-        .eq('user_id', userId)
-        .gte('created_at', monthStart)
-        .lte('created_at', monthEnd);
+      for (const romaneio of romaneios || []) {
+        const todayStart = new Date(today);
+        todayStart.setHours(0, 0, 0, 0);
+        
+        const { data: existingNotif } = await supabase
+          .from('notificacoes')
+          .select('id')
+          .eq('tipo', 'romaneio_pendente')
+          .ilike('mensagem', `%${romaneio.numero}%`)
+          .gte('created_at', todayStart.toISOString())
+          .limit(1);
 
-      const totalVendas = vendas?.reduce((sum, v) => sum + (v.total || 0), 0) || 0;
-
-      for (const meta of metas || []) {
-        if (meta.valor && meta.valor > 0) {
-          const percentual = (totalVendas / meta.valor) * 100;
+        if (!existingNotif?.length) {
+          const revendedoraNome = (romaneio.revendedoras as any)?.nome || 'revendedora';
           
-          if (percentual >= defaultConfig.percentual_meta && percentual < 100) {
-            const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+          const { error: insertError } = await supabase.from('notificacoes').insert({
+            titulo: '📋 Romaneio Pendente',
+            mensagem: `O romaneio ${romaneio.numero} de ${revendedoraNome} está pendente há mais de ${defaultConfig.dias_romaneio_pendente} dias.`,
+            tipo: 'romaneio_pendente',
+            link: '/romaneios'
+          });
+          
+          if (!insertError) {
+            alertsCreated.push(`Romaneio pendente: ${romaneio.numero}`);
+            console.log(`Alerta criado: Romaneio pendente - ${romaneio.numero}`);
+          }
+        }
+      }
+    }
+
+    // 5. Check revendedoras birthdays
+    const { data: revendedoras, error: revendedorasError } = await supabase
+      .from('revendedoras')
+      .select('id, nome, data_nascimento, telefone, whatsapp')
+      .eq('ativo', true)
+      .not('data_nascimento', 'is', null);
+
+    if (revendedorasError) {
+      console.error('Erro ao buscar revendedoras:', revendedorasError);
+    } else {
+      console.log(`Encontradas ${revendedoras?.length || 0} revendedoras com data de nascimento`);
+      
+      const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      for (const revendedora of revendedoras || []) {
+        if (revendedora.data_nascimento) {
+          const birthDate = new Date(revendedora.data_nascimento);
+          const birthMonthDay = `${String(birthDate.getMonth() + 1).padStart(2, '0')}-${String(birthDate.getDate()).padStart(2, '0')}`;
+          
+          if (birthMonthDay === todayMonthDay) {
+            const todayStart = new Date(today);
+            todayStart.setHours(0, 0, 0, 0);
+            
             const { data: existingNotif } = await supabase
               .from('notificacoes')
               .select('id')
-              .eq('user_id', userId)
-              .eq('tipo', 'meta_proxima')
-              .eq('entidade_id', meta.id)
-              .gte('created_at', todayStart)
+              .eq('tipo', 'aniversario')
+              .ilike('mensagem', `%${revendedora.nome}%`)
+              .gte('created_at', todayStart.toISOString())
               .limit(1);
 
             if (!existingNotif?.length) {
-              await supabase.from('notificacoes').insert({
-                user_id: userId,
-                titulo: 'Meta Quase Atingida!',
-                mensagem: `Você já atingiu ${percentual.toFixed(1)}% da sua meta de vendas. Faltam R$ ${(meta.valor - totalVendas).toFixed(2)}!`,
-                tipo: 'meta_proxima',
-                entidade_tipo: 'meta',
-                entidade_id: meta.id,
-                dados: { percentual: percentual.toFixed(1), faltando: meta.valor - totalVendas }
+              const { error: insertError } = await supabase.from('notificacoes').insert({
+                titulo: '🎉 Aniversário de Revendedora',
+                mensagem: `Hoje é aniversário de ${revendedora.nome}! Envie os parabéns!`,
+                tipo: 'aniversario',
+                link: '/revendedoras'
               });
-              alertsCreated.push(`Meta próxima: ${percentual.toFixed(1)}%`);
+              
+              if (!insertError) {
+                alertsCreated.push(`Aniversário: ${revendedora.nome} (revendedora)`);
+                console.log(`Alerta criado: Aniversário - ${revendedora.nome}`);
+              }
             }
           }
         }
       }
-
-      // 5. Check pending romaneios
-      const oldDate = new Date();
-      oldDate.setDate(oldDate.getDate() - defaultConfig.dias_romaneio_pendente);
-      
-      const { data: pendingRomaneios } = await supabase
-        .from('romaneios')
-        .select('id, data, reseller_nome, total')
-        .eq('user_id', userId)
-        .eq('status', 'pendente')
-        .lte('created_at', oldDate.toISOString());
-
-      for (const romaneio of pendingRomaneios || []) {
-        const todayStart = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-        const { data: existingNotif } = await supabase
-          .from('notificacoes')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('tipo', 'romaneio_pendente')
-          .eq('entidade_id', romaneio.id)
-          .gte('created_at', todayStart)
-          .limit(1);
-
-        if (!existingNotif?.length) {
-          await supabase.from('notificacoes').insert({
-            user_id: userId,
-            titulo: 'Romaneio Pendente',
-            mensagem: `O romaneio de ${romaneio.reseller_nome || 'revendedora'} está pendente há mais de ${defaultConfig.dias_romaneio_pendente} dias.`,
-            tipo: 'romaneio_pendente',
-            entidade_tipo: 'romaneio',
-            entidade_id: romaneio.id,
-            dados: { total: romaneio.total, revendedora: romaneio.reseller_nome }
-          });
-          alertsCreated.push(`Romaneio pendente: ${romaneio.reseller_nome}`);
-        }
-      }
     }
+
+    console.log(`Verificação concluída. ${alertsCreated.length} alertas criados.`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         alertsCreated: alertsCreated.length,
-        details: alertsCreated 
+        details: alertsCreated,
+        timestamp: new Date().toISOString()
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

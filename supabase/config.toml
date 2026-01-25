@@ -1,1 +1,13 @@
 project_id = "ljofnwcvpzqlhagejgbk"
+
+[functions.calcular-frete]
+verify_jwt = false
+
+[functions.verificar-alertas]
+verify_jwt = false
+
+[functions.gerar-relatorio-pdf]
+verify_jwt = false
+
+[functions.enviar-whatsapp]
+verify_jwt = false
