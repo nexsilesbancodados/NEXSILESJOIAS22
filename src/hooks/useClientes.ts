@@ -20,12 +20,9 @@ export function useClientes() {
   return useQuery({
     queryKey: ['clientes'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { data, error } = await db
         .from('clientes')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome', { ascending: true });
       
       if (error) throw error;
@@ -57,12 +54,9 @@ export function useAniversariantesDoMes() {
   return useQuery({
     queryKey: ['aniversariantes', mes],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { data, error } = await db
         .from('clientes')
         .select('*')
-        .eq('user_id', user?.id)
         .not('data_nascimento', 'is', null)
         .order('data_nascimento', { ascending: true });
       
@@ -100,11 +94,9 @@ export function useAddCliente() {
   
   return useMutation({
     mutationFn: async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       const { data, error } = await db
         .from('clientes')
-        .insert({ ...cliente, user_id: user?.id })
+        .insert(cliente)
         .select()
         .single();
       
