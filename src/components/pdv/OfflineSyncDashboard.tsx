@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +46,7 @@ export function OfflineSyncDashboard() {
   const [vendas, setVendas] = useState<OfflineVenda[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const loadVendas = async () => {
     try {
@@ -98,184 +103,189 @@ export function OfflineSyncDashboard() {
 
   const failedVendas = vendas.filter(v => v.syncError);
   const pendingVendas = vendas.filter(v => !v.syncError);
+  const totalValue = vendas.reduce((sum, v) => sum + v.total, 0);
 
   return (
-    <Card className="glass-card">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isOnline ? (
-              <Cloud className="w-5 h-5 text-green-500" />
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 gap-1.5 px-2"
+          >
+            {isSyncing ? (
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            ) : isOnline ? (
+              <Cloud className="w-4 h-4 text-success" />
             ) : (
-              <CloudOff className="w-5 h-5 text-orange-500" />
+              <CloudOff className="w-4 h-4 text-warning" />
             )}
-            <CardTitle className="font-display text-lg">Sincronização Offline</CardTitle>
-          </div>
-          <Badge variant={isOnline ? 'default' : 'secondary'} className="gap-1">
-            {isOnline ? (
-              <>
-                <CheckCircle2 className="w-3 h-3" />
-                Online
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3 h-3" />
-                Offline
-              </>
+            {pendingCount > 0 && (
+              <Badge 
+                variant="secondary" 
+                className="h-5 px-1.5 text-xs font-medium"
+              >
+                {pendingCount}
+              </Badge>
             )}
-          </Badge>
-        </div>
-        <CardDescription className="flex items-center gap-2">
-          {lastSyncTime && (
-            <>
-              <Clock className="w-3 h-3" />
-              Última sincronização: {format(lastSyncTime, "dd/MM 'às' HH:mm", { locale: ptBR })}
-            </>
-          )}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-foreground">{pendingVendas.length}</p>
-            <p className="text-xs text-muted-foreground">Pendentes</p>
-          </div>
-          <div className="bg-destructive/10 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-destructive">{failedVendas.length}</p>
-            <p className="text-xs text-muted-foreground">Com erro</p>
-          </div>
-          <div className="bg-primary/10 rounded-lg p-3 text-center">
-            <p className="text-2xl font-bold text-primary">
-              R$ {vendas.reduce((sum, v) => sum + v.total, 0).toFixed(0)}
-            </p>
-            <p className="text-xs text-muted-foreground">Total</p>
-          </div>
-        </div>
-
-        {/* Sync Button */}
-        <Button 
-          onClick={handleSyncAll} 
-          disabled={isSyncing || !isOnline || vendas.length === 0}
-          className="w-full gap-2"
-        >
-          {isSyncing ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Sincronizando...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4" />
-              Sincronizar Agora
-            </>
-          )}
-        </Button>
-
-        {/* Failed Sales */}
-        {failedVendas.length > 0 && (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium flex items-center gap-2 text-destructive">
-                <AlertCircle className="w-4 h-4" />
-                Vendas com erro ({failedVendas.length})
-              </h4>
-              <ScrollArea className="h-[200px]">
-                <div className="space-y-2">
-                  {failedVendas.map((venda) => (
-                    <div 
-                      key={venda.id} 
-                      className="bg-destructive/10 rounded-lg p-3 space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">
-                            R$ {venda.total.toFixed(2)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(venda.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8"
-                            onClick={() => handleRetry(venda.id)}
-                          >
-                            <RotateCcw className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteId(venda.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-destructive bg-destructive/20 rounded px-2 py-1">
-                        {venda.syncError}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+          </Button>
+        </PopoverTrigger>
+        
+        <PopoverContent align="end" className="w-80 p-0">
+          {/* Header */}
+          <div className="p-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {isOnline ? (
+                  <Cloud className="w-4 h-4 text-success" />
+                ) : (
+                  <CloudOff className="w-4 h-4 text-warning" />
+                )}
+                <span className="font-medium text-sm">Sincronização</span>
+              </div>
+              <Badge variant={isOnline ? 'default' : 'secondary'} className="text-xs">
+                {isOnline ? 'Online' : 'Offline'}
+              </Badge>
             </div>
-          </>
-        )}
+            {lastSyncTime && (
+              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Última: {format(lastSyncTime, "dd/MM 'às' HH:mm", { locale: ptBR })}
+              </p>
+            )}
+          </div>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 p-3 border-b border-border">
+            <div className="text-center">
+              <p className="text-lg font-bold">{pendingVendas.length}</p>
+              <p className="text-xs text-muted-foreground">Pendentes</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-destructive">{failedVendas.length}</p>
+              <p className="text-xs text-muted-foreground">Com erro</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-primary">R$ {totalValue.toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </div>
 
-        {/* Pending Sales */}
-        {pendingVendas.length > 0 && (
-          <>
-            <Separator />
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Aguardando sincronização ({pendingVendas.length})
-              </h4>
-              <ScrollArea className="h-[150px]">
-                <div className="space-y-2">
-                  {pendingVendas.map((venda) => (
-                    <div 
-                      key={venda.id} 
-                      className="bg-muted/50 rounded-lg p-3 flex items-center justify-between"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">
-                          R$ {venda.total.toFixed(2)} • {venda.itens.length} {venda.itens.length === 1 ? 'item' : 'itens'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {venda.cliente_nome || 'Cliente não informado'} • {format(new Date(venda.created_at), "dd/MM HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteId(venda.id)}
+          {/* Content */}
+          <div className="p-3 space-y-3">
+            {/* Sync Button */}
+            <Button 
+              onClick={handleSyncAll} 
+              disabled={isSyncing || !isOnline || vendas.length === 0}
+              size="sm"
+              className="w-full gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Sincronizar Agora
+                </>
+              )}
+            </Button>
+
+            {/* Failed Sales */}
+            {failedVendas.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium flex items-center gap-1 text-destructive">
+                  <AlertCircle className="w-3 h-3" />
+                  Com erro ({failedVendas.length})
+                </h4>
+                <ScrollArea className="max-h-32">
+                  <div className="space-y-1.5">
+                    {failedVendas.map((venda) => (
+                      <div 
+                        key={venda.id} 
+                        className="bg-destructive/10 rounded-lg p-2 text-xs"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          </>
-        )}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">R$ {venda.total.toFixed(2)}</p>
+                            <p className="text-muted-foreground">
+                              {format(new Date(venda.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                          <div className="flex gap-0.5">
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-6 w-6"
+                              onClick={() => handleRetry(venda.id)}
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => setDeleteId(venda.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
 
-        {/* Empty State */}
-        {vendas.length === 0 && !loading && (
-          <div className="text-center py-6 text-muted-foreground">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-green-500 opacity-50" />
-            <p className="text-sm">Todas as vendas estão sincronizadas!</p>
+            {/* Pending Sales */}
+            {pendingVendas.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Aguardando ({pendingVendas.length})
+                </h4>
+                <ScrollArea className="max-h-24">
+                  <div className="space-y-1.5">
+                    {pendingVendas.map((venda) => (
+                      <div 
+                        key={venda.id} 
+                        className="bg-muted/50 rounded-lg p-2 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <p className="font-medium">R$ {venda.total.toFixed(2)}</p>
+                          <p className="text-muted-foreground">
+                            {format(new Date(venda.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteId(venda.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {vendas.length === 0 && !loading && (
+              <div className="text-center py-4 text-muted-foreground">
+                <CheckCircle2 className="w-8 h-8 mx-auto mb-1 text-success opacity-60" />
+                <p className="text-xs">Tudo sincronizado!</p>
+              </div>
+            )}
           </div>
-        )}
-      </CardContent>
+        </PopoverContent>
+      </Popover>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
@@ -295,6 +305,6 @@ export function OfflineSyncDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   );
 }
