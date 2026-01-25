@@ -131,12 +131,12 @@ export default function RelatoriosPage() {
     const safeFilteredVendas = filteredVendas || [];
     const safeRomaneios = romaneios || [];
     
-    const faturamento = safeFilteredVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0);
-    const vendasPDV = safeFilteredVendas.filter(v => v?.tipo === 'pdv');
-    const vendasRevendedoras = safeFilteredVendas.filter(v => v?.tipo === 'revendedora');
+    const faturamento = safeFilteredVendas.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
+    const vendasPDV = safeFilteredVendas.filter(v => v?.revendedora_id === null);
+    const vendasRevendedoras = safeFilteredVendas.filter(v => v?.revendedora_id !== null);
     const ticketMedio = safeFilteredVendas.length > 0 ? faturamento / safeFilteredVendas.length : 0;
     const romaneiosPendentes = safeRomaneios.filter(r => r?.status === 'pendente').length;
-    const comissaoTotal = vendasRevendedoras.reduce((acc, v) => acc + Number(v?.total || 0) * 0.1, 0);
+    const comissaoTotal = vendasRevendedoras.reduce((acc, v) => acc + Number(v?.valor_total || 0) * 0.1, 0);
 
     return { 
       faturamento, 
@@ -159,10 +159,10 @@ export default function RelatoriosPage() {
       if (!dailyData[dateKey]) {
         dailyData[dateKey] = { pdv: 0, revendedora: 0 };
       }
-      if (venda.tipo === 'pdv') {
-        dailyData[dateKey].pdv += Number(venda.total);
+      if (venda.revendedora_id === null) {
+        dailyData[dateKey].pdv += Number(venda.valor_total);
       } else {
-        dailyData[dateKey].revendedora += Number(venda.total);
+        dailyData[dateKey].revendedora += Number(venda.valor_total);
       }
     });
 

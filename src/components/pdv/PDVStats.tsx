@@ -38,10 +38,10 @@ export function PDVStats({
     const safeVendas = vendasCaixa || [];
     const safeMovimentos = movimentosCaixa || [];
     
-    const totalVendas = safeVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const totalVendas = safeVendas.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
     const qtdVendas = safeVendas.length;
     const ticketMedio = qtdVendas > 0 ? totalVendas / qtdVendas : 0;
-    const clientesIdentificados = safeVendas.filter(v => v?.cliente_nome).length;
+    const clientesIdentificados = safeVendas.filter(v => v?.cliente_id).length;
     
     const sangrias = safeMovimentos
       .filter(m => m?.tipo === 'sangria')

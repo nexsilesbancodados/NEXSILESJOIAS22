@@ -110,36 +110,39 @@ export interface MaletaItem {
 
 export interface Venda {
   id: string;
-  user_id: string;
+  numero?: string | null;
   cliente_id: string | null;
-  cliente_nome: string | null;
-  total: number;
-  desconto: number;
-  forma_pagamento: string | null;
-  status: string;
-  observacoes: string | null;
-  created_at: string;
-  updated_at: string;
-  // Aliases for backward compatibility
-  numero?: number;
-  tipo?: 'pdv' | 'revendedora' | 'catalogo';
   revendedora_id?: string | null;
-  caixa_sessao_id?: string | null;
-  maleta_id?: string | null;
-  subtotal?: number;
-  data?: string;
-  caixa_id?: string | null;
-  reseller_id?: string | null;
+  vendedor_id?: string | null;
+  valor_total: number;
+  subtotal: number;
+  desconto?: number | null;
+  desconto_percentual?: number | null;
+  forma_pagamento?: string | null;
+  parcelas?: number | null;
+  status?: string | null;
+  observacoes?: string | null;
+  cupom_desconto?: string | null;
+  pontos_utilizados?: number | null;
+  data_venda?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  // Aliases for backward compatibility
+  total?: number; // Maps to valor_total
+  data?: string; // Maps to data_venda
+  cliente_nome?: string; // Can be derived from cliente relation
+  tipo?: 'pdv' | 'revendedora' | 'catalogo'; // Derived from context
 }
 
 export interface VendaItem {
   id: string;
   venda_id: string;
-  peca_id: string | null;
-  peca_nome: string | null;
+  peca_id: string;
   quantidade: number;
-  preco_unitario: number | null;
-  created_at: string;
+  preco_unitario: number;
+  subtotal: number;
+  desconto?: number | null;
+  created_at?: string | null;
 }
 
 export interface Romaneio {
@@ -1109,37 +1112,77 @@ export function useAddVenda() {
     mutationFn: async ({
       venda,
       items,
-      pagamentos,
+      caixaSessaoId,
     }: {
-      venda: Omit<Venda, 'id' | 'created_at'>;
-      items: Omit<VendaItem, 'id' | 'created_at' | 'venda_id'>[];
-      pagamentos: Omit<Pagamento, 'id' | 'created_at' | 'venda_id'>[];
+      venda: {
+        valor_total: number;
+        subtotal: number;
+        desconto?: number | null;
+        cliente_id?: string | null;
+        revendedora_id?: string | null;
+        status?: string;
+        observacoes?: string | null;
+        forma_pagamento?: string | null;
+        parcelas?: number;
+      };
+      items: {
+        peca_id: string;
+        quantidade: number;
+        preco_unitario: number;
+        subtotal: number;
+        desconto?: number;
+      }[];
+      caixaSessaoId?: string;
     }) => {
-      // Table 'vendas' doesn't have user_id column
-      // Insert venda without user_id
+      // Insert venda into vendas table (matching actual DB schema)
       const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
-        .insert(venda)
+        .insert({
+          valor_total: venda.valor_total,
+          subtotal: venda.subtotal,
+          desconto: venda.desconto || 0,
+          cliente_id: venda.cliente_id || null,
+          revendedora_id: venda.revendedora_id || null,
+          status: venda.status || 'finalizada',
+          observacoes: venda.observacoes || null,
+          forma_pagamento: venda.forma_pagamento || 'dinheiro',
+          parcelas: venda.parcelas || 1,
+        })
         .select()
         .single();
       
       if (vendaError) throw vendaError;
 
-      // Insert items
+      // Insert items into vendas_pecas table
       const itemsWithVendaId = items.map(item => ({
-        ...item,
         venda_id: vendaData.id,
+        peca_id: item.peca_id,
+        quantidade: item.quantidade,
+        preco_unitario: item.preco_unitario,
+        subtotal: item.subtotal,
+        desconto: item.desconto || 0,
       }));
       
       const { error: itemsError } = await supabase
-        .from('venda_itens')
+        .from('vendas_pecas')
         .insert(itemsWithVendaId);
       
       if (itemsError) throw itemsError;
 
-      // Note: pagamentos table doesn't exist in schema
-      // Payment info is stored in vendas.forma_pagamento
-      // Skip pagamentos insert - the forma_pagamento is already in the venda object
+      // Register cash movement if caixaSessaoId is provided
+      if (caixaSessaoId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        await supabase
+          .from('movimentos_caixa')
+          .insert({
+            sessao_id: caixaSessaoId,
+            tipo: 'venda',
+            valor: venda.valor_total,
+            venda_id: vendaData.id,
+            operador_id: user?.id,
+          });
+      }
 
       // Update stock for each item
       for (const item of items) {
@@ -1152,7 +1195,7 @@ export function useAddVenda() {
         if (pecaData) {
           await supabase
             .from('pecas')
-            .update({ estoque: pecaData.estoque - item.quantidade })
+            .update({ estoque: Math.max(0, (pecaData.estoque || 0) - item.quantidade) })
             .eq('id', item.peca_id);
         }
       }
@@ -1162,6 +1205,7 @@ export function useAddVenda() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vendas'] });
       queryClient.invalidateQueries({ queryKey: ['vendas-caixa'] });
+      queryClient.invalidateQueries({ queryKey: ['movimentos-caixa'] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
       toast.success('Venda registrada com sucesso!');
     },

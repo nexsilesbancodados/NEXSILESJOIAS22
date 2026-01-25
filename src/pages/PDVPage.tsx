@@ -249,7 +249,7 @@ export default function PDVPage() {
   const troco = Math.max(0, totalPago - totalCarrinho);
 
   const totais = useMemo(() => {
-    const totalVendas = vendasCaixa.reduce((acc, v) => acc + Number(v.total), 0);
+    const totalVendas = vendasCaixa.reduce((acc, v) => acc + Number(v.valor_total), 0);
     const sangrias = movimentosCaixa.filter(m => m.tipo === 'sangria');
     const suprimentos = movimentosCaixa.filter(m => m.tipo === 'suprimento');
     const totalSangrias = sangrias.reduce((acc, s) => acc + Number(s.valor), 0);
@@ -345,33 +345,26 @@ export default function PDVPage() {
       await usarCupom.mutateAsync(cupomAplicado.id);
     }
     
-    await addVenda.mutateAsync({
+    // Build venda object matching actual database schema
+    const vendaData = await addVenda.mutateAsync({
       venda: {
-        tipo: 'pdv',
-        total: totalCarrinho,
+        valor_total: totalCarrinho,
         subtotal: subtotalCarrinho,
         desconto: totalDesconto,
-        caixa_sessao_id: caixaAtual.id,
-        cliente_nome: clienteNome || null,
-        cliente_id: null,
+        cliente_id: clienteSelecionado?.id || null,
         revendedora_id: null,
-        maleta_id: null,
         status: 'finalizada',
         observacoes: cupomAplicado ? `Cupom: ${cupomAplicado.nome}` : null,
-        user_id: '',
         forma_pagamento: pagamentos[0]?.metodo || 'dinheiro',
-        updated_at: new Date().toISOString(),
-      } as any,
+        parcelas: 1,
+      },
       items: carrinho.map(item => ({
         peca_id: item.peca.id,
-        peca_nome: item.peca.nome,
         quantidade: item.quantidade,
-        preco_unitario: item.peca.preco_venda,
+        preco_unitario: item.peca.preco_venda || 0,
+        subtotal: (item.peca.preco_venda || 0) * item.quantidade,
       })),
-      pagamentos: pagamentos.map(p => ({
-        metodo: p.metodo,
-        valor: p.valor,
-      })),
+      caixaSessaoId: caixaAtual.id,
     });
 
     const vendaLocal: VendaLocal = {
@@ -585,15 +578,15 @@ export default function PDVPage() {
                                 #{venda.id.slice(-6).toUpperCase()}
                               </span>
                               <span className="text-sm text-muted-foreground">
-                                {formatTime(venda.data)}
+                                {formatTime(venda.data_venda || venda.created_at)}
                               </span>
                             </div>
                             <div className="flex items-center justify-between">
                               <p className="font-medium truncate flex-1 mr-2">
-                                {venda.cliente_nome || 'Cliente não identificado'}
+                                Cliente #{venda.cliente_id?.slice(-4) || 'N/A'}
                               </p>
                               <span className="font-semibold text-lg shrink-0">
-                                {formatCurrency(Number(venda.total))}
+                                {formatCurrency(Number(venda.valor_total))}
                               </span>
                             </div>
                           </div>
@@ -1180,7 +1173,7 @@ export default function PDVPage() {
         }}
         vendas={vendasCaixa.map(v => ({
           id: v.id,
-          total: Number(v.total),
+          total: Number(v.valor_total),
           forma_pagamento: v.forma_pagamento || 'dinheiro',
           created_at: v.created_at,
         }))}
