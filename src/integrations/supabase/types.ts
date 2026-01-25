@@ -690,6 +690,42 @@ export type Database = {
           },
         ]
       }
+      modelos_etiquetas: {
+        Row: {
+          altura: number
+          ativo: boolean | null
+          campos: Json | null
+          created_at: string | null
+          id: string
+          largura: number
+          nome: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          altura?: number
+          ativo?: boolean | null
+          campos?: Json | null
+          created_at?: string | null
+          id?: string
+          largura?: number
+          nome?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          altura?: number
+          ativo?: boolean | null
+          campos?: Json | null
+          created_at?: string | null
+          id?: string
+          largura?: number
+          nome?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       movimentos_caixa: {
         Row: {
           created_at: string
