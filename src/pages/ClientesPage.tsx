@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { ValidatedInput } from '@/components/ui/validated-input';
 import { toast } from 'sonner';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 export default function ClientesPage() {
   const { data: clientes = [], isLoading } = useClientes();
@@ -153,10 +154,12 @@ export default function ClientesPage() {
             <MessageSquare className="w-4 h-4" />
             Templates WhatsApp
           </Button>
-          <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
-            <Plus className="w-4 h-4" />
-            Novo Cliente
-          </Button>
+          <ReadOnlyGuard>
+            <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Cliente
+            </Button>
+          </ReadOnlyGuard>
         </div>
       </PageHeader>
 

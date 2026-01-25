@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { ValidatedInput } from '@/components/ui/validated-input';
 import { toast } from 'sonner';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 export default function FornecedoresPage() {
   const { data: fornecedores = [], isLoading } = useFornecedores();
@@ -154,10 +155,12 @@ export default function FornecedoresPage() {
         title="Fornecedores"
         subtitle="Gerencie seus fornecedores e parceiros comerciais"
       >
-        <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Fornecedor
-        </Button>
+        <ReadOnlyGuard>
+          <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Fornecedor
+          </Button>
+        </ReadOnlyGuard>
       </PageHeader>
 
       {/* Stats Cards */}

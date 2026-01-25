@@ -52,6 +52,8 @@ import { MiniGradientCard } from '@/components/dashboard/MiniGradientCard';
 import { MeusPedidosTab } from '@/components/pecas/MeusPedidosTab';
 import { ShareCatalogDropdown } from '@/components/catalogo/ShareCatalogDropdown';
 import { ImportacaoModal } from '@/components/pecas/ImportacaoModal';
+import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
+import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
 
 const CATEGORIAS = [
   'Anel', 'Brinco', 'Pulseira', 'Colar', 'Corrente', 'Chocker', 'Gargantilha', 
@@ -69,6 +71,7 @@ const BANHOS = [
 export default function PecasPage() {
   const { data: pecas = [], isLoading } = usePecas();
   const { data: fornecedores = [] } = useFornecedores();
+  const { isReadOnly } = useSubscriptionSafe();
   const addPeca = useAddPeca();
   const updatePeca = useUpdatePeca();
   const deletePeca = useDeletePeca();
@@ -394,14 +397,18 @@ export default function PecasPage() {
               </span>
             )}
           </Button>
-          <Button variant="outline" onClick={() => setIsImportOpen(true)} className="gap-2">
-            <Upload className="w-4 h-4" />
-            Importar CSV
-          </Button>
-          <Button onClick={() => handleOpenForm()} className="btn-gold">
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Peça
-          </Button>
+          <ReadOnlyGuard>
+            <Button variant="outline" onClick={() => setIsImportOpen(true)} className="gap-2">
+              <Upload className="w-4 h-4" />
+              Importar CSV
+            </Button>
+          </ReadOnlyGuard>
+          <ReadOnlyGuard>
+            <Button onClick={() => handleOpenForm()} className="btn-gold">
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Peça
+            </Button>
+          </ReadOnlyGuard>
         </div>
 
         {/* Filters Panel */}
