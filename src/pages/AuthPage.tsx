@@ -273,13 +273,13 @@ export default function AuthPage() {
         <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/30 via-purple-500/20 to-amber-500/30 blur-2xl scale-110" />
         
         {/* Circular Container - Compact */}
-        <div className="relative w-[300px] h-[300px] sm:w-[340px] sm:h-[340px] rounded-full bg-white/90 dark:bg-card/90 backdrop-blur-xl shadow-2xl shadow-black/20 flex items-center justify-center p-5 overflow-hidden">
-          {/* Decorative rings */}
-          <div className="absolute inset-2 rounded-full border border-primary/10" />
-          <div className="absolute inset-4 rounded-full border border-primary/5" />
+        <div className="relative w-[340px] h-[340px] sm:w-[380px] sm:h-[380px] rounded-full bg-white/90 dark:bg-card/90 backdrop-blur-xl shadow-2xl shadow-black/20 flex items-center justify-center p-6">
+          {/* Decorative rings - pointer-events-none to not block clicks */}
+          <div className="absolute inset-2 rounded-full border border-primary/10 pointer-events-none" />
+          <div className="absolute inset-4 rounded-full border border-primary/5 pointer-events-none" />
           
           {/* Inner content container */}
-          <div className="w-full max-w-[210px] sm:max-w-[230px]">
+          <div className="w-full max-w-[240px] sm:max-w-[260px] relative z-10">
             <AnimatePresence mode="wait">
               {activeTab === 'reset' ? (
                 <motion.div
