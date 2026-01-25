@@ -214,8 +214,8 @@ export default function AuthPage() {
           style={{ backgroundImage: `url(${loginBg})` }}
         />
         
-        {/* Overlay Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/85 via-primary/70 to-primary/60" />
+        {/* Subtle dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/20" />
         
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
