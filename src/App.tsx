@@ -18,6 +18,7 @@ const PecasPage = lazy(() => import("./pages/PecasPage"));
 const PDVPage = lazy(() => import("./pages/PDVPage"));
 const CatalogosPage = lazy(() => import("./pages/CatalogosPage"));
 const CatalogoPublicoPage = lazy(() => import("./pages/CatalogoPublicoPage"));
+const MaletaPublicaPage = lazy(() => import("./pages/MaletaPublicaPage"));
 const RevendedorasPage = lazy(() => import("./pages/RevendedorasPage"));
 const RomaneiosPage = lazy(() => import("./pages/RomaneiosPage"));
 const RelatoriosPage = lazy(() => import("./pages/RelatoriosPage"));
@@ -69,6 +70,9 @@ function AppRoutes() {
         
         {/* Catálogo Público - Public page */}
         <Route path="/catalogo/:catalogoId" element={<CatalogoPublicoPage />} />
+        
+        {/* Maleta Pública - Public page for reseller customers */}
+        <Route path="/maleta/:maletaId" element={<MaletaPublicaPage />} />
         
         {/* Portal da Revendedora - Public page without MainLayout */}
         <Route path="/portal/:revendedoraId" element={<PortalRevendedoraPage />} />
