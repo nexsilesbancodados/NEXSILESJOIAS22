@@ -22,7 +22,7 @@ export function MetaProgress() {
     return dataVenda.getMonth() === mesAtual && dataVenda.getFullYear() === anoAtual;
   });
   
-  const faturamentoMesAtual = vendasMesAtual.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+  const faturamentoMesAtual = vendasMesAtual.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
 
   // Calculate previous month sales with null safety
   const vendasMesAnterior = safeVendas.filter(venda => {
@@ -31,7 +31,7 @@ export function MetaProgress() {
     return dataVenda.getMonth() === mesAnterior && dataVenda.getFullYear() === anoMesAnterior;
   });
   
-  const faturamentoMesAnterior = vendasMesAnterior.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+  const faturamentoMesAnterior = vendasMesAnterior.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
 
   // Calculate percentage change
   const variacaoPercentual = faturamentoMesAnterior > 0

@@ -37,8 +37,8 @@ export const RecentActivityCard = memo(function RecentActivityCard({ vendas, rom
       id: v?.id || '',
       type: 'venda' as const,
       title: 'Venda PDV',
-      subtitle: v?.cliente_nome || 'Cliente não identificado',
-      value: Number(v?.total || 0),
+      subtitle: v?.cliente_id ? `Cliente #${v.cliente_id.slice(-4)}` : 'Cliente não identificado',
+      value: Number(v?.valor_total || 0),
       date: new Date(v?.created_at || Date.now()),
     })),
     ...safeRomaneios.slice(0, 5).map(r => ({

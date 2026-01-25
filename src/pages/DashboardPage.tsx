@@ -83,14 +83,20 @@ export default function DashboardPage() {
     
     const today = new Date().toDateString();
     const vendasHoje = safeVendas.filter(v => v?.created_at && new Date(v.created_at).toDateString() === today);
-    const totalHoje = vendasHoje.reduce((acc, v) => acc + Number(v?.total || 0), 0);
-    const faturamentoTotal = safeVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const totalHoje = vendasHoje.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
+    const faturamentoTotal = safeVendas.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
     const totalEstoque = safePecas.reduce((acc, p) => acc + (p?.estoque || 0), 0);
     const estoqueBaixo = safePecas.filter((p) => (p?.estoque || 0) <= 5).length;
     const romaneiosPendentes = safeRomaneios.filter((r) => r?.status === 'pendente').length;
 
     return { totalHoje, vendasHoje, faturamentoTotal, totalEstoque, estoqueBaixo, romaneiosPendentes };
   }, [vendas, pecas, romaneios]);
+
+  // Map vendas to include 'total' alias for components that expect it
+  const vendasWithTotal = useMemo(() => 
+    vendas.map(v => ({ ...v, total: v.valor_total })),
+    [vendas]
+  );
 
   return (
     <div className="p-6 lg:p-8 animate-fade-in space-y-6 bg-background min-h-screen">
@@ -210,14 +216,14 @@ export default function DashboardPage() {
 
       {/* Charts Section - Lazy loaded */}
       <Suspense fallback={<ChartsSkeleton />}>
-        <DashboardCharts vendas={vendas} pecas={pecas} />
+        <DashboardCharts vendas={vendasWithTotal} pecas={pecas} />
       </Suspense>
 
       {/* Insights, Top Vendedoras & Recent Activity */}
       <div className="grid lg:grid-cols-3 gap-4">
-        <InsightsCard vendas={vendas} pecas={pecas as any} romaneios={romaneios} />
+        <InsightsCard vendas={vendasWithTotal} pecas={pecas as any} romaneios={romaneios} />
         <TopVendedorasCard romaneios={romaneios} />
-        <RecentActivityCard vendas={vendas} romaneios={romaneios} />
+        <RecentActivityCard vendas={vendasWithTotal} romaneios={romaneios} />
       </div>
 
       {/* Alerts Section - Clean Style */}

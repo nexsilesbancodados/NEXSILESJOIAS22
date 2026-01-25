@@ -7,10 +7,6 @@ interface LocalCarrinhoItem {
   peca: Peca;
   quantidade: number;
 }
-interface LocalCarrinhoItem {
-  peca: Peca;
-  quantidade: number;
-}
 
 interface LocalCaixaSessao {
   id: string;
