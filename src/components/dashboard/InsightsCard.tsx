@@ -1,5 +1,4 @@
 import { memo, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Lightbulb, 
   TrendingUp, 
@@ -8,7 +7,8 @@ import {
   Sparkles,
   Package,
   DollarSign,
-  Users
+  Users,
+  ArrowUpRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -169,58 +169,75 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
   const getTypeStyles = (type: Insight['type']) => {
     switch (type) {
       case 'success':
-        return 'bg-gradient-to-br from-emerald-400 to-green-500 text-white';
+        return {
+          bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+          icon: 'text-emerald-500',
+          border: 'border-emerald-100 dark:border-emerald-800/30'
+        };
       case 'warning':
-        return 'bg-gradient-to-br from-amber-400 to-orange-500 text-white';
+        return {
+          bg: 'bg-amber-50 dark:bg-amber-900/20',
+          icon: 'text-amber-500',
+          border: 'border-amber-100 dark:border-amber-800/30'
+        };
       case 'info':
-        return 'bg-gradient-to-br from-blue-400 to-indigo-500 text-white';
+        return {
+          bg: 'bg-blue-50 dark:bg-blue-900/20',
+          icon: 'text-blue-500',
+          border: 'border-blue-100 dark:border-blue-800/30'
+        };
       case 'tip':
-        return 'bg-gradient-to-br from-violet-400 to-purple-500 text-white';
+        return {
+          bg: 'bg-purple-50 dark:bg-purple-900/20',
+          icon: 'text-purple-500',
+          border: 'border-purple-100 dark:border-purple-800/30'
+        };
     }
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600 p-5 shadow-lg">
-      {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/20" />
-        <div className="absolute -left-4 -bottom-4 w-24 h-24 rounded-full bg-white/10" />
-      </div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Lightbulb className="w-6 h-6 text-white" />
+    <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+            <Lightbulb className="w-5 h-5 text-purple-500" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-white">Insights</h3>
-            <p className="text-sm text-white/70">Análises automáticas</p>
+            <h3 className="font-semibold text-foreground">Insights</h3>
+            <p className="text-xs text-muted-foreground">Análises automáticas</p>
           </div>
         </div>
-        
-        <div className="space-y-2">
-          {insights.length > 0 ? (
-            insights.map((insight, index) => (
+        <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 text-muted-foreground transition-colors">
+          <ArrowUpRight className="w-4 h-4" />
+        </button>
+      </div>
+      
+      <div className="space-y-2">
+        {insights.length > 0 ? (
+          insights.map((insight, index) => {
+            const styles = getTypeStyles(insight.type);
+            return (
               <div 
                 key={index}
-                className="flex items-start gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm"
+                className={cn("flex items-start gap-3 p-3 rounded-xl border", styles.bg, styles.border)}
               >
                 <div className="flex-shrink-0 mt-0.5">
-                  <insight.icon className="w-4 h-4 text-white" />
+                  <insight.icon className={cn("w-4 h-4", styles.icon)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{insight.title}</p>
-                  <p className="text-xs text-white/70 mt-0.5">{insight.description}</p>
+                  <p className="text-sm font-medium text-foreground">{insight.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-6">
-              <Lightbulb className="w-10 h-10 mx-auto mb-2 text-white/30" />
-              <p className="text-sm text-white/70">Continue vendendo para gerar insights</p>
-            </div>
-          )}
-        </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-6">
+            <Lightbulb className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">Continue vendendo para gerar insights</p>
+          </div>
+        )}
       </div>
     </div>
   );
