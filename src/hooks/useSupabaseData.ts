@@ -653,31 +653,36 @@ export function useDeleteCliente() {
 // ========== REVENDEDORAS ==========
 export interface Revendedora {
   id: string;
-  user_id: string;
+  user_id?: string | null;
   nome: string;
-  telefone: string | null;
-  email: string | null;
-  cpf: string | null;
-  endereco: string | null;
-  cidade: string | null;
-  estado: string | null;
-  comissao: number | null;
-  ativa: boolean | null;
-  profile_id: string | null;
-  created_at: string;
-  updated_at: string;
+  telefone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  cpf?: string | null;
+  endereco?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  cep?: string | null;
+  data_nascimento?: string | null;
+  comissao_percentual?: number | null;
+  saldo_comissao?: number | null;
+  ativo?: boolean | null;
+  observacoes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // Aliases for backward compatibility
+  comissao?: number | null;
+  ativa?: boolean | null;
 }
 
 export function useRevendedoras() {
   return useQuery({
     queryKey: ['revendedoras'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Table 'revendedoras' - fetch all records (no user_id filtering needed for shared data)
       const { data, error } = await supabase
         .from('revendedoras')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome');
       
       if (error) throw error;
@@ -691,22 +696,24 @@ export function useAddRevendedora() {
   
   return useMutation({
     mutationFn: async (revendedora: Partial<Omit<Revendedora, 'id' | 'created_at' | 'updated_at'>>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Insert matching actual database schema (no user_id, profile_id columns)
       const { data, error } = await supabase
         .from('revendedoras')
         .insert({
           nome: revendedora.nome || '',
           telefone: revendedora.telefone || null,
+          whatsapp: revendedora.whatsapp || null,
           email: revendedora.email || null,
           cpf: revendedora.cpf || null,
           endereco: revendedora.endereco || null,
           cidade: revendedora.cidade || null,
           estado: revendedora.estado || null,
-          comissao: revendedora.comissao ?? 30,
-          ativa: revendedora.ativa ?? true,
-          profile_id: revendedora.profile_id || null,
-          user_id: user?.id,
+          cep: revendedora.cep || null,
+          data_nascimento: revendedora.data_nascimento || null,
+          comissao_percentual: revendedora.comissao_percentual ?? 30,
+          saldo_comissao: revendedora.saldo_comissao ?? 0,
+          ativo: revendedora.ativo ?? true,
+          observacoes: revendedora.observacoes || null,
         })
         .select()
         .single();
@@ -718,7 +725,8 @@ export function useAddRevendedora() {
       queryClient.invalidateQueries({ queryKey: ['revendedoras'] });
       toast.success('Revendedora adicionada com sucesso!');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error adding revendedora:', error);
       toast.error('Erro ao adicionar revendedora');
     },
   });
@@ -729,9 +737,21 @@ export function useUpdateRevendedora() {
   
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Revendedora> & { id: string }) => {
+      // Filter out fields that don't exist in the schema
+      const validUpdates: Record<string, unknown> = {};
+      const allowedFields = ['nome', 'telefone', 'whatsapp', 'email', 'cpf', 'endereco', 
+        'cidade', 'estado', 'cep', 'data_nascimento', 'comissao_percentual', 
+        'saldo_comissao', 'ativo', 'observacoes', 'user_id'];
+      
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key)) {
+          validUpdates[key] = value;
+        }
+      }
+      
       const { data, error } = await supabase
         .from('revendedoras')
-        .update(updates)
+        .update(validUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -743,7 +763,8 @@ export function useUpdateRevendedora() {
       queryClient.invalidateQueries({ queryKey: ['revendedoras'] });
       toast.success('Revendedora atualizada com sucesso!');
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Error updating revendedora:', error);
       toast.error('Erro ao atualizar revendedora');
     },
   });
