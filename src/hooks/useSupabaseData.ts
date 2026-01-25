@@ -6,32 +6,23 @@ import { toast } from 'sonner';
 export interface Peca {
   id: string;
   nome: string;
-  codigo: string;
+  codigo: string | null;
+  codigo_barras?: string | null;
   descricao: string | null;
   categoria: string | null;
+  subcategoria: string | null;
   material: string | null;
   peso: number | null;
-  estoque: number;
-  estoque_minimo: number;
-  custo: number;
-  preco: number;
-  preco_revenda: number;
-  preco_custo?: number | null;
-  preco_venda?: number | null;
-  preco_atacado?: number | null;
-  preco_promocional?: number | null;
-  qtd_min_atacado?: number | null;
+  estoque: number | null;
+  estoque_minimo: number | null;
+  preco_custo: number | null;
+  preco_venda: number | null;
+  preco_revenda: number | null;
   fornecedor_id: string | null;
-  banho_id: string | null;
   imagem_url: string | null;
-  ativo: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  // Aliases for backward compatibility
-  codigo_barras?: string | null;
-  subcategoria?: string | null;
-  localizacao?: string | null;
+  ativo: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface Profile {
@@ -245,7 +236,7 @@ export function useAddPeca() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (peca: Omit<Peca, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+    mutationFn: async (peca: Omit<Peca, 'id' | 'created_at' | 'updated_at'>) => {
       // Table 'pecas' doesn't have user_id column
       const { data, error } = await supabase
         .from('pecas')

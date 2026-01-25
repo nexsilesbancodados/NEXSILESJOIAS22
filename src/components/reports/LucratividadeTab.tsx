@@ -69,8 +69,8 @@ export function LucratividadeTab({ pecas }: LucratividadeTabProps) {
   // Calculate profitability data
   const profitabilityData = useMemo(() => {
     return pecas.map((peca) => {
-      const custo = peca.custo || peca.preco_custo || 0;
-      const precoVenda = peca.preco || peca.preco_venda || 0;
+      const custo = peca.preco_custo || 0;
+      const precoVenda = peca.preco_venda || 0;
       const margemBruta = precoVenda - custo;
       const margemPercentual = custo > 0 ? ((margemBruta / custo) * 100) : 0;
       
@@ -80,7 +80,7 @@ export function LucratividadeTab({ pecas }: LucratividadeTabProps) {
         preco_calculado: precoVenda,
         margem_bruta: margemBruta,
         margem_percentual: margemPercentual,
-        lucro_potencial: margemBruta * peca.estoque,
+        lucro_potencial: margemBruta * (peca.estoque || 0),
         status: margemPercentual < 0 ? 'negativa' : margemPercentual < 30 ? 'baixa' : margemPercentual < 60 ? 'normal' : 'alta',
       };
     });

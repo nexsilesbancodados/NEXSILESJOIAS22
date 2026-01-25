@@ -1135,7 +1135,7 @@ export default function EtiquetasPage() {
           } = {
             code: item.peca.codigo || item.peca.id.slice(0, 8),
             name: item.peca.nome,
-            price: item.peca.preco || 0,
+            price: item.peca.preco_venda || 0,
           };
 
           // Adicionar QR Code se o modelo tiver configurado
@@ -1152,7 +1152,7 @@ export default function EtiquetasPage() {
                 labelData.qrcode = `https://nexsilesemijoias.lovable.app/catalogo/${item.peca.id}`;
                 break;
               case 'preco':
-                labelData.qrcode = `R$ ${(item.peca.preco || 0).toFixed(2).replace('.', ',')}`;
+                labelData.qrcode = `R$ ${(item.peca.preco_venda || 0).toFixed(2).replace('.', ',')}`;
                 break;
               case 'custom':
                 labelData.qrcode = modelo.qrcode_custom_text || 'Texto personalizado';
@@ -1206,7 +1206,7 @@ export default function EtiquetasPage() {
         // URL do catálogo público
         return `https://nexsilesemijoias.lovable.app/catalogo/${peca?.id || 'preview'}`;
       case 'preco':
-        const preco = peca?.preco || 199.90;
+        const preco = peca?.preco_venda || 199.90;
         return `R$ ${preco.toFixed(2).replace('.', ',')}`;
       case 'custom':
         return modelo.qrcode_custom_text || 'Texto personalizado';
@@ -1248,8 +1248,8 @@ export default function EtiquetasPage() {
     // Usar dados reais da peça ou exemplo
     const nomeExibir = pecaReal?.nome || 'Anel Solitário';
     const codigoExibir = pecaReal?.codigo || 'ASO-12345';
-    const precoExibir = pecaReal?.preco || 199.90;
-    const precoPromoExibir = pecaReal?.preco_promocional || (precoExibir * 0.75);
+    const precoExibir = pecaReal?.preco_venda || 199.90;
+    const precoPromoExibir = precoExibir * 0.75;
     const banhoExibir = pecaReal?.material || 'Ouro 18k';
 
     // Renderizar código de barras realista baseado no tipo
@@ -2725,7 +2725,7 @@ export default function EtiquetasPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{peca.nome}</p>
                             <p className="text-xs text-muted-foreground">
-                              {peca.codigo} • R$ {peca.preco?.toFixed(2) || '0.00'}
+                              {peca.codigo} • R$ {peca.preco_venda?.toFixed(2) || '0.00'}
                             </p>
                           </div>
                           {isSelected ? (
@@ -2795,7 +2795,7 @@ export default function EtiquetasPage() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{item.peca.nome}</p>
                           <p className="text-xs text-muted-foreground">
-                            {item.peca.codigo} • R$ {item.peca.preco?.toFixed(2) || '0.00'}
+                            {item.peca.codigo} • R$ {item.peca.preco_venda?.toFixed(2) || '0.00'}
                           </p>
                         </div>
                         <div className="flex items-center gap-1">
@@ -2877,7 +2877,7 @@ export default function EtiquetasPage() {
                     <div className="text-center">
                       <p className="text-sm font-medium text-foreground">{previewPeca.nome}</p>
                       <p className="text-xs text-muted-foreground">
-                        {previewPeca.codigo} • R$ {previewPeca.preco?.toFixed(2) || '0.00'}
+                        {previewPeca.codigo} • R$ {previewPeca.preco_venda?.toFixed(2) || '0.00'}
                       </p>
                     </div>
                   </>

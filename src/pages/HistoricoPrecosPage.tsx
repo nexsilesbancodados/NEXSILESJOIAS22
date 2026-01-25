@@ -391,13 +391,13 @@ export default function HistoricoPrecosPage() {
                     <p className="text-xs text-muted-foreground">{peca.codigo}</p>
                   </div>
                   <div className="text-right text-sm">
-                    <p>{formatCurrency(peca.preco_venda || peca.preco || 0)}</p>
+                    <p>{formatCurrency(peca.preco_venda || 0)}</p>
                     {bulkForm.percentual && (
                       <p className={cn(
                         'text-xs',
                         parseFloat(bulkForm.percentual) > 0 ? 'text-green-500' : 'text-red-500'
                       )}>
-                        → {formatCurrency((peca.preco_venda || peca.preco || 0) * (1 + parseFloat(bulkForm.percentual) / 100))}
+                        → {formatCurrency((peca.preco_venda || 0) * (1 + parseFloat(bulkForm.percentual) / 100))}
                       </p>
                     )}
                   </div>
