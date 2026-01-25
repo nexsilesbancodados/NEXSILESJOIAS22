@@ -462,8 +462,8 @@ export default function CatalogosPage() {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="font-display text-xl">
               {selectedCatalogo ? 'Editar Catálogo' : 'Novo Catálogo'}
             </DialogTitle>
@@ -471,98 +471,100 @@ export default function CatalogosPage() {
               {selectedCatalogo ? 'Atualize as informações' : 'Crie um novo link de catálogo'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome do Link *</Label>
-              <Input
-                id="nome"
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                placeholder="Ex: Catálogo Janeiro 2025"
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="nome">Nome do Link *</Label>
+                <Input
+                  id="nome"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  placeholder="Ex: Catálogo Janeiro 2025"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <ImageUpload
+                value={formData.imagem_url}
+                onChange={(url) => setFormData({ ...formData, imagem_url: url })}
+                label="Foto do Catálogo"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <ImageUpload
-              value={formData.imagem_url}
-              onChange={(url) => setFormData({ ...formData, imagem_url: url })}
-              label="Foto do Catálogo"
-            />
-            <div className="space-y-2">
-              <Label htmlFor="observacao">Observação</Label>
-              <Textarea
-                id="observacao"
-                value={formData.observacao}
-                onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
-                placeholder="Observações do catálogo..."
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="custo_separacao">Custo Separação</Label>
-                <Input
-                  id="custo_separacao"
-                  type="number"
-                  step="0.01"
-                  value={formData.custo_separacao}
-                  onChange={(e) => setFormData({ ...formData, custo_separacao: e.target.value })}
-                  placeholder="0.00"
+                <Label htmlFor="observacao">Observação</Label>
+                <Textarea
+                  id="observacao"
+                  value={formData.observacao}
+                  onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                  placeholder="Observações do catálogo..."
+                  rows={3}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="custo_operacional">Custo Operacional</Label>
-                <Input
-                  id="custo_operacional"
-                  type="number"
-                  step="0.01"
-                  value={formData.custo_operacional}
-                  onChange={(e) => setFormData({ ...formData, custo_operacional: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="taxa_entrega">Taxa Entrega</Label>
-                <Input
-                  id="taxa_entrega"
-                  type="number"
-                  step="0.01"
-                  value={formData.taxa_entrega}
-                  onChange={(e) => setFormData({ ...formData, taxa_entrega: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pedido_minimo_pecas">Mínimo de Peças</Label>
-                <Input
-                  id="pedido_minimo_pecas"
-                  type="number"
-                  min="0"
-                  value={formData.pedido_minimo_pecas}
-                  onChange={(e) => setFormData({ ...formData, pedido_minimo_pecas: e.target.value })}
-                  placeholder="0"
-                />
-                <p className="text-xs text-muted-foreground">Quantidade mínima para fechar pedido (0 = sem mínimo)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="custo_separacao">Custo Separação</Label>
+                  <Input
+                    id="custo_separacao"
+                    type="number"
+                    step="0.01"
+                    value={formData.custo_separacao}
+                    onChange={(e) => setFormData({ ...formData, custo_separacao: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="custo_operacional">Custo Operacional</Label>
+                  <Input
+                    id="custo_operacional"
+                    type="number"
+                    step="0.01"
+                    value={formData.custo_operacional}
+                    onChange={(e) => setFormData({ ...formData, custo_operacional: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxa_entrega">Taxa Entrega</Label>
+                  <Input
+                    id="taxa_entrega"
+                    type="number"
+                    step="0.01"
+                    value={formData.taxa_entrega}
+                    onChange={(e) => setFormData({ ...formData, taxa_entrega: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pedido_minimo_pecas">Mínimo de Peças</Label>
+                  <Input
+                    id="pedido_minimo_pecas"
+                    type="number"
+                    min="0"
+                    value={formData.pedido_minimo_pecas}
+                    onChange={(e) => setFormData({ ...formData, pedido_minimo_pecas: e.target.value })}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">Quantidade mínima para fechar pedido (0 = sem mínimo)</p>
+                </div>
               </div>
             </div>
-          </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="shrink-0 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>
               Cancelar
             </Button>
