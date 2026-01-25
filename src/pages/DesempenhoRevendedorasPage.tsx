@@ -113,18 +113,23 @@ export default function DesempenhoRevendedorasPage() {
     }
   });
 
-  // Calculate stats for each revendedora
+  // Calculate stats for each revendedora with null safety
   const revendedoraStats = useMemo<RevendedoraStats[]>(() => {
-    return revendedoras.map(rev => {
-      const revRomaneios = romaneios.filter(r => r.reseller_id === rev.id);
-      const finalizados = revRomaneios.filter(r => r.status === 'finalizado');
-      const pendentes = revRomaneios.filter(r => r.status === 'pendente');
+    const safeRevendedoras = revendedoras || [];
+    const safeRomaneios = romaneios || [];
+    const safeMaletas = maletas || [];
+    
+    return safeRevendedoras.map(rev => {
+      if (!rev) return null;
+      const revRomaneios = safeRomaneios.filter(r => r?.reseller_id === rev.id);
+      const finalizados = revRomaneios.filter(r => r?.status === 'finalizado');
+      const pendentes = revRomaneios.filter(r => r?.status === 'pendente');
       
-      const totalVendas = finalizados.reduce((sum, r) => sum + (r.total || 0), 0);
-      const totalComissao = finalizados.reduce((sum, r) => sum + (r.comissao || 0), 0);
+      const totalVendas = finalizados.reduce((sum, r) => sum + (r?.total || 0), 0);
+      const totalComissao = finalizados.reduce((sum, r) => sum + (r?.comissao || 0), 0);
       const totalPecasVendidas = finalizados.reduce((sum, r) => {
-        const itens = (r as any).romaneio_itens || [];
-        return sum + itens.reduce((s: number, i: any) => s + (i.quantidade || 0), 0);
+        const itens = (r as any)?.romaneio_itens || [];
+        return sum + (itens || []).reduce((s: number, i: any) => s + (i?.quantidade || 0), 0);
       }, 0);
       
       // Taxa de conversão: romaneios finalizados / total de romaneios
@@ -134,7 +139,7 @@ export default function DesempenhoRevendedorasPage() {
       
       // Tempo médio de fechamento em dias
       const temposFinalizacao = finalizados.map(r => {
-        if (r.data && r.created_at) {
+        if (r?.data && r?.created_at) {
           const inicio = new Date(r.created_at);
           const fim = new Date(r.data);
           return (fim.getTime() - inicio.getTime()) / (1000 * 60 * 60 * 24);
@@ -146,7 +151,7 @@ export default function DesempenhoRevendedorasPage() {
         ? temposFinalizacao.reduce((a, b) => a + b, 0) / temposFinalizacao.length
         : 0;
       
-      const maletasAtivas = maletas.filter(m => m.revendedora_id === rev.id && m.status === 'emprestada').length;
+      const maletasAtivas = safeMaletas.filter(m => m?.revendedora_id === rev.id && m?.status === 'emprestada').length;
       
       return {
         id: rev.id,
@@ -160,7 +165,7 @@ export default function DesempenhoRevendedorasPage() {
         tempoMedioFechamento,
         maletasAtivas
       };
-    }).sort((a, b) => b.totalVendas - a.totalVendas);
+    }).filter(Boolean).sort((a, b) => (b?.totalVendas || 0) - (a?.totalVendas || 0)) as RevendedoraStats[];
   }, [revendedoras, romaneios, maletas]);
 
   // Top 10 for ranking

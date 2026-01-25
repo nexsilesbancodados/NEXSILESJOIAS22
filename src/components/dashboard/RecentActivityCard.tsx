@@ -28,26 +28,30 @@ export const RecentActivityCard = memo(function RecentActivityCard({ vendas, rom
     }).format(value);
   };
 
-  // Combine and sort activities
+  // Combine and sort activities with null safety
+  const safeVendas = vendas || [];
+  const safeRomaneios = romaneios || [];
+  
   const activities: ActivityItem[] = [
-    ...vendas.slice(0, 5).map(v => ({
-      id: v.id,
+    ...safeVendas.slice(0, 5).map(v => ({
+      id: v?.id || '',
       type: 'venda' as const,
       title: 'Venda PDV',
-      subtitle: v.cliente_nome || 'Cliente não identificado',
-      value: Number(v.total),
-      date: new Date(v.created_at),
+      subtitle: v?.cliente_nome || 'Cliente não identificado',
+      value: Number(v?.total || 0),
+      date: new Date(v?.created_at || Date.now()),
     })),
-    ...romaneios.slice(0, 5).map(r => ({
-      id: r.id,
+    ...safeRomaneios.slice(0, 5).map(r => ({
+      id: r?.id || '',
       type: 'romaneio' as const,
       title: 'Venda Revendedora',
-      subtitle: r.revendedora_nome || r.reseller_nome || 'Sem nome',
-      value: Number(r.total),
-      date: new Date(r.created_at),
-      status: r.status,
+      subtitle: r?.revendedora_nome || r?.reseller_nome || 'Sem nome',
+      value: Number(r?.total || 0),
+      date: new Date(r?.created_at || Date.now()),
+      status: r?.status,
     })),
   ]
+    .filter(a => a.id)
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 6);
 

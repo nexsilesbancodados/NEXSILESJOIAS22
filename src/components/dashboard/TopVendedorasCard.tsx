@@ -8,11 +8,13 @@ interface TopVendedorasCardProps {
 }
 
 export const TopVendedorasCard = memo(function TopVendedorasCard({ romaneios }: TopVendedorasCardProps) {
-  // Calculate sales by reseller - memoized
+  // Calculate sales by reseller - memoized with null safety
   const { topVendedoras, maxTotal } = useMemo(() => {
-    const vendasPorRevendedora = romaneios
-      .filter(r => r.status === 'confirmado' && r.reseller_id)
+    const safeRomaneios = romaneios || [];
+    const vendasPorRevendedora = safeRomaneios
+      .filter(r => r?.status === 'confirmado' && r?.reseller_id)
       .reduce((acc, r) => {
+        if (!r) return acc;
         const resellerId = r.reseller_id!;
         const resellerNome = r.revendedora_nome || r.reseller_nome || 'Sem nome';
         if (!acc[resellerId]) {
@@ -22,7 +24,7 @@ export const TopVendedorasCard = memo(function TopVendedorasCard({ romaneios }: 
             quantidade: 0,
           };
         }
-        acc[resellerId].total += Number(r.total);
+        acc[resellerId].total += Number(r.total || 0);
         acc[resellerId].quantidade += 1;
         return acc;
       }, {} as Record<string, { nome: string; total: number; quantidade: number }>);

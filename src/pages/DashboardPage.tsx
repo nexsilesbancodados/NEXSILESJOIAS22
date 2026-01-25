@@ -75,15 +75,19 @@ export default function DashboardPage() {
     }).format(value);
   };
 
-  // Calculate stats
+  // Calculate stats - with null safety
   const stats = useMemo(() => {
+    const safeVendas = vendas || [];
+    const safePecas = pecas || [];
+    const safeRomaneios = romaneios || [];
+    
     const today = new Date().toDateString();
-    const vendasHoje = vendas.filter(v => new Date(v.created_at).toDateString() === today);
-    const totalHoje = vendasHoje.reduce((acc, v) => acc + Number(v.total || 0), 0);
-    const faturamentoTotal = vendas.reduce((acc, v) => acc + Number(v.total || 0), 0);
-    const totalEstoque = pecas.reduce((acc, p) => acc + (p.estoque || 0), 0);
-    const estoqueBaixo = pecas.filter((p) => (p.estoque || 0) <= 5).length;
-    const romaneiosPendentes = romaneios.filter((r) => r.status === 'pendente').length;
+    const vendasHoje = safeVendas.filter(v => v?.created_at && new Date(v.created_at).toDateString() === today);
+    const totalHoje = vendasHoje.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const faturamentoTotal = safeVendas.reduce((acc, v) => acc + Number(v?.total || 0), 0);
+    const totalEstoque = safePecas.reduce((acc, p) => acc + (p?.estoque || 0), 0);
+    const estoqueBaixo = safePecas.filter((p) => (p?.estoque || 0) <= 5).length;
+    const romaneiosPendentes = safeRomaneios.filter((r) => r?.status === 'pendente').length;
 
     return { totalHoje, vendasHoje, faturamentoTotal, totalEstoque, estoqueBaixo, romaneiosPendentes };
   }, [vendas, pecas, romaneios]);
@@ -311,11 +315,11 @@ export default function DashboardPage() {
             <div className="flex-1">
               <h3 className="font-semibold mb-1">Vendas Revendedoras</h3>
               <p className="text-sm text-muted-foreground mb-3">
-                {romaneios.length} romaneios • {' '}
+                {(romaneios || []).length} romaneios • {' '}
                 {formatCurrency(
-                  romaneios
-                    .filter((r) => r.status === 'confirmado')
-                    .reduce((acc, r) => acc + Number(r.total), 0)
+                  (romaneios || [])
+                    .filter((r) => r?.status === 'confirmado')
+                    .reduce((acc, r) => acc + Number(r?.total || 0), 0)
                 )} confirmados
               </p>
               <Link to="/romaneios">
