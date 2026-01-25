@@ -5,6 +5,7 @@ import { Briefcase, ChevronRight, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
 import { useMaletaItems, type Maleta, type Peca } from '@/hooks/useSupabaseData';
+import { ShareMaletaButton } from '@/components/maleta/ShareMaletaButton';
 
 interface MaletaCardProps {
   maleta: Maleta;
@@ -101,17 +102,26 @@ export function MaletaCard({
               <p className="font-semibold text-lg">{formatCurrency(totalVendido)}</p>
             </div>
             {maleta.status === 'aberta' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit();
-                }}
-              >
-                <Pencil className="w-4 h-4" />
-              </Button>
+              <>
+                <ShareMaletaButton
+                  maletaId={maleta.id}
+                  maletaNome={maleta.nome}
+                  isPublic={maleta.is_public || false}
+                  sharingSlug={maleta.sharing_slug || null}
+                  variant="icon"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit();
+                  }}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </>
             )}
             <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
           </div>

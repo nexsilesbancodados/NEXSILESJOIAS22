@@ -523,6 +523,89 @@ export type Database = {
           },
         ]
       }
+      maleta_interesse_itens: {
+        Row: {
+          created_at: string | null
+          id: string
+          interesse_id: string
+          peca_id: string
+          quantidade: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interesse_id: string
+          peca_id: string
+          quantidade?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interesse_id?: string
+          peca_id?: string
+          quantidade?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_interesse_itens_interesse_id_fkey"
+            columns: ["interesse_id"]
+            isOneToOne: false
+            referencedRelation: "maleta_interesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_interesse_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maleta_interesses: {
+        Row: {
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          created_at: string | null
+          id: string
+          maleta_id: string
+          observacoes: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          created_at?: string | null
+          id?: string
+          maleta_id: string
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          created_at?: string | null
+          id?: string
+          maleta_id?: string
+          observacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_interesses_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maletas: {
         Row: {
           codigo: string | null
@@ -531,9 +614,11 @@ export type Database = {
           data_entrega: string | null
           descricao: string | null
           id: string
+          is_public: boolean | null
           nome: string
           observacoes: string | null
           revendedora_id: string | null
+          sharing_slug: string | null
           status: string | null
           updated_at: string | null
           valor_total: number | null
@@ -545,9 +630,11 @@ export type Database = {
           data_entrega?: string | null
           descricao?: string | null
           id?: string
+          is_public?: boolean | null
           nome: string
           observacoes?: string | null
           revendedora_id?: string | null
+          sharing_slug?: string | null
           status?: string | null
           updated_at?: string | null
           valor_total?: number | null
@@ -559,9 +646,11 @@ export type Database = {
           data_entrega?: string | null
           descricao?: string | null
           id?: string
+          is_public?: boolean | null
           nome?: string
           observacoes?: string | null
           revendedora_id?: string | null
+          sharing_slug?: string | null
           status?: string | null
           updated_at?: string | null
           valor_total?: number | null

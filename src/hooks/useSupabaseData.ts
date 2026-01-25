@@ -96,6 +96,9 @@ export interface Maleta {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
+  // Public sharing fields
+  is_public?: boolean | null;
+  sharing_slug?: string | null;
   // Aliases for backward compatibility
   nome?: string | null;
   reseller_id?: string;
