@@ -47,7 +47,9 @@ import {
   Loader2,
   User,
   Percent,
-  Ticket
+  Ticket,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReciboVenda } from '@/components/recibo/ReciboVenda';
@@ -68,6 +70,7 @@ import { FechamentoCaixaReport } from '@/components/pdv/FechamentoCaixaReport';
 import { toast } from 'sonner';
 import { CupomInput } from '@/components/pdv/CupomInput';
 import { useUsarCupom, type ValidacaoCupom } from '@/hooks/useCampanhas';
+import { useFullscreen } from '@/hooks/useFullscreen';
 import { supabase } from '@/lib/supabase-db';
 import { 
   usePecas, 
@@ -118,6 +121,7 @@ export default function PDVPage() {
   const addVenda = useAddVenda();
   const addMovimento = useAddMovimento();
   const addCliente = useAddCliente();
+  const { isFullscreen, isSupported: fullscreenSupported, toggleFullscreen } = useFullscreen();
 
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -520,7 +524,7 @@ export default function PDVPage() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <OfflineSyncDashboard />
                 <OfflineIndicator />
                 <ShortcutsHelp />
@@ -529,6 +533,21 @@ export default function PDVPage() {
                   onEnabledChange={setBarcodeScannerEnabled}
                   onBarcodeScanned={handleBarcodeScanned}
                 />
+                {fullscreenSupported && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => toggleFullscreen()}
+                    title={isFullscreen ? 'Sair da tela cheia (Esc)' : 'Tela cheia'}
+                  >
+                    {isFullscreen ? (
+                      <Minimize className="w-4 h-4" />
+                    ) : (
+                      <Maximize className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
             
