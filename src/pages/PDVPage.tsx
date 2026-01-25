@@ -500,223 +500,232 @@ export default function PDVPage() {
 
   // PDV View
   return (
-    <div className="h-screen flex animate-fade-in">
-      {/* Produtos Grid */}
-      <div className="flex-1 flex flex-col p-4 lg:p-6 overflow-hidden">
-        {/* Header */}
-        <div className="flex flex-col gap-4 mb-4">
-          {/* Top Row - Title and Main Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl gold-gradient flex items-center justify-center shrink-0">
-                <ShoppingCart className="w-5 h-5 lg:w-6 lg:h-6 text-primary-foreground" />
+    <div className="h-screen flex flex-col lg:flex-row animate-fade-in">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Compact Header */}
+        <header className="shrink-0 border-b border-border bg-card/50 backdrop-blur-sm">
+          <div className="px-4 py-3">
+            {/* Row 1: Title + Status Indicators */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-lg font-display font-semibold truncate">PDV</h1>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Aberto às {formatTime(caixaAtual.data_abertura)} • {vendasCaixa.length} vendas
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl lg:text-2xl font-display font-semibold">PDV</h1>
-                <p className="text-xs lg:text-sm text-muted-foreground">
-                  Aberto às {formatTime(caixaAtual.data_abertura)} • {vendasCaixa.length} vendas
-                </p>
+              
+              <div className="flex items-center gap-1.5 shrink-0">
+                <OfflineSyncDashboard />
+                <OfflineIndicator />
+                <ShortcutsHelp />
+                <BarcodeScanner
+                  enabled={barcodeScannerEnabled}
+                  onEnabledChange={setBarcodeScannerEnabled}
+                  onBarcodeScanned={handleBarcodeScanned}
+                />
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <OfflineSyncDashboard />
-              <OfflineIndicator />
-              <ShortcutsHelp />
-              <BarcodeScanner
-                enabled={barcodeScannerEnabled}
-                onEnabledChange={setBarcodeScannerEnabled}
-                onBarcodeScanned={handleBarcodeScanned}
-              />
-            </div>
-          </div>
-          
-          {/* Bottom Row - Action Buttons */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Sheet open={isHistoricoOpen} onOpenChange={setIsHistoricoOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <History className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">Histórico</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="w-[400px]">
-                <SheetHeader>
-                  <SheetTitle className="font-display">Vendas do Dia</SheetTitle>
-                  <SheetDescription>
-                    {vendasCaixa.length} vendas • Total: {formatCurrency(totais.vendas)}
-                  </SheetDescription>
-                </SheetHeader>
-                <ScrollArea className="h-[calc(100vh-150px)] mt-4">
-                  <div className="space-y-3 pr-4">
-                    {vendasCaixa.length === 0 ? (
-                      <div className="text-center py-12">
-                        <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                        <p className="text-muted-foreground text-sm">Nenhuma venda ainda</p>
-                      </div>
-                    ) : (
-                      vendasCaixa.map((venda) => (
-                        <div
-                          key={venda.id}
-                          className="p-4 bg-secondary/50 rounded-lg hover:bg-secondary transition-colors"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-sm text-muted-foreground">
-                              #{venda.id.slice(-6).toUpperCase()}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {formatTime(venda.data)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">
+            {/* Row 2: Quick Actions */}
+            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+              <Sheet open={isHistoricoOpen} onOpenChange={setIsHistoricoOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="shrink-0">
+                    <History className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-1.5">Histórico</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle className="font-display">Vendas do Dia</SheetTitle>
+                    <SheetDescription>
+                      {vendasCaixa.length} vendas • Total: {formatCurrency(totais.vendas)}
+                    </SheetDescription>
+                  </SheetHeader>
+                  <ScrollArea className="h-[calc(100vh-150px)] mt-4">
+                    <div className="space-y-3 pr-4">
+                      {vendasCaixa.length === 0 ? (
+                        <div className="text-center py-12">
+                          <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                          <p className="text-muted-foreground text-sm">Nenhuma venda ainda</p>
+                        </div>
+                      ) : (
+                        vendasCaixa.map((venda) => (
+                          <div
+                            key={venda.id}
+                            className="p-4 bg-secondary/50 rounded-lg hover:bg-secondary transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-mono text-sm text-muted-foreground">
+                                #{venda.id.slice(-6).toUpperCase()}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {formatTime(venda.data)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium truncate flex-1 mr-2">
                                 {venda.cliente_nome || 'Cliente não identificado'}
                               </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-lg">
+                              <span className="font-semibold text-lg shrink-0">
                                 {formatCurrency(Number(venda.total))}
                               </span>
                             </div>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSangriaOpen(true)}
-              className="text-destructive border-destructive/30 hover:bg-destructive/10"
-            >
-              <ArrowDownCircle className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Sangria</span>
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSuprimentoOpen(true)}
-              className="text-green-600 border-green-600/30 hover:bg-green-600/10"
-            >
-              <ArrowUpCircle className="w-4 h-4 mr-1" />
-              <span className="hidden sm:inline">Suprimento</span>
-            </Button>
-            
-            <div className="flex-1" />
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFechamentoCaixaOpen(true)}
-            >
-              <Lock className="w-4 h-4 mr-1" />
-              Fechar Caixa
-            </Button>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSangriaOpen(true)}
+                className="shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                <ArrowDownCircle className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1.5">Sangria</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsSuprimentoOpen(true)}
+                className="shrink-0 text-success border-success/30 hover:bg-success/10"
+              >
+                <ArrowUpCircle className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1.5">Suprimento</span>
+              </Button>
+              
+              <div className="flex-1 min-w-4" />
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFechamentoCaixaOpen(true)}
+                className="shrink-0"
+              >
+                <Lock className="w-4 h-4" />
+                <span className="ml-1.5">Fechar</span>
+              </Button>
+            </div>
           </div>
-        </div>
+        </header>
 
         {/* Stats Bar */}
-        <PDVStats
-          vendasCaixa={vendasCaixa}
-          movimentosCaixa={movimentosCaixa}
-          fundoTroco={caixaAtual?.fundo_troco || 0}
-          horaAbertura={caixaAtual?.data_abertura || ''}
-        />
+        <div className="shrink-0 px-4 py-2 border-b border-border">
+          <PDVStats
+            vendasCaixa={vendasCaixa}
+            movimentosCaixa={movimentosCaixa}
+            fundoTroco={caixaAtual?.fundo_troco || 0}
+            horaAbertura={caixaAtual?.data_abertura || ''}
+          />
+        </div>
 
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 py-3 border-b mb-4">
-          <PDVToolbar
-            onCalculator={() => setIsCalculatorOpen(true)}
-            onDesconto={() => setIsDescontoOpen(true)}
-            onClienteFiel={() => setIsClienteFielOpen(true)}
-            onConsultaPreco={() => setIsConsultaPrecoOpen(true)}
-            onReimprimirUltimo={() => ultimaVenda && setIsVendaConcluidaOpen(true)}
-            onPausarVenda={() => {
-              if (carrinho.length > 0) {
-                setVendaPausada(carrinho);
-                setCarrinho([]);
-                toast.info('Venda pausada');
-              }
-            }}
-            onRecuperarVenda={() => {
-              if (vendaPausada) {
-                setCarrinho(vendaPausada);
-                setVendaPausada(null);
-                toast.success('Venda recuperada');
-              }
-            }}
-            onTrocaDevolucao={() => setIsTrocaDevolucaoOpen(true)}
-            vendaPausada={!!vendaPausada}
-            ultimaVendaId={ultimaVenda?.id}
-          />
-          
-          <div className="flex items-center gap-2 flex-wrap">
-            {clienteSelecionado && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
-                <User className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium truncate max-w-[120px]">{clienteSelecionado.nome}</span>
-                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setClienteSelecionado(null)}>
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
-            {descontoAplicado && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 rounded-full">
-                <Percent className="w-4 h-4 text-destructive" />
-                <span className="text-sm font-medium">
-                  {descontoAplicado.tipo === 'percentual' ? `${descontoAplicado.valor}%` : `R$ ${descontoAplicado.valor.toFixed(2)}`}
-                </span>
-                <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => setDescontoAplicado(null)}>
-                  <X className="w-3 h-3" />
-                </Button>
-              </div>
-            )}
+        <div className="shrink-0 px-4 py-2 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-3 overflow-x-auto pb-1">
+            <PDVToolbar
+              onCalculator={() => setIsCalculatorOpen(true)}
+              onDesconto={() => setIsDescontoOpen(true)}
+              onClienteFiel={() => setIsClienteFielOpen(true)}
+              onConsultaPreco={() => setIsConsultaPrecoOpen(true)}
+              onReimprimirUltimo={() => ultimaVenda && setIsVendaConcluidaOpen(true)}
+              onPausarVenda={() => {
+                if (carrinho.length > 0) {
+                  setVendaPausada(carrinho);
+                  setCarrinho([]);
+                  toast.info('Venda pausada');
+                }
+              }}
+              onRecuperarVenda={() => {
+                if (vendaPausada) {
+                  setCarrinho(vendaPausada);
+                  setVendaPausada(null);
+                  toast.success('Venda recuperada');
+                }
+              }}
+              onTrocaDevolucao={() => setIsTrocaDevolucaoOpen(true)}
+              vendaPausada={!!vendaPausada}
+              ultimaVendaId={ultimaVenda?.id}
+            />
+            
+            <div className="h-6 w-px bg-border shrink-0" />
+            
+            <div className="flex items-center gap-2 shrink-0">
+              {clienteSelecionado && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 rounded-full text-sm">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                  <span className="font-medium truncate max-w-[100px]">{clienteSelecionado.nome}</span>
+                  <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => setClienteSelecionado(null)}>
+                    <X className="w-2.5 h-2.5" />
+                  </Button>
+                </div>
+              )}
+              {descontoAplicado && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 rounded-full text-sm">
+                  <Percent className="w-3.5 h-3.5 text-destructive" />
+                  <span className="font-medium">
+                    {descontoAplicado.tipo === 'percentual' ? `${descontoAplicado.valor}%` : `R$ ${descontoAplicado.valor.toFixed(2)}`}
+                  </span>
+                  <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => setDescontoAplicado(null)}>
+                    <X className="w-2.5 h-2.5" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            ref={searchInputRef}
-            placeholder="Buscar produto por nome ou código... (F4)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 input-search"
-          />
+        {/* Search Bar */}
+        <div className="shrink-0 px-4 py-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              placeholder="Buscar produto por nome ou código... (F4)"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
 
-        {/* Products Grid */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* Products Grid - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {filteredPecas.map((peca) => (
               <div
                 key={peca.id}
                 onClick={() => peca.estoque > 0 && addToCarrinho(peca)}
                 className={cn(
-                  'product-grid-item',
+                  'bg-card border border-border rounded-xl p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/30',
                   peca.estoque <= 0 && 'opacity-50 cursor-not-allowed'
                 )}
               >
-                <img
-                  src={peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
-                  alt={peca.nome}
-                  className="w-full aspect-square rounded-lg object-cover mb-2"
-                />
+                <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-muted">
+                  <img
+                    src={peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
+                    alt={peca.nome}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <p className="font-medium text-sm truncate">{peca.nome}</p>
-                <p className="text-xs text-muted-foreground">{peca.codigo}</p>
+                <p className="text-xs text-muted-foreground truncate">{peca.codigo}</p>
                 <div className="flex items-center justify-between mt-2">
-                  <p className="font-semibold text-primary">
+                  <p className="font-semibold text-primary text-sm">
                     {formatCurrency(peca.preco_venda)}
                   </p>
                   <span className={cn(
-                    'text-xs px-2 py-0.5 rounded',
+                    'text-xs px-1.5 py-0.5 rounded font-medium',
                     peca.estoque <= (peca.estoque_minimo || 5) ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'
                   )}>
                     {peca.estoque}
@@ -729,8 +738,9 @@ export default function PDVPage() {
       </div>
 
       {/* Cart Sidebar */}
-      <div className="w-96 bg-card border-l border-border flex flex-col">
-        <div className="p-4 border-b border-border">
+      <aside className="w-full lg:w-96 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col shrink-0 max-h-[40vh] lg:max-h-none">
+        {/* Cart Header */}
+        <div className="shrink-0 p-4 border-b border-border">
           <h2 className="font-semibold flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
             Carrinho
@@ -742,66 +752,69 @@ export default function PDVPage() {
           </h2>
         </div>
 
-        {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Cart Items - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {carrinho.length === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+            <div className="text-center py-8">
+              <ShoppingCart className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-muted-foreground text-sm">Carrinho vazio</p>
               <p className="text-muted-foreground/60 text-xs">
                 Clique em um produto para adicionar
               </p>
             </div>
           ) : (
-            carrinho.map((item) => (
-              <div key={item.peca.id} className="cart-item animate-scale-in">
-                <div className="flex items-center gap-3">
+            <div className="space-y-2">
+              {carrinho.map((item) => (
+                <div 
+                  key={item.peca.id} 
+                  className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg animate-scale-in"
+                >
                   <img
                     src={item.peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
                     alt={item.peca.nome}
-                    className="w-12 h-12 rounded-lg object-cover"
+                    className="w-10 h-10 rounded-lg object-cover shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{item.peca.nome}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatCurrency(item.peca.preco_venda)}
+                      {formatCurrency(item.peca.preco_venda)} × {item.quantidade}
                     </p>
                   </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => updateCarrinhoQuantidade(item.peca.id, item.quantidade - 1)}
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <span className="w-6 text-center text-sm font-medium">{item.quantidade}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => updateCarrinhoQuantidade(item.peca.id, item.quantidade + 1)}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      onClick={() => removeFromCarrinho(item.peca.id)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => updateCarrinhoQuantidade(item.peca.id, item.quantidade - 1)}
-                  >
-                    <Minus className="w-3 h-3" />
-                  </Button>
-                  <span className="w-8 text-center font-medium">{item.quantidade}</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => updateCarrinhoQuantidade(item.peca.id, item.quantidade + 1)}
-                  >
-                    <Plus className="w-3 h-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={() => removeFromCarrinho(item.peca.id)}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Cart Footer */}
-        <div className="p-4 border-t border-border space-y-4">
+        {/* Cart Footer - Fixed */}
+        <div className="shrink-0 p-4 border-t border-border bg-card space-y-3">
           {/* Coupon Input */}
           <CupomInput
             cupomAplicado={cupomAplicado}
@@ -810,27 +823,30 @@ export default function PDVPage() {
           />
           
           {/* Totals */}
-          {totalDesconto > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatCurrency(subtotalCarrinho)}</span>
-            </div>
-          )}
-          {totalDesconto > 0 && (
-            <div className="flex items-center justify-between text-sm text-green-600">
-              <span className="flex items-center gap-1">
-                <Ticket className="w-3 h-3" />
-                Desconto
+          <div className="space-y-1">
+            {totalDesconto > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>{formatCurrency(subtotalCarrinho)}</span>
+              </div>
+            )}
+            {totalDesconto > 0 && (
+              <div className="flex items-center justify-between text-sm text-success">
+                <span className="flex items-center gap-1">
+                  <Ticket className="w-3 h-3" />
+                  Desconto
+                </span>
+                <span>-{formatCurrency(totalDesconto)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="text-muted-foreground font-medium">Total</span>
+              <span className="text-xl font-display font-semibold text-primary">
+                {formatCurrency(totalCarrinho)}
               </span>
-              <span>-{formatCurrency(totalDesconto)}</span>
             </div>
-          )}
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Total</span>
-            <span className="text-2xl font-display font-semibold">
-              {formatCurrency(totalCarrinho)}
-            </span>
           </div>
+          
           <Button
             className="w-full btn-gold"
             size="lg"
@@ -838,10 +854,10 @@ export default function PDVPage() {
             onClick={() => setIsPagamentoOpen(true)}
           >
             <DollarSign className="w-5 h-5 mr-2" />
-            Finalizar Venda
+            Finalizar Venda (F12)
           </Button>
         </div>
-      </div>
+      </aside>
 
       {/* Modal de Pagamento */}
       <Dialog open={isPagamentoOpen} onOpenChange={setIsPagamentoOpen}>
