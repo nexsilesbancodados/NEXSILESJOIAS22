@@ -151,7 +151,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Stats Grid - Modern Style */}
+      {/* Main Stats Grid - Colorful Style */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loadingVendas ? (
           <StatCardSkeleton />
@@ -173,7 +173,7 @@ export default function DashboardPage() {
             value={formatCurrency(stats.faturamentoTotal)}
             icon={TrendingUp}
             trend={{ value: 12 }}
-            variant="default"
+            variant="purple"
           />
         )}
         
@@ -197,7 +197,7 @@ export default function DashboardPage() {
             value={revendedoras.length}
             subtitle="Parceiras ativas"
             icon={Users}
-            variant="info"
+            variant="amber"
           />
         )}
       </div>
