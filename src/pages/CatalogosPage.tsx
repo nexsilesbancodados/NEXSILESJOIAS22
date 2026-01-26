@@ -887,9 +887,16 @@ function CatalogoItemsDialog({
   const [searchEstoque, setSearchEstoque] = useState('');
   const [selectedPecas, setSelectedPecas] = useState<Set<string>>(new Set());
   const [isAddingBulk, setIsAddingBulk] = useState(false);
+  const generateCode = () => {
+    const prefix = 'CAT';
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+  };
+
   const [newPecaData, setNewPecaData] = useState({
     nome: '',
-    codigo: '',
+    codigo: generateCode(),
     preco_custo: '',
     preco_venda: '',
     categoria: '',
@@ -901,13 +908,6 @@ function CatalogoItemsDialog({
     imagem_url: '',
   });
   const [autoGenerateCode, setAutoGenerateCode] = useState(true);
-
-  const generateCode = () => {
-    const prefix = 'CAT';
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `${prefix}-${timestamp}-${random}`;
-  };
 
   // IDs das peças já no catálogo
   const pecasNoCatalogo = new Set(items.map(i => i.peca_id));
@@ -1024,10 +1024,10 @@ function CatalogoItemsDialog({
         destaque: false,
       });
 
-      // Reset form
+      // Reset form with new unique code
       setNewPecaData({
         nome: '',
-        codigo: autoGenerateCode ? generateCode() : '',
+        codigo: generateCode(),
         preco_custo: '',
         preco_venda: '',
         categoria: '',
@@ -1038,6 +1038,7 @@ function CatalogoItemsDialog({
         estoque_minimo: '',
         imagem_url: '',
       });
+      setAutoGenerateCode(true);
       toast.success('Peça criada e adicionada ao catálogo!');
     } catch (error) {
       console.error('Error creating peca:', error);
