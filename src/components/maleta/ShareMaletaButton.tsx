@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, Check, Link, Loader2, Pencil, Save, QrCode, Download } from 'lucide-react';
+import { Copy, Share2, MessageCircle, Check, Link, Loader2, Pencil, Save, QrCode, Download, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-db';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -406,6 +406,17 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
             {isPublic && (
               <>
                 {renderSlugEditor()}
+                
+                {/* Preview Button */}
+                <Button
+                  variant="secondary"
+                  className="w-full h-9 text-xs"
+                  onClick={() => window.open(maletaLink, '_blank')}
+                >
+                  <Eye className="w-4 h-4 mr-1.5" />
+                  Ver preview da vitrine
+                </Button>
+                
                 {renderQRCode()}
 
                 <div className="flex gap-2">
@@ -484,6 +495,17 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
           {isPublic && (
             <>
               {renderSlugEditor()}
+              
+              {/* Preview Button */}
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => window.open(maletaLink, '_blank')}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver preview da vitrine
+              </Button>
+              
               {renderQRCode()}
 
               <div className="grid grid-cols-2 gap-2">
