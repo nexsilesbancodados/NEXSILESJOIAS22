@@ -364,6 +364,7 @@ export default function CatalogosPage() {
                       <ShareCatalogButton 
                         catalogoId={catalogo.id} 
                         catalogoNome={catalogo.nome}
+                        catalogoSlug={catalogo.slug}
                         variant="icon" 
                       />
                       <DropdownMenu>
