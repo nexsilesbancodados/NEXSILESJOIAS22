@@ -53,7 +53,8 @@ import {
   ChevronRight,
   X,
   ShoppingBag,
-  ImageIcon
+  ImageIcon,
+  Check
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniGradientCard } from '@/components/dashboard/MiniGradientCard';
@@ -854,7 +855,9 @@ function CatalogoItemsDialog({
   const deleteItem = useDeleteCatalogoItem();
   const addPeca = useAddPeca();
   const [searchPeca, setSearchPeca] = useState('');
-  const [isCreatingPeca, setIsCreatingPeca] = useState(false);
+  const [searchEstoque, setSearchEstoque] = useState('');
+  const [selectedPecas, setSelectedPecas] = useState<Set<string>>(new Set());
+  const [isAddingBulk, setIsAddingBulk] = useState(false);
   const [newPecaData, setNewPecaData] = useState({
     nome: '',
     codigo: '',
@@ -863,19 +866,79 @@ function CatalogoItemsDialog({
     categoria: '',
   });
 
-  // Show all pieces, not just those with stock > 0
+  // IDs das peças já no catálogo
+  const pecasNoCatalogo = new Set(items.map(i => i.peca_id));
+
+  // Peças disponíveis para busca individual
   const pecasDisponiveis = pecas.filter(
     (p) =>
       (p.nome.toLowerCase().includes(searchPeca.toLowerCase()) ||
         p.codigo.toLowerCase().includes(searchPeca.toLowerCase()))
   );
 
+  // Peças para seleção múltipla (filtra as já adicionadas)
+  const pecasEstoqueDisponiveis = pecas
+    .filter(p => !pecasNoCatalogo.has(p.id))
+    .filter(p => 
+      !searchEstoque || 
+      p.nome.toLowerCase().includes(searchEstoque.toLowerCase()) ||
+      p.codigo.toLowerCase().includes(searchEstoque.toLowerCase()) ||
+      (p.categoria?.toLowerCase().includes(searchEstoque.toLowerCase()))
+    );
+
+  const togglePecaSelection = (pecaId: string) => {
+    setSelectedPecas(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(pecaId)) {
+        newSet.delete(pecaId);
+      } else {
+        newSet.add(pecaId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedPecas(new Set(pecasEstoqueDisponiveis.map(p => p.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedPecas(new Set());
+  };
+
+  const handleAddBulkPecas = async () => {
+    if (!catalogo || selectedPecas.size === 0) return;
+    
+    setIsAddingBulk(true);
+    try {
+      const promises = Array.from(selectedPecas).map((pecaId, index) => {
+        const peca = pecas.find(p => p.id === pecaId);
+        return addItem.mutateAsync({
+          catalogo_id: catalogo.id,
+          peca_id: pecaId,
+          preco_catalogo: peca?.preco_venda || 0,
+          ordem: items.length + index,
+          destaque: false,
+        });
+      });
+      
+      await Promise.all(promises);
+      toast.success(`${selectedPecas.size} peças adicionadas ao catálogo!`);
+      setSelectedPecas(new Set());
+    } catch (error) {
+      console.error('Error adding bulk pecas:', error);
+      toast.error('Erro ao adicionar peças');
+    } finally {
+      setIsAddingBulk(false);
+    }
+  };
+
   const handleAddPeca = async (peca: any) => {
     if (!catalogo) return;
     await addItem.mutateAsync({
       catalogo_id: catalogo.id,
       peca_id: peca.id,
-      preco_catalogo: peca.preco || 0,
+      preco_catalogo: peca.preco_venda || 0,
       ordem: items.length,
       destaque: false,
     });
@@ -929,7 +992,6 @@ function CatalogoItemsDialog({
         preco_venda: '',
         categoria: '',
       });
-      setIsCreatingPeca(false);
       toast.success('Peça criada e adicionada ao catálogo! (Estoque = 0)');
     } catch (error) {
       console.error('Error creating peca:', error);
@@ -957,11 +1019,115 @@ function CatalogoItemsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="search" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="estoque" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="estoque">Selecionar do Estoque</TabsTrigger>
             <TabsTrigger value="search">Buscar Peça</TabsTrigger>
-            <TabsTrigger value="create">Criar Nova Peça</TabsTrigger>
+            <TabsTrigger value="create">Criar Nova</TabsTrigger>
           </TabsList>
+
+          {/* Aba de Seleção Múltipla do Estoque */}
+          <TabsContent value="estoque" className="space-y-4 py-4">
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    className="pl-10"
+                    placeholder="Filtrar por nome, código ou categoria..."
+                    value={searchEstoque}
+                    onChange={(e) => setSearchEstoque(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {pecasEstoqueDisponiveis.length} peças disponíveis • {selectedPecas.size} selecionadas
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={selectAllVisible}
+                    disabled={pecasEstoqueDisponiveis.length === 0}
+                  >
+                    Selecionar Tudo
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={clearSelection}
+                    disabled={selectedPecas.size === 0}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+
+              <ScrollArea className="h-[250px] border rounded-lg">
+                <div className="p-2 space-y-1">
+                  {pecasEstoqueDisponiveis.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">Nenhuma peça disponível</p>
+                    </div>
+                  ) : (
+                    pecasEstoqueDisponiveis.map((peca) => (
+                      <div
+                        key={peca.id}
+                        onClick={() => togglePecaSelection(peca.id)}
+                        className={cn(
+                          "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors",
+                          selectedPecas.has(peca.id) 
+                            ? "bg-primary/20 border border-primary/30" 
+                            : "hover:bg-secondary/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
+                          selectedPecas.has(peca.id) 
+                            ? "bg-primary border-primary" 
+                            : "border-muted-foreground/30"
+                        )}>
+                          {selectedPecas.has(peca.id) && (
+                            <svg className="w-3 h-3 text-primary-foreground" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </div>
+                        <img
+                          src={peca.imagem_url || '/placeholder.svg'}
+                          alt={peca.nome}
+                          className="w-10 h-10 rounded object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{peca.nome}</p>
+                          <p className="text-xs text-muted-foreground">{peca.codigo} {peca.categoria && `• ${peca.categoria}`}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-medium text-sm">{formatCurrency(peca.preco_venda || 0)}</p>
+                          <p className="text-xs text-muted-foreground">Est: {peca.estoque || 0}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+
+              {selectedPecas.size > 0 && (
+                <Button 
+                  onClick={handleAddBulkPecas} 
+                  className="w-full btn-gold"
+                  disabled={isAddingBulk}
+                >
+                  {isAddingBulk && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar {selectedPecas.size} Peça{selectedPecas.size > 1 ? 's' : ''} ao Catálogo
+                </Button>
+              )}
+            </div>
+          </TabsContent>
 
           <TabsContent value="search" className="space-y-4 py-4">
             {/* Search Peca */}
