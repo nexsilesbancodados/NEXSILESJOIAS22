@@ -83,15 +83,38 @@ export default function DashboardPage() {
     const safePecas = pecas || [];
     const safeRomaneios = romaneios || [];
     
-    const today = new Date().toDateString();
-    const vendasHoje = safeVendas.filter(v => v?.created_at && new Date(v.created_at).toDateString() === today);
+    const today = new Date();
+    const todayStr = today.toDateString();
+    const vendasHoje = safeVendas.filter(v => v?.created_at && new Date(v.created_at).toDateString() === todayStr);
     const totalHoje = vendasHoje.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
     const faturamentoTotal = safeVendas.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
     const totalEstoque = safePecas.reduce((acc, p) => acc + (p?.estoque || 0), 0);
     const estoqueBaixo = safePecas.filter((p) => (p?.estoque || 0) <= 5).length;
     const romaneiosPendentes = safeRomaneios.filter((r) => r?.status === 'pendente').length;
 
-    return { totalHoje, vendasHoje, faturamentoTotal, totalEstoque, estoqueBaixo, romaneiosPendentes };
+    // Calculate trend comparing this week vs last week
+    const oneWeekAgo = new Date(today);
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const twoWeeksAgo = new Date(today);
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+    const thisWeekVendas = safeVendas.filter(v => {
+      const date = new Date(v?.created_at || 0);
+      return date >= oneWeekAgo && date <= today;
+    }).reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
+
+    const lastWeekVendas = safeVendas.filter(v => {
+      const date = new Date(v?.created_at || 0);
+      return date >= twoWeeksAgo && date < oneWeekAgo;
+    }).reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
+
+    // Only show trend if there's data to compare
+    let trendValue: number | null = null;
+    if (lastWeekVendas > 0 && thisWeekVendas > 0) {
+      trendValue = Math.round(((thisWeekVendas - lastWeekVendas) / lastWeekVendas) * 100);
+    }
+
+    return { totalHoje, vendasHoje, faturamentoTotal, totalEstoque, estoqueBaixo, romaneiosPendentes, trendValue };
   }, [vendas, pecas, romaneios]);
 
   // Map vendas to include 'total' alias for components that expect it
@@ -172,7 +195,7 @@ export default function DashboardPage() {
             title="Total Vendas"
             value={formatCurrency(stats.faturamentoTotal)}
             icon={TrendingUp}
-            trend={{ value: 12 }}
+            trend={stats.trendValue !== null ? { value: stats.trendValue } : undefined}
             variant="purple"
           />
         )}
