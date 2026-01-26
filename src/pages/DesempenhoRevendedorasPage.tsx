@@ -68,8 +68,7 @@ export default function DesempenhoRevendedorasPage() {
       const { data, error } = await supabase
         .from('revendedoras')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('ativa', true);
+        .eq('ativo', true);
       
       if (error) throw error;
       return data;

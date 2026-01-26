@@ -141,9 +141,9 @@ export default function PortalRevendedoraPage() {
       
       const { data, error } = await supabase
         .from('romaneios')
-        .select('*, romaneio_itens(*)')
-        .eq('maleta_id', maletaAberta.id)
-        .order('data', { ascending: false });
+        .select('*, romaneios_pecas(*)')
+        .eq('revendedora_id', maletaAberta.revendedora_id)
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       return data as Romaneio[];
@@ -217,13 +217,11 @@ export default function PortalRevendedoraPage() {
       const { data: romaneioData, error: romaneioError } = await (supabase as any)
         .from('romaneios')
         .insert({
-          reseller_id: (revendedora as any).id,
-          reseller_nome: (revendedora as any).nome,
-          cliente_nome: data.clienteNome || null,
-          maleta_id: maletaAberta.id,
-          total: data.total,
+          revendedora_id: (revendedora as any).id,
+          numero: `ROM-${Date.now()}`,
           status: 'pendente',
-          data: new Date().toISOString(),
+          data_criacao: new Date().toISOString(),
+          observacoes: data.clienteNome ? `Cliente: ${data.clienteNome}` : null,
         })
         .select()
         .single();

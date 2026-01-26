@@ -11,7 +11,7 @@ interface MaletaAlert {
   id: string;
   revendedora_id: string | null;
   status: string | null;
-  data_devolucao_prevista: string | null;
+  data_devolucao: string | null;
   codigo: string | null;
 }
 
@@ -84,11 +84,11 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
           id,
           revendedora_id,
           status,
-          data_devolucao_prevista,
+          data_devolucao,
           codigo
         `)
-        .eq('status', 'disponivel')
-        .not('data_devolucao_prevista', 'is', null);
+        .eq('status', 'aberta')
+        .not('data_devolucao', 'is', null);
 
       if (error) throw error;
       if (!maletas || maletas.length === 0) return;
@@ -104,10 +104,10 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
 
       // Check each maleta
       for (const maleta of maletas) {
-        if (!maleta.data_devolucao_prevista) continue;
+        if (!maleta.data_devolucao) continue;
 
         const diasRestantes = differenceInDays(
-          new Date(maleta.data_devolucao_prevista),
+          new Date(maleta.data_devolucao),
           new Date()
         );
 

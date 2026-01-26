@@ -105,8 +105,8 @@ const COLUMN_DEFINITIONS: Record<string, ExportColumn[]> = {
     { id: 'telefone', label: 'Telefone', accessor: 'telefone', format: 'text', selected: true },
     { id: 'cidade', label: 'Cidade', accessor: 'cidade', format: 'text', selected: true },
     { id: 'estado', label: 'Estado', accessor: 'estado', format: 'text', selected: true },
-    { id: 'comissao', label: 'Comissão %', accessor: 'comissao', format: 'number', selected: true },
-    { id: 'ativa', label: 'Ativa', accessor: 'ativa', format: 'text', selected: true },
+    { id: 'comissao_percentual', label: 'Comissão %', accessor: 'comissao_percentual', format: 'number', selected: true },
+    { id: 'ativo', label: 'Ativo', accessor: 'ativo', format: 'text', selected: true },
   ],
   romaneios: [
     { id: 'id', label: 'ID', accessor: 'id', format: 'text', selected: false },

@@ -237,11 +237,10 @@ export default function RevendedorasPage() {
     queryKey: ['romaneios-maleta', selectedMaleta?.id],
     queryFn: async () => {
       if (!selectedMaleta?.id) return [];
-      // Correct join table name is 'romaneios_pecas'
       const { data, error } = await supabase
         .from('romaneios')
         .select('*, romaneios_pecas(*)')
-        .eq('maleta_id', selectedMaleta.id)
+        .eq('revendedora_id', selectedMaleta.revendedora_id)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -256,7 +255,7 @@ export default function RevendedorasPage() {
         nome: revendedora.nome,
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
-        comissao: (revendedora.comissao || 30).toString(),
+        comissao: (revendedora.comissao_percentual || 30).toString(),
       });
     } else {
       setSelectedRevendedora(null);
@@ -715,7 +714,7 @@ export default function RevendedorasPage() {
               <div>
                 <h1 className="text-2xl font-bold tracking-tight">{viewingRevendedora.nome}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Comissão: {viewingRevendedora.comissao || 30}%
+                  Comissão: {viewingRevendedora.comissao_percentual || 30}%
                 </p>
               </div>
             </div>
@@ -1563,7 +1562,7 @@ export default function RevendedorasPage() {
         <MiniGradientCard
           title="Comissão Média"
           value={`${revendedoras.length > 0 
-            ? Math.round(revendedoras.reduce((acc, r) => acc + (r.comissao || 30), 0) / revendedoras.length) 
+            ? Math.round(revendedoras.reduce((acc, r) => acc + (r.comissao_percentual || 30), 0) / revendedoras.length) 
             : 0}%`}
           icon={Package}
           gradient="orange"
@@ -1854,7 +1853,7 @@ function RevendedoraCard({
             <div>
               <h3 className="font-semibold">{revendedora.nome}</h3>
               <p className="text-sm text-muted-foreground">
-                {revendedora.comissao || 30}% comissão
+                {revendedora.comissao_percentual || 30}% comissão
               </p>
             </div>
           </div>
