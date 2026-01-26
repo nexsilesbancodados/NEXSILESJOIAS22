@@ -48,7 +48,8 @@ import {
   LayoutGrid,
   LayoutList,
   ZoomIn,
-  Share2
+  Share2,
+  ArrowUpDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -123,6 +124,7 @@ export default function CatalogoPublicoPage() {
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [detailItem, setDetailItem] = useState<CatalogoItemPublico | null>(null);
+  const [sortOrder, setSortOrder] = useState<'default' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc'>('default');
   
   // Address fields
   const [enderecoCep, setEnderecoCep] = useState('');
@@ -280,12 +282,29 @@ export default function CatalogoPublicoPage() {
     return matchesSearch && matchesCategoria && matchesMaterial;
   });
 
-  const hasActiveFilters = searchQuery || selectedCategoria || selectedMaterial;
+  // Sort filtered items
+  const sortedItens = [...filteredItens].sort((a, b) => {
+    switch (sortOrder) {
+      case 'price_asc':
+        return (a.peca?.preco_venda || 0) - (b.peca?.preco_venda || 0);
+      case 'price_desc':
+        return (b.peca?.preco_venda || 0) - (a.peca?.preco_venda || 0);
+      case 'name_asc':
+        return (a.peca?.nome || '').localeCompare(b.peca?.nome || '');
+      case 'name_desc':
+        return (b.peca?.nome || '').localeCompare(a.peca?.nome || '');
+      default:
+        return 0;
+    }
+  });
+
+  const hasActiveFilters = searchQuery || selectedCategoria || selectedMaterial || sortOrder !== 'default';
 
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategoria('');
     setSelectedMaterial('');
+    setSortOrder('default');
   };
 
   // Cart calculations
@@ -676,36 +695,47 @@ export default function CatalogoPublicoPage() {
                 />
               </div>
               
-              {/* Category and Material Filters */}
-              {(categorias.length > 0 || materiais.length > 0) && (
-                <div className="flex flex-wrap gap-2">
-                  {categorias.length > 0 && (
-                    <select
-                      value={selectedCategoria}
-                      onChange={(e) => setSelectedCategoria(e.target.value)}
-                      className="flex-1 min-w-[140px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">Todas categorias</option>
-                      {categorias.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  )}
-                  
-                  {materiais.length > 0 && (
-                    <select
-                      value={selectedMaterial}
-                      onChange={(e) => setSelectedMaterial(e.target.value)}
-                      className="flex-1 min-w-[140px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="">Todos materiais</option>
-                      {materiais.map(mat => (
-                        <option key={mat} value={mat}>{mat}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
+              {/* Category, Material Filters and Sort */}
+              <div className="flex flex-wrap gap-2">
+                {categorias.length > 0 && (
+                  <select
+                    value={selectedCategoria}
+                    onChange={(e) => setSelectedCategoria(e.target.value)}
+                    className="flex-1 min-w-[130px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Todas categorias</option>
+                    {categorias.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                )}
+                
+                {materiais.length > 0 && (
+                  <select
+                    value={selectedMaterial}
+                    onChange={(e) => setSelectedMaterial(e.target.value)}
+                    className="flex-1 min-w-[130px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Todos materiais</option>
+                    {materiais.map(mat => (
+                      <option key={mat} value={mat}>{mat}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Sort Selector */}
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+                  className="flex-1 min-w-[150px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="default">Ordenar por...</option>
+                  <option value="price_asc">Menor preço</option>
+                  <option value="price_desc">Maior preço</option>
+                  <option value="name_asc">Nome A-Z</option>
+                  <option value="name_desc">Nome Z-A</option>
+                </select>
+              </div>
 
               {/* Active Filters Badge */}
               {hasActiveFilters && (
@@ -742,7 +772,7 @@ export default function CatalogoPublicoPage() {
             <div className="text-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
             </div>
-          ) : filteredItens.length === 0 ? (
+          ) : sortedItens.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
@@ -769,7 +799,7 @@ export default function CatalogoPublicoPage() {
                   ? "grid grid-cols-2 sm:grid-cols-3 gap-3" 
                   : "space-y-3"
               )}>
-                {filteredItens.map((item) => {
+                {sortedItens.map((item) => {
                   const isSelected = selectedItems.has(item.id);
                   const selectedQty = selectedItems.get(item.id)?.quantidade || 0;
                   const maxQty = item.quantidade || 1;
