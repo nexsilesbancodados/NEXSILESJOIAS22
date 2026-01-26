@@ -84,6 +84,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
   const [storeData, setStoreData] = useState({
     nome_loja: '',
     telefone_loja: '',
+    cep_loja: '',
     endereco_loja: '',
     cnpj_loja: '',
     tipo_pessoa: 'pj' as 'pf' | 'pj',
@@ -148,6 +149,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
       const configs = [
         { chave: 'nome_loja', valor: storeData.nome_loja },
         { chave: 'telefone_loja', valor: storeData.telefone_loja },
+        { chave: 'cep_loja', valor: storeData.cep_loja },
         { chave: 'endereco_loja', valor: storeData.endereco_loja },
         { chave: 'tipo_pessoa', valor: storeData.tipo_pessoa },
         { chave: storeData.tipo_pessoa === 'pf' ? 'cpf_loja' : 'cnpj_loja', valor: storeData.cnpj_loja },
@@ -432,12 +434,19 @@ function FeatureCard({
 }
 
 interface StoreStepProps {
-  data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string; tipo_pessoa: 'pf' | 'pj' };
-  onChange: (data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string; tipo_pessoa: 'pf' | 'pj' }) => void;
+  data: { nome_loja: string; telefone_loja: string; cep_loja: string; endereco_loja: string; cnpj_loja: string; tipo_pessoa: 'pf' | 'pj' };
+  onChange: (data: { nome_loja: string; telefone_loja: string; cep_loja: string; endereco_loja: string; cnpj_loja: string; tipo_pessoa: 'pf' | 'pj' }) => void;
 }
 
 function StoreStep({ data, onChange }: StoreStepProps) {
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
+  const [isLoadingCnpj, setIsLoadingCnpj] = useState(false);
   const isPessoaFisica = data.tipo_pessoa === 'pf';
+
+  const formatCEP = (value: string) => {
+    const numbers = value.replace(/\D/g, '').slice(0, 8);
+    return numbers.replace(/(\d{5})(\d)/, '$1-$2');
+  };
 
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 11);
@@ -456,56 +465,68 @@ function StoreStep({ data, onChange }: StoreStepProps) {
       .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
   };
 
-  const handleDocumentoChange = (value: string) => {
+  // Busca endereço pelo CEP usando ViaCEP
+  const handleCepChange = async (value: string) => {
+    const formatted = formatCEP(value);
+    onChange({ ...data, cep_loja: formatted });
+
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length === 8) {
+      setIsLoadingCep(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${numbers}/json/`);
+        const result = await response.json();
+        if (!result.erro) {
+          const endereco = `${result.logradouro}, ${result.bairro} - ${result.localidade}/${result.uf}`;
+          onChange({ 
+            ...data, 
+            cep_loja: formatted,
+            endereco_loja: endereco 
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+      } finally {
+        setIsLoadingCep(false);
+      }
+    }
+  };
+
+  // Busca razão social pelo CNPJ usando ReceitaWS
+  const handleDocumentoChange = async (value: string) => {
     const formatted = isPessoaFisica ? formatCPF(value) : formatCNPJ(value);
     onChange({ ...data, cnpj_loja: formatted });
+
+    // Buscar dados do CNPJ (apenas para PJ)
+    if (!isPessoaFisica) {
+      const numbers = value.replace(/\D/g, '');
+      if (numbers.length === 14) {
+        setIsLoadingCnpj(true);
+        try {
+          const response = await fetch(`https://receitaws.com.br/v1/cnpj/${numbers}`);
+          const result = await response.json();
+          if (result.status === 'OK' && result.nome) {
+            // Se o nome da loja estiver vazio, preenche com a razão social
+            if (!data.nome_loja) {
+              onChange({ 
+                ...data, 
+                cnpj_loja: formatted,
+                nome_loja: result.fantasia || result.nome 
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao buscar CNPJ:', error);
+        } finally {
+          setIsLoadingCnpj(false);
+        }
+      }
+    }
   };
 
   return (
     <div className="space-y-4 max-w-sm mx-auto">
-      <div className="space-y-2">
-        <Label htmlFor="store-name" className="flex items-center gap-2">
-          <Store className="w-4 h-4 text-primary" />
-          Nome da Loja *
-        </Label>
-        <Input
-          id="store-name"
-          placeholder="Ex: Joias da Maria"
-          value={data.nome_loja}
-          onChange={(e) => onChange({ ...data, nome_loja: e.target.value })}
-          className="h-11"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="store-phone" className="flex items-center gap-2">
-          <Phone className="w-4 h-4 text-primary" />
-          Telefone / WhatsApp
-        </Label>
-        <Input
-          id="store-phone"
-          placeholder="(00) 00000-0000"
-          value={data.telefone_loja}
-          onChange={(e) => onChange({ ...data, telefone_loja: e.target.value })}
-          className="h-11"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="store-address" className="flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-primary" />
-          Endereço
-        </Label>
-        <Input
-          id="store-address"
-          placeholder="Rua, número - Cidade/UF"
-          value={data.endereco_loja}
-          onChange={(e) => onChange({ ...data, endereco_loja: e.target.value })}
-          className="h-11"
-        />
-      </div>
-
-      {/* Tipo de Pessoa Toggle */}
+      {/* Tipo de Pessoa Toggle - primeiro */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           Tipo de Pessoa
@@ -537,6 +558,7 @@ function StoreStep({ data, onChange }: StoreStepProps) {
         </ToggleGroup>
       </div>
 
+      {/* CPF/CNPJ */}
       <div className="space-y-2">
         <Label htmlFor="store-documento" className="flex items-center gap-2">
           {isPessoaFisica ? (
@@ -547,7 +569,7 @@ function StoreStep({ data, onChange }: StoreStepProps) {
           ) : (
             <>
               <Building2 className="w-4 h-4 text-primary" />
-              CNPJ
+              CNPJ {isLoadingCnpj && <span className="text-xs text-muted-foreground">(buscando...)</span>}
             </>
           )}
         </Label>
@@ -556,6 +578,66 @@ function StoreStep({ data, onChange }: StoreStepProps) {
           placeholder={isPessoaFisica ? "000.000.000-00" : "00.000.000/0000-00"}
           value={data.cnpj_loja}
           onChange={(e) => handleDocumentoChange(e.target.value)}
+          className="h-11"
+        />
+      </div>
+
+      {/* Nome da Loja */}
+      <div className="space-y-2">
+        <Label htmlFor="store-name" className="flex items-center gap-2">
+          <Store className="w-4 h-4 text-primary" />
+          Nome da Loja *
+        </Label>
+        <Input
+          id="store-name"
+          placeholder="Ex: Joias da Maria"
+          value={data.nome_loja}
+          onChange={(e) => onChange({ ...data, nome_loja: e.target.value })}
+          className="h-11"
+        />
+      </div>
+
+      {/* Telefone */}
+      <div className="space-y-2">
+        <Label htmlFor="store-phone" className="flex items-center gap-2">
+          <Phone className="w-4 h-4 text-primary" />
+          Telefone / WhatsApp
+        </Label>
+        <Input
+          id="store-phone"
+          placeholder="(00) 00000-0000"
+          value={data.telefone_loja}
+          onChange={(e) => onChange({ ...data, telefone_loja: e.target.value })}
+          className="h-11"
+        />
+      </div>
+
+      {/* CEP */}
+      <div className="space-y-2">
+        <Label htmlFor="store-cep" className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          CEP {isLoadingCep && <span className="text-xs text-muted-foreground">(buscando...)</span>}
+        </Label>
+        <Input
+          id="store-cep"
+          placeholder="00000-000"
+          value={data.cep_loja}
+          onChange={(e) => handleCepChange(e.target.value)}
+          className="h-11"
+        />
+      </div>
+
+      {/* Endereço */}
+      <div className="space-y-2">
+        <Label htmlFor="store-address" className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          Endereço
+        </Label>
+        <Input
+          id="store-address"
+          placeholder="Rua, bairro - Cidade/UF"
+          value={data.endereco_loja}
+          onChange={(e) => onChange({ ...data, endereco_loja: e.target.value })}
           className="h-11"
         />
       </div>
