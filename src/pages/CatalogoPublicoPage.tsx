@@ -42,7 +42,9 @@ import {
   Check,
   Send,
   MapPin,
-  Search
+  Search,
+  Filter,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -109,6 +111,11 @@ export default function CatalogoPublicoPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [copied, setCopied] = useState(false);
   const [lastAddedItemId, setLastAddedItemId] = useState<string | null>(null);
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategoria, setSelectedCategoria] = useState<string>('');
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('');
   
   // Address fields
   const [enderecoCep, setEnderecoCep] = useState('');
@@ -250,6 +257,28 @@ export default function CatalogoPublicoPage() {
   const clearCart = () => {
     setSelectedItems(new Map());
     setIsCartOpen(false);
+  };
+
+  // Extract unique categories and materials for filters
+  const categorias = [...new Set(itens.map(i => i.peca?.categoria).filter(Boolean))] as string[];
+  const materiais = [...new Set(itens.map(i => i.peca?.material).filter(Boolean))] as string[];
+
+  // Filter items based on search and filters
+  const filteredItens = itens.filter(item => {
+    const matchesSearch = !searchQuery || 
+      item.peca?.nome?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.peca?.codigo?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategoria = !selectedCategoria || item.peca?.categoria === selectedCategoria;
+    const matchesMaterial = !selectedMaterial || item.peca?.material === selectedMaterial;
+    return matchesSearch && matchesCategoria && matchesMaterial;
+  });
+
+  const hasActiveFilters = searchQuery || selectedCategoria || selectedMaterial;
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategoria('');
+    setSelectedMaterial('');
   };
 
   // Cart calculations
@@ -605,21 +634,110 @@ export default function CatalogoPublicoPage() {
             )}
           </div>
 
+          {/* Search and Filters */}
+          <Card className="p-4">
+            <div className="space-y-3">
+              {/* Search Input */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome ou código..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              
+              {/* Category and Material Filters */}
+              {(categorias.length > 0 || materiais.length > 0) && (
+                <div className="flex flex-wrap gap-2">
+                  {categorias.length > 0 && (
+                    <select
+                      value={selectedCategoria}
+                      onChange={(e) => setSelectedCategoria(e.target.value)}
+                      className="flex-1 min-w-[140px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Todas categorias</option>
+                      {categorias.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  )}
+                  
+                  {materiais.length > 0 && (
+                    <select
+                      value={selectedMaterial}
+                      onChange={(e) => setSelectedMaterial(e.target.value)}
+                      className="flex-1 min-w-[140px] h-9 px-3 py-1 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Todos materiais</option>
+                      {materiais.map(mat => (
+                        <option key={mat} value={mat}>{mat}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {/* Active Filters Badge */}
+              {hasActiveFilters && (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredItens.length} de {itens.length} peças
+                    </Badge>
+                    {selectedCategoria && (
+                      <Badge variant="outline" className="text-xs">
+                        {selectedCategoria}
+                      </Badge>
+                    )}
+                    {selectedMaterial && (
+                      <Badge variant="outline" className="text-xs">
+                        {selectedMaterial}
+                      </Badge>
+                    )}
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={clearFilters}
+                    className="text-xs h-7"
+                  >
+                    Limpar filtros
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+
           {loadingItens ? (
             <div className="text-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
             </div>
-          ) : itens.length === 0 ? (
+          ) : filteredItens.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">Nenhuma peça no catálogo ainda.</p>
+                <p className="text-muted-foreground">
+                  {hasActiveFilters 
+                    ? 'Nenhuma peça encontrada com os filtros selecionados.'
+                    : 'Nenhuma peça no catálogo ainda.'}
+                </p>
+                {hasActiveFilters && (
+                  <Button 
+                    variant="link" 
+                    onClick={clearFilters}
+                    className="mt-2"
+                  >
+                    Limpar filtros
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
             <ScrollArea className="h-auto">
               <div className="space-y-3">
-                {itens.map((item) => {
+                {filteredItens.map((item) => {
                   const isSelected = selectedItems.has(item.id);
                   const selectedQty = selectedItems.get(item.id)?.quantidade || 0;
                   const maxQty = item.quantidade || 1;
