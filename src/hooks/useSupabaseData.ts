@@ -97,28 +97,20 @@ export interface Cliente {
 
 export interface Maleta {
   id: string;
-  user_id: string;
+  organization_id: string | null;
   revendedora_id: string | null;
   codigo: string | null;
-  status: string;
-  data_emprestimo: string | null;
-  data_devolucao_prevista: string | null;
+  nome: string;
+  descricao: string | null;
+  status: string | null;
+  data_entrega: string | null;
   data_devolucao: string | null;
   observacoes: string | null;
-  created_at: string;
-  updated_at: string;
-  // Public sharing fields
-  is_public?: boolean | null;
-  sharing_slug?: string | null;
-  // Aliases for backward compatibility
-  nome?: string | null;
-  reseller_id?: string;
-  data_envio?: string | null;
-  data_retorno?: string | null;
-  prazo_retorno?: string | null;
-  prazo_devolucao?: number | null;
-  valor_total?: number;
-  comissao_personalizada?: number | null;
+  valor_total: number | null;
+  is_public: boolean | null;
+  sharing_slug: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface MaletaItem {
@@ -1087,14 +1079,17 @@ export function useUpdateMaleta() {
     mutationFn: async ({ id, ...updateData }: { 
       id: string; 
       nome?: string | null;
-      comissao_personalizada?: number | null;
-      prazo_devolucao?: string | null;
+      data_devolucao?: string | null;
+      data_entrega?: string | null;
       observacoes?: string | null;
+      status?: string | null;
     }) => {
-      // Map prazo_devolucao to data_devolucao_prevista (actual DB column)
       const dbData: Record<string, unknown> = {};
+      if (updateData.nome !== undefined) dbData.nome = updateData.nome;
       if (updateData.observacoes !== undefined) dbData.observacoes = updateData.observacoes;
-      if (updateData.prazo_devolucao !== undefined) dbData.data_devolucao_prevista = updateData.prazo_devolucao;
+      if (updateData.data_devolucao !== undefined) dbData.data_devolucao = updateData.data_devolucao;
+      if (updateData.data_entrega !== undefined) dbData.data_entrega = updateData.data_entrega;
+      if (updateData.status !== undefined) dbData.status = updateData.status;
 
       const { data, error } = await supabase
         .from('maletas')

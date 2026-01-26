@@ -42,7 +42,7 @@ export function MaletaCard({
     return differenceInDays(prazoDate, new Date());
   };
 
-  const diasRestantes = calcularDiasRestantes(maleta.prazo_devolucao ? String(maleta.prazo_devolucao) : null);
+  const diasRestantes = calcularDiasRestantes(maleta.data_devolucao ? String(maleta.data_devolucao) : null);
   const isVencida = diasRestantes !== null && diasRestantes < 0;
   const isVencendo = diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3;
 

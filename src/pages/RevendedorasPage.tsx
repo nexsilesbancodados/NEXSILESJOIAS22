@@ -396,8 +396,7 @@ export default function RevendedorasPage() {
     if (!selectedMaleta) return;
 
     // Save data before closing for PDF export
-    const comissaoRevendedora = selectedMaleta.comissao_personalizada || 
-      revendedoras.find(r => r.id === selectedMaleta.revendedora_id)?.comissao || 30;
+    const comissaoRevendedora = revendedoras.find(r => r.id === selectedMaleta.revendedora_id)?.comissao_percentual || 30; 
     const acerto = calcularAcertoMaleta(maletaItems as (MaletaItem & { peca: Peca })[], comissaoRevendedora);
     const revendedora = revendedoras.find(r => r.id === selectedMaleta.revendedora_id) || null;
 
@@ -519,8 +518,8 @@ export default function RevendedorasPage() {
     doc.text(`Maleta: ${selectedMaleta.nome || 'Sem nome'}`, 14, 38);
     doc.text(`Data: ${format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 44);
     
-    if (selectedMaleta.prazo_devolucao) {
-      doc.text(`Prazo de Devolução: ${format(new Date(selectedMaleta.prazo_devolucao), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 50);
+    if (selectedMaleta.data_devolucao) {
+      doc.text(`Prazo de Devolução: ${format(new Date(selectedMaleta.data_devolucao), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 50);
     }
     
     // Table
@@ -590,8 +589,8 @@ export default function RevendedorasPage() {
         <p class="info"><strong>Revendedora:</strong> ${viewingRevendedora.nome}</p>
         <p class="info"><strong>Maleta:</strong> ${selectedMaleta.nome || 'Sem nome'}</p>
         <p class="info"><strong>Data:</strong> ${format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}</p>
-        ${selectedMaleta.prazo_devolucao ? 
-          `<p class="info"><strong>Prazo:</strong> ${format(new Date(selectedMaleta.prazo_devolucao), 'dd/MM/yyyy', { locale: ptBR })}</p>` : ''}
+        ${selectedMaleta.data_devolucao ? 
+          `<p class="info"><strong>Prazo:</strong> ${format(new Date(selectedMaleta.data_devolucao), 'dd/MM/yyyy', { locale: ptBR })}</p>` : ''}
         
         <table>
           <thead>
@@ -784,7 +783,7 @@ export default function RevendedorasPage() {
               <MaletaCard
                 key={maleta.id}
                 maleta={maleta}
-                comissao={maleta.comissao_personalizada || viewingRevendedora.comissao || 30}
+                comissao={viewingRevendedora.comissao_percentual || 30}
                 onClick={() => {
                   setSelectedMaleta(maleta);
                   setMaletaActiveTab('pecas');
@@ -811,9 +810,9 @@ export default function RevendedorasPage() {
                     ) : (
                       <Badge variant="secondary">Fechada</Badge>
                     )}
-                    {selectedMaleta?.prazo_devolucao && (
+                    {selectedMaleta?.data_devolucao && (
                       (() => {
-                        const diasRestantes = calcularDiasRestantes(String(selectedMaleta.prazo_devolucao));
+                        const diasRestantes = calcularDiasRestantes(String(selectedMaleta.data_devolucao));
                         const status = getStatusPrazo(diasRestantes);
                         return (
                           <span className={cn("flex items-center gap-1 text-sm", status.color)}>
@@ -1194,8 +1193,8 @@ export default function RevendedorasPage() {
                       <span className="text-sm">Prazo de Devolução</span>
                     </div>
                     <p className="font-semibold">
-                      {selectedMaleta?.prazo_devolucao 
-                        ? format(new Date(selectedMaleta.prazo_devolucao), 'dd/MM/yyyy', { locale: ptBR })
+                      {selectedMaleta?.data_devolucao 
+                        ? format(new Date(selectedMaleta.data_devolucao), 'dd/MM/yyyy', { locale: ptBR })
                         : 'Não definido'
                       }
                     </p>
@@ -1229,7 +1228,7 @@ export default function RevendedorasPage() {
                       )}
                     </div>
                     {(() => {
-                      const comissao = selectedMaleta?.comissao_personalizada || viewingRevendedora.comissao || 30;
+                      const comissao = viewingRevendedora.comissao_percentual || 30;
                       const acerto = calcularAcertoMaleta(maletaItems, comissao);
                       return (
                         <>
@@ -1743,7 +1742,7 @@ function MaletaCard({
     return differenceInDays(prazoDate, new Date());
   };
 
-  const diasRestantes = calcularDiasRestantes(maleta.prazo_devolucao ? String(maleta.prazo_devolucao) : null);
+  const diasRestantes = calcularDiasRestantes(maleta.data_devolucao ? String(maleta.data_devolucao) : null);
   const isVencida = diasRestantes !== null && diasRestantes < 0;
   const isVencendo = diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3;
 
