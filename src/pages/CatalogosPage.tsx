@@ -54,7 +54,8 @@ import {
   X,
   ShoppingBag,
   ImageIcon,
-  Check
+  Check,
+  PlusCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MiniGradientCard } from '@/components/dashboard/MiniGradientCard';
@@ -382,6 +383,13 @@ export default function CatalogosPage() {
                           <DropdownMenuItem onClick={() => handleOpenConfig(catalogo)}>
                             <Settings className="w-4 h-4 mr-2" />
                             Configurações
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedCatalogo(catalogo);
+                            setIsItemsOpen(true);
+                          }}>
+                            <PlusCircle className="w-4 h-4 mr-2" />
+                            Adicionar Peças
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {
                             setSelectedCatalogo(catalogo);
