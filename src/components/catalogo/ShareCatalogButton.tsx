@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -7,26 +7,76 @@ import {
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, Check } from 'lucide-react';
+import { Copy, Share2, MessageCircle, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase-db';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface ShareCatalogButtonProps {
   catalogoId: string;
   catalogoNome: string;
+  catalogoSlug?: string | null;
   className?: string;
   variant?: 'default' | 'icon';
 }
 
+// Generate a friendly slug with app name + catalog name
+const generateSlug = (name: string) => {
+  const cleanName = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+    .substring(0, 40); // Limit length
+  
+  // Format: nexsiles-nome-do-catalogo-xxxx
+  return `nexsiles-${cleanName}-${Math.random().toString(36).substring(2, 6)}`;
+};
+
 export const ShareCatalogButton = memo(function ShareCatalogButton({
   catalogoId,
   catalogoNome,
+  catalogoSlug,
   className,
   variant = 'default',
 }: ShareCatalogButtonProps) {
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [currentSlug, setCurrentSlug] = useState(catalogoSlug);
+  const queryClient = useQueryClient();
 
-  const catalogLink = `${window.location.origin}/catalogo/${catalogoId}`;
+  // Generate slug if needed when popover opens
+  const ensureSlug = useMutation({
+    mutationFn: async () => {
+      if (currentSlug) return currentSlug;
+      
+      const newSlug = generateSlug(catalogoNome);
+      const { error } = await supabase
+        .from('catalogos')
+        .update({ slug: newSlug })
+        .eq('id', catalogoId);
+      
+      if (error) throw error;
+      return newSlug;
+    },
+    onSuccess: (slug) => {
+      setCurrentSlug(slug);
+      queryClient.invalidateQueries({ queryKey: ['catalogos'] });
+    },
+    onError: () => {
+      toast.error('Erro ao gerar link');
+    },
+  });
+
+  // Generate slug when popover opens if not exists
+  useEffect(() => {
+    if (isOpen && !currentSlug) {
+      ensureSlug.mutate();
+    }
+  }, [isOpen, currentSlug]);
+
+  const catalogLink = `${window.location.origin}/catalogo/${currentSlug || catalogoId}`;
 
   const handleCopyLink = useCallback(async () => {
     try {
