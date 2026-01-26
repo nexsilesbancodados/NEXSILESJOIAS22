@@ -109,6 +109,9 @@ export interface Maleta {
   valor_total: number | null;
   is_public: boolean | null;
   sharing_slug: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
+  imagem_capa: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -861,6 +864,9 @@ export function useAddMaleta() {
       nome?: string;
       data_devolucao?: string;
       observacoes?: string;
+      cor_primaria?: string;
+      cor_secundaria?: string;
+      imagem_capa?: string;
     }) => {
       const organizationId = await getOrganizationId();
       const { data, error } = await supabase
@@ -873,6 +879,9 @@ export function useAddMaleta() {
           status: 'aberta',
           data_devolucao: maletaData.data_devolucao || null,
           observacoes: maletaData.observacoes || null,
+          cor_primaria: maletaData.cor_primaria || '#8B5CF6',
+          cor_secundaria: maletaData.cor_secundaria || '#EC4899',
+          imagem_capa: maletaData.imagem_capa || null,
         })
         .select()
         .single();
@@ -1080,6 +1089,9 @@ export function useUpdateMaleta() {
       data_entrega?: string | null;
       observacoes?: string | null;
       status?: string | null;
+      cor_primaria?: string | null;
+      cor_secundaria?: string | null;
+      imagem_capa?: string | null;
     }) => {
       const dbData: Record<string, unknown> = {};
       if (updateData.nome !== undefined) dbData.nome = updateData.nome;
@@ -1087,6 +1099,9 @@ export function useUpdateMaleta() {
       if (updateData.data_devolucao !== undefined) dbData.data_devolucao = updateData.data_devolucao;
       if (updateData.data_entrega !== undefined) dbData.data_entrega = updateData.data_entrega;
       if (updateData.status !== undefined) dbData.status = updateData.status;
+      if (updateData.cor_primaria !== undefined) dbData.cor_primaria = updateData.cor_primaria;
+      if (updateData.cor_secundaria !== undefined) dbData.cor_secundaria = updateData.cor_secundaria;
+      if (updateData.imagem_capa !== undefined) dbData.imagem_capa = updateData.imagem_capa;
 
       const { data, error } = await supabase
         .from('maletas')

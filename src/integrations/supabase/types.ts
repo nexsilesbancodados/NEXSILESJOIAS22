@@ -734,11 +734,14 @@ export type Database = {
       maletas: {
         Row: {
           codigo: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
           created_at: string | null
           data_devolucao: string | null
           data_entrega: string | null
           descricao: string | null
           id: string
+          imagem_capa: string | null
           is_public: boolean | null
           nome: string
           observacoes: string | null
@@ -751,11 +754,14 @@ export type Database = {
         }
         Insert: {
           codigo?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string | null
           data_devolucao?: string | null
           data_entrega?: string | null
           descricao?: string | null
           id?: string
+          imagem_capa?: string | null
           is_public?: boolean | null
           nome: string
           observacoes?: string | null
@@ -768,11 +774,14 @@ export type Database = {
         }
         Update: {
           codigo?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string | null
           data_devolucao?: string | null
           data_entrega?: string | null
           descricao?: string | null
           id?: string
+          imagem_capa?: string | null
           is_public?: boolean | null
           nome?: string
           observacoes?: string | null
