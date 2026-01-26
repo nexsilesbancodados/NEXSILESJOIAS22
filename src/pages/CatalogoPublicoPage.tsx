@@ -1479,31 +1479,54 @@ export default function CatalogoPublicoPage() {
                   </div>
 
                   {/* Share Button */}
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      const peca = detailItem.peca;
-                      if (!peca) return;
-                      
-                      const pageUrl = window.location.href;
-                      const message = [
-                        `✨ *${peca.nome}*`,
-                        '',
-                        `💰 Preço: ${formatCurrency(peca.preco_venda || 0)}`,
-                        peca.codigo ? `📦 Código: ${peca.codigo}` : '',
-                        peca.categoria ? `📂 Categoria: ${peca.categoria}` : '',
-                        peca.material ? `🏷️ Material: ${peca.material}` : '',
-                        '',
-                        `👉 Veja mais no catálogo: ${pageUrl}`,
-                      ].filter(Boolean).join('\n');
-                      
-                      openWhatsAppWithoutPhone(message);
-                    }}
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Compartilhar via WhatsApp
-                  </Button>
+                  {/* Share Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const peca = detailItem.peca;
+                        if (!peca) return;
+                        
+                        const pageUrl = window.location.href;
+                        const message = [
+                          `✨ *${peca.nome}*`,
+                          '',
+                          `💰 Preço: ${formatCurrency(peca.preco_venda || 0)}`,
+                          peca.codigo ? `📦 Código: ${peca.codigo}` : '',
+                          peca.categoria ? `📂 Categoria: ${peca.categoria}` : '',
+                          peca.material ? `🏷️ Material: ${peca.material}` : '',
+                          '',
+                          `👉 Veja mais no catálogo: ${pageUrl}`,
+                        ].filter(Boolean).join('\n');
+                        
+                        openWhatsAppWithoutPhone(message);
+                      }}
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      WhatsApp
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        const peca = detailItem.peca;
+                        if (!peca) return;
+                        
+                        const pageUrl = window.location.href;
+                        const textToCopy = `${peca.nome} - ${formatCurrency(peca.preco_venda || 0)}\n${pageUrl}`;
+                        
+                        try {
+                          await navigator.clipboard.writeText(textToCopy);
+                          toast.success('Link copiado!', { duration: 2000 });
+                        } catch {
+                          toast.error('Erro ao copiar');
+                        }
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar
+                    </Button>
+                  </div>
                 </div>
               </div>
               
