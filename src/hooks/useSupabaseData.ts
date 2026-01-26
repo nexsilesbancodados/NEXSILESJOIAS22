@@ -1114,11 +1114,10 @@ export function useVendas() {
   return useQuery({
     queryKey: ['vendas'],
     queryFn: async () => {
-      const userId = await getCurrentUserId();
+      // Table 'vendas' doesn't have user_id column - fetch all records
       const { data, error } = await supabase
         .from('vendas')
         .select('*')
-        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -1185,12 +1184,10 @@ export function useAddVenda() {
       }[];
       caixaSessaoId?: string;
     }) => {
-      const userId = await getCurrentUserId();
-      // Insert venda into vendas table (matching actual DB schema)
+      // Insert venda into vendas table (matching actual DB schema - no user_id column)
       const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
         .insert({
-          user_id: userId,
           valor_total: venda.valor_total,
           subtotal: venda.subtotal,
           desconto: venda.desconto || 0,

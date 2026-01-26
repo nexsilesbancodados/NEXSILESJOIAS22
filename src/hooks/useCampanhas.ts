@@ -7,21 +7,17 @@ const db = supabase;
 
 export interface Campanha {
   id: string;
-  user_id: string;
   nome: string;
   descricao: string | null;
-  tipo: 'percentual' | 'valor_fixo' | 'frete_gratis';
-  valor: number;
-  codigo_cupom: string | null;
+  tipo: string | null;
+  desconto_percentual: number | null;
+  meta_valor: number | null;
+  premio: string | null;
   data_inicio: string | null;
   data_fim: string | null;
-  limite_uso: number | null;
-  usos_atuais: number;
-  ativo: boolean;
-  categorias: string[] | null;
-  pecas_ids: string[] | null;
-  created_at: string;
-  updated_at: string;
+  ativa: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface ValidacaoCupom {
@@ -34,63 +30,49 @@ export interface ValidacaoCupom {
 }
 
 export function useCampanhas() {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['campanhas', user?.id],
+    queryKey: ['campanhas'],
     queryFn: async () => {
-      if (!user) return [];
+      // Table 'campanhas' doesn't have user_id column - fetch all records
       const { data, error } = await db
         .from('campanhas')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as Campanha[];
     },
-    enabled: !!user,
   });
 }
 
 export function useCampanhasAtivas() {
-  const { user } = useAuth();
-
   return useQuery({
-    queryKey: ['campanhas-ativas', user?.id],
+    queryKey: ['campanhas-ativas'],
     queryFn: async () => {
-      if (!user) return [];
       const now = new Date().toISOString();
+      // Table 'campanhas' doesn't have user_id column
       const { data, error } = await db
         .from('campanhas')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('ativo', true)
+        .eq('ativa', true)
         .or(`data_inicio.is.null,data_inicio.lte.${now}`)
         .or(`data_fim.is.null,data_fim.gte.${now}`);
 
       if (error) throw error;
       return data as Campanha[];
     },
-    enabled: !!user,
   });
 }
 
 export function useAddCampanha() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (campanha: Omit<Campanha, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'usos_atuais'>) => {
-      if (!user) throw new Error('User not authenticated');
-      
+    mutationFn: async (campanha: Omit<Campanha, 'id' | 'created_at' | 'updated_at'>) => {
+      // Table 'campanhas' doesn't have user_id column
       const { data, error } = await db
         .from('campanhas')
-        .insert({
-          ...campanha,
-          user_id: user.id,
-          usos_atuais: 0,
-        })
+        .insert(campanha)
         .select()
         .single();
 
