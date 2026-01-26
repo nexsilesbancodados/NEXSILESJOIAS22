@@ -197,15 +197,36 @@ export default function CatalogoPublicoPage() {
     setSelectedItems(newSelected);
   };
 
-  const updateItemQuantity = (itemId: string, delta: number) => {
+  const updateItemQuantity = (itemId: string, delta: number, item?: CatalogoItemPublico) => {
     const newSelected = new Map(selectedItems);
     const selected = newSelected.get(itemId);
+    
     if (selected) {
-      const maxQty = selected.item.peca?.estoque || 999;
+      // Update existing selection
+      const maxQty = selected.item.quantidade || 999;
       const newQty = Math.max(1, Math.min(maxQty, selected.quantidade + delta));
       newSelected.set(itemId, { ...selected, quantidade: newQty });
       setSelectedItems(newSelected);
+    } else if (item) {
+      // Add new item with initial quantity
+      const maxQty = item.quantidade || 999;
+      const newQty = Math.max(1, Math.min(maxQty, 1 + delta));
+      newSelected.set(itemId, { item, quantidade: newQty });
+      setSelectedItems(newSelected);
     }
+  };
+
+  const setItemQuantity = (itemId: string, quantity: number, item: CatalogoItemPublico) => {
+    const newSelected = new Map(selectedItems);
+    const maxQty = item.quantidade || 999;
+    const newQty = Math.max(1, Math.min(maxQty, quantity));
+    
+    if (newQty < 1) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.set(itemId, { item, quantidade: newQty });
+    }
+    setSelectedItems(newSelected);
   };
 
   const removeFromCart = (itemId: string) => {
@@ -588,20 +609,25 @@ export default function CatalogoPublicoPage() {
               <div className="space-y-3">
                 {itens.map((item) => {
                   const isSelected = selectedItems.has(item.id);
+                  const selectedQty = selectedItems.get(item.id)?.quantidade || 0;
+                  const maxQty = item.quantidade || 1;
+                  
                   return (
                     <Card 
                       key={item.id} 
                       className={cn(
-                        "overflow-hidden transition-all cursor-pointer",
+                        "overflow-hidden transition-all",
                         isSelected && "ring-2 ring-primary bg-primary/5",
                         canOrder && "hover:shadow-md"
                       )}
-                      onClick={() => canOrder && toggleItemSelection(item)}
                     >
                       <CardContent className="p-0">
                         <div className="flex gap-4">
                           {/* Checkbox + Image */}
-                          <div className="relative w-24 h-24 bg-secondary flex-shrink-0">
+                          <div 
+                            className="relative w-24 h-24 bg-secondary flex-shrink-0 cursor-pointer"
+                            onClick={() => canOrder && toggleItemSelection(item)}
+                          >
                             {canOrder && (
                               <div className="absolute top-2 left-2 z-10">
                                 <Checkbox
@@ -627,7 +653,10 @@ export default function CatalogoPublicoPage() {
                           
                           {/* Info */}
                           <div className="flex-1 py-3 pr-4">
-                            <div className="flex items-start justify-between gap-2">
+                            <div 
+                              className="flex items-start justify-between gap-2 cursor-pointer"
+                              onClick={() => canOrder && toggleItemSelection(item)}
+                            >
                               <div className="min-w-0">
                                 <h3 className="font-medium text-foreground truncate">
                                   {item.peca?.nome || 'Peça removida'}
@@ -636,11 +665,9 @@ export default function CatalogoPublicoPage() {
                                   Cód: {item.peca?.codigo || '-'}
                                 </p>
                               </div>
-                              {isSelected && (
-                                <Badge className="bg-primary text-primary-foreground shrink-0">
-                                  <Check className="w-3 h-3" />
-                                </Badge>
-                              )}
+                              <span className="font-semibold text-lg text-primary shrink-0">
+                                {formatCurrency(item.peca?.preco_venda || 0)}
+                              </span>
                             </div>
                             
                             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -656,14 +683,71 @@ export default function CatalogoPublicoPage() {
                               )}
                             </div>
 
-                            <div className="flex items-center justify-between mt-3">
-                              <span className="text-sm text-muted-foreground">
-                                Qtd: <span className="font-medium text-foreground">{item.quantidade || 1}</span>
-                              </span>
-                              <span className="font-semibold text-lg text-primary">
-                                {formatCurrency(item.peca?.preco_venda || 0)}
-                              </span>
-                            </div>
+                            {/* Quantity Controls */}
+                            {canOrder && (
+                              <div className="flex items-center justify-between mt-3">
+                                <span className="text-xs text-muted-foreground">
+                                  Disponível: {maxQty}
+                                </span>
+                                
+                                <div className="flex items-center gap-2">
+                                  {isSelected ? (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (selectedQty <= 1) {
+                                            toggleItemSelection(item);
+                                          } else {
+                                            updateItemQuantity(item.id, -1);
+                                          }
+                                        }}
+                                      >
+                                        <Minus className="w-3 h-3" />
+                                      </Button>
+                                      <span className="w-8 text-center font-semibold">{selectedQty}</span>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        disabled={selectedQty >= maxQty}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateItemQuantity(item.id, 1);
+                                        }}
+                                      >
+                                        <Plus className="w-3 h-3" />
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      variant="secondary"
+                                      size="sm"
+                                      className="h-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setItemQuantity(item.id, 1, item);
+                                      }}
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Adicionar
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Show selected quantity subtotal */}
+                            {isSelected && selectedQty > 1 && (
+                              <div className="flex justify-end mt-2 text-sm text-muted-foreground">
+                                Subtotal: <span className="font-medium text-foreground ml-1">
+                                  {formatCurrency((item.peca?.preco_venda || 0) * selectedQty)}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
