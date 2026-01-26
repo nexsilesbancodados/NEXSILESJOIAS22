@@ -39,6 +39,7 @@ export interface Peca {
   fornecedor_id: string | null;
   imagem_url: string | null;
   ativo: boolean | null;
+  catalogo_only?: boolean | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -247,15 +248,23 @@ export interface Pagamento {
 }
 
 // ========== PEÇAS ==========
-export function usePecas() {
+export function usePecas(options?: { includeCatalogOnly?: boolean }) {
+  const includeCatalogOnly = options?.includeCatalogOnly ?? false;
+  
   return useQuery({
-    queryKey: ['pecas'],
+    queryKey: ['pecas', { includeCatalogOnly }],
     queryFn: async () => {
       // RLS handles organization filtering automatically
-      const { data, error } = await supabase
+      let query = supabase
         .from('pecas')
-        .select('*')
-        .order('nome');
+        .select('*');
+      
+      // By default, exclude catalog-only pieces from main stock view
+      if (!includeCatalogOnly) {
+        query = query.or('catalogo_only.is.null,catalogo_only.eq.false');
+      }
+      
+      const { data, error } = await query.order('nome');
       
       if (error) throw error;
       return data as Peca[];

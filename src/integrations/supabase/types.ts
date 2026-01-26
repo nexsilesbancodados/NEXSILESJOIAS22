@@ -1190,6 +1190,7 @@ export type Database = {
       pecas: {
         Row: {
           ativo: boolean | null
+          catalogo_only: boolean | null
           categoria: string | null
           codigo: string | null
           codigo_barras: string | null
@@ -1212,6 +1213,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          catalogo_only?: boolean | null
           categoria?: string | null
           codigo?: string | null
           codigo_barras?: string | null
@@ -1234,6 +1236,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          catalogo_only?: boolean | null
           categoria?: string | null
           codigo?: string | null
           codigo_barras?: string | null

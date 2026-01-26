@@ -78,7 +78,7 @@ const STATUS_OPTIONS = [
 
 export default function CatalogosPage() {
   const { data: catalogos = [], isLoading } = useCatalogos();
-  const { data: pecas = [] } = usePecas();
+  const { data: pecas = [] } = usePecas({ includeCatalogOnly: true });
   const addCatalogo = useAddCatalogo();
   const updateCatalogo = useUpdateCatalogo();
   const deleteCatalogo = useDeleteCatalogo();
@@ -956,7 +956,7 @@ function CatalogoItemsDialog({
     }
 
     try {
-      // Peças criadas pelo catálogo não vão para estoque (estoque = 0)
+      // Peças criadas pelo catálogo são exclusivas do catálogo (catalogo_only = true)
       const newPeca = await addPeca.mutateAsync({
         nome: newPecaData.nome,
         codigo: newPecaData.codigo,
@@ -973,6 +973,7 @@ function CatalogoItemsDialog({
         material: null,
         peso: null,
         ativo: true,
+        catalogo_only: true, // Mark as catalog-only piece
       });
 
       // Add to catalog
@@ -992,7 +993,7 @@ function CatalogoItemsDialog({
         preco_venda: '',
         categoria: '',
       });
-      toast.success('Peça criada e adicionada ao catálogo! (Estoque = 0)');
+      toast.success('Peça criada exclusivamente para o catálogo!');
     } catch (error) {
       console.error('Error creating peca:', error);
     }
