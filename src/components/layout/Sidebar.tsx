@@ -36,66 +36,60 @@ import { Button } from '@/components/ui/button';
 // Prefetch functions for each route
 const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQueryClient>) => void> = {
   '/pecas': async (queryClient) => {
-    const { data: { user } } = await supabase.auth.getUser();
     queryClient.prefetchQuery({
       queryKey: ['pecas'],
       queryFn: async () => {
-        const { data } = await db.from('pecas').select('*').eq('user_id', user?.id).order('nome');
+        const { data } = await db.from('pecas').select('*').eq('ativo', true).order('nome');
         return data;
       },
       staleTime: 30000,
     });
   },
   '/clientes': async (queryClient) => {
-    const { data: { user } } = await supabase.auth.getUser();
     queryClient.prefetchQuery({
       queryKey: ['clientes'],
       queryFn: async () => {
-        const { data } = await db.from('clientes').select('*').eq('user_id', user?.id).order('nome');
+        const { data } = await db.from('clientes').select('*').order('nome');
         return data;
       },
       staleTime: 30000,
     });
   },
   '/fornecedores': async (queryClient) => {
-    const { data: { user } } = await supabase.auth.getUser();
     queryClient.prefetchQuery({
       queryKey: ['fornecedores'],
       queryFn: async () => {
-        const { data } = await db.from('fornecedores').select('*').eq('user_id', user?.id).order('nome');
+        const { data } = await db.from('fornecedores').select('*').order('nome');
         return data;
       },
       staleTime: 30000,
     });
   },
   '/romaneios': async (queryClient) => {
-    const { data: { user } } = await supabase.auth.getUser();
     queryClient.prefetchQuery({
       queryKey: ['romaneios'],
       queryFn: async () => {
-        const { data } = await db.from('romaneios').select('*').eq('user_id', user?.id).order('created_at', { ascending: false });
+        const { data } = await db.from('romaneios').select('*').order('created_at', { ascending: false });
         return data;
       },
       staleTime: 30000,
     });
   },
   '/revendedoras': async (queryClient) => {
-    const { data: { user } } = await supabase.auth.getUser();
     queryClient.prefetchQuery({
       queryKey: ['revendedoras'],
       queryFn: async () => {
-        const { data } = await db.from('profiles').select('*').eq('role', 'reseller').eq('user_id', user?.id).order('nome');
+        const { data } = await db.from('revendedoras').select('*').order('nome');
         return data;
       },
       staleTime: 30000,
     });
   },
   '/vendas': async (queryClient) => {
-    const { data: { user } } = await supabase.auth.getUser();
     queryClient.prefetchQuery({
       queryKey: ['vendas'],
       queryFn: async () => {
-        const { data } = await db.from('vendas').select('*').eq('user_id', user?.id).order('created_at', { ascending: false });
+        const { data } = await db.from('vendas').select('*').order('created_at', { ascending: false });
         return data;
       },
       staleTime: 30000,

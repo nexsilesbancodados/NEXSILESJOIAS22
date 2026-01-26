@@ -44,16 +44,13 @@ import {
   Tag,
   Plus,
   Percent,
-  DollarSign,
-  Truck,
+  Target,
+  Gift,
   Calendar as CalendarIcon,
-  Copy,
-  RefreshCw,
   Edit,
   Trash2,
   Loader2,
   BarChart3,
-  Ticket,
   Clock,
   CheckCircle2,
   XCircle,
@@ -65,35 +62,34 @@ import {
   useAddCampanha,
   useUpdateCampanha,
   useDeleteCampanha,
-  generateCouponCode,
   type Campanha,
 } from '@/hooks/useCampanhas';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
-type CampanhaTipo = 'percentual' | 'valor_fixo' | 'frete_gratis';
+type CampanhaTipo = 'desconto' | 'meta' | 'premiacao';
 
 interface FormData {
   nome: string;
   descricao: string;
   tipo: CampanhaTipo;
-  valor: string;
-  codigo_cupom: string;
+  desconto_percentual: string;
+  meta_valor: string;
+  premio: string;
   data_inicio: Date | undefined;
   data_fim: Date | undefined;
-  limite_uso: string;
-  ativo: boolean;
+  ativa: boolean;
 }
 
 const initialFormData: FormData = {
   nome: '',
   descricao: '',
-  tipo: 'percentual',
-  valor: '',
-  codigo_cupom: '',
+  tipo: 'desconto',
+  desconto_percentual: '',
+  meta_valor: '',
+  premio: '',
   data_inicio: undefined,
   data_fim: undefined,
-  limite_uso: '',
-  ativo: true,
+  ativa: true,
 };
 
 export default function CampanhasPage() {
@@ -108,26 +104,19 @@ export default function CampanhasPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>(initialFormData);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
-
   const handleOpenForm = (campanha?: Campanha) => {
     if (campanha) {
       setEditingId(campanha.id);
       setFormData({
         nome: campanha.nome,
         descricao: campanha.descricao || '',
-        tipo: campanha.tipo,
-        valor: campanha.valor.toString(),
-        codigo_cupom: campanha.codigo_cupom || '',
+        tipo: (campanha.tipo as CampanhaTipo) || 'desconto',
+        desconto_percentual: campanha.desconto_percentual?.toString() || '',
+        meta_valor: campanha.meta_valor?.toString() || '',
+        premio: campanha.premio || '',
         data_inicio: campanha.data_inicio ? new Date(campanha.data_inicio) : undefined,
         data_fim: campanha.data_fim ? new Date(campanha.data_fim) : undefined,
-        limite_uso: campanha.limite_uso?.toString() || '',
-        ativo: campanha.ativo,
+        ativa: campanha.ativa ?? true,
       });
     } else {
       setEditingId(null);
@@ -142,15 +131,6 @@ export default function CampanhasPage() {
     setFormData(initialFormData);
   };
 
-  const handleGenerateCoupon = () => {
-    setFormData({ ...formData, codigo_cupom: generateCouponCode() });
-  };
-
-  const handleCopyCoupon = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success('Código copiado!');
-  };
-
   const handleSubmit = async () => {
     if (!formData.nome.trim()) {
       toast.error('Nome da campanha é obrigatório');
@@ -161,14 +141,12 @@ export default function CampanhasPage() {
       nome: formData.nome.trim(),
       descricao: formData.descricao.trim() || null,
       tipo: formData.tipo,
-      valor: parseFloat(formData.valor) || 0,
-      codigo_cupom: formData.codigo_cupom.trim().toUpperCase() || null,
-      data_inicio: formData.data_inicio?.toISOString() || null,
-      data_fim: formData.data_fim?.toISOString() || null,
-      limite_uso: formData.limite_uso ? parseInt(formData.limite_uso) : null,
-      ativo: formData.ativo,
-      categorias: null,
-      pecas_ids: null,
+      desconto_percentual: formData.desconto_percentual ? parseFloat(formData.desconto_percentual) : null,
+      meta_valor: formData.meta_valor ? parseFloat(formData.meta_valor) : null,
+      premio: formData.premio.trim() || null,
+      data_inicio: formData.data_inicio?.toISOString().split('T')[0] || null,
+      data_fim: formData.data_fim?.toISOString().split('T')[0] || null,
+      ativa: formData.ativa,
     };
 
     if (editingId) {
@@ -188,118 +166,122 @@ export default function CampanhasPage() {
   };
 
   const getCampanhaStatus = (campanha: Campanha) => {
-    if (!campanha.ativo) return { label: 'Inativa', color: 'bg-muted text-muted-foreground' };
+    if (!campanha.ativa) return { label: 'Inativa', color: 'bg-muted text-muted-foreground' };
     
     const now = new Date();
     if (campanha.data_inicio && new Date(campanha.data_inicio) > now) {
-      return { label: 'Agendada', color: 'bg-blue-500/20 text-blue-600' };
+      return { label: 'Agendada', color: 'bg-primary/20 text-primary' };
     }
     if (campanha.data_fim && new Date(campanha.data_fim) < now) {
-      return { label: 'Expirada', color: 'bg-orange-500/20 text-orange-600' };
+      return { label: 'Expirada', color: 'bg-warning/20 text-warning' };
     }
-    if (campanha.limite_uso && campanha.usos_atuais >= campanha.limite_uso) {
-      return { label: 'Esgotada', color: 'bg-red-500/20 text-red-600' };
-    }
-    return { label: 'Ativa', color: 'bg-green-500/20 text-green-600' };
+    return { label: 'Ativa', color: 'bg-success/20 text-success' };
   };
 
-  const getTipoIcon = (tipo: CampanhaTipo) => {
+  const getTipoLabel = (tipo: string | null) => {
     switch (tipo) {
-      case 'percentual':
-        return <Percent className="w-4 h-4" />;
-      case 'valor_fixo':
-        return <DollarSign className="w-4 h-4" />;
-      case 'frete_gratis':
-        return <Truck className="w-4 h-4" />;
+      case 'desconto': return 'Desconto';
+      case 'meta': return 'Meta';
+      case 'premiacao': return 'Premiação';
+      default: return tipo || '-';
     }
   };
 
-  const getTipoLabel = (tipo: CampanhaTipo, valor: number) => {
+  const getTipoIcon = (tipo: string | null) => {
     switch (tipo) {
-      case 'percentual':
-        return `${valor}% OFF`;
-      case 'valor_fixo':
-        return `${formatCurrency(valor)} OFF`;
-      case 'frete_gratis':
-        return 'Frete Grátis';
+      case 'desconto': return <Percent className="w-4 h-4" />;
+      case 'meta': return <Target className="w-4 h-4" />;
+      case 'premiacao': return <Gift className="w-4 h-4" />;
+      default: return <Tag className="w-4 h-4" />;
     }
   };
 
-  // Stats
-  const campanhasAtivas = campanhas.filter(c => {
-    const status = getCampanhaStatus(c);
-    return status.label === 'Ativa';
-  });
-  const totalUsos = campanhas.reduce((acc, c) => acc + c.usos_atuais, 0);
+  const formatCurrency = (value: number | null) => {
+    if (!value) return '-';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-            <Tag className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-xl gold-gradient flex items-center justify-center">
+            <Tag className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-display font-semibold">Campanhas e Promoções</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie cupons de desconto e promoções
-            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Campanhas</h1>
+            <p className="text-sm text-muted-foreground">Gerencie promoções e metas</p>
           </div>
         </div>
         <ReadOnlyGuard>
-          <Button onClick={() => handleOpenForm()} className="gap-2">
+          <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
             <Plus className="w-4 h-4" />
             Nova Campanha
           </Button>
         </ReadOnlyGuard>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <Card className="glass-card">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{campanhasAtivas.length}</p>
-                <p className="text-sm text-muted-foreground">Campanhas Ativas</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <Ticket className="w-5 h-5 text-blue-600" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BarChart3 className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{campanhas.length}</p>
-                <p className="text-sm text-muted-foreground">Total de Campanhas</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="glass-card">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-success/10">
+                <CheckCircle2 className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{totalUsos}</p>
-                <p className="text-sm text-muted-foreground">Cupons Utilizados</p>
+                <p className="text-2xl font-bold">{campanhas.filter(c => c.ativa).length}</p>
+                <p className="text-sm text-muted-foreground">Ativas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="glass-card">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Clock className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {campanhas.filter(c => c.data_inicio && new Date(c.data_inicio) > new Date()).length}
+                </p>
+                <p className="text-sm text-muted-foreground">Agendadas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="glass-card">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <XCircle className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{campanhas.filter(c => !c.ativa).length}</p>
+                <p className="text-sm text-muted-foreground">Inativas</p>
               </div>
             </div>
           </CardContent>
@@ -307,128 +289,137 @@ export default function CampanhasPage() {
       </div>
 
       {/* Campaigns List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {campanhas.map((campanha) => {
-          const status = getCampanhaStatus(campanha);
-          return (
-            <Card key={campanha.id} className="group hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      {getTipoIcon(campanha.tipo)}
-                    </div>
-                    <div>
-                      <CardTitle className="text-base">{campanha.nome}</CardTitle>
-                      <Badge className={cn('text-xs mt-1', status.color)}>
-                        {status.label}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleOpenForm(campanha)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive"
-                      onClick={() => {
-                        setDeletingId(campanha.id);
-                        setIsDeleteOpen(true);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {campanha.descricao && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {campanha.descricao}
-                  </p>
-                )}
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-primary">
-                    {getTipoLabel(campanha.tipo, campanha.valor)}
-                  </span>
-                </div>
-
-                {campanha.codigo_cupom && (
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 px-3 py-1.5 bg-muted rounded text-sm font-mono">
-                      {campanha.codigo_cupom}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => handleCopyCoupon(campanha.codigo_cupom!)}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {campanha.data_fim && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Até {format(new Date(campanha.data_fim), 'dd/MM/yy', { locale: ptBR })}
-                    </span>
-                  )}
-                  {campanha.limite_uso && (
-                    <span>
-                      {campanha.usos_atuais}/{campanha.limite_uso} usos
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {campanhas.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-              <Tag className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium mb-1">Nenhuma campanha</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Crie sua primeira campanha promocional
+      {campanhas.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Tag className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhuma campanha cadastrada</h3>
+            <p className="text-muted-foreground text-center mb-4">
+              Crie sua primeira campanha para oferecer promoções aos clientes.
             </p>
-            <Button onClick={() => handleOpenForm()} variant="outline">
-              <Plus className="w-4 h-4 mr-2" />
-              Criar Campanha
-            </Button>
-          </div>
-        )}
-      </div>
+            <ReadOnlyGuard>
+              <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
+                <Plus className="w-4 h-4" />
+                Criar Campanha
+              </Button>
+            </ReadOnlyGuard>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {campanhas.map((campanha) => {
+            const status = getCampanhaStatus(campanha);
+            return (
+              <Card key={campanha.id} className="glass-card hover:border-primary/50 transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        {getTipoIcon(campanha.tipo)}
+                      </div>
+                      <div>
+                        <CardTitle className="text-base">{campanha.nome}</CardTitle>
+                        <Badge className={cn('text-xs mt-1', status.color)}>
+                          {status.label}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <ReadOnlyGuard>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenForm(campanha)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </ReadOnlyGuard>
+                      <ReadOnlyGuard>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setDeletingId(campanha.id);
+                            setIsDeleteOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </ReadOnlyGuard>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {campanha.descricao && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">{campanha.descricao}</p>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Tipo:</span>
+                      <p className="font-medium">{getTipoLabel(campanha.tipo)}</p>
+                    </div>
+                    {campanha.desconto_percentual && (
+                      <div>
+                        <span className="text-muted-foreground">Desconto:</span>
+                        <p className="font-medium">{campanha.desconto_percentual}%</p>
+                      </div>
+                    )}
+                    {campanha.meta_valor && (
+                      <div>
+                        <span className="text-muted-foreground">Meta:</span>
+                        <p className="font-medium">{formatCurrency(campanha.meta_valor)}</p>
+                      </div>
+                    )}
+                    {campanha.premio && (
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground">Prêmio:</span>
+                        <p className="font-medium">{campanha.premio}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+                    {campanha.data_inicio && (
+                      <div className="flex items-center gap-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>
+                          {format(new Date(campanha.data_inicio), 'dd/MM/yyyy', { locale: ptBR })}
+                        </span>
+                      </div>
+                    )}
+                    {campanha.data_fim && (
+                      <div className="flex items-center gap-1">
+                        <span>até</span>
+                        <span>
+                          {format(new Date(campanha.data_fim), 'dd/MM/yyyy', { locale: ptBR })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh]">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display">
-              {editingId ? 'Editar Campanha' : 'Nova Campanha'}
-            </DialogTitle>
+            <DialogTitle>{editingId ? 'Editar Campanha' : 'Nova Campanha'}</DialogTitle>
             <DialogDescription>
-              Configure os detalhes da promoção
+              {editingId ? 'Atualize os dados da campanha' : 'Crie uma nova campanha promocional'}
             </DialogDescription>
           </DialogHeader>
-          
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-4 py-4">
+
+          <ScrollArea className="max-h-[60vh]">
+            <div className="space-y-4 pr-4">
               <div className="space-y-2">
-                <Label>Nome da Campanha *</Label>
+                <Label htmlFor="nome">Nome da Campanha *</Label>
                 <Input
+                  id="nome"
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   placeholder="Ex: Promoção de Verão"
@@ -436,81 +427,86 @@ export default function CampanhasPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Descrição</Label>
+                <Label htmlFor="descricao">Descrição</Label>
                 <Textarea
+                  id="descricao"
                   value={formData.descricao}
                   onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  placeholder="Descrição da promoção..."
+                  placeholder="Descrição da campanha..."
                   rows={2}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipo de Desconto</Label>
-                  <Select
-                    value={formData.tipo}
-                    onValueChange={(v: CampanhaTipo) => setFormData({ ...formData, tipo: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="percentual">
-                        <span className="flex items-center gap-2">
-                          <Percent className="w-4 h-4" /> Percentual
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="valor_fixo">
-                        <span className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4" /> Valor Fixo
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="frete_gratis">
-                        <span className="flex items-center gap-2">
-                          <Truck className="w-4 h-4" /> Frete Grátis
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formData.tipo !== 'frete_gratis' && (
-                  <div className="space-y-2">
-                    <Label>
-                      Valor {formData.tipo === 'percentual' ? '(%)' : '(R$)'}
-                    </Label>
-                    <Input
-                      type="number"
-                      step={formData.tipo === 'percentual' ? '1' : '0.01'}
-                      value={formData.valor}
-                      onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
-                      placeholder={formData.tipo === 'percentual' ? '10' : '50.00'}
-                    />
-                  </div>
-                )}
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select
+                  value={formData.tipo}
+                  onValueChange={(value: CampanhaTipo) => setFormData({ ...formData, tipo: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="desconto">
+                      <div className="flex items-center gap-2">
+                        <Percent className="w-4 h-4" />
+                        Desconto
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="meta">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4" />
+                        Meta
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="premiacao">
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-4 h-4" />
+                        Premiação
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Código do Cupom</Label>
-                <div className="flex gap-2">
+              {formData.tipo === 'desconto' && (
+                <div className="space-y-2">
+                  <Label htmlFor="desconto">Desconto (%)</Label>
                   <Input
-                    value={formData.codigo_cupom}
-                    onChange={(e) => setFormData({ ...formData, codigo_cupom: e.target.value.toUpperCase() })}
-                    placeholder="VERAO2025"
-                    className="font-mono"
+                    id="desconto"
+                    type="number"
+                    value={formData.desconto_percentual}
+                    onChange={(e) => setFormData({ ...formData, desconto_percentual: e.target.value })}
+                    placeholder="Ex: 10"
+                    min="0"
+                    max="100"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleGenerateCoupon}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Deixe em branco para aplicar automaticamente
-                </p>
+              )}
+
+              {formData.tipo === 'meta' && (
+                <div className="space-y-2">
+                  <Label htmlFor="meta">Meta (R$)</Label>
+                  <Input
+                    id="meta"
+                    type="number"
+                    value={formData.meta_valor}
+                    onChange={(e) => setFormData({ ...formData, meta_valor: e.target.value })}
+                    placeholder="Ex: 1000"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="premio">Prêmio / Benefício</Label>
+                <Input
+                  id="premio"
+                  value={formData.premio}
+                  onChange={(e) => setFormData({ ...formData, premio: e.target.value })}
+                  placeholder="Ex: Brinco de presente"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -531,7 +527,7 @@ export default function CampanhasPage() {
                           : 'Selecionar'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
                         selected={formData.data_inicio}
@@ -559,7 +555,7 @@ export default function CampanhasPage() {
                           : 'Selecionar'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
                         selected={formData.data_fim}
@@ -571,29 +567,12 @@ export default function CampanhasPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Limite de Uso</Label>
-                <Input
-                  type="number"
-                  value={formData.limite_uso}
-                  onChange={(e) => setFormData({ ...formData, limite_uso: e.target.value })}
-                  placeholder="Ilimitado"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Deixe em branco para uso ilimitado
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <Label>Campanha Ativa</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Desative para pausar a campanha
-                  </p>
-                </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="ativa">Campanha Ativa</Label>
                 <Switch
-                  checked={formData.ativo}
-                  onCheckedChange={(checked) => setFormData({ ...formData, ativo: checked })}
+                  id="ativa"
+                  checked={formData.ativa}
+                  onCheckedChange={(checked) => setFormData({ ...formData, ativa: checked })}
                 />
               </div>
             </div>
@@ -603,9 +582,10 @@ export default function CampanhasPage() {
             <Button variant="outline" onClick={handleCloseForm}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleSubmit}
               disabled={addCampanha.isPending || updateCampanha.isPending}
+              className="btn-gold"
             >
               {(addCampanha.isPending || updateCampanha.isPending) && (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -620,9 +600,9 @@ export default function CampanhasPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Campanha</AlertDialogTitle>
+            <AlertDialogTitle>Excluir campanha?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir esta campanha? Esta ação não pode ser desfeita.
+              Esta ação não pode ser desfeita. A campanha será permanentemente excluída.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -631,6 +611,7 @@ export default function CampanhasPage() {
               onClick={handleDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {deleteCampanha.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

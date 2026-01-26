@@ -16,11 +16,9 @@ export const PedidosPendentesCard = memo(function PedidosPendentesCard() {
   const { data: stats } = useQuery({
     queryKey: ['pedidos-stats'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { pendentes: 0, confirmados: 0, cancelados: 0, total: 0 };
-      
-      const { data: userCatalogos } = await db.from('catalogos').select('id').eq('user_id', user.id);
-      const catalogoIds = userCatalogos?.map((c: any) => c.id) || [];
+      // Get all catalogs (table doesn't have user_id column)
+      const { data: allCatalogos } = await db.from('catalogos').select('id');
+      const catalogoIds = allCatalogos?.map((c: any) => c.id) || [];
       if (catalogoIds.length === 0) return { pendentes: 0, confirmados: 0, cancelados: 0, total: 0 };
       
       const { data, error } = await db.from('pedidos_catalogo').select('status').in('catalogo_id', catalogoIds);

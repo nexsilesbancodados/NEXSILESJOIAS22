@@ -83,15 +83,12 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ['pedidos-catalogo-all'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // First get the user's catalogs
-      const { data: userCatalogos } = await db
+      // Get all catalogs (table doesn't have user_id column)
+      const { data: allCatalogos } = await db
         .from('catalogos')
-        .select('id')
-        .eq('user_id', user?.id);
+        .select('id');
       
-      const catalogoIds = userCatalogos?.map((c: any) => c.id) || [];
+      const catalogoIds = allCatalogos?.map((c: any) => c.id) || [];
       
       if (catalogoIds.length === 0) {
         return [];
