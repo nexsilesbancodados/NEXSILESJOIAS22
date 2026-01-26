@@ -13,6 +13,7 @@ import { useRealtimeOrders } from "@/hooks/useRealtimeOrders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QueryErrorHandler } from "@/components/QueryErrorHandler";
 import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
+import { OrganizationGuard } from "@/components/OrganizationGuard";
 
 // Lazy load all pages for code-splitting
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -85,10 +86,11 @@ function AppRoutes() {
           path="/*"
           element={
             <ProtectedRoute>
-              <SubscriptionProvider>
-                <RealtimeNotifications />
-                <ReadOnlyBanner />
-                <MainLayout>
+              <OrganizationGuard>
+                <SubscriptionProvider>
+                  <RealtimeNotifications />
+                  <ReadOnlyBanner />
+                  <MainLayout>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<DashboardPage />} />
@@ -111,8 +113,9 @@ function AppRoutes() {
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
-                </MainLayout>
-              </SubscriptionProvider>
+                  </MainLayout>
+                </SubscriptionProvider>
+              </OrganizationGuard>
             </ProtectedRoute>
           }
         />
