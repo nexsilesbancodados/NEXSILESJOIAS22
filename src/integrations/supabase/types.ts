@@ -571,6 +571,7 @@ export type Database = {
           dados_novos: Json | null
           id: string
           ip_address: string | null
+          organization_id: string | null
           registro_id: string | null
           tabela: string
           user_id: string | null
@@ -582,6 +583,7 @@ export type Database = {
           dados_novos?: Json | null
           id?: string
           ip_address?: string | null
+          organization_id?: string | null
           registro_id?: string | null
           tabela: string
           user_id?: string | null
@@ -593,11 +595,20 @@ export type Database = {
           dados_novos?: Json | null
           id?: string
           ip_address?: string | null
+          organization_id?: string | null
           registro_id?: string | null
           tabela?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "historico_atividades_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       historico_precos: {
         Row: {

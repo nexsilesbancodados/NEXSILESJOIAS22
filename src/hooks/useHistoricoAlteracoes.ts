@@ -93,16 +93,21 @@ export async function registrarAlteracao(params: {
 }) {
   const { data: user } = await supabase.auth.getUser();
   
+  // Get user's organization_id
+  const { data: membership } = await db
+    .from('memberships')
+    .select('organization_id')
+    .eq('user_id', user?.user?.id || '')
+    .maybeSingle();
+  
   const { error } = await db.from('historico_atividades').insert([{
-    tipo: params.tipo,
-    descricao: params.descricao,
-    entidade: params.entidade,
-    entidade_id: params.entidade_id || null,
-    usuario_id: user?.user?.id || null,
-    usuario_nome: user?.user?.email || 'Sistema',
+    tabela: params.entidade,
+    acao: params.tipo,
+    registro_id: params.entidade_id || null,
+    user_id: user?.user?.id || null,
     dados_anteriores: params.dados_anteriores || null,
     dados_novos: params.dados_novos || null,
-    valor: params.valor || null,
+    organization_id: membership?.organization_id || null,
   }]);
 
   if (error) {
