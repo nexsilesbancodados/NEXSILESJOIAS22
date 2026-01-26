@@ -441,7 +441,70 @@ interface StoreStepProps {
 function StoreStep({ data, onChange }: StoreStepProps) {
   const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false);
+  const [documentoError, setDocumentoError] = useState<string | null>(null);
   const isPessoaFisica = data.tipo_pessoa === 'pf';
+
+  // Validação de CPF
+  const validateCPF = (cpf: string): boolean => {
+    const numbers = cpf.replace(/\D/g, '');
+    if (numbers.length !== 11) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (/^(\d)\1{10}$/.test(numbers)) return false;
+    
+    // Calcula primeiro dígito verificador
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      sum += parseInt(numbers[i]) * (10 - i);
+    }
+    let remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(numbers[9])) return false;
+    
+    // Calcula segundo dígito verificador
+    sum = 0;
+    for (let i = 0; i < 10; i++) {
+      sum += parseInt(numbers[i]) * (11 - i);
+    }
+    remainder = (sum * 10) % 11;
+    if (remainder === 10 || remainder === 11) remainder = 0;
+    if (remainder !== parseInt(numbers[10])) return false;
+    
+    return true;
+  };
+
+  // Validação de CNPJ
+  const validateCNPJ = (cnpj: string): boolean => {
+    const numbers = cnpj.replace(/\D/g, '');
+    if (numbers.length !== 14) return false;
+    
+    // Verifica se todos os dígitos são iguais
+    if (/^(\d)\1{13}$/.test(numbers)) return false;
+    
+    // Calcula primeiro dígito verificador
+    let length = 12;
+    let position = length - 7;
+    let sum = 0;
+    for (let i = 0; i < length; i++) {
+      sum += parseInt(numbers[i]) * position--;
+      if (position < 2) position = 9;
+    }
+    let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+    if (result !== parseInt(numbers[12])) return false;
+    
+    // Calcula segundo dígito verificador
+    length = 13;
+    position = length - 7;
+    sum = 0;
+    for (let i = 0; i < length; i++) {
+      sum += parseInt(numbers[i]) * position--;
+      if (position < 2) position = 9;
+    }
+    result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+    if (result !== parseInt(numbers[13])) return false;
+    
+    return true;
+  };
 
   const formatCEP = (value: string) => {
     const numbers = value.replace(/\D/g, '').slice(0, 8);
@@ -492,34 +555,49 @@ function StoreStep({ data, onChange }: StoreStepProps) {
     }
   };
 
-  // Busca razão social pelo CNPJ usando ReceitaWS
+  // Busca razão social pelo CNPJ usando ReceitaWS (com validação)
   const handleDocumentoChange = async (value: string) => {
     const formatted = isPessoaFisica ? formatCPF(value) : formatCNPJ(value);
     onChange({ ...data, cnpj_loja: formatted });
+    setDocumentoError(null);
 
-    // Buscar dados do CNPJ (apenas para PJ)
-    if (!isPessoaFisica) {
-      const numbers = value.replace(/\D/g, '');
-      if (numbers.length === 14) {
-        setIsLoadingCnpj(true);
-        try {
-          const response = await fetch(`https://receitaws.com.br/v1/cnpj/${numbers}`);
-          const result = await response.json();
-          if (result.status === 'OK' && result.nome) {
-            // Se o nome da loja estiver vazio, preenche com a razão social
-            if (!data.nome_loja) {
-              onChange({ 
-                ...data, 
-                cnpj_loja: formatted,
-                nome_loja: result.fantasia || result.nome 
-              });
-            }
+    const numbers = value.replace(/\D/g, '');
+    
+    // Valida CPF
+    if (isPessoaFisica && numbers.length === 11) {
+      if (!validateCPF(numbers)) {
+        setDocumentoError('CPF inválido');
+        return;
+      }
+    }
+    
+    // Valida e busca CNPJ
+    if (!isPessoaFisica && numbers.length === 14) {
+      if (!validateCNPJ(numbers)) {
+        setDocumentoError('CNPJ inválido');
+        return;
+      }
+      
+      setIsLoadingCnpj(true);
+      try {
+        const response = await fetch(`https://receitaws.com.br/v1/cnpj/${numbers}`);
+        const result = await response.json();
+        if (result.status === 'OK' && result.nome) {
+          // Se o nome da loja estiver vazio, preenche com a razão social
+          if (!data.nome_loja) {
+            onChange({ 
+              ...data, 
+              cnpj_loja: formatted,
+              nome_loja: result.fantasia || result.nome 
+            });
           }
-        } catch (error) {
-          console.error('Erro ao buscar CNPJ:', error);
-        } finally {
-          setIsLoadingCnpj(false);
+        } else if (result.status === 'ERROR') {
+          setDocumentoError('CNPJ não encontrado na Receita Federal');
         }
+      } catch (error) {
+        console.error('Erro ao buscar CNPJ:', error);
+      } finally {
+        setIsLoadingCnpj(false);
       }
     }
   };
@@ -578,8 +656,11 @@ function StoreStep({ data, onChange }: StoreStepProps) {
           placeholder={isPessoaFisica ? "000.000.000-00" : "00.000.000/0000-00"}
           value={data.cnpj_loja}
           onChange={(e) => handleDocumentoChange(e.target.value)}
-          className="h-11"
+          className={cn("h-11", documentoError && "border-destructive focus-visible:ring-destructive")}
         />
+        {documentoError && (
+          <p className="text-xs text-destructive">{documentoError}</p>
+        )}
       </div>
 
       {/* Nome da Loja */}
