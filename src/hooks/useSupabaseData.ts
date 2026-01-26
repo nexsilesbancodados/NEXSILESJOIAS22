@@ -1990,10 +1990,9 @@ export interface CatalogoItem {
   id: string;
   catalogo_id: string;
   peca_id: string;
-  preco_catalogo: number | null;
   destaque: boolean | null;
   ordem?: number | null;
-  created_at: string;
+  created_at: string | null;
   peca?: Peca;
 }
 
