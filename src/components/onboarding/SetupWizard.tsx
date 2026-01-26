@@ -260,16 +260,16 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center p-4"
+        className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: 'spring', duration: 0.5 }}
-          className="w-full max-w-2xl"
+          className="w-full max-w-2xl my-auto"
         >
-          <Card className="shadow-2xl border-primary/20 overflow-hidden">
+          <Card className="shadow-2xl border-primary/20 overflow-hidden max-h-[90vh] flex flex-col">
             {/* Progress bar */}
             <div className="h-1 bg-muted">
               <motion.div 
@@ -280,7 +280,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
               />
             </div>
 
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-4 flex-shrink-0">
               <div className="flex items-center justify-between">
                 {/* Step indicators */}
                 <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
               </div>
             </CardHeader>
 
-            <CardContent className="pt-0 pb-6">
+            <CardContent className="pt-0 pb-6 flex-1 overflow-y-auto">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentStep}
