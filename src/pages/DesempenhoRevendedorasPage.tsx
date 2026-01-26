@@ -120,12 +120,12 @@ export default function DesempenhoRevendedorasPage() {
     
     return safeRevendedoras.map(rev => {
       if (!rev) return null;
-      const revRomaneios = safeRomaneios.filter(r => r?.reseller_id === rev.id);
+      const revRomaneios = safeRomaneios.filter(r => r?.revendedora_id === rev.id);
       const finalizados = revRomaneios.filter(r => r?.status === 'finalizado');
       const pendentes = revRomaneios.filter(r => r?.status === 'pendente');
       
-      const totalVendas = finalizados.reduce((sum, r) => sum + (r?.total || 0), 0);
-      const totalComissao = finalizados.reduce((sum, r) => sum + (r?.comissao || 0), 0);
+      const totalVendas = finalizados.reduce((sum, r) => sum + (r?.valor_frete || 0), 0);
+      const totalComissao = rev.comissao_percentual ? totalVendas * (rev.comissao_percentual / 100) : 0;
       const totalPecasVendidas = finalizados.reduce((sum, r) => {
         const itens = (r as any)?.romaneio_itens || [];
         return sum + (itens || []).reduce((s: number, i: any) => s + (i?.quantidade || 0), 0);

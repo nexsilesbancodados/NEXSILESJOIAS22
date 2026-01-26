@@ -84,10 +84,9 @@ export default function PortalRevendedoraPage() {
     queryKey: ['revendedora-portal', revendedoraId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, nome, email, telefone, comissao, role, cpf, data_nascimento, endereco, created_at, updated_at')
+        .from('revendedoras')
+        .select('*')
         .eq('id', revendedoraId)
-        .eq('role', 'reseller')
         .maybeSingle();
       
       if (error) throw error;
@@ -103,7 +102,7 @@ export default function PortalRevendedoraPage() {
       const { data, error } = await (supabase as any)
         .from('maletas')
         .select('*')
-        .eq('reseller_id', revendedoraId)
+        .eq('revendedora_id', revendedoraId)
         .eq('status', 'aberta')
         .maybeSingle();
       
@@ -185,7 +184,7 @@ export default function PortalRevendedoraPage() {
     const totalPendente = romaneios
       .filter(r => r.status === 'pendente')
       .reduce((acc, r) => acc + (r.total || 0), 0);
-    const comissao = (revendedora as any)?.comissao || 30;
+    const comissao = (revendedora as any)?.comissao_percentual || 30;
     const comissaoGanha = totalFaturado * (comissao / 100);
     
     return {
@@ -1046,9 +1045,9 @@ export default function PortalRevendedoraPage() {
 
               {/* Commission info */}
               <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-muted-foreground">Sua comissão ({(revendedora as any)?.comissao || 30}%)</span>
+                <span className="text-muted-foreground">Sua comissão ({(revendedora as any)?.comissao_percentual || 30}%)</span>
                 <span className="font-semibold text-success">
-                  {formatCurrency(selectedRomaneio.total * (((revendedora as any)?.comissao || 30) / 100))}
+                  {formatCurrency(selectedRomaneio.total * (((revendedora as any)?.comissao_percentual || 30) / 100))}
                 </span>
               </div>
             </div>

@@ -349,12 +349,9 @@ export default function RevendedorasPage() {
       } else {
         // Criar nova maleta
         await addMaletaMutation.mutateAsync({
-          reseller_id: viewingRevendedora.id,
+          revendedora_id: viewingRevendedora.id,
           nome: maletaFormData.nome || undefined,
-          comissao_personalizada: maletaFormData.comissao_personalizada 
-            ? parseFloat(maletaFormData.comissao_personalizada) 
-            : undefined,
-          prazo_devolucao: maletaFormData.prazo_devolucao || undefined,
+          data_devolucao: maletaFormData.prazo_devolucao || undefined,
           observacoes: maletaFormData.observacoes || undefined,
         });
       }
