@@ -1990,6 +1990,7 @@ export interface CatalogoItem {
   id: string;
   catalogo_id: string;
   peca_id: string;
+  quantidade: number;
   destaque: boolean | null;
   ordem?: number | null;
   created_at: string | null;
@@ -2125,6 +2126,30 @@ export function useAddCatalogoItem() {
     },
     onError: () => {
       toast.error('Erro ao adicionar peça');
+    },
+  });
+}
+
+export function useUpdateCatalogoItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, quantidade }: { id: string; quantidade: number }) => {
+      const { data, error } = await supabase
+        .from('catalogos_pecas')
+        .update({ quantidade })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalogo-items'] });
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar quantidade');
     },
   });
 }
