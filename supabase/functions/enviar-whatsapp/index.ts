@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 interface WhatsAppRequest {
-  tipo: 'recibo' | 'catalogo' | 'aniversario' | 'cobranca' | 'promocao' | 'personalizado';
+  tipo: 'recibo' | 'catalogo' | 'aniversario' | 'cobranca' | 'promocao' | 'personalizado' | 'rastreio';
   telefone: string;
   dados: {
     // Para recibo
@@ -34,6 +34,13 @@ interface WhatsAppRequest {
     
     // Para mensagem personalizada
     mensagem?: string;
+    
+    // Para rastreio de envio
+    romaneioNumero?: string;
+    status?: string;
+    codigoRastreio?: string;
+    transportadora?: string;
+    dataEnvio?: string;
   };
 }
 
@@ -122,8 +129,51 @@ const templates = {
   
   personalizado: (dados: WhatsAppRequest['dados']) => {
     return dados.mensagem || 'Olá! Temos novidades para você!';
+  },
+  
+  rastreio: (dados: WhatsAppRequest['dados']) => {
+    const statusEmoji: Record<string, string> = {
+      'enviado': '📦',
+      'entregue': '✅',
+      'confirmado': '✔️',
+      'pendente': '⏳',
+    };
+    
+    const statusTexto: Record<string, string> = {
+      'enviado': 'foi ENVIADO',
+      'entregue': 'foi ENTREGUE',
+      'confirmado': 'foi confirmado',
+      'pendente': 'está pendente',
+    };
+    
+    const emoji = statusEmoji[dados.status || 'enviado'] || '📋';
+    const texto = statusTexto[dados.status || 'enviado'] || 'foi atualizado';
+    
+    let msg = `${emoji} *ATUALIZAÇÃO DO SEU PEDIDO*\n\n`;
+    msg += `Olá${dados.clienteNome ? `, ${dados.clienteNome}` : ''}!\n\n`;
+    msg += `Seu pedido ${dados.romaneioNumero ? `#${dados.romaneioNumero}` : ''} *${texto}*! 🎉\n\n`;
+    
+    if (dados.status === 'enviado') {
+      if (dados.transportadora) {
+        const transportadoraNome = dados.transportadora.replace('_', ' ');
+        msg += `🚚 Transportadora: *${transportadoraNome.charAt(0).toUpperCase() + transportadoraNome.slice(1)}*\n`;
+      }
+      if (dados.codigoRastreio) {
+        msg += `📍 Código de rastreio: *${dados.codigoRastreio}*\n`;
+      }
+      if (dados.dataEnvio) {
+        const dataFormatada = new Date(dados.dataEnvio).toLocaleDateString('pt-BR');
+        msg += `📅 Data de envio: *${dataFormatada}*\n`;
+      }
+      msg += `\nAcompanhe a entrega pelo código de rastreio! 📲`;
+    } else if (dados.status === 'entregue') {
+      msg += `Esperamos que aproveite seus produtos! 💖\n`;
+      msg += `Qualquer dúvida, estamos à disposição! 😊`;
+    }
+    
+    return msg;
   }
-};
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
