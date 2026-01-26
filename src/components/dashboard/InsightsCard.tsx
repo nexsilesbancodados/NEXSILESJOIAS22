@@ -177,72 +177,90 @@ export const InsightsCard = memo(function InsightsCard({ vendas, pecas, romaneio
     switch (type) {
       case 'success':
         return {
-          bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-          icon: 'text-emerald-500',
-          border: 'border-emerald-100 dark:border-emerald-800/30'
+          bg: 'bg-white/20',
+          icon: 'text-white',
+          border: 'border-white/20'
         };
       case 'warning':
         return {
-          bg: 'bg-amber-50 dark:bg-amber-900/20',
-          icon: 'text-amber-500',
-          border: 'border-amber-100 dark:border-amber-800/30'
+          bg: 'bg-white/20',
+          icon: 'text-white',
+          border: 'border-white/20'
         };
       case 'info':
         return {
-          bg: 'bg-blue-50 dark:bg-blue-900/20',
-          icon: 'text-blue-500',
-          border: 'border-blue-100 dark:border-blue-800/30'
+          bg: 'bg-white/20',
+          icon: 'text-white',
+          border: 'border-white/20'
         };
       case 'tip':
         return {
-          bg: 'bg-purple-50 dark:bg-purple-900/20',
-          icon: 'text-purple-500',
-          border: 'border-purple-100 dark:border-purple-800/30'
+          bg: 'bg-white/20',
+          icon: 'text-white',
+          border: 'border-white/20'
         };
     }
   };
 
   return (
-    <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+    <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-purple-600 to-violet-600 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg">
+      {/* Decorative wave pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <svg 
+          className="absolute bottom-0 left-0 right-0 w-full h-24 opacity-40"
+          viewBox="0 0 400 100" 
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 60 C 80 40, 120 80, 200 50 C 280 20, 320 70, 400 40 L 400 100 L 0 100 Z"
+            fill="rgba(255,255,255,0.15)"
+          />
+          <path
+            d="M0 75 C 60 60, 140 90, 200 65 C 260 40, 340 85, 400 55 L 400 100 L 0 100 Z"
+            fill="rgba(255,255,255,0.15)"
+          />
+        </svg>
+      </div>
+
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="relative flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
-            <Lightbulb className="w-5 h-5 text-purple-500" />
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <Lightbulb className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">Insights</h3>
-            <p className="text-xs text-muted-foreground">Análises automáticas</p>
+            <h3 className="font-semibold text-white">Insights</h3>
+            <p className="text-xs text-white/60">Análises automáticas</p>
           </div>
         </div>
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 text-muted-foreground transition-colors">
+        <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20 hover:bg-white/30 text-white transition-colors">
           <ArrowUpRight className="w-4 h-4" />
         </button>
       </div>
       
-      <div className="space-y-2">
+      <div className="relative space-y-2">
         {insights.length > 0 ? (
           insights.map((insight, index) => {
             const styles = getTypeStyles(insight.type);
             return (
               <div 
                 key={index}
-                className={cn("flex items-start gap-3 p-3 rounded-xl border", styles.bg, styles.border)}
+                className={cn("flex items-start gap-3 p-3 rounded-xl border backdrop-blur-sm", styles.bg, styles.border)}
               >
                 <div className="flex-shrink-0 mt-0.5">
                   <insight.icon className={cn("w-4 h-4", styles.icon)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{insight.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
+                  <p className="text-sm font-medium text-white">{insight.title}</p>
+                  <p className="text-xs text-white/70 mt-0.5">{insight.description}</p>
                 </div>
               </div>
             );
           })
         ) : (
           <div className="text-center py-6">
-            <Lightbulb className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">Continue vendendo para gerar insights</p>
+            <Lightbulb className="w-10 h-10 mx-auto mb-2 text-white/30" />
+            <p className="text-sm text-white/60">Continue vendendo para gerar insights</p>
           </div>
         )}
       </div>
