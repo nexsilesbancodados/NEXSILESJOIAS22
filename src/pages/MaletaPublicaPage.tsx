@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
+import { useMaletaPresence } from '@/hooks/useMaletaPresence';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,8 @@ import {
   Phone,
   User,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Circle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -95,7 +97,7 @@ export default function MaletaPublicaPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [observacoes, setObservacoes] = useState('');
 
-  // Fetch maleta data
+  // Fetch maleta data first to get the real ID
   const { data: maleta, isLoading: loadingMaleta, error: maletaError } = useQuery({
     queryKey: ['maleta-publica', maletaId],
     queryFn: async () => {
@@ -123,6 +125,9 @@ export default function MaletaPublicaPage() {
     },
     enabled: !!maletaId,
   });
+
+  // Use presence hook for tracking online status
+  const { isRevendedoraOnline, viewersCount } = useMaletaPresence(maleta?.id, 'viewer');
 
   // Fetch maleta items (only non-sold items)
   const { data: itens = [], isLoading: loadingItens } = useQuery({
@@ -359,13 +364,40 @@ export default function MaletaPublicaPage() {
               <Briefcase className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-semibold text-foreground truncate">
-                {maleta.nome}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold text-foreground truncate">
+                  {maleta.nome}
+                </h1>
+                {/* Online/Offline Indicator */}
+                <div 
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
+                    isRevendedoraOnline 
+                      ? "bg-success/10 text-success" 
+                      : "bg-muted text-muted-foreground"
+                  )}
+                  title={isRevendedoraOnline ? "Revendedora online" : "Revendedora offline"}
+                >
+                  <Circle 
+                    className={cn(
+                      "w-2 h-2",
+                      isRevendedoraOnline && "fill-success animate-pulse"
+                    )} 
+                  />
+                  {isRevendedoraOnline ? "Online" : "Offline"}
+                </div>
+              </div>
               {maleta.revendedora && (
-                <p className="text-sm text-muted-foreground">
-                  por {maleta.revendedora.nome}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    por {maleta.revendedora.nome}
+                  </p>
+                  {viewersCount > 1 && (
+                    <span className="text-xs text-muted-foreground">
+                      • {viewersCount} visualizando
+                    </span>
+                  )}
+                </div>
               )}
             </div>
             {(maleta.revendedora?.whatsapp || maleta.revendedora?.telefone) && (
@@ -373,10 +405,15 @@ export default function MaletaPublicaPage() {
                 variant="outline" 
                 size="sm"
                 onClick={openWhatsApp}
-                className="gap-2 text-green-600 hover:text-green-700"
+                className={cn(
+                  "gap-2",
+                  isRevendedoraOnline 
+                    ? "border-success text-success hover:bg-success/10" 
+                    : "text-muted-foreground"
+                )}
               >
                 <Phone className="w-4 h-4" />
-                Contato
+                {isRevendedoraOnline ? "Online agora" : "Contato"}
               </Button>
             )}
           </div>

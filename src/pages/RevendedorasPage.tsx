@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRevendedoraPresence } from '@/hooks/useMaletaPresence';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -207,7 +208,9 @@ export default function RevendedorasPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [maletaActiveTab, setMaletaActiveTab] = useState('pecas');
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
-  
+
+  // Track revendedora presence when viewing a maleta (broadcasts to public page)
+  useRevendedoraPresence(selectedMaleta?.id);
   
   const [formData, setFormData] = useState({
     nome: '',
