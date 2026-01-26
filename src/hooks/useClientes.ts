@@ -12,6 +12,14 @@ export interface Cliente {
   cpf: string | null;
   data_nascimento: string | null;
   endereco: string | null;
+  cidade: string | null;
+  estado: string | null;
+  cep: string | null;
+  observacoes: string | null;
+  pontos_fidelidade: number | null;
+  ativo: boolean | null;
+  whatsapp: string | null;
+  organization_id: string | null;
   created_at: string;
   updated_at: string;
 }

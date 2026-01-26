@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, Plus, MoreHorizontal, Pencil, Trash2, Cake, MessageCircle, Loader2, UserCircle, MessageSquare } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Pencil, Trash2, Cake, MessageCircle, Loader2, UserCircle, MessageSquare, Upload } from 'lucide-react';
 import { useClientes, useAddCliente, useUpdateCliente, useDeleteCliente, Cliente } from '@/hooks/useClientes';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -19,6 +19,7 @@ import { ValidatedInput } from '@/components/ui/validated-input';
 import { toast } from 'sonner';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
+import { ImportacaoClientesModal } from '@/components/clientes/ImportacaoClientesModal';
 
 export default function ClientesPage() {
   const { data: clientes = [], isLoading } = useClientes();
@@ -34,7 +35,7 @@ export default function ClientesPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
-
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,6 +126,14 @@ export default function ClientesPage() {
       cpf: formData.cpf || null,
       data_nascimento: formData.data_nascimento || null,
       endereco: formData.endereco || null,
+      cidade: null,
+      estado: null,
+      cep: null,
+      observacoes: null,
+      pontos_fidelidade: null,
+      ativo: true,
+      whatsapp: null,
+      organization_id: null,
     };
     if (selectedCliente) {
       updateCliente({ id: selectedCliente.id, ...data });
@@ -154,6 +163,12 @@ export default function ClientesPage() {
             <MessageSquare className="w-4 h-4" />
             Templates WhatsApp
           </Button>
+          <ReadOnlyGuard>
+            <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="gap-2">
+              <Upload className="w-4 h-4" />
+              Importar
+            </Button>
+          </ReadOnlyGuard>
           <ReadOnlyGuard>
             <Button onClick={() => handleOpenForm()} className="btn-gold gap-2">
               <Plus className="w-4 h-4" />
@@ -391,6 +406,12 @@ export default function ClientesPage() {
       <WhatsAppTemplates 
         open={isWhatsAppTemplatesOpen} 
         onOpenChange={setIsWhatsAppTemplatesOpen} 
+      />
+
+      {/* Import Clientes Modal */}
+      <ImportacaoClientesModal
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
       />
     </div>
   );

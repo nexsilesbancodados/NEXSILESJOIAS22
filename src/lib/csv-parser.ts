@@ -28,6 +28,19 @@ export const PECA_COLUMNS: ColumnMapping[] = [
   { csvColumn: 'descricao', dbField: 'descricao', type: 'string', required: false },
 ];
 
+export const CLIENTE_COLUMNS: ColumnMapping[] = [
+  { csvColumn: 'nome', dbField: 'nome', type: 'string', required: true },
+  { csvColumn: 'telefone', dbField: 'telefone', type: 'string', required: false },
+  { csvColumn: 'email', dbField: 'email', type: 'string', required: false },
+  { csvColumn: 'cpf', dbField: 'cpf', type: 'string', required: false },
+  { csvColumn: 'data_nascimento', dbField: 'data_nascimento', type: 'string', required: false },
+  { csvColumn: 'endereco', dbField: 'endereco', type: 'string', required: false },
+  { csvColumn: 'cidade', dbField: 'cidade', type: 'string', required: false },
+  { csvColumn: 'estado', dbField: 'estado', type: 'string', required: false },
+  { csvColumn: 'cep', dbField: 'cep', type: 'string', required: false },
+  { csvColumn: 'observacoes', dbField: 'observacoes', type: 'string', required: false },
+];
+
 /**
  * Parse a CSV file into headers and rows
  */
@@ -253,6 +266,20 @@ export function generateSampleCSV(): string {
     ['Anel Dourado', 'ANE-001', '10', '5', '25,00', '89,90', 'Anel', 'Ouro', 'Anel banhado a ouro 18k'],
     ['Colar Pérolas', 'COL-001', '5', '3', '45,00', '159,90', 'Colar', 'Prata', 'Colar com pérolas sintéticas'],
     ['Pulseira Couro', 'PUL-001', '15', '5', '15,00', '49,90', 'Pulseira', 'Couro', 'Pulseira de couro trançado'],
+  ];
+
+  return [headers.join(';'), ...sampleData.map(row => row.join(';'))].join('\n');
+}
+
+/**
+ * Generate a sample CSV template for clients
+ */
+export function generateClienteSampleCSV(): string {
+  const headers = ['nome', 'telefone', 'email', 'cpf', 'data_nascimento', 'endereco', 'cidade', 'estado', 'cep', 'observacoes'];
+  const sampleData = [
+    ['Maria Silva', '11999998888', 'maria@email.com', '123.456.789-00', '1990-05-15', 'Rua das Flores, 123', 'São Paulo', 'SP', '01234-567', 'Cliente VIP'],
+    ['João Santos', '21988887777', 'joao@email.com', '987.654.321-00', '1985-10-20', 'Av. Central, 456', 'Rio de Janeiro', 'RJ', '20000-000', ''],
+    ['Ana Oliveira', '31977776666', 'ana@email.com', '', '1995-03-08', 'Rua Nova, 789', 'Belo Horizonte', 'MG', '30000-000', 'Prefere WhatsApp'],
   ];
 
   return [headers.join(';'), ...sampleData.map(row => row.join(';'))].join('\n');
