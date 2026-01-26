@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useRevendedoraPresence } from '@/hooks/useMaletaPresence';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -211,6 +212,8 @@ export default function RevendedorasPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [maletaActiveTab, setMaletaActiveTab] = useState('pecas');
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [isBulkActionPending, setIsBulkActionPending] = useState(false);
 
   // Track revendedora presence when viewing a maleta (broadcasts to public page)
   useRevendedoraPresence(selectedMaleta?.id);
@@ -478,6 +481,67 @@ export default function RevendedorasPage() {
       console.error('Error updating item:', error);
     }
   };
+
+  // Bulk selection helpers
+  const pendingItems = maletaItems.filter(item => item.status === 'pendente');
+  const selectedPendingItems = pendingItems.filter(item => selectedItemIds.has(item.id));
+  const isAllPendingSelected = pendingItems.length > 0 && selectedPendingItems.length === pendingItems.length;
+  const isSomeSelected = selectedItemIds.size > 0;
+
+  const toggleItemSelection = useCallback((itemId: string) => {
+    setSelectedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAllPending = useCallback(() => {
+    if (isAllPendingSelected) {
+      setSelectedItemIds(new Set());
+    } else {
+      setSelectedItemIds(new Set(pendingItems.map(item => item.id)));
+    }
+  }, [isAllPendingSelected, pendingItems]);
+
+  const handleBulkAction = async (status: 'vendido' | 'devolvido') => {
+    if (selectedItemIds.size === 0) return;
+    
+    setIsBulkActionPending(true);
+    try {
+      const itemsToUpdate = maletaItems.filter(item => 
+        selectedItemIds.has(item.id) && item.status === 'pendente'
+      );
+      
+      await Promise.all(
+        itemsToUpdate.map(item => 
+          updateMaletaItemMutation.mutateAsync({ 
+            id: item.id, 
+            status, 
+            pecaId: item.peca_id, 
+            statusAnterior: 'pendente' 
+          })
+        )
+      );
+      
+      setSelectedItemIds(new Set());
+      toast.success(`${itemsToUpdate.length} ${itemsToUpdate.length === 1 ? 'peça marcada' : 'peças marcadas'} como ${status === 'vendido' ? 'vendidas' : 'devolvidas'}`);
+    } catch (error) {
+      console.error('Error in bulk action:', error);
+      toast.error('Erro ao atualizar itens');
+    } finally {
+      setIsBulkActionPending(false);
+    }
+  };
+
+  // Clear selection when maleta changes
+  useEffect(() => {
+    setSelectedItemIds(new Set());
+  }, [selectedMaleta?.id]);
 
   const handleFecharMaleta = async () => {
     if (!selectedMaleta) return;
@@ -1030,6 +1094,55 @@ export default function RevendedorasPage() {
                   </div>
                 </div>
 
+                {/* Bulk Actions Bar */}
+                {selectedMaleta?.status === 'aberta' && pendingItems.length > 0 && (
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={isAllPendingSelected}
+                        onCheckedChange={toggleSelectAllPending}
+                        disabled={isBulkActionPending}
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {selectedPendingItems.length > 0 
+                          ? `${selectedPendingItems.length} ${selectedPendingItems.length === 1 ? 'selecionada' : 'selecionadas'}`
+                          : 'Selecionar todas pendentes'
+                        }
+                      </span>
+                    </div>
+                    {selectedPendingItems.length > 0 && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-success text-success-foreground hover:bg-success/90"
+                          onClick={() => handleBulkAction('vendido')}
+                          disabled={isBulkActionPending}
+                        >
+                          {isBulkActionPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          ) : (
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
+                          )}
+                          Marcar Vendidas
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleBulkAction('devolvido')}
+                          disabled={isBulkActionPending}
+                        >
+                          {isBulkActionPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                          ) : (
+                            <XCircle className="w-4 h-4 mr-1" />
+                          )}
+                          Marcar Devolvidas
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Items List */}
                 <ScrollArea className="h-64">
                   <div className="space-y-2 pr-4">
@@ -1049,9 +1162,18 @@ export default function RevendedorasPage() {
                             'flex items-center gap-3 p-3 rounded-lg',
                             item.status === 'vendido' && 'bg-success/10',
                             item.status === 'devolvido' && 'bg-muted',
-                            item.status === 'pendente' && 'bg-secondary/50'
+                            item.status === 'pendente' && 'bg-secondary/50',
+                            selectedItemIds.has(item.id) && 'ring-2 ring-primary'
                           )}
                         >
+                          {/* Checkbox for pending items when maleta is open */}
+                          {selectedMaleta?.status === 'aberta' && item.status === 'pendente' && (
+                            <Checkbox
+                              checked={selectedItemIds.has(item.id)}
+                              onCheckedChange={() => toggleItemSelection(item.id)}
+                              disabled={isBulkActionPending}
+                            />
+                          )}
                           <img
                             src={item.peca?.imagem_url || '/placeholder.svg'}
                             alt={item.peca?.nome}
@@ -1069,7 +1191,7 @@ export default function RevendedorasPage() {
                                 size="sm"
                                 className="bg-success text-success-foreground hover:bg-success/90"
                                 onClick={() => handleMarcarItem(item.id, item.peca_id, 'vendido', 'pendente')}
-                                disabled={updateMaletaItemMutation.isPending}
+                                disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Vendido
                               </Button>
@@ -1077,7 +1199,7 @@ export default function RevendedorasPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleMarcarItem(item.id, item.peca_id, 'devolvido', 'pendente')}
-                                disabled={updateMaletaItemMutation.isPending}
+                                disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Devolvido
                               </Button>
@@ -1095,7 +1217,7 @@ export default function RevendedorasPage() {
                                     await handleMarcarItem(item.id, item.peca_id, 'pendente', 'vendido');
                                   }
                                 }}
-                                disabled={updateMaletaItemMutation.isPending}
+                                disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Desfazer
                               </Button>
