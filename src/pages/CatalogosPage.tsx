@@ -57,12 +57,13 @@ import {
   Check,
   PlusCircle,
   Wand2,
-  Keyboard
+  Keyboard,
+  Minus
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { MiniGradientCard } from '@/components/dashboard/MiniGradientCard';
-import { useCatalogos, useAddCatalogo, useUpdateCatalogo, useDeleteCatalogo, useCatalogoItems, useAddCatalogoItem, useDeleteCatalogoItem, usePecas, useAddPeca, useFornecedores } from '@/hooks/useSupabaseData';
+import { useCatalogos, useAddCatalogo, useUpdateCatalogo, useDeleteCatalogo, useCatalogoItems, useAddCatalogoItem, useUpdateCatalogoItem, useDeleteCatalogoItem, usePecas, useAddPeca, useFornecedores } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
 import { PedidosCatalogoList } from '@/components/catalogo/PedidosCatalogoList';
 import { ShareCatalogButton } from '@/components/catalogo/ShareCatalogButton';
@@ -881,6 +882,7 @@ function CatalogoItemsDialog({
   const { data: items = [], isLoading } = useCatalogoItems(catalogo?.id || '');
   const { data: fornecedores = [] } = useFornecedores();
   const addItem = useAddCatalogoItem();
+  const updateItem = useUpdateCatalogoItem();
   const deleteItem = useDeleteCatalogoItem();
   const addPeca = useAddPeca();
   const [searchPeca, setSearchPeca] = useState('');
@@ -958,6 +960,7 @@ function CatalogoItemsDialog({
         return addItem.mutateAsync({
           catalogo_id: catalogo.id,
           peca_id: pecaId,
+          quantidade: 1,
           ordem: items.length + index,
           destaque: false,
         });
@@ -979,6 +982,7 @@ function CatalogoItemsDialog({
     await addItem.mutateAsync({
       catalogo_id: catalogo.id,
       peca_id: peca.id,
+      quantidade: 1,
       ordem: items.length,
       destaque: false,
     });
@@ -987,6 +991,14 @@ function CatalogoItemsDialog({
 
   const handleRemoveItem = async (itemId: string) => {
     await deleteItem.mutateAsync(itemId);
+  };
+
+  const handleUpdateQuantidade = async (itemId: string, novaQuantidade: number) => {
+    if (novaQuantidade < 1) {
+      await deleteItem.mutateAsync(itemId);
+      return;
+    }
+    await updateItem.mutateAsync({ id: itemId, quantidade: novaQuantidade });
   };
 
   const handleCreateAndAddPeca = async () => {
@@ -1020,6 +1032,7 @@ function CatalogoItemsDialog({
       await addItem.mutateAsync({
         catalogo_id: catalogo.id,
         peca_id: newPeca.id,
+        quantidade: 1,
         ordem: items.length,
         destaque: false,
       });
@@ -1053,7 +1066,8 @@ function CatalogoItemsDialog({
     }).format(value);
   };
 
-  const totalRomaneio = items.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  const totalRomaneio = items.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
+  const totalPecas = items.reduce((acc, item) => acc + (item.quantidade || 1), 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1473,21 +1487,43 @@ function CatalogoItemsDialog({
                     <img
                       src={item.peca?.imagem_url || '/placeholder.svg'}
                       alt={item.peca?.nome}
-                      className="w-12 h-12 rounded object-cover"
+                      className="w-12 h-12 rounded object-cover flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <p className="font-medium">{item.peca?.nome}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{item.peca?.nome}</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatCurrency(item.peca?.preco_venda || 0)}
+                        {formatCurrency(item.peca?.preco_venda || 0)} /un
                       </p>
                     </div>
-                    <p className="font-semibold">
-                      {formatCurrency(item.peca?.preco_venda || 0)}
+                    
+                    {/* Controles de quantidade */}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantidade(item.id, (item.quantidade || 1) - 1)}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">{item.quantidade || 1}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleUpdateQuantidade(item.id, (item.quantidade || 1) + 1)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    
+                    <p className="font-semibold w-24 text-right">
+                      {formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1))}
                     </p>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
                       onClick={() => handleRemoveItem(item.id)}
                     >
                       <X className="w-4 h-4" />
@@ -1502,6 +1538,10 @@ function CatalogoItemsDialog({
         {/* Total */}
         {items.length > 0 && (
           <div className="border-t pt-4">
+            <div className="flex justify-between text-sm text-muted-foreground mb-1">
+              <span>Total de Peças</span>
+              <span>{totalPecas} {totalPecas === 1 ? 'peça' : 'peças'}</span>
+            </div>
             <div className="flex justify-between">
               <span className="font-semibold">Total do Romaneio</span>
               <span className="font-semibold text-lg">{formatCurrency(totalRomaneio)}</span>

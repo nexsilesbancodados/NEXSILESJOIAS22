@@ -324,6 +324,7 @@ export type Database = {
           id: string
           ordem: number | null
           peca_id: string
+          quantidade: number
         }
         Insert: {
           catalogo_id: string
@@ -332,6 +333,7 @@ export type Database = {
           id?: string
           ordem?: number | null
           peca_id: string
+          quantidade?: number
         }
         Update: {
           catalogo_id?: string
@@ -340,6 +342,7 @@ export type Database = {
           id?: string
           ordem?: number | null
           peca_id?: string
+          quantidade?: number
         }
         Relationships: [
           {
