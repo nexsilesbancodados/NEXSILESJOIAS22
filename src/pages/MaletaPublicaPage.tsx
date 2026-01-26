@@ -54,6 +54,9 @@ interface MaletaPublica {
   sharing_slug: string | null;
   is_public: boolean | null;
   revendedora_id: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
+  imagem_capa: string | null;
   revendedora?: {
     nome: string;
     telefone: string | null;
@@ -354,14 +357,60 @@ export default function MaletaPublicaPage() {
 
   const availableItems = itens.filter(item => !item.vendida && item.peca);
 
+  // Custom colors with fallbacks
+  const corPrimaria = maleta.cor_primaria || '#8B5CF6';
+  const corSecundaria = maleta.cor_secundaria || '#EC4899';
+  const hasCustomImage = !!maleta.imagem_capa;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary via-background to-secondary pb-24">
-      {/* Header */}
-      <div className="bg-card border-b sticky top-0 z-10">
+      {/* Hero Banner with custom colors/image */}
+      {hasCustomImage ? (
+        <div 
+          className="h-32 md:h-48 w-full relative"
+          style={{
+            backgroundImage: `url(${maleta.imagem_capa})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/60" />
+        </div>
+      ) : (
+        <div 
+          className="h-24 md:h-32 w-full"
+          style={{
+            background: `linear-gradient(135deg, ${corPrimaria}, ${corSecundaria})`,
+          }}
+        />
+      )}
+
+      {/* Header - overlays the hero when has image */}
+      <div className={cn(
+        "bg-card border-b sticky top-0 z-10",
+        hasCustomImage && "-mt-16 md:-mt-20 mx-4 md:mx-auto md:max-w-4xl rounded-t-2xl shadow-lg"
+      )}>
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Briefcase className="w-5 h-5 text-primary" />
+            {/* Icon with custom colors or image */}
+            <div 
+              className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden shrink-0",
+                !hasCustomImage && "border border-border/50"
+              )}
+              style={{
+                background: hasCustomImage 
+                  ? `url(${maleta.imagem_capa}) center/cover`
+                  : `linear-gradient(135deg, ${corPrimaria}20, ${corSecundaria}20)`,
+              }}
+            >
+              {hasCustomImage ? (
+                <div className="w-full h-full bg-black/20 flex items-center justify-center">
+                  <Briefcase className="w-5 h-5 text-white" />
+                </div>
+              ) : (
+                <Briefcase className="w-5 h-5" style={{ color: corPrimaria }} />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -405,12 +454,11 @@ export default function MaletaPublicaPage() {
                 variant="outline" 
                 size="sm"
                 onClick={openWhatsApp}
-                className={cn(
-                  "gap-2",
-                  isRevendedoraOnline 
-                    ? "border-success text-success hover:bg-success/10" 
-                    : "text-muted-foreground"
-                )}
+                className="gap-2"
+                style={isRevendedoraOnline ? {
+                  borderColor: corPrimaria,
+                  color: corPrimaria,
+                } : undefined}
               >
                 <Phone className="w-4 h-4" />
                 {isRevendedoraOnline ? "Online agora" : "Contato"}
@@ -420,12 +468,21 @@ export default function MaletaPublicaPage() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className={cn(
+        "max-w-4xl mx-auto px-4 py-6 space-y-6",
+        hasCustomImage && "md:px-0"
+      )}>
         {/* Info Card */}
-        <Card className="border-l-4 border-l-primary bg-primary/5">
+        <Card 
+          className="border-l-4"
+          style={{ 
+            borderLeftColor: corPrimaria,
+            backgroundColor: `${corPrimaria}08`,
+          }}
+        >
           <CardContent className="py-4">
             <div className="flex items-start gap-3">
-              <Sparkles className="w-5 h-5 text-primary mt-0.5" />
+              <Sparkles className="w-5 h-5 mt-0.5" style={{ color: corPrimaria }} />
               <div>
                 <p className="font-medium text-foreground">Vitrine Exclusiva</p>
                 <p className="text-sm text-muted-foreground">
@@ -441,13 +498,13 @@ export default function MaletaPublicaPage() {
         <div className="grid grid-cols-2 gap-4">
           <Card>
             <CardContent className="py-4 text-center">
-              <p className="text-2xl font-bold text-primary">{availableItems.length}</p>
+              <p className="text-2xl font-bold" style={{ color: corPrimaria }}>{availableItems.length}</p>
               <p className="text-sm text-muted-foreground">Peças disponíveis</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="py-4 text-center">
-              <p className="text-2xl font-bold text-primary">{cartItemCount}</p>
+              <p className="text-2xl font-bold" style={{ color: corSecundaria }}>{cartItemCount}</p>
               <p className="text-sm text-muted-foreground">Selecionadas</p>
             </CardContent>
           </Card>
@@ -479,8 +536,11 @@ export default function MaletaPublicaPage() {
                   key={item.id}
                   className={cn(
                     "overflow-hidden cursor-pointer transition-all hover:shadow-md",
-                    isSelected && "ring-2 ring-primary"
+                    isSelected && "ring-2"
                   )}
+                  style={isSelected ? { 
+                    '--tw-ring-color': corPrimaria,
+                  } as React.CSSProperties : undefined}
                   onClick={() => toggleItemSelection(item)}
                 >
                   <div className="aspect-square bg-muted relative">
@@ -496,8 +556,11 @@ export default function MaletaPublicaPage() {
                       </div>
                     )}
                     {isSelected && (
-                      <div className="absolute top-2 right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                        <Heart className="w-4 h-4 text-primary-foreground fill-current" />
+                      <div 
+                        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
+                        style={{ background: `linear-gradient(135deg, ${corPrimaria}, ${corSecundaria})` }}
+                      >
+                        <Heart className="w-4 h-4 text-white fill-current" />
                       </div>
                     )}
                     {item.peca?.categoria && (
@@ -518,7 +581,7 @@ export default function MaletaPublicaPage() {
                         Cód: {item.peca.codigo}
                       </p>
                     )}
-                    <p className="text-primary font-semibold mt-1">
+                    <p className="font-semibold mt-1" style={{ color: corPrimaria }}>
                       {formatCurrency(preco)}
                     </p>
                   </CardContent>
@@ -537,7 +600,8 @@ export default function MaletaPublicaPage() {
               <SheetTrigger asChild>
                 <Button 
                   size="lg" 
-                  className="w-full gap-2 shadow-lg"
+                  className="w-full gap-2 shadow-lg text-white"
+                  style={{ background: `linear-gradient(135deg, ${corPrimaria}, ${corSecundaria})` }}
                 >
                   <Heart className="w-5 h-5" />
                   Ver seleção ({cartItemCount} {cartItemCount === 1 ? 'peça' : 'peças'})
