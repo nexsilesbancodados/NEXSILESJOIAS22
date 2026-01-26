@@ -44,7 +44,9 @@ import {
   MapPin,
   Search,
   Filter,
-  X
+  X,
+  LayoutGrid,
+  LayoutList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -116,6 +118,7 @@ export default function CatalogoPublicoPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
   const [selectedMaterial, setSelectedMaterial] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   
   // Address fields
   const [enderecoCep, setEnderecoCep] = useState('');
@@ -627,11 +630,32 @@ export default function CatalogoPublicoPage() {
               <Package className="w-5 h-5 text-primary" />
               <h2 className="font-semibold text-foreground">Peças do Catálogo</h2>
             </div>
-            {canOrder && selectedItems.size > 0 && (
-              <Badge variant="secondary" className="animate-pulse">
-                {selectedItems.size} selecionada(s)
-              </Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {canOrder && selectedItems.size > 0 && (
+                <Badge variant="secondary" className="animate-pulse">
+                  {selectedItems.size} selecionada(s)
+                </Badge>
+              )}
+              {/* View Mode Toggle */}
+              <div className="flex border rounded-lg overflow-hidden">
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8 rounded-none"
+                  onClick={() => setViewMode('list')}
+                >
+                  <LayoutList className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8 rounded-none"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Search and Filters */}
@@ -736,13 +760,125 @@ export default function CatalogoPublicoPage() {
             </Card>
           ) : (
             <ScrollArea className="h-auto">
-              <div className="space-y-3">
+              <div className={cn(
+                viewMode === 'grid' 
+                  ? "grid grid-cols-2 sm:grid-cols-3 gap-3" 
+                  : "space-y-3"
+              )}>
                 {filteredItens.map((item) => {
                   const isSelected = selectedItems.has(item.id);
                   const selectedQty = selectedItems.get(item.id)?.quantidade || 0;
                   const maxQty = item.quantidade || 1;
                   const justAdded = lastAddedItemId === item.id;
                   
+                  // Grid View Card
+                  if (viewMode === 'grid') {
+                    return (
+                      <Card 
+                        key={item.id} 
+                        className={cn(
+                          "overflow-hidden transition-all duration-300",
+                          isSelected && "ring-2 ring-primary bg-primary/5",
+                          canOrder && "hover:shadow-md cursor-pointer",
+                          justAdded && "animate-scale-in ring-2 ring-primary shadow-lg"
+                        )}
+                        onClick={() => canOrder && toggleItemSelection(item)}
+                      >
+                        <CardContent className="p-0">
+                          {/* Image */}
+                          <div className="relative aspect-square bg-secondary">
+                            {canOrder && (
+                              <div className="absolute top-2 left-2 z-10">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={() => toggleItemSelection(item)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="bg-background"
+                                />
+                              </div>
+                            )}
+                            {item.peca?.imagem_url ? (
+                              <img
+                                src={item.peca.imagem_url}
+                                alt={item.peca?.nome || 'Peça'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-12 h-12 text-muted-foreground/30" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Info */}
+                          <div className="p-3 space-y-2">
+                            <h3 className="font-medium text-sm text-foreground line-clamp-2">
+                              {item.peca?.nome || 'Peça removida'}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">
+                              Cód: {item.peca?.codigo || '-'}
+                            </p>
+                            <p className="font-semibold text-lg text-primary">
+                              {formatCurrency(item.peca?.preco_venda || 0)}
+                            </p>
+                            
+                            {/* Quantity Controls for Grid */}
+                            {canOrder && (
+                              <div className="pt-2 border-t">
+                                {isSelected ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (selectedQty <= 1) {
+                                          toggleItemSelection(item);
+                                        } else {
+                                          updateItemQuantity(item.id, -1);
+                                        }
+                                      }}
+                                    >
+                                      <Minus className="w-3 h-3" />
+                                    </Button>
+                                    <span className="w-6 text-center font-semibold text-sm">{selectedQty}</span>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      disabled={selectedQty >= maxQty}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateItemQuantity(item.id, 1);
+                                      }}
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="w-full h-8 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setItemQuantity(item.id, 1, item);
+                                    }}
+                                  >
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Adicionar
+                                  </Button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  
+                  // List View Card (original)
                   return (
                     <Card 
                       key={item.id} 
