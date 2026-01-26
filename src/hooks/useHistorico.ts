@@ -47,19 +47,19 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
+      // RLS handles organization filtering automatically
       let query = db
         .from('historico_atividades')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
       
       if (entidade !== 'todas') {
-        query = query.eq('entidade', entidade);
+        query = query.eq('tabela', entidade);
       }
       
       if (tipo !== 'todos') {
-        query = query.eq('tipo', tipo);
+        query = query.eq('acao', tipo);
       }
       
       if (dataInicio) {
