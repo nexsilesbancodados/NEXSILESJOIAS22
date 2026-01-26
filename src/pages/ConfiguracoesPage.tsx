@@ -20,6 +20,8 @@ import { SeedDatabaseCard } from '@/components/admin/SeedDatabaseCard';
 import { ProfileCard } from '@/components/profile/ProfileCard';
 import { SubscriptionNotifications } from '@/components/profile/SubscriptionNotifications';
 import { useSetupWizard } from '@/components/onboarding/SetupWizard';
+import { DataExportManager } from '@/components/export/DataExportManager';
+import { SmartAlertsManager } from '@/components/alerts/SmartAlertsManager';
 
 export default function ConfiguracoesPage() {
   const navigate = useNavigate();
@@ -321,6 +323,8 @@ export default function ConfiguracoesPage() {
         </TabsContent>
 
         <TabsContent value="backup" className="space-y-6">
+          <DataExportManager />
+          <SmartAlertsManager />
           <BackupManager />
           <SeedDatabaseCard />
           
