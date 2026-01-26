@@ -109,6 +109,19 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
         throw new Error('Slug deve ter pelo menos 3 caracteres');
       }
 
+      // Verificar unicidade do slug
+      const { data: existing, error: checkError } = await supabase
+        .from('maletas')
+        .select('id')
+        .eq('sharing_slug', sanitized)
+        .neq('id', maletaId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existing) {
+        throw new Error('Este link já está em uso. Escolha outro.');
+      }
+
       const { error } = await supabase
         .from('maletas')
         .update({ sharing_slug: sanitized })

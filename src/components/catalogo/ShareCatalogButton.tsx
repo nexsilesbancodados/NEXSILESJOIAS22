@@ -95,6 +95,19 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
         throw new Error('Slug deve ter pelo menos 3 caracteres');
       }
 
+      // Verificar unicidade do slug
+      const { data: existing, error: checkError } = await supabase
+        .from('catalogos')
+        .select('id')
+        .eq('slug', sanitized)
+        .neq('id', catalogoId)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+      if (existing) {
+        throw new Error('Este link já está em uso. Escolha outro.');
+      }
+
       const { error } = await supabase
         .from('catalogos')
         .update({ slug: sanitized })
