@@ -589,8 +589,8 @@ export default function CatalogosPage() {
 
       {/* Config Dialog - Enhanced with customization */}
       <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="font-display text-xl">
               Configurações do Catálogo
             </DialogTitle>
@@ -599,190 +599,192 @@ export default function CatalogosPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="visual" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="visual">Visual</TabsTrigger>
-              <TabsTrigger value="texto">Texto</TabsTrigger>
-              <TabsTrigger value="custos">Custos</TabsTrigger>
-            </TabsList>
+          <ScrollArea className="flex-1 -mx-6 px-6">
+            <Tabs defaultValue="visual" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 sticky top-0 z-10 bg-background">
+                <TabsTrigger value="visual">Visual</TabsTrigger>
+                <TabsTrigger value="texto">Texto</TabsTrigger>
+                <TabsTrigger value="custos">Custos</TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="visual" className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="logo_url">URL do Logo</Label>
-                  <Input
-                    id="logo_url"
-                    value={formData.logo_url}
-                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="banner_url">URL do Banner</Label>
-                  <Input
-                    id="banner_url"
-                    value={formData.banner_url}
-                    onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cor_primaria">Cor Primária</Label>
-                  <div className="flex gap-2">
+              <TabsContent value="visual" className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="logo_url">URL do Logo</Label>
                     <Input
-                      id="cor_primaria"
-                      type="color"
-                      value={formData.cor_primaria}
-                      onChange={(e) => setFormData({ ...formData, cor_primaria: e.target.value })}
-                      className="w-12 h-10 p-1 cursor-pointer"
+                      id="logo_url"
+                      value={formData.logo_url}
+                      onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                      placeholder="https://..."
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="banner_url">URL do Banner</Label>
                     <Input
-                      value={formData.cor_primaria}
-                      onChange={(e) => setFormData({ ...formData, cor_primaria: e.target.value })}
-                      placeholder="#D4AF37"
-                      className="flex-1"
+                      id="banner_url"
+                      value={formData.banner_url}
+                      onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cor_primaria">Cor Primária</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="cor_primaria"
+                        type="color"
+                        value={formData.cor_primaria}
+                        onChange={(e) => setFormData({ ...formData, cor_primaria: e.target.value })}
+                        className="w-12 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        value={formData.cor_primaria}
+                        onChange={(e) => setFormData({ ...formData, cor_primaria: e.target.value })}
+                        placeholder="#D4AF37"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cor_secundaria">Cor Secundária</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="cor_secundaria"
+                        type="color"
+                        value={formData.cor_secundaria}
+                        onChange={(e) => setFormData({ ...formData, cor_secundaria: e.target.value })}
+                        className="w-12 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        value={formData.cor_secundaria}
+                        onChange={(e) => setFormData({ ...formData, cor_secundaria: e.target.value })}
+                        placeholder="#1a1a2e"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {(formData.logo_url || formData.banner_url) && (
+                  <div className="border rounded-lg p-4 bg-secondary/30">
+                    <p className="text-sm text-muted-foreground mb-2">Pré-visualização:</p>
+                    <div className="flex gap-4 items-center">
+                      {formData.logo_url && (
+                        <img src={formData.logo_url} alt="Logo" className="h-12 w-auto object-contain" />
+                      )}
+                      {formData.banner_url && (
+                        <img src={formData.banner_url} alt="Banner" className="h-16 w-auto object-cover rounded" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="texto" className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="titulo">Título do Catálogo</Label>
+                  <Input
+                    id="titulo"
+                    value={formData.titulo}
+                    onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                    placeholder="Catálogo de Joias Exclusivas"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="descricao">Descrição</Label>
+                  <Textarea
+                    id="descricao"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                    placeholder="Descrição do catálogo que aparece na página pública..."
+                    rows={2}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mensagem_boas_vindas">Mensagem de Boas-vindas</Label>
+                  <Textarea
+                    id="mensagem_boas_vindas"
+                    value={formData.mensagem_boas_vindas}
+                    onChange={(e) => setFormData({ ...formData, mensagem_boas_vindas: e.target.value })}
+                    placeholder="Bem-vindo(a) ao nosso catálogo exclusivo!"
+                    rows={2}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp">WhatsApp</Label>
+                    <Input
+                      id="whatsapp"
+                      value={formData.whatsapp}
+                      onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                      placeholder="5511999999999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email_contato">Email de Contato</Label>
+                    <Input
+                      id="email_contato"
+                      type="email"
+                      value={formData.email_contato}
+                      onChange={(e) => setFormData({ ...formData, email_contato: e.target.value })}
+                      placeholder="contato@exemplo.com"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="custos" className="space-y-4 py-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="config_separacao">Custo Separação</Label>
+                    <Input
+                      id="config_separacao"
+                      type="number"
+                      step="0.01"
+                      value={formData.custo_separacao}
+                      onChange={(e) => setFormData({ ...formData, custo_separacao: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="config_operacional">Custo Operacional</Label>
+                    <Input
+                      id="config_operacional"
+                      type="number"
+                      step="0.01"
+                      value={formData.custo_operacional}
+                      onChange={(e) => setFormData({ ...formData, custo_operacional: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="config_entrega">Taxa Entrega</Label>
+                    <Input
+                      id="config_entrega"
+                      type="number"
+                      step="0.01"
+                      value={formData.taxa_entrega}
+                      onChange={(e) => setFormData({ ...formData, taxa_entrega: e.target.value })}
+                      placeholder="0.00"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cor_secundaria">Cor Secundária</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="cor_secundaria"
-                      type="color"
-                      value={formData.cor_secundaria}
-                      onChange={(e) => setFormData({ ...formData, cor_secundaria: e.target.value })}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                    />
-                    <Input
-                      value={formData.cor_secundaria}
-                      onChange={(e) => setFormData({ ...formData, cor_secundaria: e.target.value })}
-                      placeholder="#1a1a2e"
-                      className="flex-1"
-                    />
-                  </div>
+                  <Label htmlFor="config_obs">Observações Internas</Label>
+                  <Textarea
+                    id="config_obs"
+                    value={formData.observacao}
+                    onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                    placeholder="Observações internas (não aparecem no catálogo público)..."
+                    rows={3}
+                  />
                 </div>
-              </div>
-              {(formData.logo_url || formData.banner_url) && (
-                <div className="border rounded-lg p-4 bg-secondary/30">
-                  <p className="text-sm text-muted-foreground mb-2">Pré-visualização:</p>
-                  <div className="flex gap-4 items-center">
-                    {formData.logo_url && (
-                      <img src={formData.logo_url} alt="Logo" className="h-12 w-auto object-contain" />
-                    )}
-                    {formData.banner_url && (
-                      <img src={formData.banner_url} alt="Banner" className="h-16 w-auto object-cover rounded" />
-                    )}
-                  </div>
-                </div>
-              )}
-            </TabsContent>
+              </TabsContent>
+            </Tabs>
+          </ScrollArea>
 
-            <TabsContent value="texto" className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="titulo">Título do Catálogo</Label>
-                <Input
-                  id="titulo"
-                  value={formData.titulo}
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-                  placeholder="Catálogo de Joias Exclusivas"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição</Label>
-                <Textarea
-                  id="descricao"
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  placeholder="Descrição do catálogo que aparece na página pública..."
-                  rows={2}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mensagem_boas_vindas">Mensagem de Boas-vindas</Label>
-                <Textarea
-                  id="mensagem_boas_vindas"
-                  value={formData.mensagem_boas_vindas}
-                  onChange={(e) => setFormData({ ...formData, mensagem_boas_vindas: e.target.value })}
-                  placeholder="Bem-vindo(a) ao nosso catálogo exclusivo!"
-                  rows={2}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp">WhatsApp</Label>
-                  <Input
-                    id="whatsapp"
-                    value={formData.whatsapp}
-                    onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                    placeholder="5511999999999"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email_contato">Email de Contato</Label>
-                  <Input
-                    id="email_contato"
-                    type="email"
-                    value={formData.email_contato}
-                    onChange={(e) => setFormData({ ...formData, email_contato: e.target.value })}
-                    placeholder="contato@exemplo.com"
-                  />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="custos" className="space-y-4 py-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="config_separacao">Custo Separação</Label>
-                  <Input
-                    id="config_separacao"
-                    type="number"
-                    step="0.01"
-                    value={formData.custo_separacao}
-                    onChange={(e) => setFormData({ ...formData, custo_separacao: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="config_operacional">Custo Operacional</Label>
-                  <Input
-                    id="config_operacional"
-                    type="number"
-                    step="0.01"
-                    value={formData.custo_operacional}
-                    onChange={(e) => setFormData({ ...formData, custo_operacional: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="config_entrega">Taxa Entrega</Label>
-                  <Input
-                    id="config_entrega"
-                    type="number"
-                    step="0.01"
-                    value={formData.taxa_entrega}
-                    onChange={(e) => setFormData({ ...formData, taxa_entrega: e.target.value })}
-                    placeholder="0.00"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="config_obs">Observações Internas</Label>
-                <Textarea
-                  id="config_obs"
-                  value={formData.observacao}
-                  onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
-                  placeholder="Observações internas (não aparecem no catálogo público)..."
-                  rows={3}
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <DialogFooter>
+          <DialogFooter className="shrink-0 pt-4 border-t">
             <Button variant="outline" onClick={() => setIsConfigOpen(false)}>
               Cancelar
             </Button>
@@ -797,6 +799,7 @@ export default function CatalogosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Items Dialog (Romaneio) */}
       <CatalogoItemsDialog
