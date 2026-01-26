@@ -55,11 +55,14 @@ import {
   ShoppingBag,
   ImageIcon,
   Check,
-  PlusCircle
+  PlusCircle,
+  Wand2,
+  Keyboard
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { MiniGradientCard } from '@/components/dashboard/MiniGradientCard';
-import { useCatalogos, useAddCatalogo, useUpdateCatalogo, useDeleteCatalogo, useCatalogoItems, useAddCatalogoItem, useDeleteCatalogoItem, usePecas, useAddPeca } from '@/hooks/useSupabaseData';
+import { useCatalogos, useAddCatalogo, useUpdateCatalogo, useDeleteCatalogo, useCatalogoItems, useAddCatalogoItem, useDeleteCatalogoItem, usePecas, useAddPeca, useFornecedores } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
 import { PedidosCatalogoList } from '@/components/catalogo/PedidosCatalogoList';
 import { ShareCatalogButton } from '@/components/catalogo/ShareCatalogButton';
@@ -77,9 +80,23 @@ const STATUS_OPTIONS = [
   { value: 'finalizado', label: 'Finalizado', color: 'bg-emerald-500/20 text-emerald-600' },
 ];
 
+const CATEGORIAS = [
+  'Anel', 'Brinco', 'Pulseira', 'Colar', 'Corrente', 'Chocker', 'Gargantilha', 
+  'Tornozeleira', 'Bracelete', 'Conjunto', 'Elo', 'Escapulário', 
+  'Pingente', 'Tarraxa', 'Outros'
+];
+
+const BANHOS = [
+  'Prata', 'Ouro', 'Ródio Branco', 'Ródio Negro', 'Grafite', 
+  'Prata 925', 'Prata 700', 'Prata 950', 'Aço', 'Aço Dourado', 
+  'Couro', 'Níquel', 'Moeda Antiga', 'Rosé', 'Platina', 
+  'Bruto', 'Mix de Banho', 'Diamante', 'Ouro Branco'
+];
+
 export default function CatalogosPage() {
   const { data: catalogos = [], isLoading } = useCatalogos();
   const { data: pecas = [] } = usePecas({ includeCatalogOnly: true });
+  const { data: fornecedores = [] } = useFornecedores();
   const addCatalogo = useAddCatalogo();
   const updateCatalogo = useUpdateCatalogo();
   const deleteCatalogo = useDeleteCatalogo();
@@ -862,6 +879,7 @@ function CatalogoItemsDialog({
   pecas: any[];
 }) {
   const { data: items = [], isLoading } = useCatalogoItems(catalogo?.id || '');
+  const { data: fornecedores = [] } = useFornecedores();
   const addItem = useAddCatalogoItem();
   const deleteItem = useDeleteCatalogoItem();
   const addPeca = useAddPeca();
@@ -875,7 +893,21 @@ function CatalogoItemsDialog({
     preco_custo: '',
     preco_venda: '',
     categoria: '',
+    material: '',
+    fornecedor_id: '',
+    descricao: '',
+    estoque: '',
+    estoque_minimo: '',
+    imagem_url: '',
   });
+  const [autoGenerateCode, setAutoGenerateCode] = useState(true);
+
+  const generateCode = () => {
+    const prefix = 'CAT';
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+  };
 
   // IDs das peças já no catálogo
   const pecasNoCatalogo = new Set(items.map(i => i.peca_id));
@@ -974,14 +1006,14 @@ function CatalogoItemsDialog({
         preco_custo: parseFloat(newPecaData.preco_custo) || 0,
         preco_venda: parseFloat(newPecaData.preco_venda) || 0,
         preco_revenda: parseFloat(newPecaData.preco_venda) || 0,
-        estoque: 0,
-        estoque_minimo: 0,
+        estoque: parseInt(newPecaData.estoque) || 0,
+        estoque_minimo: parseInt(newPecaData.estoque_minimo) || 0,
         categoria: newPecaData.categoria || null,
         subcategoria: null,
-        fornecedor_id: null,
-        imagem_url: null,
-        descricao: null,
-        material: null,
+        fornecedor_id: newPecaData.fornecedor_id || null,
+        imagem_url: newPecaData.imagem_url || null,
+        descricao: newPecaData.descricao || null,
+        material: newPecaData.material || null,
         peso: null,
         ativo: true,
         catalogo_only: true, // Mark as catalog-only piece
@@ -999,14 +1031,21 @@ function CatalogoItemsDialog({
       // Reset form
       setNewPecaData({
         nome: '',
-        codigo: '',
+        codigo: autoGenerateCode ? generateCode() : '',
         preco_custo: '',
         preco_venda: '',
         categoria: '',
+        material: '',
+        fornecedor_id: '',
+        descricao: '',
+        estoque: '',
+        estoque_minimo: '',
+        imagem_url: '',
       });
-      toast.success('Peça criada exclusivamente para o catálogo!');
+      toast.success('Peça criada e adicionada ao catálogo!');
     } catch (error) {
       console.error('Error creating peca:', error);
+      toast.error('Erro ao criar peça');
     }
   };
 
@@ -1195,62 +1234,216 @@ function CatalogoItemsDialog({
             </div>
           </TabsContent>
 
-          <TabsContent value="create" className="space-y-4 py-4">
-            {/* Create New Peca Form */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new_nome">Nome *</Label>
-                <Input
-                  id="new_nome"
-                  value={newPecaData.nome}
-                  onChange={(e) => setNewPecaData({ ...newPecaData, nome: e.target.value })}
-                  placeholder="Nome da peça"
+          <TabsContent value="create" className="py-4">
+            {/* Create New Peca Form - Complete like PecasPage */}
+            <Tabs defaultValue="info" className="w-full">
+              <TabsList className="w-full grid grid-cols-3">
+                <TabsTrigger value="info">Informações</TabsTrigger>
+                <TabsTrigger value="precos">Preços</TabsTrigger>
+                <TabsTrigger value="imagem">Imagem</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="info" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new_nome">Nome *</Label>
+                    <Input
+                      id="new_nome"
+                      value={newPecaData.nome}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, nome: e.target.value })}
+                      placeholder="Nome da peça"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="new_codigo">Código *</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          {autoGenerateCode ? (
+                            <>
+                              <Wand2 className="w-3 h-3" />
+                              Auto
+                            </>
+                          ) : (
+                            <>
+                              <Keyboard className="w-3 h-3" />
+                              Manual
+                            </>
+                          )}
+                        </span>
+                        <Switch
+                          checked={autoGenerateCode}
+                          onCheckedChange={(checked) => {
+                            setAutoGenerateCode(checked);
+                            if (checked) {
+                              setNewPecaData({ ...newPecaData, codigo: generateCode() });
+                            } else {
+                              setNewPecaData({ ...newPecaData, codigo: '' });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="new_codigo"
+                        value={newPecaData.codigo}
+                        onChange={(e) => setNewPecaData({ ...newPecaData, codigo: e.target.value })}
+                        placeholder={autoGenerateCode ? "Código gerado automaticamente" : "Digite o código"}
+                        disabled={autoGenerateCode}
+                        className={cn(autoGenerateCode && "bg-muted")}
+                      />
+                      {autoGenerateCode && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2"
+                          onClick={() => setNewPecaData({ ...newPecaData, codigo: generateCode() })}
+                        >
+                          <Wand2 className="w-3 h-3 mr-1" />
+                          Novo
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new_categoria">Categoria</Label>
+                    <Select
+                      value={newPecaData.categoria}
+                      onValueChange={(value) => setNewPecaData({ ...newPecaData, categoria: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIAS.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_material">Material</Label>
+                    <Select
+                      value={newPecaData.material}
+                      onValueChange={(value) => setNewPecaData({ ...newPecaData, material: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BANHOS.map((mat) => (
+                          <SelectItem key={mat} value={mat}>
+                            {mat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new_fornecedor">Fornecedor</Label>
+                    <Select
+                      value={newPecaData.fornecedor_id}
+                      onValueChange={(value) => setNewPecaData({ ...newPecaData, fornecedor_id: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fornecedores.map((f) => (
+                          <SelectItem key={f.id} value={f.id}>
+                            {f.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_descricao">Descrição</Label>
+                    <Input
+                      id="new_descricao"
+                      value={newPecaData.descricao}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, descricao: e.target.value })}
+                      placeholder="Descrição da peça..."
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new_estoque">Estoque</Label>
+                    <Input
+                      id="new_estoque"
+                      type="number"
+                      value={newPecaData.estoque}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, estoque: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_estoque_minimo">Estoque Mínimo</Label>
+                    <Input
+                      id="new_estoque_minimo"
+                      type="number"
+                      value={newPecaData.estoque_minimo}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, estoque_minimo: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="precos" className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new_preco_custo">Preço de Custo</Label>
+                    <Input
+                      id="new_preco_custo"
+                      type="number"
+                      step="0.01"
+                      value={newPecaData.preco_custo}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, preco_custo: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_preco_venda">Preço de Venda *</Label>
+                    <Input
+                      id="new_preco_venda"
+                      type="number"
+                      step="0.01"
+                      value={newPecaData.preco_venda}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, preco_venda: e.target.value })}
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  O preço de venda será usado como preço no catálogo.
+                </p>
+              </TabsContent>
+
+              <TabsContent value="imagem" className="space-y-4 mt-4">
+                <ImageUpload
+                  label="Imagem da Peça"
+                  value={newPecaData.imagem_url}
+                  onChange={(url) => setNewPecaData({ ...newPecaData, imagem_url: url })}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new_codigo">Código *</Label>
-                <Input
-                  id="new_codigo"
-                  value={newPecaData.codigo}
-                  onChange={(e) => setNewPecaData({ ...newPecaData, codigo: e.target.value })}
-                  placeholder="REF-001"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new_preco_custo">Preço de Custo</Label>
-                <Input
-                  id="new_preco_custo"
-                  type="number"
-                  step="0.01"
-                  value={newPecaData.preco_custo}
-                  onChange={(e) => setNewPecaData({ ...newPecaData, preco_custo: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new_preco_venda">Preço de Venda *</Label>
-                <Input
-                  id="new_preco_venda"
-                  type="number"
-                  step="0.01"
-                  value={newPecaData.preco_venda}
-                  onChange={(e) => setNewPecaData({ ...newPecaData, preco_venda: e.target.value })}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new_categoria">Categoria</Label>
-                <Input
-                  id="new_categoria"
-                  value={newPecaData.categoria}
-                  onChange={(e) => setNewPecaData({ ...newPecaData, categoria: e.target.value })}
-                  placeholder="Anel, Brinco..."
-                />
-              </div>
-            </div>
+              </TabsContent>
+            </Tabs>
+
             <Button 
               onClick={handleCreateAndAddPeca} 
-              className="w-full btn-gold"
+              className="w-full btn-gold mt-4"
               disabled={addPeca.isPending || addItem.isPending}
             >
               {(addPeca.isPending || addItem.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
