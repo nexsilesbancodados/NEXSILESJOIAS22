@@ -1477,9 +1477,11 @@ export type Database = {
         Row: {
           cep: string | null
           cidade: string | null
+          codigo_rastreio: string | null
           created_at: string | null
           data_criacao: string | null
           data_entrega: string | null
+          data_envio: string | null
           data_previsao: string | null
           endereco_entrega: string | null
           estado: string | null
@@ -1489,15 +1491,18 @@ export type Database = {
           organization_id: string | null
           revendedora_id: string | null
           status: string | null
+          transportadora: string | null
           updated_at: string | null
           valor_frete: number | null
         }
         Insert: {
           cep?: string | null
           cidade?: string | null
+          codigo_rastreio?: string | null
           created_at?: string | null
           data_criacao?: string | null
           data_entrega?: string | null
+          data_envio?: string | null
           data_previsao?: string | null
           endereco_entrega?: string | null
           estado?: string | null
@@ -1507,15 +1512,18 @@ export type Database = {
           organization_id?: string | null
           revendedora_id?: string | null
           status?: string | null
+          transportadora?: string | null
           updated_at?: string | null
           valor_frete?: number | null
         }
         Update: {
           cep?: string | null
           cidade?: string | null
+          codigo_rastreio?: string | null
           created_at?: string | null
           data_criacao?: string | null
           data_entrega?: string | null
+          data_envio?: string | null
           data_previsao?: string | null
           endereco_entrega?: string | null
           estado?: string | null
@@ -1525,6 +1533,7 @@ export type Database = {
           organization_id?: string | null
           revendedora_id?: string | null
           status?: string | null
+          transportadora?: string | null
           updated_at?: string | null
           valor_frete?: number | null
         }

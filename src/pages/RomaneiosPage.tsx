@@ -52,13 +52,18 @@ import {
   Filter,
   Loader2,
   Package,
-  Trash2
+  Trash2,
+  Truck,
+  MapPin,
+  Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRomaneios, useRomaneioItems, useUpdateRomaneioStatus, useDeleteRomaneiosBulk, type Romaneio } from '@/hooks/useSupabaseData';
+import { useRomaneios, useRomaneioItems, useUpdateRomaneioStatus, useDeleteRomaneiosBulk, useUpdateRomaneioTracking, type Romaneio, type RomaneioTrackingData } from '@/hooks/useSupabaseData';
 import { EtiquetaEnvioModal } from '@/components/romaneio/EtiquetaEnvioModal';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function RomaneiosPage() {
   const { data: romaneios = [], isLoading } = useRomaneios();
@@ -301,6 +306,7 @@ export default function RomaneiosPage() {
               <TableHead>Cliente</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-center">Status</TableHead>
+              <TableHead className="text-center">Rastreio</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -333,6 +339,16 @@ export default function RomaneiosPage() {
                 </TableCell>
                 <TableCell className="text-center">
                   {getStatusBadge(romaneio.status)}
+                </TableCell>
+                <TableCell className="text-center">
+                  {romaneio.codigo_rastreio ? (
+                    <div className="flex items-center justify-center gap-1">
+                      <Truck className="w-3 h-3 text-primary" />
+                      <span className="text-xs font-mono">{romaneio.codigo_rastreio}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Button
@@ -444,6 +460,41 @@ function RomaneioDetailDialog({
   isUpdating: boolean;
 }) {
   const { data: items = [], isLoading: loadingItems } = useRomaneioItems(romaneio?.id || '');
+  const updateTracking = useUpdateRomaneioTracking();
+  
+  // Local state for tracking fields
+  const [trackingData, setTrackingData] = useState<RomaneioTrackingData>({
+    codigo_rastreio: '',
+    transportadora: '',
+    data_envio: '',
+  });
+  const [isEditingTracking, setIsEditingTracking] = useState(false);
+
+  // Update local state when romaneio changes
+  useEffect(() => {
+    if (romaneio) {
+      setTrackingData({
+        codigo_rastreio: romaneio.codigo_rastreio || '',
+        transportadora: romaneio.transportadora || '',
+        data_envio: romaneio.data_envio ? romaneio.data_envio.split('T')[0] : '',
+      });
+      setIsEditingTracking(false);
+    }
+  }, [romaneio]);
+
+  const handleSaveTracking = async () => {
+    if (!romaneio) return;
+    
+    await updateTracking.mutateAsync({
+      id: romaneio.id,
+      codigo_rastreio: trackingData.codigo_rastreio || null,
+      transportadora: trackingData.transportadora || null,
+      data_envio: trackingData.data_envio ? new Date(trackingData.data_envio).toISOString() : null,
+    });
+    setIsEditingTracking(false);
+  };
+
+  const hasTrackingInfo = romaneio?.codigo_rastreio || romaneio?.transportadora || romaneio?.data_envio;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal>
@@ -487,6 +538,127 @@ function RomaneioDetailDialog({
                   <p className="text-xs text-muted-foreground">Status</p>
                   <div className="mt-1">{getStatusBadge(romaneio.status)}</div>
                 </div>
+              </div>
+
+              {/* Tracking Section */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-primary" />
+                    <p className="text-sm font-medium">Rastreamento de Envio</p>
+                  </div>
+                  {!isEditingTracking && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingTracking(true)}
+                      className="h-7 text-xs"
+                    >
+                      {hasTrackingInfo ? 'Editar' : 'Adicionar'}
+                    </Button>
+                  )}
+                </div>
+
+                {isEditingTracking ? (
+                  <div className="space-y-3 p-3 bg-secondary/30 rounded-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="transportadora" className="text-xs">Transportadora</Label>
+                      <Select
+                        value={trackingData.transportadora || ''}
+                        onValueChange={(value) => setTrackingData(prev => ({ ...prev, transportadora: value }))}
+                      >
+                        <SelectTrigger id="transportadora" className="h-9">
+                          <SelectValue placeholder="Selecione a transportadora" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="correios">Correios</SelectItem>
+                          <SelectItem value="jadlog">Jadlog</SelectItem>
+                          <SelectItem value="sedex">SEDEX</SelectItem>
+                          <SelectItem value="pac">PAC</SelectItem>
+                          <SelectItem value="loggi">Loggi</SelectItem>
+                          <SelectItem value="melhor_envio">Melhor Envio</SelectItem>
+                          <SelectItem value="total_express">Total Express</SelectItem>
+                          <SelectItem value="azul_cargo">Azul Cargo</SelectItem>
+                          <SelectItem value="outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="codigo_rastreio" className="text-xs">Código de Rastreio</Label>
+                      <Input
+                        id="codigo_rastreio"
+                        placeholder="Ex: BR123456789BR"
+                        value={trackingData.codigo_rastreio || ''}
+                        onChange={(e) => setTrackingData(prev => ({ ...prev, codigo_rastreio: e.target.value.toUpperCase() }))}
+                        className="h-9 font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="data_envio" className="text-xs">Data de Envio</Label>
+                      <Input
+                        id="data_envio"
+                        type="date"
+                        value={trackingData.data_envio || ''}
+                        onChange={(e) => setTrackingData(prev => ({ ...prev, data_envio: e.target.value }))}
+                        className="h-9"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingTracking(false)}
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleSaveTracking}
+                        disabled={updateTracking.isPending}
+                        className="flex-1"
+                      >
+                        {updateTracking.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="w-3 h-3 mr-1" />
+                            Salvar
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ) : hasTrackingInfo ? (
+                  <div className="grid grid-cols-3 gap-3 p-3 bg-primary/5 rounded-lg">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Transportadora</p>
+                      <p className="text-sm font-medium capitalize">{romaneio.transportadora?.replace('_', ' ') || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Código</p>
+                      <p className="text-sm font-mono font-medium">{romaneio.codigo_rastreio || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Enviado em</p>
+                      <p className="text-sm font-medium">
+                        {romaneio.data_envio 
+                          ? new Date(romaneio.data_envio).toLocaleDateString('pt-BR')
+                          : '-'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-secondary/30 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum dado de envio cadastrado
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Items */}

@@ -181,6 +181,10 @@ export interface Romaneio {
   data_entrega?: string | null;
   status?: string | null;
   observacoes?: string | null;
+  // Tracking fields
+  codigo_rastreio?: string | null;
+  transportadora?: string | null;
+  data_envio?: string | null;
   created_at: string;
   updated_at?: string | null;
   // Aliases for backward compatibility
@@ -1617,6 +1621,54 @@ export function useUpdateRomaneioStatus() {
     },
     onSuccess: (_, { status }) => {
       toast.success(status === 'confirmado' ? 'Romaneio confirmado!' : 'Romaneio cancelado');
+    },
+  });
+}
+
+export interface RomaneioTrackingData {
+  codigo_rastreio?: string | null;
+  transportadora?: string | null;
+  data_envio?: string | null;
+}
+
+export function useUpdateRomaneioTracking() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...trackingData }: { id: string } & RomaneioTrackingData) => {
+      const { data, error } = await supabase
+        .from('romaneios')
+        .update(trackingData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async ({ id, ...trackingData }) => {
+      await queryClient.cancelQueries({ queryKey: ['romaneios'] });
+      const previousData = queryClient.getQueryData<Romaneio[]>(['romaneios']);
+      
+      queryClient.setQueryData<Romaneio[]>(['romaneios'], (old) =>
+        old?.map((item) => 
+          item.id === id ? { ...item, ...trackingData, updated_at: new Date().toISOString() } : item
+        ) ?? []
+      );
+      
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['romaneios'], context.previousData);
+      }
+      toast.error('Erro ao atualizar rastreamento');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+    },
+    onSuccess: () => {
+      toast.success('Dados de envio atualizados!');
     },
   });
 }
