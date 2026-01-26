@@ -1675,6 +1675,48 @@ export function useUpdateRomaneioTracking() {
   });
 }
 
+export function useUpdateRomaneioPhone() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, cliente_telefone }: { id: string; cliente_telefone: string | null }) => {
+      const { data, error } = await supabase
+        .from('romaneios')
+        .update({ cliente_telefone })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async ({ id, cliente_telefone }) => {
+      await queryClient.cancelQueries({ queryKey: ['romaneios'] });
+      const previousData = queryClient.getQueryData<Romaneio[]>(['romaneios']);
+      
+      queryClient.setQueryData<Romaneio[]>(['romaneios'], (old) =>
+        old?.map((item) => 
+          item.id === id ? { ...item, cliente_telefone, updated_at: new Date().toISOString() } : item
+        ) ?? []
+      );
+      
+      return { previousData };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['romaneios'], context.previousData);
+      }
+      toast.error('Erro ao atualizar telefone');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
+    },
+    onSuccess: () => {
+      toast.success('Telefone atualizado!');
+    },
+  });
+}
+
 export function useDeleteRomaneio() {
   const queryClient = useQueryClient();
   
