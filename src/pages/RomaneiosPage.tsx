@@ -64,6 +64,7 @@ import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 export default function RomaneiosPage() {
   const { data: romaneios = [], isLoading } = useRomaneios();
@@ -146,11 +147,31 @@ export default function RomaneiosPage() {
             Confirmado
           </Badge>
         );
+      case 'enviado':
+        return (
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+            <Truck className="w-3 h-3 mr-1" />
+            Enviado
+          </Badge>
+        );
+      case 'entregue':
+        return (
+          <Badge variant="outline" className="bg-success/10 text-success border-success/30">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Entregue
+          </Badge>
+        );
       case 'cancelado':
         return (
           <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
             <XCircle className="w-3 h-3 mr-1" />
             Cancelado
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            {status || 'Desconhecido'}
           </Badge>
         );
     }
@@ -166,6 +187,10 @@ export default function RomaneiosPage() {
     await updateRomaneioStatus.mutateAsync({ id, status: 'cancelado' });
     setIsDetailOpen(false);
     setSelectedRomaneio(null);
+  };
+
+  const handleStatusChange = async (id: string, status: string) => {
+    await updateRomaneioStatus.mutateAsync({ id, status });
   };
 
   const handleBulkDelete = async () => {
@@ -282,6 +307,8 @@ export default function RomaneiosPage() {
             <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="pendente">Pendentes</SelectItem>
             <SelectItem value="confirmado">Confirmados</SelectItem>
+            <SelectItem value="enviado">Enviados</SelectItem>
+            <SelectItem value="entregue">Entregues</SelectItem>
             <SelectItem value="cancelado">Cancelados</SelectItem>
           </SelectContent>
         </Select>
@@ -384,8 +411,7 @@ export default function RomaneiosPage() {
         romaneio={selectedRomaneio}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
-        onConfirmar={handleConfirmar}
-        onCancelar={handleCancelar}
+        onStatusChange={handleStatusChange}
         onPrintEtiqueta={() => {
           setIsDetailOpen(false);
           setIsEtiquetaOpen(true);
@@ -440,8 +466,7 @@ function RomaneioDetailDialog({
   romaneio,
   isOpen,
   onClose,
-  onConfirmar,
-  onCancelar,
+  onStatusChange,
   onPrintEtiqueta,
   formatCurrency,
   formatDate,
@@ -451,8 +476,7 @@ function RomaneioDetailDialog({
   romaneio: Romaneio | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirmar: (id: string) => void;
-  onCancelar: (id: string) => void;
+  onStatusChange: (id: string, status: string) => void;
   onPrintEtiqueta: () => void;
   formatCurrency: (value: number) => string;
   formatDate: (date: string) => string;
@@ -469,6 +493,7 @@ function RomaneioDetailDialog({
     data_envio: '',
   });
   const [isEditingTracking, setIsEditingTracking] = useState(false);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
 
   // Update local state when romaneio changes
   useEffect(() => {
@@ -492,6 +517,66 @@ function RomaneioDetailDialog({
       data_envio: trackingData.data_envio ? new Date(trackingData.data_envio).toISOString() : null,
     });
     setIsEditingTracking(false);
+  };
+
+  const handleSendWhatsAppNotification = async (status: string) => {
+    if (!romaneio) return;
+    
+    // Check if we have a phone number (from cliente_telefone or extract from somewhere)
+    // For now, we'll open WhatsApp with the message
+    setIsSendingWhatsApp(true);
+    
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enviar-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          tipo: 'rastreio',
+          telefone: (romaneio as any).cliente_telefone || '',
+          dados: {
+            clienteNome: romaneio.cliente_nome,
+            romaneioNumero: romaneio.id.slice(-6).toUpperCase(),
+            status: status,
+            codigoRastreio: romaneio.codigo_rastreio,
+            transportadora: romaneio.transportadora,
+            dataEnvio: romaneio.data_envio,
+          }
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        window.open(data.url, '_blank');
+        toast.success('Link do WhatsApp aberto!');
+      } else {
+        // If no phone, just show the message that would be sent
+        toast.info('Configure o telefone do cliente para enviar notificação');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar mensagem:', error);
+      toast.error('Erro ao gerar mensagem de WhatsApp');
+    } finally {
+      setIsSendingWhatsApp(false);
+    }
+  };
+
+  const handleStatusChangeWithNotification = async (newStatus: string) => {
+    if (!romaneio) return;
+    
+    // First update the status
+    onStatusChange(romaneio.id, newStatus);
+    
+    // Then offer to send WhatsApp notification for relevant statuses
+    if (newStatus === 'enviado' || newStatus === 'entregue') {
+      // Small delay to let the status update propagate
+      setTimeout(() => {
+        handleSendWhatsAppNotification(newStatus);
+      }, 500);
+    }
   };
 
   const hasTrackingInfo = romaneio?.codigo_rastreio || romaneio?.transportadora || romaneio?.data_envio;
@@ -701,45 +786,93 @@ function RomaneioDetailDialog({
           </ScrollArea>
         )}
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
-          {/* Botão de Etiqueta - sempre visível */}
-          <Button
-            variant="outline"
-            onClick={onPrintEtiqueta}
-            className="w-full sm:w-auto"
-          >
-            <Package className="w-4 h-4 mr-2" />
-            Etiqueta de Envio
-          </Button>
-
-          <div className="flex gap-2 w-full sm:w-auto">
+        <DialogFooter className="flex-col gap-3">
+          {/* Status Actions Row */}
+          <div className="flex flex-wrap gap-2 w-full justify-end">
             {romaneio?.status === 'pendente' && (
               <>
                 <Button
                   variant="outline"
-                  onClick={() => onCancelar(romaneio.id)}
-                  className="flex-1 sm:flex-none text-destructive border-destructive/30 hover:bg-destructive/10"
+                  size="sm"
+                  onClick={() => onStatusChange(romaneio.id, 'cancelado')}
+                  className="text-destructive border-destructive/30 hover:bg-destructive/10"
                   disabled={isUpdating}
                 >
-                  <XCircle className="w-4 h-4 mr-2" />
+                  <XCircle className="w-4 h-4 mr-1" />
                   Cancelar
                 </Button>
                 <Button
-                  onClick={() => onConfirmar(romaneio.id)}
-                  className="flex-1 sm:flex-none bg-success text-success-foreground hover:bg-success/90"
+                  size="sm"
+                  onClick={() => onStatusChange(romaneio.id, 'confirmado')}
+                  className="bg-success text-success-foreground hover:bg-success/90"
                   disabled={isUpdating}
                 >
-                  {isUpdating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  {isUpdating && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                  <CheckCircle2 className="w-4 h-4 mr-1" />
                   Confirmar
                 </Button>
               </>
             )}
-            {romaneio?.status !== 'pendente' && (
-              <Button variant="outline" onClick={onClose}>
-                Fechar
+            
+            {romaneio?.status === 'confirmado' && (
+              <Button
+                size="sm"
+                onClick={() => handleStatusChangeWithNotification('enviado')}
+                className="bg-primary"
+                disabled={isUpdating || isSendingWhatsApp}
+              >
+                {(isUpdating || isSendingWhatsApp) && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                <Truck className="w-4 h-4 mr-1" />
+                Marcar Enviado
               </Button>
             )}
+            
+            {romaneio?.status === 'enviado' && (
+              <Button
+                size="sm"
+                onClick={() => handleStatusChangeWithNotification('entregue')}
+                className="bg-success text-success-foreground hover:bg-success/90"
+                disabled={isUpdating || isSendingWhatsApp}
+              >
+                {(isUpdating || isSendingWhatsApp) && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+                <CheckCircle2 className="w-4 h-4 mr-1" />
+                Marcar Entregue
+              </Button>
+            )}
+          </div>
+          
+          {/* Tools Row */}
+          <div className="flex gap-2 w-full border-t border-border pt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onPrintEtiqueta}
+              className="flex-1"
+            >
+              <Package className="w-4 h-4 mr-1" />
+              Etiqueta
+            </Button>
+            
+            {(romaneio?.status === 'enviado' || romaneio?.status === 'entregue') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleSendWhatsAppNotification(romaneio.status || 'enviado')}
+                className="flex-1"
+                disabled={isSendingWhatsApp}
+              >
+                {isSendingWhatsApp ? (
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4 mr-1" />
+                )}
+                WhatsApp
+              </Button>
+            )}
+            
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Fechar
+            </Button>
           </div>
         </DialogFooter>
       </DialogContent>
