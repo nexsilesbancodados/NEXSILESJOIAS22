@@ -108,6 +108,7 @@ export default function CatalogoPublicoPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [copied, setCopied] = useState(false);
+  const [lastAddedItemId, setLastAddedItemId] = useState<string | null>(null);
   
   // Address fields
   const [enderecoCep, setEnderecoCep] = useState('');
@@ -220,11 +221,22 @@ export default function CatalogoPublicoPage() {
     const newSelected = new Map(selectedItems);
     const maxQty = item.quantidade || 999;
     const newQty = Math.max(1, Math.min(maxQty, quantity));
+    const wasSelected = newSelected.has(itemId);
     
     if (newQty < 1) {
       newSelected.delete(itemId);
     } else {
       newSelected.set(itemId, { item, quantidade: newQty });
+      
+      // Show feedback when adding new item
+      if (!wasSelected) {
+        setLastAddedItemId(itemId);
+        toast.success(`${item.peca?.nome || 'Item'} adicionado ao carrinho!`, {
+          duration: 2000,
+          icon: '🛒',
+        });
+        setTimeout(() => setLastAddedItemId(null), 600);
+      }
     }
     setSelectedItems(newSelected);
   };
@@ -611,14 +623,16 @@ export default function CatalogoPublicoPage() {
                   const isSelected = selectedItems.has(item.id);
                   const selectedQty = selectedItems.get(item.id)?.quantidade || 0;
                   const maxQty = item.quantidade || 1;
+                  const justAdded = lastAddedItemId === item.id;
                   
                   return (
                     <Card 
                       key={item.id} 
                       className={cn(
-                        "overflow-hidden transition-all",
+                        "overflow-hidden transition-all duration-300",
                         isSelected && "ring-2 ring-primary bg-primary/5",
-                        canOrder && "hover:shadow-md"
+                        canOrder && "hover:shadow-md",
+                        justAdded && "animate-scale-in ring-2 ring-primary shadow-lg"
                       )}
                     >
                       <CardContent className="p-0">
@@ -776,12 +790,23 @@ export default function CatalogoPublicoPage() {
 
       {/* Floating Cart Button */}
       {canOrder && selectedItems.size > 0 && (
-        <div className="fixed bottom-6 left-0 right-0 px-4 z-20">
+        <div className={cn(
+          "fixed bottom-6 left-0 right-0 px-4 z-20",
+          lastAddedItemId && "animate-fade-in"
+        )}>
           <div className="max-w-4xl mx-auto">
             <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
               <SheetTrigger asChild>
-                <Button className="w-full h-14 text-lg shadow-lg bg-primary hover:bg-primary/90">
-                  <ShoppingCart className="w-5 h-5 mr-2" />
+                <Button 
+                  className={cn(
+                    "w-full h-14 text-lg shadow-lg bg-primary hover:bg-primary/90 transition-all",
+                    lastAddedItemId && "animate-scale-in"
+                  )}
+                >
+                  <ShoppingCart className={cn(
+                    "w-5 h-5 mr-2 transition-transform",
+                    lastAddedItemId && "animate-bounce"
+                  )} />
                   Ver Carrinho ({cartItemCount} {cartItemCount === 1 ? 'item' : 'itens'})
                   <span className="ml-auto font-bold">{formatCurrency(cartTotal)}</span>
                 </Button>
