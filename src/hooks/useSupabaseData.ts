@@ -2416,3 +2416,55 @@ export function useDeleteModeloEtiqueta() {
     },
   });
 }
+
+// Maleta Interests
+export interface MaletaInteresse {
+  id: string;
+  maleta_id: string;
+  cliente_nome: string;
+  cliente_telefone: string | null;
+  cliente_email: string | null;
+  observacoes: string | null;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export function useMaletaInteresses(maletaId: string | undefined) {
+  return useQuery({
+    queryKey: ['maleta-interesses', maletaId],
+    queryFn: async () => {
+      if (!maletaId) return [];
+      
+      const { data, error } = await supabase
+        .from('maleta_interesses')
+        .select('*')
+        .eq('maleta_id', maletaId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as MaletaInteresse[];
+    },
+    enabled: !!maletaId,
+  });
+}
+
+export function useMaletaInteressesPendentes(maletaId: string | undefined) {
+  return useQuery({
+    queryKey: ['maleta-interesses-pendentes', maletaId],
+    queryFn: async () => {
+      if (!maletaId) return [];
+      
+      const { data, error } = await supabase
+        .from('maleta_interesses')
+        .select('*')
+        .eq('maleta_id', maletaId)
+        .eq('status', 'pendente')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as MaletaInteresse[];
+    },
+    enabled: !!maletaId,
+  });
+}

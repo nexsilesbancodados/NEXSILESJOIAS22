@@ -1,10 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Briefcase, ChevronRight, Pencil, ImageIcon } from 'lucide-react';
+import { Briefcase, ChevronRight, Pencil, ImageIcon, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
-import { useMaletaItems, type Maleta, type Peca } from '@/hooks/useSupabaseData';
+import { useMaletaItems, useMaletaInteressesPendentes, type Maleta, type Peca } from '@/hooks/useSupabaseData';
 import { ShareMaletaButton } from '@/components/maleta/ShareMaletaButton';
 
 interface MaletaCardProps {
@@ -21,6 +21,9 @@ export function MaletaCard({
   onEdit,
 }: MaletaCardProps) {
   const { data: items = [] } = useMaletaItems(maleta.id);
+  const { data: interessesPendentes = [] } = useMaletaInteressesPendentes(maleta.id);
+
+  const hasNewInterests = interessesPendentes.length > 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -54,12 +57,26 @@ export function MaletaCard({
   return (
     <Card
       className={cn(
-        "glass-card hover-lift cursor-pointer overflow-hidden",
+        "glass-card hover-lift cursor-pointer overflow-hidden relative",
         isVencida && maleta.status === 'aberta' && "border-destructive/50",
-        isVencendo && maleta.status === 'aberta' && "border-warning/50"
+        isVencendo && maleta.status === 'aberta' && "border-warning/50",
+        hasNewInterests && "ring-2 ring-rose-500/50 animate-pulse"
       )}
       onClick={onClick}
     >
+      {/* New interests indicator */}
+      {hasNewInterests && (
+        <div className="absolute top-3 right-3 z-10">
+          <div 
+            className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white shadow-lg animate-bounce"
+            style={{ background: `linear-gradient(135deg, ${corPrimaria}, ${corSecundaria})` }}
+          >
+            <Heart className="w-3 h-3 fill-current" />
+            {interessesPendentes.length} {interessesPendentes.length === 1 ? 'interesse' : 'interesses'}
+          </div>
+        </div>
+      )}
+
       {/* Custom header with colors/image */}
       <div 
         className="h-2 w-full"
