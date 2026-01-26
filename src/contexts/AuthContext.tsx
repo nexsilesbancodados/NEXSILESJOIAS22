@@ -78,14 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // Profile might not exist yet if trigger hasn't run
+        console.error('Error fetching profile:', error);
+        setProfile(null);
+      } else if (data) {
+        setProfile(data as Profile);
+      } else {
+        // Profile doesn't exist yet - may be created by trigger
         console.log('Profile not found, may be created by trigger');
         setProfile(null);
-      } else {
-        setProfile(data as Profile);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
