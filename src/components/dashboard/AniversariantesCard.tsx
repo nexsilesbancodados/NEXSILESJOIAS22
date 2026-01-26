@@ -2,7 +2,6 @@ import { Cake, Gift, MessageCircle, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAniversariantesDoMes } from '@/hooks/useClientes';
 import { openWhatsApp } from '@/lib/whatsapp';
-import { Link } from 'react-router-dom';
 
 export function AniversariantesCard() {
   const { data: aniversariantes = [] } = useAniversariantesDoMes();
@@ -30,41 +29,66 @@ export function AniversariantesCard() {
   const mesAtual = new Date().toLocaleDateString('pt-BR', { month: 'long' });
 
   return (
-    <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-start justify-between mb-4">
+    <div className="relative overflow-hidden bg-gradient-to-br from-rose-500 via-pink-500 to-pink-600 rounded-2xl p-5 shadow-sm transition-all duration-300 hover:shadow-lg">
+      {/* Decorative wave pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <svg 
+          className="absolute bottom-0 left-0 right-0 w-full h-24 opacity-40"
+          viewBox="0 0 400 100" 
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 60 C 80 40, 120 80, 200 50 C 280 20, 320 70, 400 40 L 400 100 L 0 100 Z"
+            fill="rgba(255,255,255,0.15)"
+          />
+          <path
+            d="M0 75 C 60 60, 140 90, 200 65 C 260 40, 340 85, 400 55 L 400 100 L 0 100 Z"
+            fill="rgba(255,255,255,0.15)"
+          />
+        </svg>
+      </div>
+
+      <div className="relative flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center">
-            <Cake className="w-5 h-5 text-rose-500" />
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <Cake className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-foreground">Aniversariantes</h3>
-            <p className="text-xs text-muted-foreground">{aniversariantes.length} em {mesAtual}</p>
+            <h3 className="font-semibold text-white">Aniversariantes</h3>
+            <p className="text-xs text-white/60">{aniversariantes.length} em {mesAtual}</p>
           </div>
         </div>
-        <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted hover:bg-muted/80 text-muted-foreground transition-colors">
+        <button className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20 hover:bg-white/30 text-white transition-colors">
           <ArrowUpRight className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="space-y-2 max-h-[180px] overflow-y-auto">
+      <div className="relative space-y-2 max-h-[180px] overflow-y-auto">
         {aniversariantes.slice(0, 5).map((cliente) => (
           <div 
             key={cliente.id} 
-            className={`flex items-center justify-between p-3 rounded-xl ${
-              isToday(cliente.data_nascimento!) ? 'bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/30' : 'bg-muted/30 border border-border/30'
+            className={`flex items-center justify-between p-3 rounded-xl backdrop-blur-sm ${
+              isToday(cliente.data_nascimento!) 
+                ? 'bg-white/30 border border-white/40' 
+                : 'bg-white/10 border border-white/20'
             }`}
           >
             <div className="flex items-center gap-2">
-              {isToday(cliente.data_nascimento!) && <Gift className="w-4 h-4 text-rose-500 animate-pulse" />}
+              {isToday(cliente.data_nascimento!) && <Gift className="w-4 h-4 text-white animate-pulse" />}
               <div>
-                <p className="font-medium text-sm text-foreground">{cliente.nome}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-medium text-sm text-white">{cliente.nome}</p>
+                <p className="text-xs text-white/70">
                   {formatDate(cliente.data_nascimento!)}{isToday(cliente.data_nascimento!) && ' - Hoje!'}
                 </p>
               </div>
             </div>
             {cliente.telefone && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendBirthdayMessage(cliente.nome, cliente.telefone!)}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-white hover:bg-white/20" 
+                onClick={() => sendBirthdayMessage(cliente.nome, cliente.telefone!)}
+              >
                 <MessageCircle className="h-4 w-4" />
               </Button>
             )}
