@@ -35,16 +35,18 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Generate a slug from the maleta name
+  // Generate a friendly slug with app name + maleta name
   const generateSlug = (name: string) => {
-    return name
+    const cleanName = name
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '') // Remove accents
       .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
-      .replace(/^-|-$/g, '') // Remove leading/trailing dashes
-      .substring(0, 50) // Limit length
-      + '-' + Math.random().toString(36).substring(2, 6); // Add random suffix
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+      .substring(0, 40); // Limit length
+    
+    // Format: nexsiles-nome-da-maleta-xxxx
+    return `nexsiles-${cleanName}-${Math.random().toString(36).substring(2, 6)}`;
   };
 
   // Toggle public status
