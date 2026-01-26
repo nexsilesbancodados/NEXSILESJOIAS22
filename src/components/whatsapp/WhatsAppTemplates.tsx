@@ -297,13 +297,13 @@ export function WhatsAppTemplates({ open, onOpenChange }: WhatsAppTemplatesProps
                 </div>
 
                 {/* Preview */}
-                <div className="flex-1 min-h-0 flex flex-col">
-                  <Label className="text-sm font-medium mb-2">Pré-visualização:</Label>
-                  <ScrollArea className="flex-1 border rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 p-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Pré-visualização:</Label>
+                  <div className="border rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 p-4 min-h-[150px] max-h-[200px] overflow-y-auto">
                     <pre className="whitespace-pre-wrap text-sm font-sans">
                       {getFormattedMessage()}
                     </pre>
-                  </ScrollArea>
+                  </div>
                 </div>
 
                 {/* Phone Input */}
