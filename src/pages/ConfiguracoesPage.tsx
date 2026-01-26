@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, Target, Database, MessageCircle, User, Crown } from 'lucide-react';
+import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, Target, Database, MessageCircle, User, Crown, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfiguracoes, useSaveConfiguracoes } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ import { PrinterSettings } from '@/components/printer/PrinterSettings';
 import { SeedDatabaseCard } from '@/components/admin/SeedDatabaseCard';
 import { ProfileCard } from '@/components/profile/ProfileCard';
 import { SubscriptionNotifications } from '@/components/profile/SubscriptionNotifications';
+import { useSetupWizard } from '@/components/onboarding/SetupWizard';
 
 export default function ConfiguracoesPage() {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme();
   const { data: configData, isLoading } = useConfiguracoes();
   const saveConfigs = useSaveConfiguracoes();
+  const { resetWizard } = useSetupWizard();
   
   const [config, setConfig] = useState({
     nome_loja: '',
@@ -321,6 +323,33 @@ export default function ConfiguracoesPage() {
         <TabsContent value="backup" className="space-y-6">
           <BackupManager />
           <SeedDatabaseCard />
+          
+          {/* Opção para reiniciar o wizard */}
+          <Card className="glass-card border-dashed">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <RotateCcw className="w-5 h-5 text-primary" />
+                <CardTitle className="font-display">Assistente de Configuração</CardTitle>
+              </div>
+              <CardDescription>
+                Execute novamente o wizard de configuração inicial
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  resetWizard();
+                  navigate('/');
+                  toast.success('Wizard de configuração reiniciado!');
+                }}
+                className="gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reiniciar Wizard de Onboarding
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="whatsapp" className="space-y-6">
