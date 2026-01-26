@@ -6,8 +6,9 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, Check, Loader2 } from 'lucide-react';
+import { Copy, Share2, MessageCircle, Check, Loader2, Pencil, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-db';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -34,6 +35,18 @@ const generateSlug = (name: string) => {
   return `nexsiles-${cleanName}-${Math.random().toString(36).substring(2, 6)}`;
 };
 
+// Sanitize custom slug input
+const sanitizeSlug = (input: string) => {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9-]+/g, '-') // Replace non-alphanumeric with dash
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+    .replace(/--+/g, '-') // Replace multiple dashes with single
+    .substring(0, 60); // Limit length
+};
+
 export const ShareCatalogButton = memo(function ShareCatalogButton({
   catalogoId,
   catalogoNome,
@@ -44,6 +57,8 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [currentSlug, setCurrentSlug] = useState(catalogoSlug);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [customSlug, setCustomSlug] = useState(catalogoSlug || '');
   const queryClient = useQueryClient();
 
   // Generate slug if needed when popover opens
@@ -62,10 +77,38 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
     },
     onSuccess: (slug) => {
       setCurrentSlug(slug);
+      setCustomSlug(slug);
       queryClient.invalidateQueries({ queryKey: ['catalogos'] });
     },
     onError: () => {
       toast.error('Erro ao gerar link');
+    },
+  });
+
+  // Update custom slug
+  const updateSlug = useMutation({
+    mutationFn: async (newSlug: string) => {
+      const sanitized = sanitizeSlug(newSlug);
+      if (!sanitized || sanitized.length < 3) {
+        throw new Error('Slug deve ter pelo menos 3 caracteres');
+      }
+
+      const { error } = await supabase
+        .from('catalogos')
+        .update({ slug: sanitized })
+        .eq('id', catalogoId);
+
+      if (error) throw error;
+      return sanitized;
+    },
+    onSuccess: (slug) => {
+      setCurrentSlug(slug);
+      queryClient.invalidateQueries({ queryKey: ['catalogos'] });
+      setIsEditingSlug(false);
+      toast.success('Link personalizado salvo!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao salvar link');
     },
   });
 
@@ -116,6 +159,81 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
     }
   }, [catalogLink, catalogoNome, handleCopyLink]);
 
+  const handleStartEdit = () => {
+    setCustomSlug(currentSlug || '');
+    setIsEditingSlug(true);
+  };
+
+  const handleSaveSlug = () => {
+    if (customSlug.trim()) {
+      updateSlug.mutate(customSlug);
+    }
+  };
+
+  const renderSlugEditor = () => (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">Personalizar link</Label>
+      {isEditingSlug ? (
+        <div className="flex gap-2">
+          <Input
+            value={customSlug}
+            onChange={(e) => setCustomSlug(sanitizeSlug(e.target.value))}
+            placeholder="meu-catalogo-personalizado"
+            className="text-xs h-9"
+            maxLength={60}
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleSaveSlug}
+            disabled={updateSlug.isPending}
+          >
+            {updateSlug.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 text-success" />
+            )}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            value={catalogLink}
+            readOnly
+            className="text-xs h-9"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleStartEdit}
+            title="Editar slug"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleCopyLink}
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-success" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+      )}
+      {isEditingSlug && (
+        <p className="text-[10px] text-muted-foreground">
+          URL: {window.location.origin}/catalogo/<span className="text-primary font-medium">{sanitizeSlug(customSlug) || '...'}</span>
+        </p>
+      )}
+    </div>
+  );
+
   if (variant === 'icon') {
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -128,50 +246,45 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
             <Share2 className="w-4 h-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-72 p-3 bg-popover">
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Compartilhar Catálogo</p>
+        <PopoverContent align="end" className="w-80 p-4 bg-popover">
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold mb-1">Compartilhar Catálogo</h4>
+              <p className="text-sm text-muted-foreground">
+                Envie o link para seus clientes fazerem pedidos
+              </p>
+            </div>
             
-            <div className="flex gap-2">
-              <Input
-                value={catalogLink}
-                readOnly
-                className="text-xs h-9"
-              />
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                onClick={handleCopyLink}
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
+            {ensureSlug.isPending ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {renderSlugEditor()}
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-9 text-xs"
-                onClick={handleShareWhatsApp}
-              >
-                <MessageCircle className="w-4 h-4 mr-1.5 text-green-500" />
-                WhatsApp
-              </Button>
-              {'share' in navigator && (
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9 text-xs"
-                  onClick={handleNativeShare}
-                >
-                  <Share2 className="w-4 h-4 mr-1.5" />
-                  Mais opções
-                </Button>
-              )}
-            </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-9 text-xs"
+                    onClick={handleShareWhatsApp}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1.5 text-success" />
+                    WhatsApp
+                  </Button>
+                  {'share' in navigator && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-9 text-xs"
+                      onClick={handleNativeShare}
+                    >
+                      <Share2 className="w-4 h-4 mr-1.5" />
+                      Mais opções
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </PopoverContent>
       </Popover>
@@ -195,46 +308,36 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
             </p>
           </div>
           
-          <div className="flex gap-2">
-            <Input
-              value={catalogLink}
-              readOnly
-              className="text-sm"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              className="shrink-0"
-              onClick={handleCopyLink}
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-500" />
-              ) : (
-                <Copy className="w-4 h-4" />
-              )}
-            </Button>
-          </div>
+          {ensureSlug.isPending ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {renderSlugEditor()}
 
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleShareWhatsApp}
-            >
-              <MessageCircle className="w-4 h-4 mr-2 text-green-500" />
-              WhatsApp
-            </Button>
-            {'share' in navigator && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleNativeShare}
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                Mais opções
-              </Button>
-            )}
-          </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleShareWhatsApp}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2 text-success" />
+                  WhatsApp
+                </Button>
+                {'share' in navigator && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleNativeShare}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Mais opções
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </PopoverContent>
     </Popover>
