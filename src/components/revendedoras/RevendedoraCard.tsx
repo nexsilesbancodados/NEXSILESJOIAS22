@@ -52,7 +52,7 @@ export function RevendedoraCard({
             <div>
               <h3 className="font-semibold">{revendedora.nome}</h3>
               <p className="text-sm text-muted-foreground">
-                {revendedora.comissao || 30}% comissão
+                {revendedora.comissao_percentual || 30}% comissão
               </p>
             </div>
           </div>

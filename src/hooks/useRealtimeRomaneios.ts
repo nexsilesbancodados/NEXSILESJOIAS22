@@ -6,13 +6,11 @@ import { toast } from 'sonner';
 
 interface NewRomaneio {
   id: string;
-  cliente_nome: string | null;
-  total: number;
-  reseller_id: string;
-  reseller_nome: string;
-  maleta_id: string | null;
-  status: string;
-  data: string;
+  numero: string | null;
+  revendedora_id: string | null;
+  status: string | null;
+  data_criacao: string | null;
+  observacoes: string | null;
 }
 
 export function useRealtimeRomaneios() {
@@ -51,16 +49,16 @@ export function useRealtimeRomaneios() {
 
           // Show toast notification
           toast.success(
-            `🛒 Nova Venda Registrada!`,
+            `🛒 Novo Romaneio Criado!`,
             {
-              description: `${newRomaneio.reseller_nome}${newRomaneio.cliente_nome ? ` → ${newRomaneio.cliente_nome}` : ''} - ${formatCurrency(newRomaneio.total)}`,
+              description: `Romaneio ${newRomaneio.numero || newRomaneio.id.slice(-6)} - Status: ${newRomaneio.status}`,
               duration: 8000,
               position: 'top-right',
               action: {
                 label: 'Ver',
                 onClick: () => {
-                  // Navigate to revendedoras page
-                  window.location.href = '/revendedoras';
+                  // Navigate to romaneios page
+                  window.location.href = '/romaneios';
                 },
               },
             }
@@ -81,16 +79,15 @@ export function useRealtimeRomaneios() {
           try {
             await dbRpc('criar_notificacao', {
               p_user_id: user.id,
-              p_tipo: 'venda_portal',
-              p_titulo: 'Nova Venda no Portal',
-              p_mensagem: `${newRomaneio.reseller_nome} registrou uma venda de ${formatCurrency(newRomaneio.total)}`,
+              p_tipo: 'romaneio_novo',
+              p_titulo: 'Novo Romaneio',
+              p_mensagem: `Romaneio ${newRomaneio.numero || ''} foi criado`,
               p_entidade_tipo: 'romaneio',
               p_entidade_id: newRomaneio.id,
               p_dados: { 
-                reseller_nome: newRomaneio.reseller_nome,
-                cliente_nome: newRomaneio.cliente_nome,
-                total: newRomaneio.total,
-                maleta_id: newRomaneio.maleta_id
+                numero: newRomaneio.numero,
+                revendedora_id: newRomaneio.revendedora_id,
+                status: newRomaneio.status,
               },
             });
           } catch (error) {

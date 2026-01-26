@@ -59,7 +59,7 @@ export function RevendedoraFormDialog({
         nome: revendedora.nome,
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
-        comissao: (revendedora.comissao || 30).toString(),
+        comissao: (revendedora.comissao_percentual || 30).toString(),
       });
     } else {
       setFormData({

@@ -693,9 +693,6 @@ export interface Revendedora {
   observacoes?: string | null;
   created_at?: string;
   updated_at?: string;
-  // Aliases for backward compatibility
-  comissao?: number | null;
-  ativa?: boolean | null;
 }
 
 export function useRevendedoras() {
