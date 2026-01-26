@@ -527,15 +527,15 @@ function RomaneioDetailDialog({
     setIsSendingWhatsApp(true);
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enviar-whatsapp`, {
+      const response = await fetch('https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/enviar-whatsapp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc',
         },
         body: JSON.stringify({
           tipo: 'rastreio',
-          telefone: (romaneio as any).cliente_telefone || '',
+          telefone: romaneio.cliente_telefone || '',
           dados: {
             clienteNome: romaneio.cliente_nome,
             romaneioNumero: romaneio.id.slice(-6).toUpperCase(),
