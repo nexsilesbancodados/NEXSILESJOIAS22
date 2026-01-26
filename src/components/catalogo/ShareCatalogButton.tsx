@@ -61,6 +61,7 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
   const [isEditingSlug, setIsEditingSlug] = useState(false);
   const [customSlug, setCustomSlug] = useState(catalogoSlug || '');
   const [showQR, setShowQR] = useState(false);
+  const [slugSuggestions, setSlugSuggestions] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
   // Generate slug if needed when popover opens
@@ -87,6 +88,24 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
     },
   });
 
+  // Generate alternative slug suggestions
+  const generateAlternatives = async (baseSlug: string): Promise<string[]> => {
+    const alternatives: string[] = [];
+    for (let i = 2; i <= 5; i++) {
+      const candidate = `${baseSlug}-${i}`;
+      const { data } = await supabase
+        .from('catalogos')
+        .select('id')
+        .eq('slug', candidate)
+        .maybeSingle();
+      if (!data) {
+        alternatives.push(candidate);
+        if (alternatives.length >= 3) break;
+      }
+    }
+    return alternatives;
+  };
+
   // Update custom slug
   const updateSlug = useMutation({
     mutationFn: async (newSlug: string) => {
@@ -105,9 +124,13 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
 
       if (checkError) throw checkError;
       if (existing) {
-        throw new Error('Este link já está em uso. Escolha outro.');
+        // Generate suggestions
+        const suggestions = await generateAlternatives(sanitized);
+        setSlugSuggestions(suggestions);
+        throw new Error('SLUG_CONFLICT');
       }
 
+      setSlugSuggestions([]);
       const { error } = await supabase
         .from('catalogos')
         .update({ slug: sanitized })
@@ -120,10 +143,13 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
       setCurrentSlug(slug);
       queryClient.invalidateQueries({ queryKey: ['catalogos'] });
       setIsEditingSlug(false);
+      setSlugSuggestions([]);
       toast.success('Link personalizado salvo!');
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Erro ao salvar link');
+      if (error.message !== 'SLUG_CONFLICT') {
+        toast.error(error.message || 'Erro ao salvar link');
+      }
     },
   });
 
@@ -253,28 +279,57 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
     <div className="space-y-2">
       <Label className="text-xs text-muted-foreground">Personalizar link</Label>
       {isEditingSlug ? (
-        <div className="flex gap-2">
-          <Input
-            value={customSlug}
-            onChange={(e) => setCustomSlug(sanitizeSlug(e.target.value))}
-            placeholder="meu-catalogo-personalizado"
-            className="text-xs h-9"
-            maxLength={60}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0"
-            onClick={handleSaveSlug}
-            disabled={updateSlug.isPending}
-          >
-            {updateSlug.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 text-success" />
-            )}
-          </Button>
-        </div>
+        <>
+          <div className="flex gap-2">
+            <Input
+              value={customSlug}
+              onChange={(e) => {
+                setCustomSlug(sanitizeSlug(e.target.value));
+                setSlugSuggestions([]);
+              }}
+              placeholder="meu-catalogo-personalizado"
+              className={cn("text-xs h-9", slugSuggestions.length > 0 && "border-destructive")}
+              maxLength={60}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              onClick={handleSaveSlug}
+              disabled={updateSlug.isPending}
+            >
+              {updateSlug.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 text-success" />
+              )}
+            </Button>
+          </div>
+          {slugSuggestions.length > 0 && (
+            <div className="space-y-2 p-2 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-xs text-destructive font-medium">Este link já está em uso. Sugestões:</p>
+              <div className="flex flex-wrap gap-1">
+                {slugSuggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs bg-background hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => {
+                      setCustomSlug(suggestion);
+                      setSlugSuggestions([]);
+                    }}
+                  >
+                    {suggestion}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">
+            URL: {window.location.origin}/catalogo/<span className="text-primary font-medium">{sanitizeSlug(customSlug) || '...'}</span>
+          </p>
+        </>
       ) : (
         <div className="flex gap-2">
           <Input
@@ -304,11 +359,6 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
             )}
           </Button>
         </div>
-      )}
-      {isEditingSlug && (
-        <p className="text-[10px] text-muted-foreground">
-          URL: {window.location.origin}/catalogo/<span className="text-primary font-medium">{sanitizeSlug(customSlug) || '...'}</span>
-        </p>
       )}
     </div>
   );
