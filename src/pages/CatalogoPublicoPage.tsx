@@ -47,11 +47,13 @@ import {
   X,
   LayoutGrid,
   LayoutList,
-  ZoomIn
+  ZoomIn,
+  Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { catalogOrderSchema } from '@/lib/validation-schemas';
+import { openWhatsAppWithoutPhone } from '@/lib/whatsapp';
 
 const STATUS_OPTIONS = [
   { value: 'em_preparacao', label: 'Em Preparação', color: 'bg-yellow-500/20 text-yellow-600', message: 'Este catálogo está sendo preparado. Em breve estará disponível!' },
@@ -1475,6 +1477,33 @@ export default function CatalogoPublicoPage() {
                       <Badge variant="secondary">{detailItem.peca.material}</Badge>
                     )}
                   </div>
+
+                  {/* Share Button */}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const peca = detailItem.peca;
+                      if (!peca) return;
+                      
+                      const pageUrl = window.location.href;
+                      const message = [
+                        `✨ *${peca.nome}*`,
+                        '',
+                        `💰 Preço: ${formatCurrency(peca.preco_venda || 0)}`,
+                        peca.codigo ? `📦 Código: ${peca.codigo}` : '',
+                        peca.categoria ? `📂 Categoria: ${peca.categoria}` : '',
+                        peca.material ? `🏷️ Material: ${peca.material}` : '',
+                        '',
+                        `👉 Veja mais no catálogo: ${pageUrl}`,
+                      ].filter(Boolean).join('\n');
+                      
+                      openWhatsAppWithoutPhone(message);
+                    }}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Compartilhar via WhatsApp
+                  </Button>
                 </div>
               </div>
               
