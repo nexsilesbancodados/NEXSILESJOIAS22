@@ -55,7 +55,10 @@ import {
   Printer,
   ShoppingCart,
   Eye,
-  MessageCircle
+  MessageCircle,
+  Upload,
+  X,
+  Palette
 } from 'lucide-react';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
@@ -215,7 +218,22 @@ export default function RevendedorasPage() {
     comissao_personalizada: '',
     prazo_devolucao: '',
     observacoes: '',
+    cor_primaria: '#8B5CF6',
+    cor_secundaria: '#EC4899',
   });
+  const [maletaImageFile, setMaletaImageFile] = useState<File | null>(null);
+  const [maletaImagePreview, setMaletaImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  const PRESET_COLORS = [
+    { name: 'Roxo', primary: '#8B5CF6', secondary: '#EC4899' },
+    { name: 'Azul', primary: '#3B82F6', secondary: '#06B6D4' },
+    { name: 'Verde', primary: '#10B981', secondary: '#84CC16' },
+    { name: 'Laranja', primary: '#F97316', secondary: '#EAB308' },
+    { name: 'Rosa', primary: '#EC4899', secondary: '#F43F5E' },
+    { name: 'Dourado', primary: '#D4AF37', secondary: '#C0A062' },
+  ];
 
   // Commission scale state
   const [usarEscalaComissao, setUsarEscalaComissao] = useState(false);
@@ -317,7 +335,10 @@ export default function RevendedorasPage() {
         comissao_personalizada: (maleta as any).comissao_personalizada?.toString() || '',
         prazo_devolucao: String((maleta as any).prazo_devolucao || ''),
         observacoes: maleta.observacoes || '',
+        cor_primaria: (maleta as any).cor_primaria || '#8B5CF6',
+        cor_secundaria: (maleta as any).cor_secundaria || '#EC4899',
       });
+      setMaletaImagePreview((maleta as any).imagem_capa || null);
     } else {
       setSelectedMaleta(null);
       const defaultDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
@@ -326,15 +347,67 @@ export default function RevendedorasPage() {
         comissao_personalizada: '',
         prazo_devolucao: defaultDate,
         observacoes: '',
+        cor_primaria: '#8B5CF6',
+        cor_secundaria: '#EC4899',
       });
+      setMaletaImagePreview(null);
     }
+    setMaletaImageFile(null);
+    setShowColorPicker(false);
     setIsMaletaFormOpen(true);
+  };
+
+  const handleMaletaImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Imagem muito grande. Máximo 5MB.');
+        return;
+      }
+      setMaletaImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setMaletaImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadMaletaImage = async (): Promise<string | null> => {
+    if (!maletaImageFile) return maletaImagePreview;
+
+    setIsUploadingImage(true);
+    try {
+      const fileExt = maletaImageFile.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `maleta-covers/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('maletas-images')
+        .upload(filePath, maletaImageFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('maletas-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Erro ao fazer upload da imagem');
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmitMaleta = async () => {
     if (!viewingRevendedora) return;
 
     try {
+      const imageUrl = await uploadMaletaImage();
+
       if (selectedMaleta) {
         // Atualizar maleta existente
         await updateMaletaMutation.mutateAsync({
@@ -345,6 +418,9 @@ export default function RevendedorasPage() {
             : null,
           prazo_devolucao: maletaFormData.prazo_devolucao || null,
           observacoes: maletaFormData.observacoes || null,
+          cor_primaria: maletaFormData.cor_primaria,
+          cor_secundaria: maletaFormData.cor_secundaria,
+          imagem_capa: imageUrl,
         });
       } else {
         // Criar nova maleta
@@ -353,6 +429,9 @@ export default function RevendedorasPage() {
           nome: maletaFormData.nome || undefined,
           data_devolucao: maletaFormData.prazo_devolucao || undefined,
           observacoes: maletaFormData.observacoes || undefined,
+          cor_primaria: maletaFormData.cor_primaria,
+          cor_secundaria: maletaFormData.cor_secundaria,
+          imagem_capa: imageUrl || undefined,
         });
       }
       setIsMaletaFormOpen(false);
