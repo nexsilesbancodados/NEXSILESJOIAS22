@@ -106,16 +106,19 @@ function useUpdateMaleta() {
     mutationFn: async ({ id, ...updateData }: { 
       id: string; 
       nome?: string | null;
-      comissao_personalizada?: number | null;
-      prazo_devolucao?: string | null;
+      data_devolucao?: string | null;
       observacoes?: string | null;
+      cor_primaria?: string | null;
+      cor_secundaria?: string | null;
+      imagem_capa?: string | null;
     }) => {
-      // Map prazo_devolucao to data_devolucao_prevista
       const dbData: Record<string, unknown> = {};
       if (updateData.nome !== undefined) dbData.nome = updateData.nome;
-      if (updateData.comissao_personalizada !== undefined) dbData.comissao_personalizada = updateData.comissao_personalizada;
       if (updateData.observacoes !== undefined) dbData.observacoes = updateData.observacoes;
-      if (updateData.prazo_devolucao !== undefined) dbData.data_devolucao_prevista = updateData.prazo_devolucao;
+      if (updateData.data_devolucao !== undefined) dbData.data_devolucao = updateData.data_devolucao;
+      if (updateData.cor_primaria !== undefined) dbData.cor_primaria = updateData.cor_primaria;
+      if (updateData.cor_secundaria !== undefined) dbData.cor_secundaria = updateData.cor_secundaria;
+      if (updateData.imagem_capa !== undefined) dbData.imagem_capa = updateData.imagem_capa;
 
       const { data, error } = await supabase
         .from('maletas')
@@ -413,10 +416,7 @@ export default function RevendedorasPage() {
         await updateMaletaMutation.mutateAsync({
           id: selectedMaleta.id,
           nome: maletaFormData.nome || null,
-          comissao_personalizada: maletaFormData.comissao_personalizada 
-            ? parseFloat(maletaFormData.comissao_personalizada) 
-            : null,
-          prazo_devolucao: maletaFormData.prazo_devolucao || null,
+          data_devolucao: maletaFormData.prazo_devolucao || null,
           observacoes: maletaFormData.observacoes || null,
           cor_primaria: maletaFormData.cor_primaria,
           cor_secundaria: maletaFormData.cor_secundaria,
