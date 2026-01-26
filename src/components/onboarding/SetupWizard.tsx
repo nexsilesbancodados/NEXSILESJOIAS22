@@ -3,12 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { 
   ChevronRight, 
   ChevronLeft, 
   Sparkles,
   Building2,
+  Store,
   Package,
   Users,
   Check,
@@ -17,7 +17,9 @@ import {
   Target,
   LayoutDashboard,
   PartyPopper,
-  X
+  X,
+  Phone,
+  MapPin
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,10 +46,16 @@ const WIZARD_STEPS: WizardStep[] = [
     icon: Sparkles,
   },
   {
-    id: 'business',
-    title: 'Seu Negócio',
-    description: 'Informações básicas',
-    icon: Building2,
+    id: 'store',
+    title: 'Dados da Loja',
+    description: 'Informações que aparecem nos recibos',
+    icon: Store,
+  },
+  {
+    id: 'goals',
+    title: 'Meta de Vendas',
+    description: 'Defina sua meta mensal',
+    icon: Target,
   },
   {
     id: 'complete',
@@ -70,12 +78,16 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
   const { user } = useAuth();
   const savePreference = useSaveUserPreference();
 
-  // Form states
-  const [businessData, setBusinessData] = useState({
-    nome: '',
-    telefone: '',
-    metaMensal: '',
+  // Form states - Store data
+  const [storeData, setStoreData] = useState({
+    nome_loja: '',
+    telefone_loja: '',
+    endereco_loja: '',
+    cnpj_loja: '',
   });
+
+  // Form states - Goals
+  const [metaMensal, setMetaMensal] = useState('');
 
   const step = WIZARD_STEPS[currentStep];
   const isFirstStep = currentStep === 0;
@@ -84,8 +96,14 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
   const Icon = step.icon;
 
   const handleNext = async () => {
-    if (currentStep === 1) {
-      await saveBusinessData();
+    // Save store data when leaving store step
+    if (currentStep === 1 && storeData.nome_loja) {
+      await saveStoreData();
+    }
+
+    // Save goals when leaving goals step
+    if (currentStep === 2 && metaMensal) {
+      await saveGoalsData();
     }
 
     if (isLastStep) {
@@ -118,34 +136,99 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
     setTimeout(onComplete, 300);
   };
 
-  const saveBusinessData = async () => {
-    if (!user?.id || !businessData.nome) return;
+  const saveStoreData = async () => {
+    if (!storeData.nome_loja) return;
 
     setIsSubmitting(true);
     try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ nome: businessData.nome, telefone: businessData.telefone })
-        .eq('user_id', user.id);
+      // Save each config key individually using upsert
+      const configs = [
+        { chave: 'nome_loja', valor: storeData.nome_loja },
+        { chave: 'telefone_loja', valor: storeData.telefone_loja },
+        { chave: 'endereco_loja', valor: storeData.endereco_loja },
+        { chave: 'cnpj_loja', valor: storeData.cnpj_loja },
+      ];
 
-      if (profileError) throw profileError;
+      for (const config of configs) {
+        // Check if exists
+        const { data: existing } = await supabase
+          .from('configuracoes')
+          .select('id')
+          .eq('chave', config.chave)
+          .maybeSingle();
 
-      if (businessData.metaMensal) {
-        await supabase
-          .from('metas')
-          .insert({
-            titulo: 'Meta Mensal de Vendas',
-            valor_meta: parseFloat(businessData.metaMensal),
-            tipo: 'vendas',
-            data_inicio: new Date().toISOString().slice(0, 10),
-            data_fim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
-          });
+        if (existing) {
+          await supabase
+            .from('configuracoes')
+            .update({ valor: config.valor, updated_at: new Date().toISOString() })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('configuracoes')
+            .insert({ chave: config.chave, valor: config.valor, tipo: 'string' });
+        }
       }
 
-      toast.success('Dados salvos com sucesso!');
+      // Also update profile name if empty
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('nome')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile && (!profile.nome || profile.nome === user.email)) {
+          await supabase
+            .from('profiles')
+            .update({ nome: storeData.nome_loja })
+            .eq('user_id', user.id);
+        }
+      }
+
     } catch (error) {
-      console.error('Erro ao salvar dados:', error);
-      toast.error('Erro ao salvar dados');
+      console.error('Erro ao salvar dados da loja:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const saveGoalsData = async () => {
+    if (!metaMensal) return;
+
+    setIsSubmitting(true);
+    try {
+      // Save meta config
+      const { data: existing } = await supabase
+        .from('configuracoes')
+        .select('id')
+        .eq('chave', 'meta_faturamento_mensal')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('configuracoes')
+          .update({ valor: metaMensal, updated_at: new Date().toISOString() })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('configuracoes')
+          .insert({ chave: 'meta_faturamento_mensal', valor: metaMensal, tipo: 'number' });
+      }
+
+      // Also create a meta record
+      await supabase
+        .from('metas')
+        .insert({
+          titulo: 'Meta Mensal de Vendas',
+          valor_meta: parseFloat(metaMensal),
+          tipo: 'vendas',
+          data_inicio: new Date().toISOString().slice(0, 10),
+          data_fim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
+        });
+
+      toast.success('Configurações salvas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar meta:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -154,6 +237,15 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
   const goToPage = (path: string) => {
     handleComplete();
     setTimeout(() => navigate(path), 300);
+  };
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1: // Store step - at least name required
+        return storeData.nome_loja.trim().length > 0;
+      default:
+        return true;
+    }
   };
 
   if (!isVisible) return null;
@@ -242,12 +334,18 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
                 >
                   {currentStep === 0 && <WelcomeStep />}
                   {currentStep === 1 && (
-                    <BusinessStep 
-                      data={businessData} 
-                      onChange={setBusinessData} 
+                    <StoreStep 
+                      data={storeData} 
+                      onChange={setStoreData} 
                     />
                   )}
-                  {currentStep === 2 && <CompleteStep onGoTo={goToPage} />}
+                  {currentStep === 2 && (
+                    <GoalsStep 
+                      value={metaMensal} 
+                      onChange={setMetaMensal} 
+                    />
+                  )}
+                  {currentStep === 3 && <CompleteStep onGoTo={goToPage} />}
                 </motion.div>
               </AnimatePresence>
 
@@ -265,7 +363,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
 
                 <Button 
                   onClick={handleNext}
-                  disabled={isSubmitting || (currentStep === 1 && !businessData.nome)}
+                  disabled={isSubmitting || !canProceed()}
                   className="btn-gold min-w-[120px]"
                 >
                   {isSubmitting ? (
@@ -303,7 +401,7 @@ function WelcomeStep() {
         <FeatureCard icon={LayoutDashboard} title="Dashboard" description="Visão completa" />
       </div>
       <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-        Configure rapidamente e comece a usar!
+        Vamos configurar seu sistema em poucos passos!
       </p>
     </div>
   );
@@ -329,47 +427,105 @@ function FeatureCard({
   );
 }
 
-interface BusinessStepProps {
-  data: { nome: string; telefone: string; metaMensal: string };
-  onChange: (data: { nome: string; telefone: string; metaMensal: string }) => void;
+interface StoreStepProps {
+  data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string };
+  onChange: (data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string }) => void;
 }
 
-function BusinessStep({ data, onChange }: BusinessStepProps) {
+function StoreStep({ data, onChange }: StoreStepProps) {
   return (
     <div className="space-y-4 max-w-sm mx-auto">
       <div className="space-y-2">
-        <Label htmlFor="business-name">Nome da Empresa / Seu Nome *</Label>
+        <Label htmlFor="store-name" className="flex items-center gap-2">
+          <Store className="w-4 h-4 text-primary" />
+          Nome da Loja *
+        </Label>
         <Input
-          id="business-name"
+          id="store-name"
           placeholder="Ex: Joias da Maria"
-          value={data.nome}
-          onChange={(e) => onChange({ ...data, nome: e.target.value })}
+          value={data.nome_loja}
+          onChange={(e) => onChange({ ...data, nome_loja: e.target.value })}
           className="h-11"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="business-phone">Telefone (WhatsApp)</Label>
+        <Label htmlFor="store-phone" className="flex items-center gap-2">
+          <Phone className="w-4 h-4 text-primary" />
+          Telefone / WhatsApp
+        </Label>
         <Input
-          id="business-phone"
+          id="store-phone"
           placeholder="(00) 00000-0000"
-          value={data.telefone}
-          onChange={(e) => onChange({ ...data, telefone: e.target.value })}
+          value={data.telefone_loja}
+          onChange={(e) => onChange({ ...data, telefone_loja: e.target.value })}
           className="h-11"
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="business-meta">Meta de Vendas Mensal (R$)</Label>
+        <Label htmlFor="store-address" className="flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-primary" />
+          Endereço
+        </Label>
         <Input
-          id="business-meta"
-          type="number"
-          placeholder="Ex: 10000"
-          value={data.metaMensal}
-          onChange={(e) => onChange({ ...data, metaMensal: e.target.value })}
+          id="store-address"
+          placeholder="Rua, número - Cidade/UF"
+          value={data.endereco_loja}
+          onChange={(e) => onChange({ ...data, endereco_loja: e.target.value })}
           className="h-11"
         />
       </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="store-cnpj" className="flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-primary" />
+          CNPJ
+        </Label>
+        <Input
+          id="store-cnpj"
+          placeholder="00.000.000/0000-00"
+          value={data.cnpj_loja}
+          onChange={(e) => onChange({ ...data, cnpj_loja: e.target.value })}
+          className="h-11"
+        />
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center pt-2">
+        * Campo obrigatório. Você pode editar depois em Configurações.
+      </p>
+    </div>
+  );
+}
+
+interface GoalsStepProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function GoalsStep({ value, onChange }: GoalsStepProps) {
+  return (
+    <div className="space-y-6 max-w-sm mx-auto text-center">
+      <div className="p-6 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+        <Target className="w-12 h-12 text-primary mx-auto mb-4" />
+        <p className="text-sm text-muted-foreground mb-4">
+          Defina uma meta de faturamento mensal para acompanhar seu progresso
+        </p>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+          <Input
+            type="number"
+            placeholder="10.000"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-14 text-center text-xl font-semibold pl-10"
+          />
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Este campo é opcional. Você pode configurar depois.
+      </p>
     </div>
   );
 }
@@ -401,9 +557,13 @@ function CompleteStep({ onGoTo }: CompleteStepProps) {
           <Users className="w-4 h-4" />
           Revendedoras
         </Button>
-        <Button variant="outline" onClick={() => onGoTo('/pdv')} className="h-10 gap-2 col-span-2 text-sm">
+        <Button variant="outline" onClick={() => onGoTo('/configuracoes')} className="h-10 gap-2 text-sm">
+          <Building2 className="w-4 h-4" />
+          Configurações
+        </Button>
+        <Button variant="outline" onClick={() => onGoTo('/pdv')} className="h-10 gap-2 text-sm">
           <ArrowRight className="w-4 h-4" />
-          Ir para o PDV
+          Ir para PDV
         </Button>
       </div>
     </div>
@@ -425,18 +585,34 @@ export function useSetupWizard() {
       }
 
       try {
-        const { data, error } = await supabase
+        // Check if onboarding is completed
+        const { data: prefData, error: prefError } = await supabase
           .from('user_preferences')
           .select('valor')
           .eq('user_id', user.id)
           .eq('chave', PREFERENCE_KEYS.ONBOARDING_COMPLETED)
-          .single();
+          .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
+        if (prefData?.valor === 'true') {
+          setShowWizard(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Also check if store data already exists (returning user)
+        const { data: storeData } = await supabase
+          .from('configuracoes')
+          .select('valor')
+          .eq('chave', 'nome_loja')
+          .maybeSingle();
+
+        // If store has name, consider onboarding complete
+        if (storeData?.valor && storeData.valor.trim() !== '') {
+          setShowWizard(false);
+        } else {
+          // Check localStorage fallback
           const localCompleted = localStorage.getItem('setup_wizard_completed');
           setShowWizard(!localCompleted);
-        } else {
-          setShowWizard(!data?.valor);
         }
       } catch {
         const localCompleted = localStorage.getItem('setup_wizard_completed');
@@ -446,7 +622,7 @@ export function useSetupWizard() {
       }
     };
 
-    const timer = setTimeout(checkWizardStatus, 1000);
+    const timer = setTimeout(checkWizardStatus, 500);
     return () => clearTimeout(timer);
   }, [user?.id]);
 
