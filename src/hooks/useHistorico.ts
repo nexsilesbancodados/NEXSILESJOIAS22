@@ -1,20 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
+import type { Json } from '@/integrations/supabase/types';
 
 const db = supabase;
 
+// Interface aligned with actual database schema but with backwards-compatible aliases
 export interface HistoricoAtividade {
   id: string;
-  tipo: 'criacao' | 'atualizacao' | 'exclusao';
-  descricao: string;
-  entidade: string;
-  entidade_id: string | null;
-  dados_anteriores: Record<string, unknown> | null;
-  dados_novos: Record<string, unknown> | null;
-  usuario_id: string | null;
-  usuario_nome: string | null;
-  valor: number | null;
-  created_at: string;
+  tabela: string;
+  acao: string;
+  registro_id: string | null;
+  user_id: string | null;
+  organization_id: string | null;
+  dados_anteriores: Json | null;
+  dados_novos: Json | null;
+  ip_address: string | null;
+  created_at: string | null;
+  // Backwards-compatible aliases
+  tipo: string; // alias for acao
+  entidade: string; // alias for tabela
+  entidade_id: string | null; // alias for registro_id
+  descricao: string; // generated description
+  usuario_id: string | null; // alias for user_id
+  usuario_nome: string | null; // not stored, placeholder
+  valor: number | null; // not stored, placeholder
 }
 
 export type EntidadeFilter = 
@@ -26,9 +35,12 @@ export type EntidadeFilter =
   | 'catalogos'
   | 'pedidos_catalogo'
   | 'caixa_sessoes'
-  | 'profiles';
+  | 'profiles'
+  | 'clientes'
+  | 'revendedoras'
+  | 'campanhas';
 
-export type TipoFilter = 'todos' | 'criacao' | 'atualizacao' | 'exclusao';
+export type TipoFilter = 'todos' | 'criacao' | 'atualizacao' | 'exclusao' | 'INSERT' | 'UPDATE' | 'DELETE';
 
 interface UseHistoricoOptions {
   entidade?: EntidadeFilter;
@@ -36,6 +48,26 @@ interface UseHistoricoOptions {
   limit?: number;
   dataInicio?: Date;
   dataFim?: Date;
+}
+
+// Helper to map acao to tipo
+function mapAcaoToTipo(acao: string): string {
+  const mapping: Record<string, string> = {
+    'INSERT': 'criacao',
+    'UPDATE': 'atualizacao',
+    'DELETE': 'exclusao',
+    'criacao': 'criacao',
+    'atualizacao': 'atualizacao',
+    'exclusao': 'exclusao',
+  };
+  return mapping[acao] || acao;
+}
+
+// Helper to generate description
+function generateDescricao(tabela: string, acao: string): string {
+  const acaoTexto = mapAcaoToTipo(acao);
+  const acaoLabel = acaoTexto === 'criacao' ? 'criado' : acaoTexto === 'atualizacao' ? 'atualizado' : 'excluído';
+  return `Registro ${acaoLabel} em ${tabela}`;
 }
 
 export function useHistorico(options: UseHistoricoOptions = {}) {
@@ -59,7 +91,12 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
       }
       
       if (tipo !== 'todos') {
-        query = query.eq('acao', tipo);
+        // Map tipo to database acao values
+        const acaoValues = tipo === 'criacao' ? ['INSERT', 'criacao'] 
+          : tipo === 'atualizacao' ? ['UPDATE', 'atualizacao']
+          : tipo === 'exclusao' ? ['DELETE', 'exclusao']
+          : [tipo];
+        query = query.in('acao', acaoValues);
       }
       
       if (dataInicio) {
@@ -73,7 +110,18 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data as HistoricoAtividade[];
+      
+      // Transform data to include backwards-compatible fields
+      return (data || []).map((item: any) => ({
+        ...item,
+        tipo: mapAcaoToTipo(item.acao),
+        entidade: item.tabela,
+        entidade_id: item.registro_id,
+        descricao: generateDescricao(item.tabela, item.acao),
+        usuario_id: item.user_id,
+        usuario_nome: null,
+        valor: null,
+      })) as HistoricoAtividade[];
     },
   });
 }
