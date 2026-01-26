@@ -159,6 +159,7 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
             reseller_id: user.id,
             revendedora_nome: 'Catálogo Online',
             cliente_nome: pedido.cliente_nome,
+            cliente_telefone: pedido.cliente_telefone || null,
             user_id: user.id,
             status: 'pendente',
             total: pedido.total,

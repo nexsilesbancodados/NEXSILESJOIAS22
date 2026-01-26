@@ -185,6 +185,8 @@ export interface Romaneio {
   codigo_rastreio?: string | null;
   transportadora?: string | null;
   data_envio?: string | null;
+  // Customer contact
+  cliente_telefone?: string | null;
   created_at: string;
   updated_at?: string | null;
   // Aliases for backward compatibility

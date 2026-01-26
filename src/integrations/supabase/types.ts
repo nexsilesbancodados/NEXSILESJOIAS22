@@ -1477,6 +1477,7 @@ export type Database = {
         Row: {
           cep: string | null
           cidade: string | null
+          cliente_telefone: string | null
           codigo_rastreio: string | null
           created_at: string | null
           data_criacao: string | null
@@ -1498,6 +1499,7 @@ export type Database = {
         Insert: {
           cep?: string | null
           cidade?: string | null
+          cliente_telefone?: string | null
           codigo_rastreio?: string | null
           created_at?: string | null
           data_criacao?: string | null
@@ -1519,6 +1521,7 @@ export type Database = {
         Update: {
           cep?: string | null
           cidade?: string | null
+          cliente_telefone?: string | null
           codigo_rastreio?: string | null
           created_at?: string | null
           data_criacao?: string | null
