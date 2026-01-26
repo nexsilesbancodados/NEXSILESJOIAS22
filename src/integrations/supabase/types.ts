@@ -1715,6 +1715,7 @@ export type Database = {
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
       get_user_organization_id: { Args: never; Returns: string }
+      get_user_organization_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
