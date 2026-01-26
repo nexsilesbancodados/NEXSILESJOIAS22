@@ -9,6 +9,17 @@ async function getCurrentUserId(): Promise<string> {
   return user.id;
 }
 
+// Helper function to get organization_id from membership
+async function getOrganizationId(): Promise<string | null> {
+  const userId = await getCurrentUserId();
+  const { data } = await supabase
+    .from('memberships')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data?.organization_id || null;
+}
+
 // Types based on actual database schema
 export interface Peca {
   id: string;
@@ -243,11 +254,10 @@ export function usePecas() {
   return useQuery({
     queryKey: ['pecas'],
     queryFn: async () => {
-      const userId = await getCurrentUserId();
+      // RLS handles organization filtering automatically
       const { data, error } = await supabase
         .from('pecas')
         .select('*')
-        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -261,10 +271,10 @@ export function useAddPeca() {
   
   return useMutation({
     mutationFn: async (peca: Omit<Peca, 'id' | 'created_at' | 'updated_at'>) => {
-      const userId = await getCurrentUserId();
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('pecas')
-        .insert({ ...peca, user_id: userId })
+        .insert({ ...peca, organization_id: organizationId })
         .select()
         .single();
       
@@ -387,11 +397,10 @@ export function useFornecedores() {
   return useQuery({
     queryKey: ['fornecedores'],
     queryFn: async () => {
-      const userId = await getCurrentUserId();
+      // RLS handles organization filtering automatically
       const { data, error } = await supabase
         .from('fornecedores')
         .select('*')
-        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -405,10 +414,10 @@ export function useAddFornecedor() {
   
   return useMutation({
     mutationFn: async (fornecedor: Omit<Fornecedor, 'id' | 'created_at' | 'updated_at'>) => {
-      const userId = await getCurrentUserId();
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('fornecedores')
-        .insert({ ...fornecedor, user_id: userId })
+        .insert({ ...fornecedor, organization_id: organizationId })
         .select()
         .single();
       
@@ -531,11 +540,10 @@ export function useClientes() {
   return useQuery({
     queryKey: ['clientes'],
     queryFn: async () => {
-      const userId = await getCurrentUserId();
+      // RLS handles organization filtering automatically
       const { data, error } = await supabase
         .from('clientes')
         .select('*')
-        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -549,10 +557,10 @@ export function useAddCliente() {
   
   return useMutation({
     mutationFn: async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
-      const userId = await getCurrentUserId();
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('clientes')
-        .insert({ ...cliente, user_id: userId })
+        .insert({ ...cliente, organization_id: organizationId })
         .select()
         .single();
       
@@ -702,11 +710,10 @@ export function useRevendedoras() {
   return useQuery({
     queryKey: ['revendedoras'],
     queryFn: async () => {
-      const userId = await getCurrentUserId();
+      // RLS handles organization filtering automatically
       const { data, error } = await supabase
         .from('revendedoras')
         .select('*')
-        .eq('user_id', userId)
         .order('nome');
       
       if (error) throw error;
@@ -720,11 +727,11 @@ export function useAddRevendedora() {
   
   return useMutation({
     mutationFn: async (revendedora: Partial<Omit<Revendedora, 'id' | 'created_at' | 'updated_at'>>) => {
-      const userId = await getCurrentUserId();
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('revendedoras')
         .insert({
-          user_id: userId,
+          organization_id: organizationId,
           nome: revendedora.nome || '',
           telefone: revendedora.telefone || null,
           whatsapp: revendedora.whatsapp || null,
@@ -822,11 +829,10 @@ export function useMaletas(resellerId?: string) {
   return useQuery({
     queryKey: ['maletas', resellerId],
     queryFn: async () => {
-      const userId = await getCurrentUserId();
+      // RLS handles organization filtering automatically
       let query = supabase
         .from('maletas')
         .select('*')
-        .eq('user_id', userId)
         .order('created_at', { ascending: false });
       
       if (resellerId) {

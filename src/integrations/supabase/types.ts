@@ -70,6 +70,7 @@ export type Database = {
           descricao: string | null
           id: string
           nome: string
+          organization_id: string | null
           tempo_medio_minutos: number | null
           tipo: string | null
           updated_at: string | null
@@ -81,6 +82,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome: string
+          organization_id?: string | null
           tempo_medio_minutos?: number | null
           tipo?: string | null
           updated_at?: string | null
@@ -92,11 +94,20 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome?: string
+          organization_id?: string | null
           tempo_medio_minutos?: number | null
           tipo?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "banhos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       caixa_sessoes: {
         Row: {
@@ -106,6 +117,7 @@ export type Database = {
           id: string
           observacoes: string | null
           operador_id: string | null
+          organization_id: string | null
           status: string
           updated_at: string
           valor_final: number | null
@@ -121,6 +133,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           operador_id?: string | null
+          organization_id?: string | null
           status?: string
           updated_at?: string
           valor_final?: number | null
@@ -136,6 +149,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           operador_id?: string | null
+          organization_id?: string | null
           status?: string
           updated_at?: string
           valor_final?: number | null
@@ -144,7 +158,15 @@ export type Database = {
           valor_suprimentos?: number | null
           valor_vendas?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "caixa_sessoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campanhas: {
         Row: {
@@ -157,6 +179,7 @@ export type Database = {
           id: string
           meta_valor: number | null
           nome: string
+          organization_id: string | null
           premio: string | null
           tipo: string | null
           updated_at: string | null
@@ -171,6 +194,7 @@ export type Database = {
           id?: string
           meta_valor?: number | null
           nome: string
+          organization_id?: string | null
           premio?: string | null
           tipo?: string | null
           updated_at?: string | null
@@ -185,11 +209,20 @@ export type Database = {
           id?: string
           meta_valor?: number | null
           nome?: string
+          organization_id?: string | null
           premio?: string | null
           tipo?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campanhas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       catalogos: {
         Row: {
@@ -200,6 +233,7 @@ export type Database = {
           id: string
           imagem_capa: string | null
           nome: string
+          organization_id: string | null
           slug: string | null
           updated_at: string | null
         }
@@ -211,6 +245,7 @@ export type Database = {
           id?: string
           imagem_capa?: string | null
           nome: string
+          organization_id?: string | null
           slug?: string | null
           updated_at?: string | null
         }
@@ -222,10 +257,19 @@ export type Database = {
           id?: string
           imagem_capa?: string | null
           nome?: string
+          organization_id?: string | null
           slug?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "catalogos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       catalogos_pecas: {
         Row: {
@@ -283,6 +327,7 @@ export type Database = {
           id: string
           nome: string
           observacoes: string | null
+          organization_id: string | null
           pontos_fidelidade: number | null
           telefone: string | null
           updated_at: string | null
@@ -301,6 +346,7 @@ export type Database = {
           id?: string
           nome: string
           observacoes?: string | null
+          organization_id?: string | null
           pontos_fidelidade?: number | null
           telefone?: string | null
           updated_at?: string | null
@@ -319,12 +365,21 @@ export type Database = {
           id?: string
           nome?: string
           observacoes?: string | null
+          organization_id?: string | null
           pontos_fidelidade?: number | null
           telefone?: string | null
           updated_at?: string | null
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       configuracoes: {
         Row: {
@@ -414,6 +469,7 @@ export type Database = {
           id: string
           nome: string
           observacoes: string | null
+          organization_id: string | null
           telefone: string | null
           updated_at: string | null
         }
@@ -429,6 +485,7 @@ export type Database = {
           id?: string
           nome: string
           observacoes?: string | null
+          organization_id?: string | null
           telefone?: string | null
           updated_at?: string | null
         }
@@ -444,10 +501,19 @@ export type Database = {
           id?: string
           nome?: string
           observacoes?: string | null
+          organization_id?: string | null
           telefone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       funcionarios: {
         Row: {
@@ -665,6 +731,7 @@ export type Database = {
           is_public: boolean | null
           nome: string
           observacoes: string | null
+          organization_id: string | null
           revendedora_id: string | null
           sharing_slug: string | null
           status: string | null
@@ -681,6 +748,7 @@ export type Database = {
           is_public?: boolean | null
           nome: string
           observacoes?: string | null
+          organization_id?: string | null
           revendedora_id?: string | null
           sharing_slug?: string | null
           status?: string | null
@@ -697,6 +765,7 @@ export type Database = {
           is_public?: boolean | null
           nome?: string
           observacoes?: string | null
+          organization_id?: string | null
           revendedora_id?: string | null
           sharing_slug?: string | null
           status?: string | null
@@ -704,6 +773,13 @@ export type Database = {
           valor_total?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "maletas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "maletas_revendedora_id_fkey"
             columns: ["revendedora_id"]
@@ -764,6 +840,38 @@ export type Database = {
           },
         ]
       }
+      memberships: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas: {
         Row: {
           atingida: boolean | null
@@ -773,6 +881,7 @@ export type Database = {
           data_inicio: string | null
           descricao: string | null
           id: string
+          organization_id: string | null
           revendedora_id: string | null
           tipo: string | null
           titulo: string
@@ -788,6 +897,7 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          organization_id?: string | null
           revendedora_id?: string | null
           tipo?: string | null
           titulo: string
@@ -803,6 +913,7 @@ export type Database = {
           data_inicio?: string | null
           descricao?: string | null
           id?: string
+          organization_id?: string | null
           revendedora_id?: string | null
           tipo?: string | null
           titulo?: string
@@ -816,6 +927,13 @@ export type Database = {
             columns: ["campanha_id"]
             isOneToOne: false
             referencedRelation: "campanhas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -977,6 +1095,33 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string | null
+          slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string | null
+          slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string | null
+          slug?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pecas: {
         Row: {
           ativo: boolean | null
@@ -992,6 +1137,7 @@ export type Database = {
           imagem_url: string | null
           material: string | null
           nome: string
+          organization_id: string | null
           peso: number | null
           preco_custo: number | null
           preco_revenda: number | null
@@ -1013,6 +1159,7 @@ export type Database = {
           imagem_url?: string | null
           material?: string | null
           nome: string
+          organization_id?: string | null
           peso?: number | null
           preco_custo?: number | null
           preco_revenda?: number | null
@@ -1034,6 +1181,7 @@ export type Database = {
           imagem_url?: string | null
           material?: string | null
           nome?: string
+          organization_id?: string | null
           peso?: number | null
           preco_custo?: number | null
           preco_revenda?: number | null
@@ -1047,6 +1195,13 @@ export type Database = {
             columns: ["fornecedor_id"]
             isOneToOne: false
             referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pecas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1188,6 +1343,7 @@ export type Database = {
           id: string
           nome: string
           observacoes: string | null
+          organization_id: string | null
           saldo_comissao: number | null
           telefone: string | null
           updated_at: string | null
@@ -1208,6 +1364,7 @@ export type Database = {
           id?: string
           nome: string
           observacoes?: string | null
+          organization_id?: string | null
           saldo_comissao?: number | null
           telefone?: string | null
           updated_at?: string | null
@@ -1228,13 +1385,22 @@ export type Database = {
           id?: string
           nome?: string
           observacoes?: string | null
+          organization_id?: string | null
           saldo_comissao?: number | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "revendedoras_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       romaneios: {
         Row: {
@@ -1249,6 +1415,7 @@ export type Database = {
           id: string
           numero: string | null
           observacoes: string | null
+          organization_id: string | null
           revendedora_id: string | null
           status: string | null
           updated_at: string | null
@@ -1266,6 +1433,7 @@ export type Database = {
           id?: string
           numero?: string | null
           observacoes?: string | null
+          organization_id?: string | null
           revendedora_id?: string | null
           status?: string | null
           updated_at?: string | null
@@ -1283,12 +1451,20 @@ export type Database = {
           id?: string
           numero?: string | null
           observacoes?: string | null
+          organization_id?: string | null
           revendedora_id?: string | null
           status?: string | null
           updated_at?: string | null
           valor_frete?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "romaneios_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "romaneios_revendedora_id_fkey"
             columns: ["revendedora_id"]
@@ -1397,6 +1573,7 @@ export type Database = {
           id: string
           numero: string | null
           observacoes: string | null
+          organization_id: string | null
           parcelas: number | null
           pontos_utilizados: number | null
           revendedora_id: string | null
@@ -1417,6 +1594,7 @@ export type Database = {
           id?: string
           numero?: string | null
           observacoes?: string | null
+          organization_id?: string | null
           parcelas?: number | null
           pontos_utilizados?: number | null
           revendedora_id?: string | null
@@ -1437,6 +1615,7 @@ export type Database = {
           id?: string
           numero?: string | null
           observacoes?: string | null
+          organization_id?: string | null
           parcelas?: number | null
           pontos_utilizados?: number | null
           revendedora_id?: string | null
@@ -1452,6 +1631,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
           {
@@ -1516,6 +1702,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_organization_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1523,6 +1710,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "gerente" | "vendedor" | "revendedora"
