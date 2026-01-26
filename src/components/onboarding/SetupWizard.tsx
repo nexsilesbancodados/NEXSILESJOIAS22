@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { 
   ChevronRight, 
   ChevronLeft, 
@@ -19,7 +20,8 @@ import {
   PartyPopper,
   X,
   Phone,
-  MapPin
+  MapPin,
+  User
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,6 +86,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
     telefone_loja: '',
     endereco_loja: '',
     cnpj_loja: '',
+    tipo_pessoa: 'pj' as 'pf' | 'pj',
   });
 
   // Form states - Goals
@@ -146,7 +149,8 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
         { chave: 'nome_loja', valor: storeData.nome_loja },
         { chave: 'telefone_loja', valor: storeData.telefone_loja },
         { chave: 'endereco_loja', valor: storeData.endereco_loja },
-        { chave: 'cnpj_loja', valor: storeData.cnpj_loja },
+        { chave: 'tipo_pessoa', valor: storeData.tipo_pessoa },
+        { chave: storeData.tipo_pessoa === 'pf' ? 'cpf_loja' : 'cnpj_loja', valor: storeData.cnpj_loja },
       ];
 
       for (const config of configs) {
@@ -428,11 +432,35 @@ function FeatureCard({
 }
 
 interface StoreStepProps {
-  data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string };
-  onChange: (data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string }) => void;
+  data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string; tipo_pessoa: 'pf' | 'pj' };
+  onChange: (data: { nome_loja: string; telefone_loja: string; endereco_loja: string; cnpj_loja: string; tipo_pessoa: 'pf' | 'pj' }) => void;
 }
 
 function StoreStep({ data, onChange }: StoreStepProps) {
+  const isPessoaFisica = data.tipo_pessoa === 'pf';
+
+  const formatCPF = (value: string) => {
+    const numbers = value.replace(/\D/g, '').slice(0, 11);
+    return numbers
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
+  const formatCNPJ = (value: string) => {
+    const numbers = value.replace(/\D/g, '').slice(0, 14);
+    return numbers
+      .replace(/(\d{2})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1/$2')
+      .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  };
+
+  const handleDocumentoChange = (value: string) => {
+    const formatted = isPessoaFisica ? formatCPF(value) : formatCNPJ(value);
+    onChange({ ...data, cnpj_loja: formatted });
+  };
+
   return (
     <div className="space-y-4 max-w-sm mx-auto">
       <div className="space-y-2">
@@ -477,16 +505,57 @@ function StoreStep({ data, onChange }: StoreStepProps) {
         />
       </div>
 
+      {/* Tipo de Pessoa Toggle */}
       <div className="space-y-2">
-        <Label htmlFor="store-cnpj" className="flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-primary" />
-          CNPJ
+        <Label className="flex items-center gap-2">
+          Tipo de Pessoa
+        </Label>
+        <ToggleGroup 
+          type="single" 
+          value={data.tipo_pessoa}
+          onValueChange={(value) => {
+            if (value) {
+              onChange({ ...data, tipo_pessoa: value as 'pf' | 'pj', cnpj_loja: '' });
+            }
+          }}
+          className="w-full justify-stretch"
+        >
+          <ToggleGroupItem 
+            value="pf" 
+            className="flex-1 gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <User className="w-4 h-4" />
+            Pessoa Física
+          </ToggleGroupItem>
+          <ToggleGroupItem 
+            value="pj" 
+            className="flex-1 gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+          >
+            <Building2 className="w-4 h-4" />
+            Pessoa Jurídica
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="store-documento" className="flex items-center gap-2">
+          {isPessoaFisica ? (
+            <>
+              <User className="w-4 h-4 text-primary" />
+              CPF
+            </>
+          ) : (
+            <>
+              <Building2 className="w-4 h-4 text-primary" />
+              CNPJ
+            </>
+          )}
         </Label>
         <Input
-          id="store-cnpj"
-          placeholder="00.000.000/0000-00"
+          id="store-documento"
+          placeholder={isPessoaFisica ? "000.000.000-00" : "00.000.000/0000-00"}
           value={data.cnpj_loja}
-          onChange={(e) => onChange({ ...data, cnpj_loja: e.target.value })}
+          onChange={(e) => handleDocumentoChange(e.target.value)}
           className="h-11"
         />
       </div>
