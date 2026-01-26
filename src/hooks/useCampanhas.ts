@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 
 const db = supabase;
@@ -66,13 +67,15 @@ export function useCampanhasAtivas() {
 
 export function useAddCampanha() {
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
 
   return useMutation({
     mutationFn: async (campanha: Omit<Campanha, 'id' | 'created_at' | 'updated_at'>) => {
-      // Table 'campanhas' doesn't have user_id column
+      if (!organizationId) throw new Error('Organization not found');
+      
       const { data, error } = await db
         .from('campanhas')
-        .insert(campanha)
+        .insert({ ...campanha, organization_id: organizationId })
         .select()
         .single();
 
