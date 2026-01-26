@@ -335,13 +335,13 @@ export default function RevendedorasPage() {
       setSelectedMaleta(maleta);
       setMaletaFormData({
         nome: maleta.nome || '',
-        comissao_personalizada: (maleta as any).comissao_personalizada?.toString() || '',
-        prazo_devolucao: String((maleta as any).prazo_devolucao || ''),
+        comissao_personalizada: '',
+        prazo_devolucao: maleta.data_devolucao || '',
         observacoes: maleta.observacoes || '',
-        cor_primaria: (maleta as any).cor_primaria || '#8B5CF6',
-        cor_secundaria: (maleta as any).cor_secundaria || '#EC4899',
+        cor_primaria: maleta.cor_primaria || '#8B5CF6',
+        cor_secundaria: maleta.cor_secundaria || '#EC4899',
       });
-      setMaletaImagePreview((maleta as any).imagem_capa || null);
+      setMaletaImagePreview(maleta.imagem_capa || null);
     } else {
       setSelectedMaleta(null);
       const defaultDate = format(addDays(new Date(), 30), 'yyyy-MM-dd');
@@ -1444,17 +1444,32 @@ export default function RevendedorasPage() {
 
         {/* Maleta Form Dialog */}
         <Dialog open={isMaletaFormOpen} onOpenChange={setIsMaletaFormOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="font-display text-xl">
                 {selectedMaleta ? 'Editar Maleta' : 'Nova Maleta'}
               </DialogTitle>
               <DialogDescription>
-                Configure os detalhes da maleta
+                Configure os detalhes e personalização visual da maleta
               </DialogDescription>
             </DialogHeader>
             <ScrollArea className="max-h-[60vh]">
               <div className="space-y-4 py-4 pr-4">
+                {/* Preview da personalização */}
+                <div 
+                  className="relative h-20 rounded-lg overflow-hidden flex items-center justify-center"
+                  style={{
+                    background: maletaImagePreview 
+                      ? `url(${maletaImagePreview}) center/cover`
+                      : `linear-gradient(135deg, ${maletaFormData.cor_primaria}, ${maletaFormData.cor_secundaria})`
+                  }}
+                >
+                  <div className="absolute inset-0 bg-black/20" />
+                  <span className="relative text-white font-semibold text-lg drop-shadow-lg">
+                    {maletaFormData.nome || 'Preview da Maleta'}
+                  </span>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="maleta-nome">Nome da Maleta</Label>
                   <Input
@@ -1464,6 +1479,126 @@ export default function RevendedorasPage() {
                     placeholder="Ex: Maleta Verão 2024"
                   />
                 </div>
+
+                {/* Upload de imagem */}
+                <div className="space-y-2">
+                  <Label>Imagem de Capa (opcional)</Label>
+                  {maletaImagePreview ? (
+                    <div className="relative w-full h-24 rounded-lg overflow-hidden border">
+                      <img 
+                        src={maletaImagePreview} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6"
+                        onClick={() => {
+                          setMaletaImageFile(null);
+                          setMaletaImagePreview(null);
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center justify-center w-full h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-secondary/50 transition-colors">
+                      <div className="text-center">
+                        <Upload className="w-5 h-5 mx-auto text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground">Clique para enviar</span>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleMaletaImageChange}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Seletor de cores */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2">
+                      <Palette className="w-4 h-4" />
+                      Cores da Maleta
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowColorPicker(!showColorPicker)}
+                    >
+                      {showColorPicker ? 'Esconder' : 'Personalizar'}
+                    </Button>
+                  </div>
+                  
+                  {/* Preset colors */}
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_COLORS.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        className={cn(
+                          "w-8 h-8 rounded-full border-2 transition-all",
+                          maletaFormData.cor_primaria === preset.primary 
+                            ? "border-foreground scale-110" 
+                            : "border-transparent hover:scale-105"
+                        )}
+                        style={{
+                          background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})`
+                        }}
+                        onClick={() => setMaletaFormData({
+                          ...maletaFormData,
+                          cor_primaria: preset.primary,
+                          cor_secundaria: preset.secondary,
+                        })}
+                        title={preset.name}
+                      />
+                    ))}
+                  </div>
+
+                  {showColorPicker && (
+                    <div className="grid grid-cols-2 gap-3 p-3 bg-secondary/30 rounded-lg">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Cor Principal</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={maletaFormData.cor_primaria}
+                            onChange={(e) => setMaletaFormData({ ...maletaFormData, cor_primaria: e.target.value })}
+                            className="w-10 h-8 rounded cursor-pointer"
+                          />
+                          <Input
+                            value={maletaFormData.cor_primaria}
+                            onChange={(e) => setMaletaFormData({ ...maletaFormData, cor_primaria: e.target.value })}
+                            className="h-8 text-xs font-mono flex-1"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Cor Secundária</Label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={maletaFormData.cor_secundaria}
+                            onChange={(e) => setMaletaFormData({ ...maletaFormData, cor_secundaria: e.target.value })}
+                            className="w-10 h-8 rounded cursor-pointer"
+                          />
+                          <Input
+                            value={maletaFormData.cor_secundaria}
+                            onChange={(e) => setMaletaFormData({ ...maletaFormData, cor_secundaria: e.target.value })}
+                            className="h-8 text-xs font-mono flex-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="maleta-prazo">Prazo de Devolução</Label>
                   <Input
@@ -1506,9 +1641,9 @@ export default function RevendedorasPage() {
               <Button 
                 onClick={handleSubmitMaleta} 
                 className="btn-gold"
-                disabled={addMaletaMutation.isPending || updateMaletaMutation.isPending}
+                disabled={addMaletaMutation.isPending || updateMaletaMutation.isPending || isUploadingImage}
               >
-                {(addMaletaMutation.isPending || updateMaletaMutation.isPending) && (
+                {(addMaletaMutation.isPending || updateMaletaMutation.isPending || isUploadingImage) && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
                 {selectedMaleta ? 'Salvar' : 'Criar Maleta'}
