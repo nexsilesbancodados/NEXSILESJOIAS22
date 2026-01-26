@@ -1,4 +1,4 @@
-import { Bell, Check, Trash2, Package, ShoppingCart, FileText, Cake, Target, Briefcase, Filter } from 'lucide-react';
+import { Bell, Check, Trash2, Package, ShoppingCart, FileText, Cake, Target, Briefcase, Filter, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +30,7 @@ const iconMap: Record<string, typeof Bell> = {
   aniversario: Cake,
   meta_proxima: Target,
   maleta_vencendo: Briefcase,
+  interesse_maleta: Heart,
 };
 
 const categoryLabels: Record<string, string> = {
@@ -40,6 +41,7 @@ const categoryLabels: Record<string, string> = {
   aniversario: 'Aniversários',
   meta_proxima: 'Metas',
   maleta_vencendo: 'Maletas',
+  interesse_maleta: 'Interesses',
 };
 
 export function NotificationBell() {
@@ -78,6 +80,8 @@ export function NotificationBell() {
         return 'text-primary';
       case 'maleta_vencendo':
         return 'text-orange-500';
+      case 'interesse_maleta':
+        return 'text-rose-500';
       default:
         return 'text-muted-foreground';
     }
