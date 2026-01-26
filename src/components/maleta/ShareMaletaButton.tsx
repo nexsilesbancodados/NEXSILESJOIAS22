@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, Check, Link, Loader2 } from 'lucide-react';
+import { Copy, Share2, MessageCircle, Check, Link, Loader2, Pencil, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-db';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +23,32 @@ interface ShareMaletaButtonProps {
   variant?: 'default' | 'icon';
 }
 
+// Generate a friendly slug with app name + maleta name
+const generateSlug = (name: string) => {
+  const cleanName = name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+    .substring(0, 40); // Limit length
+  
+  // Format: nexsiles-nome-da-maleta-xxxx
+  return `nexsiles-${cleanName}-${Math.random().toString(36).substring(2, 6)}`;
+};
+
+// Sanitize custom slug input
+const sanitizeSlug = (input: string) => {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/[^a-z0-9-]+/g, '-') // Replace non-alphanumeric with dash
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
+    .replace(/--+/g, '-') // Replace multiple dashes with single
+    .substring(0, 60); // Limit length
+};
+
 export const ShareMaletaButton = memo(function ShareMaletaButton({
   maletaId,
   maletaNome,
@@ -33,21 +59,12 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
 }: ShareMaletaButtonProps) {
   const [copied, setCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [customSlug, setCustomSlug] = useState(sharingSlug || '');
   const queryClient = useQueryClient();
 
-  // Generate a friendly slug with app name + maleta name
-  const generateSlug = (name: string) => {
-    const cleanName = name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove accents
-      .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
-      .replace(/^-+|-+$/g, '') // Remove leading/trailing dashes
-      .substring(0, 40); // Limit length
-    
-    // Format: nexsiles-nome-da-maleta-xxxx
-    return `nexsiles-${cleanName}-${Math.random().toString(36).substring(2, 6)}`;
-  };
+  const currentSlug = sharingSlug || generateSlug(maletaNome);
+  const maletaLink = `${window.location.origin}/maleta/${currentSlug}`;
 
   // Toggle public status
   const togglePublic = useMutation({
@@ -82,8 +99,31 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
     },
   });
 
-  const currentSlug = sharingSlug || generateSlug(maletaNome);
-  const maletaLink = `${window.location.origin}/maleta/${currentSlug}`;
+  // Update custom slug
+  const updateSlug = useMutation({
+    mutationFn: async (newSlug: string) => {
+      const sanitized = sanitizeSlug(newSlug);
+      if (!sanitized || sanitized.length < 3) {
+        throw new Error('Slug deve ter pelo menos 3 caracteres');
+      }
+
+      const { error } = await supabase
+        .from('maletas')
+        .update({ sharing_slug: sanitized })
+        .eq('id', maletaId);
+
+      if (error) throw error;
+      return sanitized;
+    },
+    onSuccess: (slug) => {
+      queryClient.invalidateQueries({ queryKey: ['maletas'] });
+      setIsEditingSlug(false);
+      toast.success('Link personalizado salvo!');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao salvar link');
+    },
+  });
 
   const handleCopyLink = useCallback(async () => {
     try {
@@ -123,6 +163,81 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
     }
   }, [maletaLink, maletaNome, handleCopyLink]);
 
+  const handleStartEdit = () => {
+    setCustomSlug(currentSlug);
+    setIsEditingSlug(true);
+  };
+
+  const handleSaveSlug = () => {
+    if (customSlug.trim()) {
+      updateSlug.mutate(customSlug);
+    }
+  };
+
+  const renderSlugEditor = () => (
+    <div className="space-y-2">
+      <Label className="text-xs text-muted-foreground">Personalizar link</Label>
+      {isEditingSlug ? (
+        <div className="flex gap-2">
+          <Input
+            value={customSlug}
+            onChange={(e) => setCustomSlug(sanitizeSlug(e.target.value))}
+            placeholder="meu-link-personalizado"
+            className="text-xs h-9"
+            maxLength={60}
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleSaveSlug}
+            disabled={updateSlug.isPending}
+          >
+            {updateSlug.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 text-success" />
+            )}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            value={maletaLink}
+            readOnly
+            className="text-xs h-9"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleStartEdit}
+            title="Editar slug"
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={handleCopyLink}
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-success" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+      )}
+      {isEditingSlug && (
+        <p className="text-[10px] text-muted-foreground">
+          URL: {window.location.origin}/maleta/<span className="text-primary font-medium">{sanitizeSlug(customSlug) || '...'}</span>
+        </p>
+      )}
+    </div>
+  );
+
   if (variant === 'icon') {
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -161,25 +276,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
 
             {isPublic && (
               <>
-                <div className="flex gap-2">
-                  <Input
-                    value={maletaLink}
-                    readOnly
-                    className="text-xs h-9"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 shrink-0"
-                    onClick={handleCopyLink}
-                  >
-                    {copied ? (
-                      <Check className="w-4 h-4 text-success" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
+                {renderSlugEditor()}
 
                 <div className="flex gap-2">
                   <Button
@@ -256,25 +353,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
 
           {isPublic && (
             <>
-              <div className="flex gap-2">
-                <Input
-                  value={maletaLink}
-                  readOnly
-                  className="text-sm"
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={handleCopyLink}
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-success" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
+              {renderSlugEditor()}
 
               <div className="grid grid-cols-2 gap-2">
                 <Button
