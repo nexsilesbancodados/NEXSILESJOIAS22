@@ -39,13 +39,14 @@ export function useOrganization() {
       
       if (error) {
         console.error('Error fetching membership:', error);
-        throw error;
+        return null;
       }
       
       return data as Membership | null;
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Don't retry on failure
   });
 
   const organizationId = membership?.organization_id || null;
@@ -106,16 +107,6 @@ export function useEnsureOrganization() {
       
       if (memberError) throw memberError;
       
-      // Ensure admin role exists
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: user.id,
-          role: 'admin',
-        }, { onConflict: 'user_id,role' });
-      
-      if (roleError) console.error('Error creating admin role:', roleError);
-      
       return newOrg.id;
     },
     onSuccess: () => {
@@ -124,8 +115,22 @@ export function useEnsureOrganization() {
   });
 }
 
-// Hook to get organization_id for inserts
+// Hook to get organization_id for inserts - with fallback
 export function useOrganizationId() {
   const { organizationId, isLoading } = useOrganization();
   return { organizationId, isLoading };
+}
+
+// Standalone function to get organization_id (for use outside React components)
+export async function getOrganizationIdAsync(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  
+  const { data } = await supabase
+    .from('memberships')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+    
+  return data?.organization_id || null;
 }

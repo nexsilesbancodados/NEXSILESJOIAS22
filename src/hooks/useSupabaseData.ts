@@ -874,12 +874,13 @@ export function useAddMaleta() {
       prazo_devolucao?: string;
       observacoes?: string;
     }) => {
-      const userId = await getCurrentUserId();
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('maletas')
         .insert({
-          user_id: userId,
+          organization_id: organizationId,
           revendedora_id: maletaData.reseller_id, 
+          nome: maletaData.nome || `Maleta ${Date.now()}`,
           codigo: `MAL-${Date.now()}`,
           status: 'aberta',
           observacoes: maletaData.observacoes || null,
@@ -1190,10 +1191,12 @@ export function useAddVenda() {
       }[];
       caixaSessaoId?: string;
     }) => {
-      // Insert venda into vendas table (matching actual DB schema - no user_id column)
+      // Insert venda into vendas table with organization_id
+      const organizationId = await getOrganizationId();
       const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
         .insert({
+          organization_id: organizationId,
           valor_total: venda.valor_total,
           subtotal: venda.subtotal,
           desconto: venda.desconto || 0,
@@ -1317,10 +1320,11 @@ export function useAddRomaneio() {
       romaneio: Omit<Romaneio, 'id' | 'created_at'>;
       items: Omit<RomaneioItem, 'id' | 'created_at' | 'romaneio_id'>[];
     }) => {
-      // Table 'romaneios' doesn't have user_id column
+      // Insert romaneio with organization_id
+      const organizationId = await getOrganizationId();
       const { data: romaneioData, error: romaneioError } = await supabase
         .from('romaneios')
-        .insert(romaneio)
+        .insert({ ...romaneio, organization_id: organizationId })
         .select()
         .single();
       
@@ -1507,9 +1511,11 @@ export function useAbrirCaixa() {
   
   return useMutation({
     mutationFn: async ({ userId, fundoTroco }: { userId: string; fundoTroco: number }) => {
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('caixa_sessoes')
         .insert({
+          organization_id: organizationId,
           operador_id: userId,
           valor_inicial: fundoTroco,
           status: 'aberto',
@@ -1994,9 +2000,10 @@ export function useAddBanho() {
   
   return useMutation({
     mutationFn: async (banho: Partial<Omit<Banho, 'id' | 'created_at' | 'updated_at'>>) => {
+      const organizationId = await getOrganizationId();
       const { data, error } = await supabase
         .from('banhos')
-        .insert(banho)
+        .insert({ ...banho, organization_id: organizationId })
         .select()
         .single();
       
