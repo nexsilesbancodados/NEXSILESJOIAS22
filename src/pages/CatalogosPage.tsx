@@ -955,11 +955,9 @@ function CatalogoItemsDialog({
     setIsAddingBulk(true);
     try {
       const promises = Array.from(selectedPecas).map((pecaId, index) => {
-        const peca = pecas.find(p => p.id === pecaId);
         return addItem.mutateAsync({
           catalogo_id: catalogo.id,
           peca_id: pecaId,
-          preco_catalogo: peca?.preco_venda || 0,
           ordem: items.length + index,
           destaque: false,
         });
@@ -981,7 +979,6 @@ function CatalogoItemsDialog({
     await addItem.mutateAsync({
       catalogo_id: catalogo.id,
       peca_id: peca.id,
-      preco_catalogo: peca.preco_venda || 0,
       ordem: items.length,
       destaque: false,
     });
@@ -1023,7 +1020,6 @@ function CatalogoItemsDialog({
       await addItem.mutateAsync({
         catalogo_id: catalogo.id,
         peca_id: newPeca.id,
-        preco_catalogo: parseFloat(newPecaData.preco_venda) || 0,
         ordem: items.length,
         destaque: false,
       });
