@@ -857,10 +857,9 @@ export function useAddMaleta() {
   
   return useMutation({
     mutationFn: async (maletaData: { 
-      reseller_id: string; 
+      revendedora_id: string; 
       nome?: string;
-      comissao_personalizada?: number;
-      prazo_devolucao?: string;
+      data_devolucao?: string;
       observacoes?: string;
     }) => {
       const organizationId = await getOrganizationId();
@@ -868,10 +867,11 @@ export function useAddMaleta() {
         .from('maletas')
         .insert({
           organization_id: organizationId,
-          revendedora_id: maletaData.reseller_id, 
+          revendedora_id: maletaData.revendedora_id, 
           nome: maletaData.nome || `Maleta ${Date.now()}`,
           codigo: `MAL-${Date.now()}`,
           status: 'aberta',
+          data_devolucao: maletaData.data_devolucao || null,
           observacoes: maletaData.observacoes || null,
         })
         .select()
