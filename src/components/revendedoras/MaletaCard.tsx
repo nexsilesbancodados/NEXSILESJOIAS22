@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Briefcase, ChevronRight, Pencil } from 'lucide-react';
+import { Briefcase, ChevronRight, Pencil, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
 import { useMaletaItems, type Maleta, type Peca } from '@/hooks/useSupabaseData';
@@ -46,33 +46,67 @@ export function MaletaCard({
   const isVencida = diasRestantes !== null && diasRestantes < 0;
   const isVencendo = diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3;
 
+  // Get custom colors with fallbacks
+  const corPrimaria = maleta.cor_primaria || '#8B5CF6';
+  const corSecundaria = maleta.cor_secundaria || '#EC4899';
+  const hasCustomImage = !!maleta.imagem_capa;
+
   return (
     <Card
       className={cn(
-        "glass-card hover-lift cursor-pointer",
+        "glass-card hover-lift cursor-pointer overflow-hidden",
         isVencida && maleta.status === 'aberta' && "border-destructive/50",
         isVencendo && maleta.status === 'aberta' && "border-warning/50"
       )}
       onClick={onClick}
     >
+      {/* Custom header with colors/image */}
+      <div 
+        className="h-2 w-full"
+        style={{
+          background: hasCustomImage 
+            ? `url(${maleta.imagem_capa}) center/cover`
+            : `linear-gradient(90deg, ${corPrimaria}, ${corSecundaria})`
+        }}
+      />
+      
       <CardContent className="p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <div className={cn(
-              'w-12 h-12 rounded-lg flex items-center justify-center shrink-0',
-              maleta.status === 'aberta' ? 'bg-success/10' : 'bg-muted'
-            )}>
-              <Briefcase className={cn(
-                'w-6 h-6',
-                maleta.status === 'aberta' ? 'text-success' : 'text-muted-foreground'
-              )} />
+            {/* Custom styled icon with colors or image */}
+            <div 
+              className={cn(
+                'w-12 h-12 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden',
+                !hasCustomImage && 'border border-border/50'
+              )}
+              style={{
+                background: hasCustomImage 
+                  ? `url(${maleta.imagem_capa}) center/cover`
+                  : `linear-gradient(135deg, ${corPrimaria}20, ${corSecundaria}20)`
+              }}
+            >
+              {hasCustomImage ? (
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                  <ImageIcon className="w-5 h-5 text-white/80" />
+                </div>
+              ) : (
+                <Briefcase 
+                  className="w-6 h-6"
+                  style={{ color: corPrimaria }}
+                />
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold truncate">
                   {maleta.nome || `Maleta #${maleta.id.slice(-4)}`}
                 </h3>
-                <Badge variant={maleta.status === 'aberta' ? 'default' : 'secondary'}>
+                <Badge 
+                  variant={maleta.status === 'aberta' ? 'default' : 'secondary'}
+                  style={maleta.status === 'aberta' ? {
+                    background: `linear-gradient(135deg, ${corPrimaria}, ${corSecundaria})`,
+                  } : undefined}
+                >
                   {maleta.status === 'aberta' ? 'Aberta' : 'Fechada'}
                 </Badge>
                 {maleta.status === 'aberta' && diasRestantes !== null && (
