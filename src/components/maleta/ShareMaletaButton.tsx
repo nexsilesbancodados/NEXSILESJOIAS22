@@ -9,10 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, Check, Link, Loader2, Pencil, Save } from 'lucide-react';
+import { Copy, Share2, MessageCircle, Check, Link, Loader2, Pencil, Save, QrCode, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-db';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface ShareMaletaButtonProps {
   maletaId: string;
@@ -61,6 +62,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
   const [isOpen, setIsOpen] = useState(false);
   const [isEditingSlug, setIsEditingSlug] = useState(false);
   const [customSlug, setCustomSlug] = useState(sharingSlug || '');
+  const [showQR, setShowQR] = useState(false);
   const queryClient = useQueryClient();
 
   const currentSlug = sharingSlug || generateSlug(maletaNome);
@@ -174,6 +176,70 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
     }
   };
 
+  const handleDownloadQR = useCallback(() => {
+    const svg = document.getElementById('qr-code-maleta');
+    if (!svg) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = 300;
+      canvas.height = 300;
+      ctx?.fillRect(0, 0, 300, 300);
+      ctx!.fillStyle = 'white';
+      ctx?.fillRect(0, 0, 300, 300);
+      ctx?.drawImage(img, 0, 0, 300, 300);
+      
+      const pngFile = canvas.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.download = `qrcode-${maletaNome.replace(/\s+/g, '-').toLowerCase()}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  }, [maletaNome]);
+
+  const renderQRCode = () => (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs text-muted-foreground">QR Code</Label>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setShowQR(!showQR)}
+        >
+          <QrCode className="w-3 h-3 mr-1" />
+          {showQR ? 'Ocultar' : 'Mostrar'}
+        </Button>
+      </div>
+      {showQR && (
+        <div className="flex flex-col items-center gap-3 p-4 bg-white rounded-lg border">
+          <QRCodeSVG
+            id="qr-code-maleta"
+            value={maletaLink}
+            size={150}
+            level="H"
+            includeMargin
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={handleDownloadQR}
+          >
+            <Download className="w-3 h-3 mr-1" />
+            Baixar QR Code
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   const renderSlugEditor = () => (
     <div className="space-y-2">
       <Label className="text-xs text-muted-foreground">Personalizar link</Label>
@@ -277,6 +343,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
             {isPublic && (
               <>
                 {renderSlugEditor()}
+                {renderQRCode()}
 
                 <div className="flex gap-2">
                   <Button
@@ -354,6 +421,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
           {isPublic && (
             <>
               {renderSlugEditor()}
+              {renderQRCode()}
 
               <div className="grid grid-cols-2 gap-2">
                 <Button
