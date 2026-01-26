@@ -1,6 +1,6 @@
 /**
  * Seed data for testing the system
- * Contains sample data for suppliers, pieces, customers, resellers and sales
+ * Contains sample data for suppliers, pieces, customers, resellers, sales, maletas, catalogos, etc.
  */
 
 import { supabase } from '@/lib/supabase-db';
@@ -117,11 +117,66 @@ const revendedoras = [
   { nome: 'Simone Barbosa Lima', telefone: '(71) 92222-1008', email: 'simone.lima@email.com', cpf: '888.888.888-88', data_nascimento: '1983-03-18', endereco: 'Rua Carlos Gomes, 150', cidade: 'Salvador', estado: 'BA', cep: '40060-330', whatsapp: '(71) 92222-1008', comissao_percentual: 12, ativo: true },
 ];
 
+// Banhos (Galvanica)
+const banhos = [
+  { nome: 'Banho Ouro 18k', tipo: 'ouro', descricao: 'Banho de ouro 18 quilates padrão', custo_por_grama: 2.50, tempo_medio_minutos: 30, ativo: true },
+  { nome: 'Banho Ouro Rosé', tipo: 'rose', descricao: 'Banho de ouro rosé especial', custo_por_grama: 3.00, tempo_medio_minutos: 35, ativo: true },
+  { nome: 'Banho Ródio Branco', tipo: 'rodio', descricao: 'Banho de ródio branco brilhante', custo_por_grama: 4.00, tempo_medio_minutos: 40, ativo: true },
+  { nome: 'Banho Ródio Negro', tipo: 'rodio_negro', descricao: 'Banho de ródio negro elegante', custo_por_grama: 4.50, tempo_medio_minutos: 45, ativo: true },
+  { nome: 'Banho Prata', tipo: 'prata', descricao: 'Banho de prata 925', custo_por_grama: 1.80, tempo_medio_minutos: 25, ativo: true },
+];
+
+// Campanhas
+const campanhas = [
+  { nome: 'Promoção de Verão', tipo: 'desconto', descricao: 'Descontos especiais de verão em toda a coleção', desconto_percentual: 15, data_inicio: new Date().toISOString().split('T')[0], data_fim: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], ativa: true },
+  { nome: 'Meta Revendedoras', tipo: 'meta', descricao: 'Campanha de meta para revendedoras - prêmio em produtos', meta_valor: 5000, premio: 'Kit Premium de Semijoias', data_inicio: new Date().toISOString().split('T')[0], data_fim: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], ativa: true },
+  { nome: 'Dia das Mães', tipo: 'promocao', descricao: 'Promoção especial para o Dia das Mães', desconto_percentual: 20, data_inicio: '2026-04-01', data_fim: '2026-05-15', ativa: false },
+];
+
+export async function clearDatabase(): Promise<{ success: boolean; message: string }> {
+  try {
+    // Delete in correct order (respecting foreign keys)
+    await supabase.from('vendas_pecas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('vendas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('maletas_pecas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('maleta_interesse_itens').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('maleta_interesses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('maletas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('catalogos_pecas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('catalogos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('romaneios_pecas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('romaneios').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('metas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('campanhas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('fidelidade_transacoes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('historico_precos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('pecas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('clientes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('revendedoras').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('fornecedores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('banhos').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    
+    return { success: true, message: 'Banco de dados limpo com sucesso!' };
+  } catch (error) {
+    console.error('Clear error:', error);
+    return { success: false, message: error instanceof Error ? error.message : 'Erro ao limpar banco' };
+  }
+}
+
 export async function seedDatabase(): Promise<{ success: boolean; message: string; details?: Record<string, number> }> {
   try {
     const results: Record<string, number> = {};
     
-    // 1. Insert fornecedores
+    // 1. Insert banhos
+    const { data: banhosData, error: banhosError } = await supabase
+      .from('banhos')
+      .insert(banhos)
+      .select();
+    
+    if (banhosError) throw new Error(`Banhos: ${banhosError.message}`);
+    results.banhos = banhosData?.length || 0;
+    
+    // 2. Insert fornecedores
     const { data: fornecedoresData, error: fornecedoresError } = await supabase
       .from('fornecedores')
       .insert(fornecedores)
@@ -133,7 +188,7 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     // Get fornecedor IDs for linking
     const fornecedorIds = fornecedoresData?.map(f => f.id) || [];
     
-    // 2. Insert peças with random fornecedor
+    // 3. Insert peças with random fornecedor
     const pecasWithFornecedor = pecas.map((peca, index) => ({
       ...peca,
       ativo: true,
@@ -148,7 +203,7 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     if (pecasError) throw new Error(`Peças: ${pecasError.message}`);
     results.pecas = pecasData?.length || 0;
     
-    // 3. Insert clientes
+    // 4. Insert clientes
     const clientesWithActive = clientes.map(c => ({ ...c, ativo: true, pontos_fidelidade: Math.floor(Math.random() * 500) }));
     
     const { data: clientesData, error: clientesError } = await supabase
@@ -159,7 +214,7 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     if (clientesError) throw new Error(`Clientes: ${clientesError.message}`);
     results.clientes = clientesData?.length || 0;
     
-    // 4. Insert revendedoras
+    // 5. Insert revendedoras
     const { data: revendedorasData, error: revendedorasError } = await supabase
       .from('revendedoras')
       .insert(revendedoras)
@@ -168,23 +223,115 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     if (revendedorasError) throw new Error(`Revendedoras: ${revendedorasError.message}`);
     results.revendedoras = revendedorasData?.length || 0;
     
-    // 5. Create some historical vendas
-    const clienteIds = clientesData?.map(c => c.id) || [];
-    const revendedoraIds = revendedorasData?.map(r => r.id) || [];
+    // 6. Insert campanhas
+    const { data: campanhasData, error: campanhasError } = await supabase
+      .from('campanhas')
+      .insert(campanhas)
+      .select();
+    
+    if (campanhasError) throw new Error(`Campanhas: ${campanhasError.message}`);
+    results.campanhas = campanhasData?.length || 0;
+    
+    // 7. Create catalogos
+    const catalogosToInsert = [
+      { nome: 'Coleção Verão 2026', descricao: 'Peças leves e brilhantes para o verão', slug: 'verao-2026', ativo: true },
+      { nome: 'Linha Premium', descricao: 'Seleção exclusiva de peças premium', slug: 'linha-premium', ativo: true },
+      { nome: 'Básicos Essenciais', descricao: 'Peças versáteis para o dia a dia', slug: 'basicos', ativo: true },
+    ];
+    
+    const { data: catalogosData, error: catalogosError } = await supabase
+      .from('catalogos')
+      .insert(catalogosToInsert)
+      .select();
+    
+    if (catalogosError) throw new Error(`Catálogos: ${catalogosError.message}`);
+    results.catalogos = catalogosData?.length || 0;
+    
+    // 8. Link pecas to catalogos
     const pecaIds = pecasData?.map(p => p.id) || [];
+    const catalogoIds = catalogosData?.map(c => c.id) || [];
+    
+    if (catalogoIds.length > 0 && pecaIds.length > 0) {
+      const catalogosPecas = [];
+      for (let i = 0; i < pecaIds.length; i++) {
+        catalogosPecas.push({
+          catalogo_id: catalogoIds[i % catalogoIds.length],
+          peca_id: pecaIds[i],
+          ordem: i,
+          destaque: i < 5,
+        });
+      }
+      
+      const { error: cpError } = await supabase.from('catalogos_pecas').insert(catalogosPecas);
+      if (cpError) throw new Error(`Catálogos Peças: ${cpError.message}`);
+      results.catalogos_pecas = catalogosPecas.length;
+    }
+    
+    // 9. Create maletas for revendedoras
+    const revendedoraIds = revendedorasData?.map(r => r.id) || [];
+    
+    if (revendedoraIds.length > 0) {
+      const maletasToInsert = revendedoraIds.slice(0, 4).map((revId, idx) => ({
+        nome: `Maleta ${String(idx + 1).padStart(3, '0')}`,
+        codigo: `MAL${String(idx + 1).padStart(3, '0')}`,
+        revendedora_id: revId,
+        status: idx === 0 ? 'ativa' : idx === 1 ? 'em_uso' : 'disponivel',
+        data_entrega: new Date(Date.now() - idx * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        data_devolucao: new Date(Date.now() + (30 - idx * 7) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        is_public: idx < 2,
+        sharing_slug: idx < 2 ? `maleta-${idx + 1}` : null,
+      }));
+      
+      const { data: maletasData, error: maletasError } = await supabase
+        .from('maletas')
+        .insert(maletasToInsert)
+        .select();
+      
+      if (maletasError) throw new Error(`Maletas: ${maletasError.message}`);
+      results.maletas = maletasData?.length || 0;
+      
+      // Add pecas to maletas
+      const maletaIds = maletasData?.map(m => m.id) || [];
+      const pecaPrecos = pecasData?.reduce((acc, p) => ({ ...acc, [p.id]: p.preco_revenda || p.preco_venda }), {} as Record<string, number>) || {};
+      
+      if (maletaIds.length > 0) {
+        const maletasPecas = [];
+        for (let m = 0; m < maletaIds.length; m++) {
+          const numPecas = 5 + Math.floor(Math.random() * 5);
+          const shuffledPecas = [...pecaIds].sort(() => Math.random() - 0.5).slice(0, numPecas);
+          
+          shuffledPecas.forEach(pecaId => {
+            maletasPecas.push({
+              maleta_id: maletaIds[m],
+              peca_id: pecaId,
+              quantidade: 1,
+              preco_unitario: pecaPrecos[pecaId],
+              vendida: Math.random() > 0.7,
+            });
+          });
+        }
+        
+        const { error: mpError } = await supabase.from('maletas_pecas').insert(maletasPecas);
+        if (mpError) throw new Error(`Maletas Peças: ${mpError.message}`);
+        results.maletas_pecas = maletasPecas.length;
+      }
+    }
+    
+    // 10. Create historical vendas
+    const clienteIds = clientesData?.map(c => c.id) || [];
     const pecaPrecos = pecasData?.reduce((acc, p) => ({ ...acc, [p.id]: p.preco_venda }), {} as Record<string, number>) || {};
     
     const formasPagamento = ['Dinheiro', 'Cartão Crédito', 'Cartão Débito', 'Pix'];
     const vendas = [];
     const vendasPecas = [];
     
-    // Generate 20 random sales over the last 60 days
-    for (let i = 0; i < 20; i++) {
-      const daysAgo = Math.floor(Math.random() * 60);
+    // Generate 30 random sales over the last 90 days
+    for (let i = 0; i < 30; i++) {
+      const daysAgo = Math.floor(Math.random() * 90);
       const dataVenda = new Date();
       dataVenda.setDate(dataVenda.getDate() - daysAgo);
       
-      const numItems = Math.floor(Math.random() * 3) + 1;
+      const numItems = Math.floor(Math.random() * 4) + 1;
       let subtotal = 0;
       const selectedPecas: string[] = [];
       
@@ -240,6 +387,51 @@ export async function seedDatabase(): Promise<{ success: boolean; message: strin
     
     if (vendasPecasError) throw new Error(`Vendas Peças: ${vendasPecasError.message}`);
     results.vendas_pecas = vendasPecas.length;
+    
+    // 11. Create romaneios (shipping)
+    if (revendedoraIds.length > 0) {
+      const romaneiosToInsert = revendedoraIds.slice(0, 3).map((revId, idx) => ({
+        numero: `ROM${String(idx + 1).padStart(4, '0')}`,
+        revendedora_id: revId,
+        status: idx === 0 ? 'pendente' : idx === 1 ? 'enviado' : 'entregue',
+        endereco_entrega: revendedoras[idx].endereco,
+        cidade: revendedoras[idx].cidade,
+        estado: revendedoras[idx].estado,
+        cep: revendedoras[idx].cep,
+        data_criacao: new Date().toISOString(),
+        data_previsao: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        valor_frete: 25 + Math.random() * 30,
+      }));
+      
+      const { data: romaneiosData, error: romaneiosError } = await supabase
+        .from('romaneios')
+        .insert(romaneiosToInsert)
+        .select();
+      
+      if (romaneiosError) throw new Error(`Romaneios: ${romaneiosError.message}`);
+      results.romaneios = romaneiosData?.length || 0;
+      
+      // Add pecas to romaneios
+      if (romaneiosData && romaneiosData.length > 0) {
+        const romaneiosPecas = [];
+        romaneiosData.forEach((rom, idx) => {
+          const numPecas = 3 + Math.floor(Math.random() * 4);
+          const shuffledPecas = [...pecaIds].sort(() => Math.random() - 0.5).slice(0, numPecas);
+          
+          shuffledPecas.forEach(pecaId => {
+            romaneiosPecas.push({
+              romaneio_id: rom.id,
+              peca_id: pecaId,
+              quantidade: 1 + Math.floor(Math.random() * 2),
+            });
+          });
+        });
+        
+        const { error: rpError } = await supabase.from('romaneios_pecas').insert(romaneiosPecas);
+        if (rpError) throw new Error(`Romaneios Peças: ${rpError.message}`);
+        results.romaneios_pecas = romaneiosPecas.length;
+      }
+    }
     
     return {
       success: true,
