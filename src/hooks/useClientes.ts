@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
+import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from '@/hooks/use-toast';
 
 const db = supabase;
@@ -99,12 +100,15 @@ export function useVendasCliente(clienteId: string) {
 
 export function useAddCliente() {
   const queryClient = useQueryClient();
+  const { organizationId } = useOrganization();
   
   return useMutation({
     mutationFn: async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => {
+      if (!organizationId) throw new Error('Organization not found');
+      
       const { data, error } = await db
         .from('clientes')
-        .insert(cliente)
+        .insert({ ...cliente, organization_id: organizationId })
         .select()
         .single();
       
