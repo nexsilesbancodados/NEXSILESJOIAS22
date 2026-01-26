@@ -1724,6 +1724,7 @@ export type Database = {
         Returns: boolean
       }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
+      user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "gerente" | "vendedor" | "revendedora"
