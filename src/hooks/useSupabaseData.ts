@@ -123,6 +123,8 @@ export interface MaletaItem {
   quantidade: number;
   preco_unitario: number | null;
   status: string;
+  vendida: boolean | null;
+  data_venda: string | null;
   created_at: string;
   peca?: Peca;
 }
@@ -1142,6 +1144,85 @@ export function useCloseMaleta() {
     },
     onError: () => {
       toast.error('Erro ao fechar maleta');
+    },
+  });
+}
+
+export function useDeleteMaleta() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ maletaId, returnToStock = true }: { maletaId: string; returnToStock?: boolean }) => {
+      // If returnToStock is true, return all items to stock before deleting
+      if (returnToStock) {
+        const { data: items } = await supabase
+          .from('maletas_pecas')
+          .select('id, peca_id, quantidade, vendida')
+          .eq('maleta_id', maletaId);
+
+        if (items && items.length > 0) {
+          // Return non-sold items to stock
+          for (const item of items) {
+            if (!item.vendida) {
+              const { data: pecaData } = await supabase
+                .from('pecas')
+                .select('estoque')
+                .eq('id', item.peca_id)
+                .single();
+              
+              if (pecaData) {
+                await supabase
+                  .from('pecas')
+                  .update({ estoque: (pecaData.estoque || 0) + (item.quantidade || 1) })
+                  .eq('id', item.peca_id);
+              }
+            }
+          }
+        }
+      }
+
+      // Delete all items from maleta
+      await supabase
+        .from('maletas_pecas')
+        .delete()
+        .eq('maleta_id', maletaId);
+
+      // Delete all interests from maleta
+      const { data: interesses } = await supabase
+        .from('maleta_interesses')
+        .select('id')
+        .eq('maleta_id', maletaId);
+
+      if (interesses && interesses.length > 0) {
+        for (const interesse of interesses) {
+          await supabase
+            .from('maleta_interesse_itens')
+            .delete()
+            .eq('interesse_id', interesse.id);
+        }
+        
+        await supabase
+          .from('maleta_interesses')
+          .delete()
+          .eq('maleta_id', maletaId);
+      }
+
+      // Now delete the maleta
+      const { error } = await supabase
+        .from('maletas')
+        .delete()
+        .eq('id', maletaId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maletas'] });
+      queryClient.invalidateQueries({ queryKey: ['maleta-items'] });
+      queryClient.invalidateQueries({ queryKey: ['pecas'] });
+      toast.success('Maleta excluída com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao excluir maleta');
     },
   });
 }

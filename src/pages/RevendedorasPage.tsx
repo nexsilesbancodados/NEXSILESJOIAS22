@@ -86,6 +86,7 @@ import {
   useAddMaletaItem,
   useUpdateMaletaItem,
   useCloseMaleta,
+  useDeleteMaleta,
   usePecas,
   Revendedora,
   Maleta,
@@ -186,11 +187,13 @@ export default function RevendedorasPage() {
   const addMaletaItemMutation = useAddMaletaItem();
   const updateMaletaItemMutation = useUpdateMaletaItem();
   const closeMaletaMutation = useCloseMaleta();
+  const deleteMaletaMutation = useDeleteMaleta();
   const updateMaletaMutation = useUpdateMaleta();
   const updateRomaneioStatusMutation = useUpdateRomaneioStatus();
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleteMaletaOpen, setIsDeleteMaletaOpen] = useState(false);
   const [selectedRevendedora, setSelectedRevendedora] = useState<Revendedora | null>(null);
   const [viewingRevendedora, setViewingRevendedora] = useState<Revendedora | null>(null);
   const [isMaletaOpen, setIsMaletaOpen] = useState(false);
@@ -1434,20 +1437,32 @@ export default function RevendedorasPage() {
               </TabsContent>
             </Tabs>
 
-            {selectedMaleta?.status === 'aberta' && (
-              <DialogFooter className="mt-4">
-                <Button variant="outline" onClick={() => setIsMaletaOpen(false)}>
-                  Fechar
-                </Button>
-                <Button
-                  onClick={() => setIsCloseMaletaOpen(true)}
-                  className="btn-gold"
-                  disabled={maletaItems.length === 0}
+            <DialogFooter className="mt-4">
+              <div className="flex w-full justify-between">
+                <Button 
+                  variant="destructive" 
+                  onClick={() => setIsDeleteMaletaOpen(true)}
+                  disabled={deleteMaletaMutation.isPending}
                 >
-                  Dar Baixa na Maleta
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir Maleta
                 </Button>
-              </DialogFooter>
-            )}
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsMaletaOpen(false)}>
+                    Fechar
+                  </Button>
+                  {selectedMaleta?.status === 'aberta' && (
+                    <Button
+                      onClick={() => setIsCloseMaletaOpen(true)}
+                      className="btn-gold"
+                      disabled={maletaItems.length === 0}
+                    >
+                      Dar Baixa na Maleta
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
@@ -1919,6 +1934,47 @@ export default function RevendedorasPage() {
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : null}
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Maleta Alert Dialog */}
+      <AlertDialog open={isDeleteMaletaOpen} onOpenChange={setIsDeleteMaletaOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Maleta</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a maleta "{selectedMaleta?.nome}"? 
+              {maletaItems.filter(i => !i.vendida).length > 0 && (
+                <span className="block mt-2 text-amber-600">
+                  ⚠️ {maletaItems.filter(i => !i.vendida).length} peça(s) não vendida(s) serão devolvidas ao estoque.
+                </span>
+              )}
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (selectedMaleta) {
+                  await deleteMaletaMutation.mutateAsync({ 
+                    maletaId: selectedMaleta.id, 
+                    returnToStock: true 
+                  });
+                  setIsDeleteMaletaOpen(false);
+                  setIsMaletaOpen(false);
+                  setSelectedMaleta(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMaletaMutation.isPending}
+            >
+              {deleteMaletaMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : null}
+              Excluir Maleta
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
