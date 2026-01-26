@@ -1221,8 +1221,9 @@ export function useDeleteMaleta() {
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
       toast.success('Maleta excluída com sucesso!');
     },
-    onError: () => {
-      toast.error('Erro ao excluir maleta');
+    onError: (error: Error) => {
+      console.error('Delete maleta error:', error);
+      toast.error(`Erro ao excluir maleta: ${error.message}`);
     },
   });
 }
