@@ -8,7 +8,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, Check, Loader2, Pencil, Save, QrCode, Download } from 'lucide-react';
+import { Copy, Share2, MessageCircle, Check, Loader2, Pencil, Save, QrCode, Download, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase-db';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -391,6 +391,17 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
             ) : (
               <>
                 {renderSlugEditor()}
+                
+                {/* Preview Button */}
+                <Button
+                  variant="secondary"
+                  className="w-full h-9 text-xs"
+                  onClick={() => window.open(catalogLink, '_blank')}
+                >
+                  <Eye className="w-4 h-4 mr-1.5" />
+                  Ver preview do catálogo
+                </Button>
+                
                 {renderQRCode()}
 
                 <div className="flex gap-2">
@@ -445,6 +456,17 @@ export const ShareCatalogButton = memo(function ShareCatalogButton({
           ) : (
             <>
               {renderSlugEditor()}
+              
+              {/* Preview Button */}
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => window.open(catalogLink, '_blank')}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Ver preview do catálogo
+              </Button>
+              
               {renderQRCode()}
 
               <div className="grid grid-cols-2 gap-2">
