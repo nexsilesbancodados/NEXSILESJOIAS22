@@ -361,7 +361,7 @@ export default function CatalogoPublicoPage() {
       const { data: pedido, error: pedidoError } = await supabase
         .from('pedidos_catalogo')
         .insert({
-          catalogo_id: catalogoId,
+          catalogo_id: catalogo?.id,
           cliente_nome: validatedData.cliente_nome,
           cliente_telefone: validatedData.cliente_telefone || null,
           cliente_email: validatedData.cliente_email || null,
@@ -372,9 +372,7 @@ export default function CatalogoPublicoPage() {
           endereco_bairro: validatedData.endereco_bairro || null,
           endereco_cidade: validatedData.endereco_cidade || null,
           endereco_estado: validatedData.endereco_estado || null,
-          subtotal: cartTotal,
-          custos_adicionais: custoExtra,
-          total: cartGrandTotal,
+          valor_total: cartGrandTotal,
           status: 'pendente',
         })
         .select()
