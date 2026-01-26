@@ -1852,10 +1852,12 @@ export function useAddCatalogo() {
   
   return useMutation({
     mutationFn: async (catalogo: Partial<Omit<Catalogo, 'id' | 'created_at' | 'updated_at'>> & { nome: string }) => {
-      // Table doesn't have user_id column
+      const organizationId = await getOrganizationId();
+      if (!organizationId) throw new Error('Organization not found');
+      
       const { data, error } = await supabase
         .from('catalogos')
-        .insert(catalogo)
+        .insert({ ...catalogo, organization_id: organizationId })
         .select()
         .single();
       
