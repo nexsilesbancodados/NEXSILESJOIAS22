@@ -181,13 +181,13 @@ export function useMaletasVencendo(diasAlerta = 3) {
         id,
         revendedora_id,
         status,
-        data_devolucao_prevista,
+        data_devolucao,
         codigo,
         created_at
       `)
-      .eq('status', 'disponivel')
-      .not('data_devolucao_prevista', 'is', null)
-      .order('data_devolucao_prevista', { ascending: true });
+      .eq('status', 'aberta')
+      .not('data_devolucao', 'is', null)
+      .order('data_devolucao', { ascending: true });
 
     if (error) throw error;
     if (!maletas) return [];
@@ -195,16 +195,16 @@ export function useMaletasVencendo(diasAlerta = 3) {
     // Filter to only those expiring soon or overdue
     const hoje = new Date();
     return maletas.filter((maleta: any) => {
-      if (!maleta.data_devolucao_prevista) return false;
+      if (!maleta.data_devolucao) return false;
       const diasRestantes = differenceInDays(
-        new Date(maleta.data_devolucao_prevista),
+        new Date(maleta.data_devolucao),
         hoje
       );
       return diasRestantes <= diasAlerta;
     }).map((maleta: any) => ({
       ...maleta,
       diasRestantes: differenceInDays(
-        new Date(maleta.data_devolucao_prevista!),
+        new Date(maleta.data_devolucao!),
         hoje
       ),
     }));
