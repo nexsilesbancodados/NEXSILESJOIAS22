@@ -76,20 +76,19 @@ interface CatalogoItemPublico {
   id: string;
   catalogo_id: string;
   peca_id: string;
+  quantidade: number;
   ordem?: number | null;
   destaque: boolean | null;
-  preco_catalogo?: number | null;
-  created_at: string;
+  created_at: string | null;
   peca: {
     id: string;
     nome: string;
     codigo: string;
     imagem_url: string | null;
     categoria: string | null;
-    preco?: number | null;
-    preco_venda?: number | null;
+    preco_venda: number | null;
     material: string | null;
-    estoque: number;
+    estoque: number | null;
   } | null;
 }
 
@@ -154,13 +153,24 @@ export default function CatalogoPublicoPage() {
       const { data, error } = await supabase
         .from('catalogos_pecas')
         .select(`
-          *,
+          id,
+          catalogo_id,
+          peca_id,
+          quantidade,
+          ordem,
+          destaque,
+          created_at,
           peca:pecas(id, nome, codigo, imagem_url, categoria, preco_venda, material, estoque)
         `)
         .eq('catalogo_id', catalogo.id)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching catalog items:', error);
+        throw error;
+      }
+      
+      console.log('Catalog items loaded:', data);
       return (data || []) as CatalogoItemPublico[];
     },
     enabled: !!catalogo?.id,
@@ -420,8 +430,8 @@ export default function CatalogoPublicoPage() {
     }
   };
 
-  const totalItens = itens.length;
-  const totalValor = itens.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  const totalItens = itens.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+  const totalValor = itens.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
   const totalGeralCatalogo = totalValor + custoExtra;
 
   if (loadingCatalogo) {
@@ -648,9 +658,9 @@ export default function CatalogoPublicoPage() {
 
                             <div className="flex items-center justify-between mt-3">
                               <span className="text-sm text-muted-foreground">
-                                Disponível: <span className="font-medium text-foreground">{item.peca?.estoque || 0}</span>
+                                Qtd: <span className="font-medium text-foreground">{item.quantidade || 1}</span>
                               </span>
-                              <span className="font-semibold text-primary">
+                              <span className="font-semibold text-lg text-primary">
                                 {formatCurrency(item.peca?.preco_venda || 0)}
                               </span>
                             </div>
