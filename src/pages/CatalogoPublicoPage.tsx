@@ -152,20 +152,16 @@ export default function CatalogoPublicoPage() {
       if (!catalogo?.id) return [];
       
       const { data, error } = await supabase
-        .from('catalogo_pecas')
+        .from('catalogos_pecas')
         .select(`
           *,
-          peca:pecas(id, nome, codigo, imagem_url, categoria, preco, material, estoque)
+          peca:pecas(id, nome, codigo, imagem_url, categoria, preco_venda, material, estoque)
         `)
         .eq('catalogo_id', catalogo.id)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
-      // Map preco to preco_venda for compatibility
-      return (data || []).map((item: any) => ({
-        ...item,
-        peca: item.peca ? { ...item.peca, preco_venda: item.peca.preco } : null
-      })) as CatalogoItemPublico[];
+      return (data || []) as CatalogoItemPublico[];
     },
     enabled: !!catalogo?.id,
   });
