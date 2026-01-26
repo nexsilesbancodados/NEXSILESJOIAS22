@@ -55,10 +55,12 @@ import {
   Trash2,
   Truck,
   MapPin,
-  Send
+  Send,
+  Phone,
+  Pencil
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRomaneios, useRomaneioItems, useUpdateRomaneioStatus, useDeleteRomaneiosBulk, useUpdateRomaneioTracking, type Romaneio, type RomaneioTrackingData } from '@/hooks/useSupabaseData';
+import { useRomaneios, useRomaneioItems, useUpdateRomaneioStatus, useDeleteRomaneiosBulk, useUpdateRomaneioTracking, useUpdateRomaneioPhone, type Romaneio, type RomaneioTrackingData } from '@/hooks/useSupabaseData';
 import { EtiquetaEnvioModal } from '@/components/romaneio/EtiquetaEnvioModal';
 import { useBulkSelection } from '@/hooks/useBulkSelection';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
@@ -485,6 +487,7 @@ function RomaneioDetailDialog({
 }) {
   const { data: items = [], isLoading: loadingItems } = useRomaneioItems(romaneio?.id || '');
   const updateTracking = useUpdateRomaneioTracking();
+  const updatePhone = useUpdateRomaneioPhone();
   
   // Local state for tracking fields
   const [trackingData, setTrackingData] = useState<RomaneioTrackingData>({
@@ -494,6 +497,10 @@ function RomaneioDetailDialog({
   });
   const [isEditingTracking, setIsEditingTracking] = useState(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  
+  // Local state for phone editing
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneValue, setPhoneValue] = useState('');
 
   // Update local state when romaneio changes
   useEffect(() => {
@@ -503,7 +510,9 @@ function RomaneioDetailDialog({
         transportadora: romaneio.transportadora || '',
         data_envio: romaneio.data_envio ? romaneio.data_envio.split('T')[0] : '',
       });
+      setPhoneValue(romaneio.cliente_telefone || '');
       setIsEditingTracking(false);
+      setIsEditingPhone(false);
     }
   }, [romaneio]);
 
@@ -517,6 +526,30 @@ function RomaneioDetailDialog({
       data_envio: trackingData.data_envio ? new Date(trackingData.data_envio).toISOString() : null,
     });
     setIsEditingTracking(false);
+  };
+
+  const handleSavePhone = async () => {
+    if (!romaneio) return;
+    
+    // Sanitize phone - keep only digits
+    const sanitizedPhone = phoneValue.replace(/\D/g, '');
+    
+    await updatePhone.mutateAsync({
+      id: romaneio.id,
+      cliente_telefone: sanitizedPhone || null,
+    });
+    setIsEditingPhone(false);
+  };
+
+  const formatPhoneDisplay = (phone: string | null | undefined) => {
+    if (!phone) return '-';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 11) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    } else if (digits.length === 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+    return phone;
   };
 
   const handleSendWhatsAppNotification = async (status: string) => {
@@ -622,6 +655,66 @@ function RomaneioDetailDialog({
                 <div>
                   <p className="text-xs text-muted-foreground">Status</p>
                   <div className="mt-1">{getStatusBadge(romaneio.status)}</div>
+                </div>
+              </div>
+
+              {/* Phone Section */}
+              <div className="border-t border-border pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Telefone do Cliente</p>
+                      {isEditingPhone ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Input
+                            value={phoneValue}
+                            onChange={(e) => setPhoneValue(e.target.value.replace(/\D/g, ''))}
+                            placeholder="11999999999"
+                            className="h-8 w-36 font-mono text-sm"
+                            maxLength={11}
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2"
+                            onClick={handleSavePhone}
+                            disabled={updatePhone.isPending}
+                          >
+                            {updatePhone.isPending ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3 h-3 text-success" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2"
+                            onClick={() => {
+                              setPhoneValue(romaneio.cliente_telefone || '');
+                              setIsEditingPhone(false);
+                            }}
+                          >
+                            <XCircle className="w-3 h-3 text-destructive" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="font-medium">{formatPhoneDisplay(romaneio.cliente_telefone)}</p>
+                      )}
+                    </div>
+                  </div>
+                  {!isEditingPhone && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingPhone(true)}
+                      className="h-7 text-xs"
+                    >
+                      <Pencil className="w-3 h-3 mr-1" />
+                      {romaneio.cliente_telefone ? 'Editar' : 'Adicionar'}
+                    </Button>
+                  )}
                 </div>
               </div>
 
