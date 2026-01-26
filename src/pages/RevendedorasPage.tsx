@@ -1957,15 +1957,20 @@ export default function RevendedorasPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={async () => {
+              onClick={async (e) => {
+                e.preventDefault();
                 if (selectedMaleta) {
-                  await deleteMaletaMutation.mutateAsync({ 
-                    maletaId: selectedMaleta.id, 
-                    returnToStock: true 
-                  });
-                  setIsDeleteMaletaOpen(false);
-                  setIsMaletaOpen(false);
-                  setSelectedMaleta(null);
+                  try {
+                    await deleteMaletaMutation.mutateAsync({ 
+                      maletaId: selectedMaleta.id, 
+                      returnToStock: true 
+                    });
+                    setIsDeleteMaletaOpen(false);
+                    setIsMaletaOpen(false);
+                    setSelectedMaleta(null);
+                  } catch (error) {
+                    console.error('Error deleting maleta:', error);
+                  }
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
