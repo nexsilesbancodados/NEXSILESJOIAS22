@@ -27,6 +27,7 @@ import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
 import { PedidosPendentesCard } from '@/components/dashboard/PedidosPendentesCard';
 import { InteractiveTour } from '@/components/onboarding/InteractiveTour';
 import { useTourManager, DASHBOARD_TOUR_STEPS } from '@/hooks/useTourManager';
+import { SetupWizard, useSetupWizard } from '@/components/onboarding/SetupWizard';
 
 // Lazy load heavy chart component
 const DashboardCharts = lazy(() => import('@/components/dashboard/DashboardCharts').then(m => ({ default: m.DashboardCharts })));
@@ -62,6 +63,7 @@ const ChartsSkeleton = () => (
 
 export default function DashboardPage() {
   const { showTour, endTour, startTour } = useTourManager('dashboard');
+  const { showWizard, setShowWizard, isLoading: wizardLoading } = useSetupWizard();
   const { data: pecas = [], isLoading: loadingPecas } = usePecas();
   const { data: vendas = [], isLoading: loadingVendas } = useVendas();
   const { data: revendedoras = [], isLoading: loadingRevendedoras } = useRevendedoras();
@@ -106,8 +108,16 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 lg:p-8 animate-fade-in space-y-6 bg-background min-h-screen">
+      {/* Setup Wizard for new users */}
+      {showWizard && !wizardLoading && (
+        <SetupWizard 
+          onComplete={() => setShowWizard(false)}
+          onSkip={() => setShowWizard(false)}
+        />
+      )}
+
       {/* Interactive Tour */}
-      {showTour && (
+      {showTour && !showWizard && (
         <InteractiveTour
           steps={DASHBOARD_TOUR_STEPS}
           onComplete={endTour}
