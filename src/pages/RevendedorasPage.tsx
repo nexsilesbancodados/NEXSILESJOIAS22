@@ -86,9 +86,12 @@ import {
   useAddMaleta,
   useAddMaletaItem,
   useUpdateMaletaItem,
+  useDeleteMaletaItem,
   useCloseMaleta,
   useDeleteMaleta,
   usePecas,
+  useCatalogos,
+  useCatalogoItems,
   Revendedora,
   Maleta,
   MaletaItem,
@@ -177,6 +180,7 @@ export default function RevendedorasPage() {
   const { user } = useAuth();
   const { data: revendedoras = [], isLoading: isLoadingRevendedoras } = useRevendedoras();
   const { data: pecas = [] } = usePecas();
+  const { data: catalogos = [] } = useCatalogos();
   
   // Check for expiring maletas
   useVerificarMaletasVencendo(user?.id, 3);
@@ -187,6 +191,7 @@ export default function RevendedorasPage() {
   const addMaletaMutation = useAddMaleta();
   const addMaletaItemMutation = useAddMaletaItem();
   const updateMaletaItemMutation = useUpdateMaletaItem();
+  const deleteMaletaItemMutation = useDeleteMaletaItem();
   const closeMaletaMutation = useCloseMaleta();
   const deleteMaletaMutation = useDeleteMaleta();
   const updateMaletaMutation = useUpdateMaleta();
@@ -214,6 +219,8 @@ export default function RevendedorasPage() {
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [isBulkActionPending, setIsBulkActionPending] = useState(false);
+  const [addPecaSource, setAddPecaSource] = useState<'estoque' | 'catalogo'>('estoque');
+  const [selectedCatalogoId, setSelectedCatalogoId] = useState<string>('');
 
   // Track revendedora presence when viewing a maleta (broadcasts to public page)
   useRevendedoraPresence(selectedMaleta?.id);
@@ -261,6 +268,9 @@ export default function RevendedorasPage() {
   
   // Fetch items for selected maleta
   const { data: maletaItems = [], isLoading: isLoadingItems } = useMaletaItems(selectedMaleta?.id || '');
+  
+  // Fetch catalog items for selected catalog
+  const { data: catalogoItems = [] } = useCatalogoItems(selectedCatalogoId);
 
   // Fetch romaneios (sales) for selected maleta
   const { data: romaneiosMaleta = [], isLoading: isLoadingRomaneios } = useQuery({
@@ -466,6 +476,34 @@ export default function RevendedorasPage() {
       setSearchPeca('');
     } catch (error) {
       console.error('Error adding peca to maleta:', error);
+    }
+  };
+
+  const handleRemovePecaFromMaleta = async (itemId: string, pecaId: string) => {
+    if (!selectedMaleta) return;
+    
+    try {
+      await deleteMaletaItemMutation.mutateAsync({
+        id: itemId,
+        pecaId: pecaId,
+        returnToStock: true,
+      });
+    } catch (error) {
+      console.error('Error removing peca from maleta:', error);
+    }
+  };
+
+  const handleAddPecaFromCatalogo = async (peca: Peca) => {
+    if (!selectedMaleta) return;
+    
+    try {
+      await addMaletaItemMutation.mutateAsync({
+        maletaId: selectedMaleta.id,
+        pecaId: peca.id,
+      });
+      toast.success(`${peca.nome} adicionado à maleta!`);
+    } catch (error) {
+      console.error('Error adding peca from catalog:', error);
     }
   };
 
@@ -1044,37 +1082,123 @@ export default function RevendedorasPage() {
               {/* Tab Peças */}
               <TabsContent value="pecas" className="space-y-4">
                 {selectedMaleta?.status === 'aberta' && (
-                  <div>
+                  <div className="space-y-3">
                     <Label>Adicionar Peça</Label>
-                    <div className="relative mt-2">
-                      <Input
-                        placeholder="Buscar peça..."
-                        value={searchPeca}
-                        onChange={(e) => setSearchPeca(e.target.value)}
-                      />
-                      {searchPeca && pecasDisponiveis.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                          {pecasDisponiveis.slice(0, 5).map((peca) => (
-                            <div
-                              key={peca.id}
-                              className="flex items-center gap-3 p-3 hover:bg-secondary/50 cursor-pointer"
-                              onClick={() => handleAddPecaToMaleta(peca)}
-                            >
-                              <img
-                                src={peca.imagem_url || '/placeholder.svg'}
-                                alt={peca.nome}
-                                className="w-10 h-10 rounded object-cover"
-                              />
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{peca.nome}</p>
-                                <p className="text-xs text-muted-foreground">{peca.codigo}</p>
-                              </div>
-                              <p className="font-medium">{formatCurrency(peca.preco_venda)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    
+                    {/* Source Toggle */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant={addPecaSource === 'estoque' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setAddPecaSource('estoque')}
+                      >
+                        <Package className="w-4 h-4 mr-1" />
+                        Do Estoque
+                      </Button>
+                      <Button
+                        variant={addPecaSource === 'catalogo' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setAddPecaSource('catalogo')}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-1" />
+                        Do Catálogo
+                      </Button>
                     </div>
+
+                    {addPecaSource === 'estoque' ? (
+                      <div className="relative">
+                        <Input
+                          placeholder="Buscar peça no estoque..."
+                          value={searchPeca}
+                          onChange={(e) => setSearchPeca(e.target.value)}
+                        />
+                        {searchPeca && pecasDisponiveis.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {pecasDisponiveis.slice(0, 5).map((peca) => (
+                              <div
+                                key={peca.id}
+                                className="flex items-center gap-3 p-3 hover:bg-secondary/50 cursor-pointer"
+                                onClick={() => handleAddPecaToMaleta(peca)}
+                              >
+                                <img
+                                  src={peca.imagem_url || '/placeholder.svg'}
+                                  alt={peca.nome}
+                                  className="w-10 h-10 rounded object-cover"
+                                />
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{peca.nome}</p>
+                                  <p className="text-xs text-muted-foreground">{peca.codigo}</p>
+                                </div>
+                                <p className="font-medium">{formatCurrency(peca.preco_venda)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Catalog Selector */}
+                        <select
+                          className="w-full p-2 border rounded-lg bg-background"
+                          value={selectedCatalogoId}
+                          onChange={(e) => setSelectedCatalogoId(e.target.value)}
+                        >
+                          <option value="">Selecione um catálogo...</option>
+                          {catalogos.filter(c => c.ativo).map((catalogo) => (
+                            <option key={catalogo.id} value={catalogo.id}>
+                              {catalogo.nome}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Catalog Items */}
+                        {selectedCatalogoId && (
+                          <ScrollArea className="h-[200px] border rounded-lg">
+                            <div className="p-2 space-y-2">
+                              {catalogoItems.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-4 text-sm">
+                                  Nenhuma peça neste catálogo
+                                </p>
+                              ) : (
+                                catalogoItems.map((item) => {
+                                  const jaAdicionada = maletaItems.some(mi => mi.peca_id === item.peca_id);
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className={cn(
+                                        "flex items-center gap-3 p-2 rounded-lg transition-colors",
+                                        jaAdicionada 
+                                          ? "bg-muted/50 opacity-60" 
+                                          : "hover:bg-secondary/50 cursor-pointer"
+                                      )}
+                                      onClick={() => !jaAdicionada && item.peca && handleAddPecaFromCatalogo(item.peca)}
+                                    >
+                                      <img
+                                        src={item.peca?.imagem_url || '/placeholder.svg'}
+                                        alt={item.peca?.nome}
+                                        className="w-10 h-10 rounded object-cover"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm truncate">{item.peca?.nome}</p>
+                                        <p className="text-xs text-muted-foreground">{item.peca?.codigo}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="font-medium text-sm">{formatCurrency(item.peca?.preco_venda || 0)}</p>
+                                        {jaAdicionada ? (
+                                          <Badge variant="secondary" className="text-xs">Já na maleta</Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-xs">Qtd: {item.quantidade || 1}</Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
+                          </ScrollArea>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1202,6 +1326,19 @@ export default function RevendedorasPage() {
                                 disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Devolvido
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  if (window.confirm(`Remover "${item.peca?.nome || 'Peça'}" da maleta?`)) {
+                                    handleRemovePecaFromMaleta(item.id, item.peca_id);
+                                  }
+                                }}
+                                disabled={deleteMaletaItemMutation.isPending || isBulkActionPending}
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           ) : selectedMaleta?.status === 'aberta' && item.status === 'vendido' ? (

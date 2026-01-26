@@ -1094,6 +1094,45 @@ export function useUpdateMaletaItem() {
   });
 }
 
+export function useDeleteMaletaItem() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, pecaId, returnToStock = true }: { id: string; pecaId: string; returnToStock?: boolean }) => {
+      // Delete the item from maleta
+      const { error } = await supabase
+        .from('maletas_pecas')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+
+      // Return item to stock if requested
+      if (returnToStock) {
+        const { data: pecaData } = await supabase
+          .from('pecas')
+          .select('estoque')
+          .eq('id', pecaId)
+          .single();
+        
+        if (pecaData) {
+          await supabase
+            .from('pecas')
+            .update({ estoque: (pecaData.estoque || 0) + 1 })
+            .eq('id', pecaId);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maleta-items'] });
+      queryClient.invalidateQueries({ queryKey: ['pecas'] });
+      toast.success('Peça removida da maleta!');
+    },
+    onError: () => {
+      toast.error('Erro ao remover peça');
+    },
+  });
+}
 export function useCloseMaleta() {
   const queryClient = useQueryClient();
   
