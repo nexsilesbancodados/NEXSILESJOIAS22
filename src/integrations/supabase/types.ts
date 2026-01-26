@@ -1717,6 +1717,50 @@ export type Database = {
           },
         ]
       }
+      whatsapp_templates: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          created_at: string | null
+          id: string
+          mensagem: string
+          nome: string
+          organization_id: string | null
+          updated_at: string | null
+          variaveis: Json | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          id?: string
+          mensagem: string
+          nome: string
+          organization_id?: string | null
+          updated_at?: string | null
+          variaveis?: Json | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          id?: string
+          mensagem?: string
+          nome?: string
+          organization_id?: string | null
+          updated_at?: string | null
+          variaveis?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
