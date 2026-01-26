@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getOrganizationIdAsync } from '@/hooks/useOrganization';
 
 const db = supabase;
 import { Badge } from '@/components/ui/badge';
@@ -151,18 +152,17 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
           .eq('pedido_id', id);
         if (itensError) throw itensError;
 
-        // Criar romaneio - usando user_id para garantir visibilidade
-        // reseller_id também usa o admin para pedidos de catálogo (não são de revendedoras)
+        // Criar romaneio - usando organization_id para garantir isolamento multi-tenant
+        const organizationId = await getOrganizationIdAsync();
+        if (!organizationId) throw new Error('Organização não encontrada');
+
         const { data: romaneio, error: romaneioError } = await db
           .from('romaneios')
           .insert({
-            reseller_id: user.id,
-            revendedora_nome: 'Catálogo Online',
+            organization_id: organizationId,
             cliente_nome: pedido.cliente_nome,
             cliente_telefone: pedido.cliente_telefone || null,
-            user_id: user.id,
             status: 'pendente',
-            total: pedido.total,
           })
           .select()
           .single();
@@ -177,9 +177,7 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
           const romaneioItens = itens.map((item: PedidoCatalogoItem) => ({
             romaneio_id: romaneio.id,
             peca_id: item.peca_id,
-            peca_nome: item.peca_nome,
             quantidade: item.quantidade,
-            preco_unitario: item.preco_unitario,
           }));
 
           // Correct table name is 'romaneios_pecas'
