@@ -5,6 +5,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GalvanicaReportExport } from '@/components/export/GalvanicaReportExport';
 import { LucratividadeTab } from '@/components/reports/LucratividadeTab';
+import { DesempenhoVendas } from '@/components/reports/DesempenhoVendas';
 import { ExportBuilder } from '@/components/export/ExportBuilder';
 import {
   Popover,
@@ -55,7 +56,7 @@ import { format, subDays, subWeeks, isWithinInterval, startOfDay, endOfDay, star
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { DateRange } from 'react-day-picker';
-import { useVendas, usePecas, useRevendedoras, useRomaneios, useEnviosGalvanica, useBanhos } from '@/hooks/useSupabaseData';
+import { useVendas, usePecas, useRevendedoras, useRomaneios, useEnviosGalvanica, useBanhos, useVendasPecas } from '@/hooks/useSupabaseData';
 import { useClientes } from '@/hooks/useClientes';
 
 const PERIODOS = [
@@ -76,6 +77,7 @@ export default function RelatoriosPage() {
   const { data: romaneios = [], isLoading: loadingRomaneios } = useRomaneios();
   const { data: enviosGalvanica = [], isLoading: loadingEnvios } = useEnviosGalvanica();
   const { data: banhos = [], isLoading: loadingBanhos } = useBanhos();
+  const { data: vendasPecas = [] } = useVendasPecas();
   const { data: clientes = [] } = useClientes();
   
   const [periodoSelecionado, setPeriodoSelecionado] = useState('mensal');
@@ -530,6 +532,13 @@ export default function RelatoriosPage() {
         </TabsList>
 
         <TabsContent value="vendas" className="space-y-6">
+          {/* Desempenho e Comparativos */}
+          <DesempenhoVendas 
+            vendas={vendas as any} 
+            vendasPecas={vendasPecas as any}
+            dateRange={dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined}
+          />
+          
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Sales Chart */}
             <Card className="glass-card lg:col-span-2">

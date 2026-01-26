@@ -1138,7 +1138,7 @@ export function useVendaItems(vendaId: string) {
     queryKey: ['venda-items', vendaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('venda_itens')
+        .from('vendas_pecas')
         .select('*')
         .eq('venda_id', vendaId);
       
@@ -1146,6 +1146,26 @@ export function useVendaItems(vendaId: string) {
       return data as VendaItem[];
     },
     enabled: !!vendaId,
+  });
+}
+
+// Hook para buscar todos os itens vendidos (para relatórios)
+export function useVendasPecas() {
+  return useQuery({
+    queryKey: ['vendas-pecas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vendas_pecas')
+        .select(`
+          *,
+          peca:pecas(id, nome, codigo, categoria)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      
+      if (error) throw error;
+      return data;
+    },
   });
 }
 
