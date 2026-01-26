@@ -5,7 +5,8 @@ import {
   ShoppingBag, 
   Users, 
   Clock,
-  Target
+  Target,
+  Banknote
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Venda, MovimentoCaixa } from '@/hooks/useSupabaseData';
@@ -79,7 +80,27 @@ export function PDVStats({
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
+      {/* Saldo em Caixa - DESTAQUE */}
+      <div className={cn(
+        'relative overflow-hidden rounded-2xl p-4 shadow-lg ring-2 ring-white/30',
+        'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
+      )}>
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
+        </div>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/30 backdrop-blur-sm flex items-center justify-center">
+            <Banknote className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white/90 text-xs font-semibold uppercase tracking-wide">Saldo Caixa</p>
+            <p className="text-white text-xl font-bold truncate">{formatCurrency(stats.saldoAtual)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Total Vendas */}
       <div className={cn(
         'relative overflow-hidden rounded-2xl p-4 shadow-lg',
