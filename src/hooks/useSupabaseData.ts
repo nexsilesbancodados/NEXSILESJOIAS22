@@ -798,7 +798,69 @@ export function useDeleteRevendedora() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, force = false }: { id: string; force?: boolean }) => {
+      // Check for dependencies first
+      const { data: maletas, error: maletasError } = await supabase
+        .from('maletas')
+        .select('id, nome')
+        .eq('revendedora_id', id);
+      
+      if (maletasError) throw maletasError;
+      
+      if (maletas && maletas.length > 0 && !force) {
+        throw new Error(`DEPENDENCY:Esta revendedora possui ${maletas.length} maleta(s) associada(s). Remova as maletas primeiro ou desassocie-as.`);
+      }
+      
+      // If force is true, first unlink maletas
+      if (force && maletas && maletas.length > 0) {
+        const { error: unlinkError } = await supabase
+          .from('maletas')
+          .update({ revendedora_id: null })
+          .eq('revendedora_id', id);
+        
+        if (unlinkError) throw unlinkError;
+      }
+      
+      // Check for vendas
+      const { data: vendas, error: vendasError } = await supabase
+        .from('vendas')
+        .select('id')
+        .eq('revendedora_id', id);
+      
+      if (vendasError) throw vendasError;
+      
+      if (vendas && vendas.length > 0 && !force) {
+        throw new Error(`DEPENDENCY:Esta revendedora possui ${vendas.length} venda(s) registrada(s). O histórico será mantido, mas a associação será removida.`);
+      }
+      
+      // If force, unlink vendas
+      if (force && vendas && vendas.length > 0) {
+        const { error: unlinkVendasError } = await supabase
+          .from('vendas')
+          .update({ revendedora_id: null })
+          .eq('revendedora_id', id);
+        
+        if (unlinkVendasError) throw unlinkVendasError;
+      }
+      
+      // Check for metas
+      const { data: metas, error: metasError } = await supabase
+        .from('metas')
+        .select('id')
+        .eq('revendedora_id', id);
+      
+      if (metasError) throw metasError;
+      
+      if (metas && metas.length > 0) {
+        const { error: deleteMetasError } = await supabase
+          .from('metas')
+          .delete()
+          .eq('revendedora_id', id);
+        
+        if (deleteMetasError) throw deleteMetasError;
+      }
+      
+      // Now delete the revendedora
       const { error } = await supabase
         .from('revendedoras')
         .delete()
@@ -808,10 +870,16 @@ export function useDeleteRevendedora() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['revendedoras'] });
+      queryClient.invalidateQueries({ queryKey: ['maletas'] });
+      queryClient.invalidateQueries({ queryKey: ['vendas'] });
       toast.success('Revendedora removida com sucesso!');
     },
-    onError: () => {
-      toast.error('Erro ao remover revendedora');
+    onError: (error: Error) => {
+      if (error.message.startsWith('DEPENDENCY:')) {
+        toast.error(error.message.replace('DEPENDENCY:', ''));
+      } else {
+        toast.error('Erro ao remover revendedora');
+      }
     },
   });
 }

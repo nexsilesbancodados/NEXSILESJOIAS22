@@ -321,13 +321,19 @@ export default function RevendedorasPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (force = false) => {
     if (selectedRevendedora) {
       try {
-        await deleteRevendedoraMutation.mutateAsync(selectedRevendedora.id);
+        await deleteRevendedoraMutation.mutateAsync({ id: selectedRevendedora.id, force });
         setIsDeleteOpen(false);
         setSelectedRevendedora(null);
-      } catch (error) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : '';
+        // If it's a dependency error and not forcing, offer to force delete
+        if (errorMessage.startsWith('DEPENDENCY:') && !force) {
+          // Error message already shown by the hook
+          return;
+        }
         console.error('Error deleting revendedora:', error);
       }
     }
@@ -1905,7 +1911,7 @@ export default function RevendedorasPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={() => handleDelete(false)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteRevendedoraMutation.isPending}
             >
