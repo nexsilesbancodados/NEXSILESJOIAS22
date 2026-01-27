@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
+import { useNotificationSound, setGlobalNotificationSound } from './useNotificationSound';
 
 const db = supabase;
 
@@ -128,26 +130,116 @@ export function useDeletarNotificacao() {
 
 export function useNotificacoesRealtime() {
   const queryClient = useQueryClient();
+  const notificationSound = useNotificationSound();
+  const processedIdsRef = useRef<Set<string>>(new Set());
+  
+  // Set global instance for access from other components
+  useEffect(() => {
+    setGlobalNotificationSound(notificationSound);
+  }, [notificationSound]);
+  
+  // Handle new notification
+  const handleNewNotification = useCallback((payload: any) => {
+    const notification = payload.new;
+    
+    // Skip if already processed
+    if (processedIdsRef.current.has(notification.id)) {
+      return;
+    }
+    processedIdsRef.current.add(notification.id);
+    
+    // Keep set size manageable
+    if (processedIdsRef.current.size > 100) {
+      const arr = Array.from(processedIdsRef.current);
+      processedIdsRef.current = new Set(arr.slice(-50));
+    }
+    
+    // Play sound and vibrate
+    notificationSound.playNotification(notification.tipo);
+    
+    // Show toast notification
+    const iconMap: Record<string, string> = {
+      interesse_maleta: '💖',
+      visualizacao_maleta: '👀',
+      estoque_baixo: '📦',
+      maleta_vencendo: '⏰',
+      novo_pedido: '🛒',
+      meta_proxima: '🎯',
+      aniversario: '🎂',
+      romaneio_pendente: '📄',
+    };
+    
+    const icon = iconMap[notification.tipo] || '🔔';
+    
+    toast.info(`${icon} ${notification.titulo}`, {
+      description: notification.mensagem,
+      duration: 5000,
+      action: notification.link ? {
+        label: 'Ver',
+        onClick: () => {
+          window.location.href = notification.link;
+        },
+      } : undefined,
+    });
+    
+    // Invalidate queries
+    queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+    queryClient.invalidateQueries({ queryKey: ['notificacoes-nao-lidas'] });
+  }, [queryClient, notificationSound]);
   
   useEffect(() => {
-    const channel = supabase
-      .channel('notificacoes-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notificacoes',
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
-          queryClient.invalidateQueries({ queryKey: ['notificacoes-nao-lidas'] });
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    const setupChannel = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      channel = supabase
+        .channel('notificacoes-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notificacoes',
+            filter: `user_id=eq.${user.id}`,
+          },
+          handleNewNotification
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'notificacoes',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+            queryClient.invalidateQueries({ queryKey: ['notificacoes-nao-lidas'] });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'notificacoes',
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+            queryClient.invalidateQueries({ queryKey: ['notificacoes-nao-lidas'] });
+          }
+        )
+        .subscribe();
+    };
+    
+    setupChannel();
     
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [queryClient]);
+  }, [queryClient, handleNewNotification]);
 }
