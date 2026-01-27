@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
@@ -131,6 +131,40 @@ export default function MaletaPublicaPage() {
 
   // Use presence hook for tracking online status
   const { isRevendedoraOnline, viewersCount } = useMaletaPresence(maleta?.id, 'viewer');
+
+  // Track if we already sent the view notification
+  const hasNotifiedRef = useRef(false);
+
+  // Notify revendedora when page is viewed
+  useEffect(() => {
+    if (!maleta?.id || hasNotifiedRef.current) return;
+    
+    const notifyView = async () => {
+      try {
+        hasNotifiedRef.current = true;
+        
+        await supabase.functions.invoke('notificar-visualizacao-maleta', {
+          body: {
+            maleta_id: maleta.id,
+            visitor_info: {
+              user_agent: navigator.userAgent,
+              referrer: document.referrer || undefined,
+            },
+          },
+        });
+        
+        console.log('View notification sent');
+      } catch (error) {
+        // Silently fail - this is a non-critical feature
+        console.error('Failed to send view notification:', error);
+      }
+    };
+
+    // Small delay to ensure the page is actually being viewed
+    const timeoutId = setTimeout(notifyView, 2000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [maleta?.id]);
 
   // Fetch maleta items (only non-sold items)
   const { data: itens = [], isLoading: loadingItens } = useQuery({

@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.enviar-whatsapp]
 verify_jwt = false
+
+[functions.notificar-visualizacao-maleta]
+verify_jwt = false
