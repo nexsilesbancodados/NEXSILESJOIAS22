@@ -994,14 +994,38 @@ export function useAddMaletaItem() {
   
   return useMutation({
     mutationFn: async ({ maletaId, pecaId }: { maletaId: string; pecaId: string }) => {
-      // Add item to maleta - correct table name is 'maletas_pecas'
-      const { data, error } = await supabase
+      // Check if item already exists in maleta
+      const { data: existingItem } = await supabase
         .from('maletas_pecas')
-        .insert({ maleta_id: maletaId, peca_id: pecaId, quantidade: 1 })
-        .select()
-        .single();
+        .select('id, quantidade')
+        .eq('maleta_id', maletaId)
+        .eq('peca_id', pecaId)
+        .maybeSingle();
       
-      if (error) throw error;
+      let result;
+      
+      if (existingItem) {
+        // Update quantity if item already exists
+        const { data, error } = await supabase
+          .from('maletas_pecas')
+          .update({ quantidade: existingItem.quantidade + 1 })
+          .eq('id', existingItem.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      } else {
+        // Add new item to maleta
+        const { data, error } = await supabase
+          .from('maletas_pecas')
+          .insert({ maleta_id: maletaId, peca_id: pecaId, quantidade: 1 })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      }
 
       // Decrease stock
       const { data: pecaData } = await supabase
@@ -1010,22 +1034,28 @@ export function useAddMaletaItem() {
         .eq('id', pecaId)
         .single();
       
-      if (pecaData) {
+      if (pecaData && pecaData.estoque > 0) {
         await supabase
           .from('pecas')
           .update({ estoque: pecaData.estoque - 1 })
           .eq('id', pecaId);
       }
 
-      return data;
+      return result;
     },
     onSuccess: (_, { maletaId }) => {
       queryClient.invalidateQueries({ queryKey: ['maleta-items', maletaId] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
       toast.success('Peça adicionada à maleta!');
     },
-    onError: () => {
-      toast.error('Erro ao adicionar peça');
+    onError: (error: any) => {
+      console.error('Erro ao adicionar peça à maleta:', error);
+      const message = error?.message || 'Erro ao adicionar peça';
+      if (message.includes('policy')) {
+        toast.error('Sem permissão para adicionar peça a esta maleta');
+      } else {
+        toast.error(message);
+      }
     },
   });
 }
