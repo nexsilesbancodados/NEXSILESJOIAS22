@@ -512,10 +512,11 @@ export default function RevendedorasPage() {
     itemId: string, 
     pecaId: string, 
     status: 'pendente' | 'vendido' | 'devolvido',
-    statusAnterior?: 'pendente' | 'vendido' | 'devolvido'
+    statusAnterior?: 'pendente' | 'vendido' | 'devolvido',
+    quantidade?: number
   ) => {
     try {
-      await updateMaletaItemMutation.mutateAsync({ id: itemId, status, pecaId, statusAnterior });
+      await updateMaletaItemMutation.mutateAsync({ id: itemId, status, pecaId, statusAnterior, quantidade: quantidade || 1 });
     } catch (error) {
       console.error('Error updating item:', error);
     }
@@ -562,7 +563,8 @@ export default function RevendedorasPage() {
             id: item.id, 
             status, 
             pecaId: item.peca_id, 
-            statusAnterior: 'pendente' 
+            statusAnterior: 'pendente',
+            quantidade: item.quantidade || 1
           })
         )
       );
@@ -1214,7 +1216,7 @@ export default function RevendedorasPage() {
                               <Button
                                 size="sm"
                                 className="bg-success text-success-foreground hover:bg-success/90"
-                                onClick={() => handleMarcarItem(item.id, item.peca_id, 'vendido', 'pendente')}
+                                onClick={() => handleMarcarItem(item.id, item.peca_id, 'vendido', 'pendente', item.quantidade)}
                                 disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Vendido
@@ -1222,7 +1224,7 @@ export default function RevendedorasPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => handleMarcarItem(item.id, item.peca_id, 'devolvido', 'pendente')}
+                                onClick={() => handleMarcarItem(item.id, item.peca_id, 'devolvido', 'pendente', item.quantidade)}
                                 disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Devolvido
@@ -1251,7 +1253,7 @@ export default function RevendedorasPage() {
                                 onClick={async () => {
                                   const confirmar = window.confirm(`Desfazer venda de "${item.peca?.nome || 'Peça'}"? O item voltará para o status pendente.`);
                                   if (confirmar) {
-                                    await handleMarcarItem(item.id, item.peca_id, 'pendente', 'vendido');
+                                    await handleMarcarItem(item.id, item.peca_id, 'pendente', 'vendido', item.quantidade);
                                   }
                                 }}
                                 disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
