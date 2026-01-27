@@ -2,11 +2,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Briefcase, ChevronRight, Pencil, ImageIcon, Heart, AlertTriangle } from 'lucide-react';
+import { Briefcase, ChevronRight, Pencil, ImageIcon, Heart, AlertTriangle, Loader2, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
 import { useMaletaItems, useMaletaInteressesPendentes, type Maleta, type Peca } from '@/hooks/useSupabaseData';
 import { ShareMaletaButton } from '@/components/maleta/ShareMaletaButton';
+import { supabase } from '@/lib/supabase-db';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface MaletaCardProps {
   maleta: Maleta;
@@ -23,8 +26,28 @@ export function MaletaCard({
 }: MaletaCardProps) {
   const { data: items = [] } = useMaletaItems(maleta.id);
   const { data: interessesPendentes = [] } = useMaletaInteressesPendentes(maleta.id);
+  const queryClient = useQueryClient();
 
   const hasNewInterests = interessesPendentes.length > 0;
+
+  // Mutation to activate public showcase
+  const activateShowcase = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('maletas')
+        .update({ is_public: true })
+        .eq('id', maleta.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maletas'] });
+      toast.success('Vitrine pública ativada!');
+    },
+    onError: () => {
+      toast.error('Erro ao ativar vitrine');
+    },
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -96,8 +119,25 @@ export function MaletaCard({
         {hasLinkButDisabled && maleta.status === 'aberta' && (
           <Alert variant="destructive" className="mb-4 py-2">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-xs">
-              Link gerado, mas vitrine desativada. Clientes não poderão finalizar pedidos.
+            <AlertDescription className="text-xs flex items-center justify-between gap-2 flex-wrap">
+              <span>Link gerado, mas vitrine desativada. Clientes não poderão finalizar pedidos.</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs bg-background hover:bg-primary hover:text-primary-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  activateShowcase.mutate();
+                }}
+                disabled={activateShowcase.isPending}
+              >
+                {activateShowcase.isPending ? (
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                ) : (
+                  <Eye className="w-3 h-3 mr-1" />
+                )}
+                Ativar vitrine
+              </Button>
             </AlertDescription>
           </Alert>
         )}
