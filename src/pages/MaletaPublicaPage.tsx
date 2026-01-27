@@ -159,6 +159,11 @@ export default function MaletaPublicaPage() {
       if (!maleta?.id) throw new Error('Maleta não encontrada');
       if (!customerName.trim()) throw new Error('Nome é obrigatório');
       
+      // Verify maleta is public before attempting to insert
+      if (!maleta.is_public) {
+        throw new Error('Esta vitrine não está disponível para pedidos no momento. Entre em contato com a revendedora.');
+      }
+      
       // Create interest record
       const { data: interesse, error: interesseError } = await supabase
         .from('maleta_interesses')
@@ -173,7 +178,13 @@ export default function MaletaPublicaPage() {
         .select()
         .single();
 
-      if (interesseError) throw interesseError;
+      if (interesseError) {
+        console.error('Erro ao criar interesse:', interesseError);
+        if (interesseError.message?.includes('policy') || interesseError.code === '42501') {
+          throw new Error('Esta vitrine não está disponível para pedidos no momento.');
+        }
+        throw new Error('Erro ao enviar seu interesse. Tente novamente.');
+      }
 
       // Create interest items
       const cartItems = Array.from(selectedItems.values());
@@ -187,7 +198,10 @@ export default function MaletaPublicaPage() {
         .from('maleta_interesse_itens')
         .insert(interesseItems);
 
-      if (itensError) throw itensError;
+      if (itensError) {
+        console.error('Erro ao criar itens:', itensError);
+        throw new Error('Erro ao salvar os itens do pedido. Tente novamente.');
+      }
 
       return interesse;
     },
