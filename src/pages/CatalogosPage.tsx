@@ -901,6 +901,7 @@ function CatalogoItemsDialog({
     codigo: generateCode(),
     preco_custo: '',
     preco_venda: '',
+    custo_separacao: '',
     categoria: '',
     material: '',
     fornecedor_id: '',
@@ -908,6 +909,7 @@ function CatalogoItemsDialog({
     estoque: '',
     estoque_minimo: '',
     imagem_url: '',
+    quantidade_minima: '1',
   });
   const [autoGenerateCode, setAutoGenerateCode] = useState(true);
 
@@ -1034,11 +1036,13 @@ function CatalogoItemsDialog({
         catalogo_only: true, // Mark as catalog-only piece
       });
 
-      // Add to catalog
+      // Add to catalog with minimum quantity
+      const quantidadeMinima = parseInt(newPecaData.quantidade_minima) || 1;
       await addItem.mutateAsync({
         catalogo_id: catalogo.id,
         peca_id: newPeca.id,
-        quantidade: 1,
+        quantidade: Math.max(1, quantidadeMinima), // At least the minimum
+        quantidade_minima: quantidadeMinima,
         ordem: items.length,
         destaque: false,
       });
@@ -1049,6 +1053,7 @@ function CatalogoItemsDialog({
         codigo: generateCode(),
         preco_custo: '',
         preco_venda: '',
+        custo_separacao: '',
         categoria: '',
         material: '',
         fornecedor_id: '',
@@ -1056,6 +1061,7 @@ function CatalogoItemsDialog({
         estoque: '',
         estoque_minimo: '',
         imagem_url: '',
+        quantidade_minima: '1',
       });
       setAutoGenerateCode(true);
       toast.success('Peça criada e adicionada ao catálogo!');
@@ -1442,6 +1448,36 @@ function CatalogoItemsDialog({
                       onChange={(e) => setNewPecaData({ ...newPecaData, preco_venda: e.target.value })}
                       placeholder="0.00"
                     />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new_custo_separacao">Custo de Separação</Label>
+                    <Input
+                      id="new_custo_separacao"
+                      type="number"
+                      step="0.01"
+                      value={newPecaData.custo_separacao}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, custo_separacao: e.target.value })}
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Custo adicional para separar esta peça
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new_quantidade_minima">Pedido Mínimo</Label>
+                    <Input
+                      id="new_quantidade_minima"
+                      type="number"
+                      min="1"
+                      value={newPecaData.quantidade_minima}
+                      onChange={(e) => setNewPecaData({ ...newPecaData, quantidade_minima: e.target.value })}
+                      placeholder="1"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Quantidade mínima que o cliente deve comprar
+                    </p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
