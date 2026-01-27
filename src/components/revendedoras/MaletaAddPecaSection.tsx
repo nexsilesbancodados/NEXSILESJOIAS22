@@ -370,17 +370,19 @@ export function MaletaAddPecaSection({
                       </p>
                     ) : (
                       pecasDisponiveis.map((peca) => {
-                        const jaAdicionada = maletaItems.some(mi => mi.peca_id === peca.id);
+                        const itemNaMaleta = maletaItems.find(mi => mi.peca_id === peca.id);
+                        const qtdNaMaleta = itemNaMaleta ? (itemNaMaleta as any).quantidade || 1 : 0;
                         const qtd = getQuantidade(peca.id);
                         const isAddingThis = addingPecaId === peca.id;
                         const maxQtd = peca.estoque;
+                        const semEstoque = peca.estoque <= 0;
 
                         return (
                           <div
                             key={peca.id}
                             className={cn(
                               "flex items-center gap-3 p-3 rounded-lg transition-colors border",
-                              jaAdicionada 
+                              semEstoque 
                                 ? "bg-muted/50 opacity-60 border-transparent" 
                                 : "border-border/50 hover:border-primary/30"
                             )}
@@ -404,11 +406,16 @@ export function MaletaAddPecaSection({
                               <div className="flex items-center gap-2 mt-1">
                                 <span className="font-semibold text-primary">{formatCurrency(peca.preco_venda)}</span>
                                 <Badge variant="outline" className="text-xs">Est: {peca.estoque}</Badge>
+                                {qtdNaMaleta > 0 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    {qtdNaMaleta} na maleta
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                             
-                            {jaAdicionada ? (
-                              <Badge variant="secondary" className="shrink-0">Na maleta</Badge>
+                            {semEstoque ? (
+                              <Badge variant="destructive" className="shrink-0">Esgotado</Badge>
                             ) : (
                               <div className="flex flex-col items-end gap-2 shrink-0">
                                 {/* Quantity Selector */}
@@ -485,17 +492,19 @@ export function MaletaAddPecaSection({
                         </p>
                       ) : (
                         catalogoItems.map((item) => {
-                          const jaAdicionada = maletaItems.some(mi => mi.peca_id === item.peca_id);
+                          const itemNaMaleta = maletaItems.find(mi => mi.peca_id === item.peca_id);
+                          const qtdNaMaleta = itemNaMaleta ? (itemNaMaleta as any).quantidade || 1 : 0;
                           const qtd = getQuantidade(item.peca?.id || '');
                           const isAddingThis = addingPecaId === item.peca?.id;
-                          const maxQtd = item.quantidade || 1;
+                          const maxQtd = item.peca?.estoque || 0;
+                          const semEstoque = (item.peca?.estoque || 0) <= 0;
 
                           return (
                             <div
                               key={item.id}
                               className={cn(
                                 "flex items-center gap-3 p-3 rounded-lg transition-colors border",
-                                jaAdicionada 
+                                semEstoque 
                                   ? "bg-muted/50 opacity-60 border-transparent" 
                                   : "border-border/50 hover:border-primary/30"
                               )}
@@ -508,11 +517,18 @@ export function MaletaAddPecaSection({
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm truncate">{item.peca?.nome}</p>
                                 <p className="text-xs text-muted-foreground font-mono">{item.peca?.codigo}</p>
-                                <p className="font-semibold text-primary mt-1">{formatCurrency(item.peca?.preco_venda || 0)}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="font-semibold text-primary">{formatCurrency(item.peca?.preco_venda || 0)}</span>
+                                  {qtdNaMaleta > 0 && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {qtdNaMaleta} na maleta
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               
-                              {jaAdicionada ? (
-                                <Badge variant="secondary" className="shrink-0">Na maleta</Badge>
+                              {semEstoque ? (
+                                <Badge variant="destructive" className="shrink-0">Esgotado</Badge>
                               ) : item.peca && (
                                 <div className="flex flex-col items-end gap-2 shrink-0">
                                   <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
