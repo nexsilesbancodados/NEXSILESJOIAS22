@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, Briefcase, DollarSign, Clock, CheckCircle2 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { usePortalNotifications } from '@/hooks/usePortalNotifications';
 
 interface Revendedora {
   id: string;
@@ -94,6 +97,12 @@ export default function PortalRevendedoraPage() {
   const [vendaModal, setVendaModal] = useState<MaletaPeca | null>(null);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [processando, setProcessando] = useState(false);
+
+  // Portal notifications hook
+  const { notifications, unreadCount, refetch: refetchNotifications } = usePortalNotifications({
+    revendedoraId: revendedora?.id || null,
+    enabled: isAuthenticated,
+  });
 
   // Check session storage for existing login
   useEffect(() => {
@@ -489,10 +498,77 @@ export default function PortalRevendedoraPage() {
               <p className="text-sm text-muted-foreground">Comissão: {revendedora?.comissao_percentual}%</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          
+          <div className="flex items-center gap-2">
+            {/* Notifications Bell */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  {unreadCount > 0 ? (
+                    <BellRing className="w-5 h-5 text-primary animate-pulse" />
+                  ) : (
+                    <Bell className="w-5 h-5" />
+                  )}
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
+                    >
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="p-3 border-b">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <Bell className="w-4 h-4" />
+                    Notificações
+                  </h3>
+                </div>
+                <ScrollArea className="h-[300px]">
+                  {notifications.length === 0 ? (
+                    <div className="p-8 text-center text-muted-foreground">
+                      <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Nenhuma notificação</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {notifications.slice(0, 10).map((notif) => (
+                        <div 
+                          key={notif.id} 
+                          className={`p-3 hover:bg-muted/50 transition-colors ${!notif.lida ? 'bg-primary/5' : ''}`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-lg">{notif.titulo.split(' ')[0]}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {notif.titulo.replace(/^[^\s]+\s/, '')}
+                              </p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {notif.mensagem}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {format(new Date(notif.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                              </p>
+                            </div>
+                            {!notif.lida && (
+                              <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
+
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 
