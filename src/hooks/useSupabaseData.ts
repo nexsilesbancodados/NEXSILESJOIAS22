@@ -1002,7 +1002,15 @@ export function useMaletaItems(maletaId: string) {
         .eq('maleta_id', maletaId);
       
       if (error) throw error;
-      return data as (MaletaItem & { peca: Peca })[];
+      
+      // Derive 'status' from 'vendida' field since DB doesn't have status column
+      // vendida: true = 'vendido', vendida: false = 'pendente' (devolvido is transient - item is deleted)
+      const itemsWithStatus = (data || []).map(item => ({
+        ...item,
+        status: item.vendida ? 'vendido' : 'pendente'
+      }));
+      
+      return itemsWithStatus as (MaletaItem & { peca: Peca })[];
     },
     enabled: !!maletaId,
   });
@@ -1127,57 +1135,51 @@ export function useUpdateMaletaItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, status, pecaId, statusAnterior }: { 
+    mutationFn: async ({ id, status, pecaId, statusAnterior, quantidade = 1 }: { 
       id: string; 
       status: 'pendente' | 'vendido' | 'devolvido'; 
       pecaId: string;
       statusAnterior?: 'pendente' | 'vendido' | 'devolvido';
+      quantidade?: number;
     }) => {
-      // Correct table name is 'maletas_pecas'
+      // For 'devolvido' status, we need to delete the item and return to stock
+      if (status === 'devolvido') {
+        // First return to stock
+        const { data: pecaData } = await supabase
+          .from('pecas')
+          .select('estoque')
+          .eq('id', pecaId)
+          .single();
+        
+        if (pecaData) {
+          await supabase
+            .from('pecas')
+            .update({ estoque: (pecaData.estoque || 0) + quantidade })
+            .eq('id', pecaId);
+        }
+
+        // Then delete the item from maleta
+        const { error: deleteError } = await supabase
+          .from('maletas_pecas')
+          .delete()
+          .eq('id', id);
+        
+        if (deleteError) throw deleteError;
+        return { id, deleted: true };
+      }
+
+      // For 'vendido' and 'pendente' status, update the record
       const { data, error } = await supabase
         .from('maletas_pecas')
-        .update({ vendida: status === 'vendido', data_venda: status === 'vendido' ? new Date().toISOString().split('T')[0] : null })
+        .update({ 
+          vendida: status === 'vendido', 
+          data_venda: status === 'vendido' ? new Date().toISOString().split('T')[0] : null 
+        })
         .eq('id', id)
         .select()
         .single();
       
       if (error) throw error;
-
-      // If returned from pendente, increase stock
-      if (status === 'devolvido' && statusAnterior !== 'vendido') {
-        const { data: pecaData } = await supabase
-          .from('pecas')
-          .select('estoque')
-          .eq('id', pecaId)
-          .single();
-        
-        if (pecaData) {
-          await supabase
-            .from('pecas')
-            .update({ estoque: pecaData.estoque + 1 })
-            .eq('id', pecaId);
-        }
-      }
-
-      // If canceling a sale (vendido -> pendente), item stays out of stock (already removed when added to maleta)
-      // No stock change needed - the item is still in the maleta
-
-      // If returning a sold item to stock (vendido -> devolvido), increase stock
-      if (status === 'devolvido' && statusAnterior === 'vendido') {
-        const { data: pecaData } = await supabase
-          .from('pecas')
-          .select('estoque')
-          .eq('id', pecaId)
-          .single();
-        
-        if (pecaData) {
-          await supabase
-            .from('pecas')
-            .update({ estoque: pecaData.estoque + 1 })
-            .eq('id', pecaId);
-        }
-      }
-
       return data;
     },
     onSuccess: (_, { status, statusAnterior }) => {
@@ -1189,7 +1191,7 @@ export function useUpdateMaletaItem() {
       } else if (status === 'vendido') {
         toast.success('Item marcado como vendido!');
       } else if (status === 'devolvido') {
-        toast.success('Item marcado como devolvido e retornado ao estoque!');
+        toast.success('Item devolvido ao estoque!');
       }
     },
     onError: () => {
@@ -1244,36 +1246,57 @@ export function useCloseMaleta() {
     mutationFn: async ({ maletaId, returnPendingToStock = true }: { maletaId: string; returnPendingToStock?: boolean }) => {
       // If returnPendingToStock is true, return all pending items to stock
       if (returnPendingToStock) {
-        // Get all non-sold items (vendida = false) - correct table name is 'maletas_pecas'
-        const { data: pendingItems } = await supabase
+        // Get all non-sold items (vendida = false)
+        const { data: pendingItems, error: fetchError } = await supabase
           .from('maletas_pecas')
           .select('id, peca_id, quantidade')
           .eq('maleta_id', maletaId)
           .eq('vendida', false);
 
+        if (fetchError) {
+          console.error('Error fetching pending items:', fetchError);
+          throw new Error('Erro ao buscar itens pendentes da maleta');
+        }
+
         if (pendingItems && pendingItems.length > 0) {
           // Return each piece to stock
           for (const item of pendingItems) {
-            const { data: pecaData } = await supabase
+            if (!item.peca_id) continue;
+            
+            const { data: pecaData, error: pecaError } = await supabase
               .from('pecas')
               .select('estoque')
               .eq('id', item.peca_id)
               .single();
             
+            if (pecaError) {
+              console.error(`Error fetching piece ${item.peca_id}:`, pecaError);
+              continue; // Skip this item but continue with others
+            }
+            
             if (pecaData) {
-              await supabase
+              const { error: updateError } = await supabase
                 .from('pecas')
                 .update({ estoque: (pecaData.estoque || 0) + (item.quantidade || 1) })
                 .eq('id', item.peca_id);
+              
+              if (updateError) {
+                console.error(`Error updating stock for piece ${item.peca_id}:`, updateError);
+              }
             }
           }
 
           // Delete non-sold items from maleta
-          await supabase
+          const { error: deleteError } = await supabase
             .from('maletas_pecas')
             .delete()
             .eq('maleta_id', maletaId)
             .eq('vendida', false);
+          
+          if (deleteError) {
+            console.error('Error deleting pending items:', deleteError);
+            // Continue to close the maleta even if deletion fails
+          }
         }
       }
 
@@ -1285,7 +1308,10 @@ export function useCloseMaleta() {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error closing maleta:', error);
+        throw new Error('Erro ao fechar maleta: ' + (error.message || 'Erro desconhecido'));
+      }
       return data;
     },
     onSuccess: () => {
@@ -1294,8 +1320,8 @@ export function useCloseMaleta() {
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
       toast.success('Maleta fechada! Peças pendentes devolvidas ao estoque.');
     },
-    onError: () => {
-      toast.error('Erro ao fechar maleta');
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erro ao fechar maleta');
     },
   });
 }
