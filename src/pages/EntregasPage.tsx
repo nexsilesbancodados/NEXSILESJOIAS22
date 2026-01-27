@@ -57,8 +57,12 @@ import {
   useAddRastreioEvento,
   Envio,
 } from '@/hooks/useEnvios';
+import { useOrganization } from '@/hooks/useOrganization';
 
-const statusConfig: Record<Envio['status'], { label: string; color: string; icon: typeof Clock }> = {
+type EnvioStatus = 'preparando' | 'postado' | 'em_transito' | 'entregue' | 'devolvido';
+type TipoEnvio = 'sedex' | 'pac' | 'transportadora' | 'motoboy' | 'retirada';
+
+const statusConfig: Record<EnvioStatus, { label: string; color: string; icon: typeof Clock }> = {
   preparando: { label: 'Preparando', color: 'bg-yellow-500', icon: Package },
   postado: { label: 'Postado', color: 'bg-blue-500', icon: Truck },
   em_transito: { label: 'Em Trânsito', color: 'bg-purple-500', icon: MapPin },
@@ -66,7 +70,7 @@ const statusConfig: Record<Envio['status'], { label: string; color: string; icon
   devolvido: { label: 'Devolvido', color: 'bg-red-500', icon: AlertCircle },
 };
 
-const tipoEnvioLabels: Record<Envio['tipo_envio'], string> = {
+const tipoEnvioLabels: Record<TipoEnvio, string> = {
   sedex: 'SEDEX',
   pac: 'PAC',
   transportadora: 'Transportadora',
@@ -75,6 +79,7 @@ const tipoEnvioLabels: Record<Envio['tipo_envio'], string> = {
 };
 
 export default function EntregasPage() {
+  const { organizationId } = useOrganization();
   const { data: envios = [], isLoading } = useEnvios();
   const addEnvioMutation = useAddEnvio();
   const updateEnvioMutation = useUpdateEnvio();
@@ -144,8 +149,14 @@ export default function EntregasPage() {
       return;
     }
     
+    if (!organizationId) {
+      toast.error('Organização não encontrada');
+      return;
+    }
+    
     try {
       await addEnvioMutation.mutateAsync({
+        organization_id: organizationId,
         destinatario_nome: formData.destinatario_nome,
         destinatario_telefone: formData.destinatario_telefone || null,
         destinatario_endereco: formData.destinatario_endereco || null,
