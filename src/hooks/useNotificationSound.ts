@@ -24,6 +24,21 @@ const notificationTypeToSound: Record<string, NotificationSoundType> = {
   romaneio_pendente: 'default',
 };
 
+// Map notification types to icons for native notifications
+const notificationTypeToIcon: Record<string, string> = {
+  interesse_maleta: '💖',
+  visualizacao_maleta: '👀',
+  estoque_baixo: '📦',
+  maleta_vencendo: '⏰',
+  novo_pedido: '🛒',
+  meta_proxima: '🎯',
+  aniversario: '🎂',
+  romaneio_pendente: '📄',
+};
+
+// Permission states
+type NotificationPermission = 'default' | 'granted' | 'denied';
+
 export function useNotificationSound() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(() => {
@@ -34,6 +49,25 @@ export function useNotificationSound() {
     const stored = localStorage.getItem('notification-vibration-enabled');
     return stored !== 'false'; // Default to true
   });
+  const [isPushEnabled, setIsPushEnabled] = useState(() => {
+    const stored = localStorage.getItem('notification-push-enabled');
+    return stored === 'true'; // Default to false until permission granted
+  });
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+
+  // Check notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPushPermission(Notification.permission as NotificationPermission);
+      // If already granted and user had it enabled, keep it enabled
+      if (Notification.permission === 'granted') {
+        const stored = localStorage.getItem('notification-push-enabled');
+        if (stored === 'true') {
+          setIsPushEnabled(true);
+        }
+      }
+    }
+  }, []);
 
   // Initialize AudioContext on first user interaction
   const initAudioContext = useCallback(() => {
@@ -42,6 +76,71 @@ export function useNotificationSound() {
     }
     return audioContextRef.current;
   }, []);
+
+  // Request notification permission
+  const requestPushPermission = useCallback(async (): Promise<boolean> => {
+    if (!('Notification' in window)) {
+      console.warn('This browser does not support notifications');
+      return false;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      setPushPermission(permission as NotificationPermission);
+      
+      if (permission === 'granted') {
+        setIsPushEnabled(true);
+        localStorage.setItem('notification-push-enabled', 'true');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error requesting notification permission:', error);
+      return false;
+    }
+  }, []);
+
+  // Show native push notification
+  const showPushNotification = useCallback((title: string, options?: {
+    body?: string;
+    tipo?: string;
+    link?: string;
+    tag?: string;
+  }) => {
+    if (!isPushEnabled || pushPermission !== 'granted') return;
+    if (!('Notification' in window)) return;
+
+    try {
+      const icon = options?.tipo ? notificationTypeToIcon[options.tipo] : '🔔';
+      
+      const notification = new Notification(`${icon} ${title}`, {
+        body: options?.body || '',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: options?.tag || `nexsile-${Date.now()}`,
+        requireInteraction: false,
+        silent: true, // We handle our own sounds
+      });
+
+      // Handle click
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+        if (options?.link) {
+          window.location.href = options.link;
+        }
+      };
+
+      // Auto close after 5 seconds
+      setTimeout(() => {
+        notification.close();
+      }, 5000);
+
+      return notification;
+    } catch (error) {
+      console.error('Error showing push notification:', error);
+    }
+  }, [isPushEnabled, pushPermission]);
 
   // Play a frequency sequence
   const playSound = useCallback((type: NotificationSoundType = 'default') => {
@@ -95,8 +194,12 @@ export function useNotificationSound() {
     }
   }, [isVibrationEnabled]);
 
-  // Play notification based on type
-  const playNotification = useCallback((notificationType?: string) => {
+  // Play notification based on type (with optional push notification)
+  const playNotification = useCallback((notificationType?: string, pushOptions?: {
+    title?: string;
+    body?: string;
+    link?: string;
+  }) => {
     const soundType = notificationType 
       ? notificationTypeToSound[notificationType] || 'default'
       : 'default';
@@ -109,7 +212,16 @@ export function useNotificationSound() {
     } else {
       vibrate([100, 50, 100]); // Double vibration for normal
     }
-  }, [playSound, vibrate]);
+
+    // Show native push notification if app is in background
+    if (document.hidden && pushOptions?.title) {
+      showPushNotification(pushOptions.title, {
+        body: pushOptions.body,
+        tipo: notificationType,
+        link: pushOptions.link,
+      });
+    }
+  }, [playSound, vibrate, showPushNotification]);
 
   // Toggle sound
   const toggleSound = useCallback(() => {
@@ -129,6 +241,23 @@ export function useNotificationSound() {
     });
   }, []);
 
+  // Toggle push notifications
+  const togglePush = useCallback(async () => {
+    if (!isPushEnabled) {
+      // Request permission if not granted
+      if (pushPermission !== 'granted') {
+        const granted = await requestPushPermission();
+        if (!granted) return;
+      } else {
+        setIsPushEnabled(true);
+        localStorage.setItem('notification-push-enabled', 'true');
+      }
+    } else {
+      setIsPushEnabled(false);
+      localStorage.setItem('notification-push-enabled', 'false');
+    }
+  }, [isPushEnabled, pushPermission, requestPushPermission]);
+
   // Cleanup
   useEffect(() => {
     return () => {
@@ -142,10 +271,15 @@ export function useNotificationSound() {
     playSound,
     playNotification,
     vibrate,
+    showPushNotification,
     isSoundEnabled,
     isVibrationEnabled,
+    isPushEnabled,
+    pushPermission,
     toggleSound,
     toggleVibration,
+    togglePush,
+    requestPushPermission,
     initAudioContext,
   };
 }
