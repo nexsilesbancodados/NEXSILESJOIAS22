@@ -60,7 +60,9 @@ import {
   MessageCircle,
   Upload,
   X,
-  Palette
+  Palette,
+  LayoutGrid,
+  LayoutList
 } from 'lucide-react';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
 import { MaletaAddPecaSection } from '@/components/revendedoras/MaletaAddPecaSection';
@@ -225,6 +227,8 @@ export default function RevendedorasPage() {
   const [selectedCatalogoId, setSelectedCatalogoId] = useState<string>('');
   const [vendaModalOpen, setVendaModalOpen] = useState(false);
   const [itemParaVenda, setItemParaVenda] = useState<MaletaItem | null>(null);
+  const [maletaViewMode, setMaletaViewMode] = useState<'cards' | 'list'>('cards');
+  const [isDeletingMaleta, setIsDeletingMaleta] = useState(false);
 
   // Track revendedora presence when viewing a maleta (broadcasts to public page)
   useRevendedoraPresence(selectedMaleta?.id);
@@ -983,35 +987,168 @@ export default function RevendedorasPage() {
           </div>
         </div>
 
-        {/* Maletas */}
-        <div className="grid gap-4">
-          {isLoadingMaletas ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        {/* Toggle de visualização e Maletas */}
+        <div className="space-y-4">
+          {maletas.length > 0 && (
+            <div className="flex items-center justify-end gap-1">
+              <Button
+                variant={maletaViewMode === 'cards' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setMaletaViewMode('cards')}
+                className="h-8 w-8 p-0"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={maletaViewMode === 'list' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => setMaletaViewMode('list')}
+                className="h-8 w-8 p-0"
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
             </div>
-          ) : maletas.length === 0 ? (
-            <div className="glass-card rounded-xl p-12 text-center">
-              <Briefcase className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">Nenhuma maleta criada</p>
-              <p className="text-muted-foreground/60 text-sm">
-                Clique em "Nova Maleta" para começar
-              </p>
-            </div>
-          ) : (
-            maletas.map((maleta) => (
-              <MaletaCard
-                key={maleta.id}
-                maleta={maleta}
-                comissao={viewingRevendedora.comissao_percentual || 30}
-                onClick={() => {
-                  setSelectedMaleta(maleta);
-                  setMaletaActiveTab('pecas');
-                  setIsMaletaOpen(true);
-                }}
-                onEdit={() => handleOpenMaletaForm(maleta)}
-              />
-            ))
           )}
+          
+          <div className={cn(
+            maletaViewMode === 'cards' ? 'grid gap-4' : 'space-y-2'
+          )}>
+            {isLoadingMaletas ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : maletas.length === 0 ? (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <Briefcase className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-muted-foreground">Nenhuma maleta criada</p>
+                <p className="text-muted-foreground/60 text-sm">
+                  Clique em "Nova Maleta" para começar
+                </p>
+              </div>
+            ) : maletaViewMode === 'cards' ? (
+              maletas.map((maleta) => (
+                <MaletaCard
+                  key={maleta.id}
+                  maleta={maleta}
+                  comissao={viewingRevendedora.comissao_percentual || 30}
+                  onClick={() => {
+                    setSelectedMaleta(maleta);
+                    setMaletaActiveTab('pecas');
+                    setIsMaletaOpen(true);
+                  }}
+                  onEdit={() => handleOpenMaletaForm(maleta)}
+                />
+              ))
+            ) : (
+              /* Vista em Lista/Tabela */
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-muted/50 border-b">
+                      <tr>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Nome</th>
+                        <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
+                        <th className="text-center p-3 text-sm font-medium text-muted-foreground">Peças</th>
+                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Total Vendido</th>
+                        <th className="text-right p-3 text-sm font-medium text-muted-foreground">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {maletas.map((maleta) => {
+                        const diasRestantes = maleta.data_devolucao 
+                          ? calcularDiasRestantes(String(maleta.data_devolucao)) 
+                          : null;
+                        const isVencida = diasRestantes !== null && diasRestantes < 0;
+                        const isVencendo = diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3;
+                        
+                        return (
+                          <tr 
+                            key={maleta.id} 
+                            className={cn(
+                              "hover:bg-muted/30 cursor-pointer transition-colors",
+                              isVencida && maleta.status === 'aberta' && "bg-destructive/5",
+                              isVencendo && maleta.status === 'aberta' && "bg-warning/5"
+                            )}
+                            onClick={() => {
+                              setSelectedMaleta(maleta);
+                              setMaletaActiveTab('pecas');
+                              setIsMaletaOpen(true);
+                            }}
+                          >
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className="w-8 h-8 rounded flex items-center justify-center shrink-0"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${maleta.cor_primaria || '#8B5CF6'}20, ${maleta.cor_secundaria || '#EC4899'}20)`
+                                  }}
+                                >
+                                  <Briefcase 
+                                    className="w-4 h-4"
+                                    style={{ color: maleta.cor_primaria || '#8B5CF6' }}
+                                  />
+                                </div>
+                                <span className="font-medium">
+                                  {maleta.nome || `Maleta #${maleta.id.slice(-4)}`}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant={maleta.status === 'aberta' ? 'default' : 'secondary'}
+                                  className={maleta.status === 'aberta' ? 'bg-success' : ''}
+                                >
+                                  {maleta.status === 'aberta' ? 'Aberta' : 'Fechada'}
+                                </Badge>
+                                {maleta.status === 'aberta' && diasRestantes !== null && (
+                                  <span className={cn(
+                                    "text-xs",
+                                    isVencida && "text-destructive",
+                                    isVencendo && "text-warning",
+                                    !isVencida && !isVencendo && "text-muted-foreground"
+                                  )}>
+                                    {isVencida 
+                                      ? `Vencida há ${Math.abs(diasRestantes)}d` 
+                                      : `${diasRestantes}d`
+                                    }
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 text-center text-muted-foreground">
+                              -
+                            </td>
+                            <td className="p-3 text-right font-medium">
+                              -
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                {maleta.status === 'aberta' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenMaletaForm(maleta);
+                                    }}
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
 
         {/* Maleta Detail Modal */}
@@ -1959,8 +2096,9 @@ export default function RevendedorasPage() {
       <AlertDialog 
         open={isDeleteMaletaOpen} 
         onOpenChange={(open) => {
-          setIsDeleteMaletaOpen(open);
-          // If closing the dialog without deleting, the maleta dialog stays open
+          if (!isDeletingMaleta) {
+            setIsDeleteMaletaOpen(open);
+          }
         }}
       >
         <AlertDialogContent className="z-[100]" overlayClassName="z-[99]">
@@ -1977,37 +2115,36 @@ export default function RevendedorasPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={async (e) => {
-                e.preventDefault();
-                console.log('Delete maleta button clicked, selectedMaleta:', selectedMaleta?.id);
-                if (selectedMaleta) {
-                  try {
-                    console.log('Starting deletion...');
-                    await deleteMaletaMutation.mutateAsync({ 
-                      maletaId: selectedMaleta.id, 
-                      returnToStock: true 
-                    });
-                    console.log('Deletion successful');
-                    setIsDeleteMaletaOpen(false);
-                    setIsMaletaOpen(false);
-                    setSelectedMaleta(null);
-                  } catch (error) {
-                    console.error('Error deleting maleta:', error);
-                  }
-                } else {
-                  console.error('No selectedMaleta to delete!');
+            <AlertDialogCancel disabled={isDeletingMaleta}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!selectedMaleta || isDeletingMaleta) return;
+                
+                setIsDeletingMaleta(true);
+                try {
+                  await deleteMaletaMutation.mutateAsync({ 
+                    maletaId: selectedMaleta.id, 
+                    returnToStock: true 
+                  });
+                  setIsDeleteMaletaOpen(false);
+                  setIsMaletaOpen(false);
+                  setSelectedMaleta(null);
+                } catch (error) {
+                  console.error('Error deleting maleta:', error);
+                } finally {
+                  setIsDeletingMaleta(false);
                 }
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={deleteMaletaMutation.isPending}
+              disabled={isDeletingMaleta}
             >
-              {deleteMaletaMutation.isPending ? (
+              {isDeletingMaleta ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : null}
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
               Excluir Maleta
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
