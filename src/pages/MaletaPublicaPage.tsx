@@ -237,6 +237,16 @@ export default function MaletaPublicaPage() {
         throw new Error('Erro ao salvar os itens do pedido. Tente novamente.');
       }
 
+      // Trigger email notification via edge function (fire and forget)
+      try {
+        await supabase.functions.invoke('notificar-novo-pedido-revendedora', {
+          body: { interesse_id: interesse.id },
+        });
+      } catch (emailError) {
+        // Don't fail the whole flow if email fails
+        console.error('Failed to send email notification:', emailError);
+      }
+
       return interesse;
     },
     onSuccess: () => {
