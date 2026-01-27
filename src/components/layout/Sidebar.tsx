@@ -33,16 +33,16 @@ import logo from '@/assets/logo.png';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 
-// Prefetch functions for each route
+// Prefetch functions for each route - with longer staleTime for performance
 const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQueryClient>) => void> = {
   '/pecas': async (queryClient) => {
     queryClient.prefetchQuery({
-      queryKey: ['pecas'],
+      queryKey: ['pecas', { includeCatalogOnly: false }],
       queryFn: async () => {
-        const { data } = await db.from('pecas').select('*').eq('ativo', true).order('nome');
+        const { data } = await db.from('pecas').select('*').or('catalogo_only.is.null,catalogo_only.eq.false').order('nome');
         return data;
       },
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5, // 5 minutes
     });
   },
   '/clientes': async (queryClient) => {
@@ -52,7 +52,7 @@ const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQuery
         const { data } = await db.from('clientes').select('*').order('nome');
         return data;
       },
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5,
     });
   },
   '/fornecedores': async (queryClient) => {
@@ -62,17 +62,17 @@ const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQuery
         const { data } = await db.from('fornecedores').select('*').order('nome');
         return data;
       },
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5,
     });
   },
   '/romaneios': async (queryClient) => {
     queryClient.prefetchQuery({
       queryKey: ['romaneios'],
       queryFn: async () => {
-        const { data } = await db.from('romaneios').select('*').order('created_at', { ascending: false });
+        const { data } = await db.from('romaneios').select('*').order('created_at', { ascending: false }).limit(50);
         return data;
       },
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5,
     });
   },
   '/revendedoras': async (queryClient) => {
@@ -82,17 +82,17 @@ const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQuery
         const { data } = await db.from('revendedoras').select('*').order('nome');
         return data;
       },
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5,
     });
   },
   '/vendas': async (queryClient) => {
     queryClient.prefetchQuery({
       queryKey: ['vendas'],
       queryFn: async () => {
-        const { data } = await db.from('vendas').select('*').order('created_at', { ascending: false });
+        const { data } = await db.from('vendas').select('*').order('created_at', { ascending: false }).limit(100);
         return data;
       },
-      staleTime: 30000,
+      staleTime: 1000 * 60 * 5,
     });
   },
 };

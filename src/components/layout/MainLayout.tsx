@@ -234,6 +234,9 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   const sidebarWidth = menuMode === 'sidebar' ? (sidebarExpanded ? 280 : 80) : 0;
 
+  // Memoize main content style to prevent recalculations
+  const mainStyle = useMemo(() => ({ marginLeft: sidebarWidth }), [sidebarWidth]);
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
@@ -256,10 +259,10 @@ export function MainLayout({ children }: MainLayoutProps) {
           sidebarWidth={sidebarWidth}
         />
         
-        {/* Main content */}
+        {/* Main content with optimized transitions */}
         <main 
-          className="pt-16 min-h-screen transition-all duration-300"
-          style={{ marginLeft: sidebarWidth }}
+          className="pt-16 min-h-screen transition-[margin] duration-200 ease-out"
+          style={mainStyle}
         >
           {children}
         </main>

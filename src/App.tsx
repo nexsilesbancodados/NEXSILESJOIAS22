@@ -1,8 +1,8 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -14,6 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QueryErrorHandler } from "@/components/QueryErrorHandler";
 import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
 import { OrganizationGuard } from "@/components/OrganizationGuard";
+import { supabase } from "@/integrations/supabase/client";
 
 // Lazy load all pages for code-splitting
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -43,24 +44,69 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes - data stays fresh
-      gcTime: 1000 * 60 * 30, // 30 minutes - cache retention
+      staleTime: 1000 * 60 * 10, // 10 minutes - data stays fresh longer
+      gcTime: 1000 * 60 * 60, // 60 minutes - longer cache retention
       refetchOnWindowFocus: false, // Prevent refetch on tab focus
       refetchOnReconnect: false, // Prevent refetch on reconnect
       retry: 1, // Only retry once on failure
+      networkMode: 'offlineFirst', // Use cache first for faster initial load
+    },
+    mutations: {
+      networkMode: 'offlineFirst',
     },
   },
 });
 
-// Loading fallback component
+// Lightweight loading fallback component
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
   </div>
 );
 
 function RealtimeNotifications() {
   useRealtimeOrders();
+  return null;
+}
+
+// Prefetch critical data after initial load for faster navigation
+function CriticalDataPrefetcher() {
+  const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    // Delay prefetching to not block initial render
+    const timer = setTimeout(async () => {
+      // Prefetch pecas - most commonly used data
+      queryClient.prefetchQuery({
+        queryKey: ['pecas', { includeCatalogOnly: false }],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('pecas')
+            .select('id, nome, codigo, preco_venda, preco_revenda, estoque, categoria, imagem_url, ativo')
+            .or('catalogo_only.is.null,catalogo_only.eq.false')
+            .order('nome');
+          return data;
+        },
+        staleTime: 1000 * 60 * 10,
+      });
+      
+      // Prefetch revendedoras
+      queryClient.prefetchQuery({
+        queryKey: ['revendedoras'],
+        queryFn: async () => {
+          const { data } = await supabase
+            .from('revendedoras')
+            .select('id, nome, telefone, email, ativo, comissao_percentual')
+            .order('nome');
+          return data;
+        },
+        staleTime: 1000 * 60 * 10,
+      });
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [queryClient]);
+  
   return null;
 }
 
@@ -90,6 +136,7 @@ function AppRoutes() {
               <OrganizationGuard>
                 <SubscriptionProvider>
                   <RealtimeNotifications />
+                  <CriticalDataPrefetcher />
                   <ReadOnlyBanner />
                   <MainLayout>
                   <Suspense fallback={<PageLoader />}>

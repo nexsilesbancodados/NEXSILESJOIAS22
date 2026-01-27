@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Performance optimizations */
+@layer base {
+  * {
+    /* Improve rendering performance */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Optimize transitions - reduce during page loads */
+  .no-transitions * {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  /* GPU acceleration for animated elements */
+  .animate-fade-in,
+  .animate-pulse,
+  .animate-spin,
+  [class*="transition-"] {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  /* Optimize scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
 @layer base {
   :root {
     /* Vendico Theme - Clean Dashboard Style */
