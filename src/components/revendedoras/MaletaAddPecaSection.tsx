@@ -11,6 +11,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   Package, 
   ShoppingCart, 
@@ -64,6 +74,7 @@ export function MaletaAddPecaSection({
   const [addingPecaId, setAddingPecaId] = useState<string | null>(null);
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
   const [isAddSectionOpen, setIsAddSectionOpen] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState<{ id: string; pecaId: string; nome: string } | null>(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -114,13 +125,14 @@ export function MaletaAddPecaSection({
     }
   };
 
-  const handleRemovePeca = async (itemId: string, pecaId: string) => {
-    if (!onRemovePeca) return;
-    setRemovingItemId(itemId);
+  const confirmRemovePeca = async () => {
+    if (!onRemovePeca || !itemToRemove) return;
+    setRemovingItemId(itemToRemove.id);
     try {
-      await onRemovePeca(itemId, pecaId);
+      await onRemovePeca(itemToRemove.id, itemToRemove.pecaId);
     } finally {
       setRemovingItemId(null);
+      setItemToRemove(null);
     }
   };
 
@@ -229,7 +241,11 @@ export function MaletaAddPecaSection({
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleRemovePeca(item.id, item.peca_id || '')}
+                            onClick={() => setItemToRemove({ 
+                              id: item.id, 
+                              pecaId: item.peca_id || '', 
+                              nome: item.peca?.nome || 'Peça' 
+                            })}
                             disabled={isRemovingThis || isRemoving}
                           >
                             {isRemovingThis ? (
@@ -547,6 +563,28 @@ export function MaletaAddPecaSection({
           </div>
         </CollapsibleContent>
       </Collapsible>
+
+      {/* Confirmation Dialog for Removal */}
+      <AlertDialog open={!!itemToRemove} onOpenChange={(open) => !open && setItemToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover peça da maleta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover <strong>{itemToRemove?.nome}</strong> da maleta? 
+              A peça será devolvida ao estoque.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmRemovePeca}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
