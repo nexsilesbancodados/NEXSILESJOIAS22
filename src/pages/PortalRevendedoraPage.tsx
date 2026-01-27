@@ -1,1068 +1,931 @@
-import { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Gem, 
-  Lock, 
-  ShoppingBag, 
-  Plus, 
-  Minus, 
-  X,
-  CheckCircle2,
-  User,
-  ArrowLeft,
-  Loader2,
-  TrendingUp,
-  DollarSign,
-  Package,
-  Clock,
-  ShoppingCart,
-  BarChart3,
-  LogOut,
-  Calendar,
-  XCircle,
-  Eye
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase-db';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, Briefcase, DollarSign, Clock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  type Peca, 
-  type MaletaItem, 
-  type Maleta 
-} from '@/hooks/useSupabaseData';
 
-interface CarrinhoRevendedora {
-  item: MaletaItem & { peca: Peca };
-  quantidade: number;
+interface Revendedora {
+  id: string;
+  nome: string;
+  comissao_percentual: number;
+  telefone?: string;
+  email?: string;
 }
 
-interface Romaneio {
+interface Maleta {
   id: string;
-  cliente_nome: string | null;
-  total: number;
-  status: string;
-  data: string;
-  romaneio_itens?: { id: string; peca_nome: string; quantidade: number; preco_unitario: number }[];
+  nome: string;
+  codigo?: string;
+  status?: string;
+  valor_total?: number;
+  created_at?: string;
+  data_devolucao?: string;
+}
+
+interface MaletaPeca {
+  id: string;
+  quantidade: number;
+  vendida: boolean;
+  preco_unitario?: number;
+  data_venda?: string;
+  peca: {
+    id: string;
+    nome: string;
+    codigo?: string;
+    preco_venda?: number;
+    imagem_url?: string;
+  };
+}
+
+interface Interesse {
+  id: string;
+  cliente_nome: string;
+  cliente_telefone?: string;
+  cliente_email?: string;
+  status?: string;
+  observacoes?: string;
+  created_at?: string;
+  maleta: {
+    id: string;
+    nome: string;
+  };
+  itens: {
+    id: string;
+    quantidade: number;
+    peca: {
+      id: string;
+      nome: string;
+      codigo?: string;
+      preco_venda?: number;
+    };
+  }[];
 }
 
 export default function PortalRevendedoraPage() {
   const { revendedoraId } = useParams();
-  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Login state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
-  const [senhaError, setSenhaError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [carrinho, setCarrinho] = useState<CarrinhoRevendedora[]>([]);
-  const [isVendaOpen, setIsVendaOpen] = useState(false);
-  const [clienteNome, setClienteNome] = useState('');
-  const [isVendaConcluidaOpen, setIsVendaConcluidaOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'catalogo' | 'vendas'>('catalogo');
-  const [selectedRomaneio, setSelectedRomaneio] = useState<Romaneio | null>(null);
+  
+  // Data state
+  const [revendedora, setRevendedora] = useState<Revendedora | null>(null);
+  const [maletas, setMaletas] = useState<Maleta[]>([]);
+  const [maletaSelecionada, setMaletaSelecionada] = useState<Maleta | null>(null);
+  const [pecasMaleta, setPecasMaleta] = useState<MaletaPeca[]>([]);
+  const [interesses, setInteresses] = useState<Interesse[]>([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Modal state
+  const [interesseModal, setInteresseModal] = useState<Interesse | null>(null);
+  const [vendaModal, setVendaModal] = useState<MaletaPeca | null>(null);
+  const [quantidadeVenda, setQuantidadeVenda] = useState(1);
+  const [processando, setProcessando] = useState(false);
 
-  // Fetch revendedora profile (excluding senha_portal for security)
-  const { data: revendedora, isLoading: loadingRevendedora } = useQuery({
-    queryKey: ['revendedora-portal', revendedoraId],
-    queryFn: async () => {
+  // Check session storage for existing login
+  useEffect(() => {
+    const session = sessionStorage.getItem(`portal_session`);
+    if (session) {
+      try {
+        const data = JSON.parse(session);
+        setRevendedora(data.revendedora);
+        setIsAuthenticated(true);
+        // If URL has no ID, redirect to correct portal
+        if (!revendedoraId || revendedoraId === 'login') {
+          navigate(`/portal/${data.revendedora.id}`, { replace: true });
+        }
+      } catch (e) {
+        sessionStorage.removeItem(`portal_session`);
+      }
+    }
+  }, [revendedoraId, navigate]);
+
+  // Fetch data when authenticated
+  useEffect(() => {
+    if (isAuthenticated && revendedora) {
+      fetchMaletas();
+      fetchInteresses();
+    }
+  }, [isAuthenticated, revendedora]);
+
+  // Fetch peças when maleta is selected
+  useEffect(() => {
+    if (maletaSelecionada) {
+      fetchPecasMaleta(maletaSelecionada.id);
+    }
+  }, [maletaSelecionada]);
+
+  const handleLogin = async () => {
+    if (!usuario.trim() || !senha.trim()) {
+      toast.error('Preencha usuário e senha');
+      return;
+    }
+
+    setLoginLoading(true);
+    try {
       const { data, error } = await supabase
         .from('revendedoras')
-        .select('*')
-        .eq('id', revendedoraId)
+        .select('id, nome, comissao_percentual, telefone, email, usuario_portal, senha_portal')
+        .eq('usuario_portal', usuario.trim().toLowerCase())
         .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!revendedoraId,
-  });
 
-  // Fetch open maleta for this revendedora
-  const { data: maletaAberta, isLoading: loadingMaleta } = useQuery({
-    queryKey: ['maleta-aberta-portal', revendedoraId],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      if (error || !data) {
+        toast.error('Usuário não encontrado');
+        return;
+      }
+
+      if (data.senha_portal !== senha) {
+        toast.error('Senha incorreta');
+        return;
+      }
+
+      const revendedoraData = {
+        id: data.id,
+        nome: data.nome,
+        comissao_percentual: data.comissao_percentual || 30,
+        telefone: data.telefone || undefined,
+        email: data.email || undefined,
+      };
+
+      setRevendedora(revendedoraData);
+      
+      sessionStorage.setItem(`portal_session`, JSON.stringify({
+        revendedora: revendedoraData
+      }));
+      
+      setIsAuthenticated(true);
+      navigate(`/portal/${data.id}`, { replace: true });
+      toast.success(`Bem-vinda, ${data.nome}!`);
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Erro ao fazer login');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem(`portal_session`);
+    setIsAuthenticated(false);
+    setRevendedora(null);
+    setMaletas([]);
+    setInteresses([]);
+    setUsuario('');
+    setSenha('');
+    navigate('/portal/login', { replace: true });
+  };
+
+  const fetchMaletas = async () => {
+    if (!revendedora) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
         .from('maletas')
         .select('*')
-        .eq('revendedora_id', revendedoraId)
-        .eq('status', 'aberta')
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data as Maleta | null;
-    },
-    enabled: !!revendedoraId,
-  });
+        .eq('revendedora_id', revendedora.id)
+        .order('created_at', { ascending: false });
 
-  // Fetch maleta items with pieces
-  const { data: maletaItens = [], isLoading: loadingItens } = useQuery({
-    queryKey: ['maleta-itens-portal', maletaAberta?.id],
-    queryFn: async () => {
-      if (!maletaAberta?.id) return [];
+      if (error) throw error;
+      setMaletas(data || []);
       
+      if (data && data.length > 0 && !maletaSelecionada) {
+        setMaletaSelecionada(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching maletas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPecasMaleta = async (maletaId: string) => {
+    try {
       const { data, error } = await supabase
-        .from('maleta_itens')
+        .from('maletas_pecas')
+        .select(`
+          id,
+          quantidade,
+          vendida,
+          preco_unitario,
+          data_venda,
+          peca:pecas(id, nome, codigo, preco_venda, imagem_url)
+        `)
+        .eq('maleta_id', maletaId);
+
+      if (error) throw error;
+      
+      const formattedData = (data || []).map(item => ({
+        ...item,
+        peca: Array.isArray(item.peca) ? item.peca[0] : item.peca
+      })) as MaletaPeca[];
+      
+      setPecasMaleta(formattedData);
+    } catch (error) {
+      console.error('Error fetching pecas:', error);
+    }
+  };
+
+  const fetchInteresses = async () => {
+    if (!revendedora) return;
+    
+    try {
+      // First get maleta IDs for this revendedora
+      const { data: maletasData } = await supabase
+        .from('maletas')
+        .select('id')
+        .eq('revendedora_id', revendedora.id);
+
+      if (!maletasData || maletasData.length === 0) {
+        setInteresses([]);
+        return;
+      }
+
+      const maletaIds = maletasData.map(m => m.id);
+
+      const { data, error } = await supabase
+        .from('maleta_interesses')
         .select(`
           *,
-          peca:pecas(*)
+          maleta:maletas(id, nome)
         `)
-        .eq('maleta_id', maletaAberta.id);
-      
-      if (error) throw error;
-      return data as (MaletaItem & { peca: Peca })[];
-    },
-    enabled: !!maletaAberta?.id,
-  });
-
-  // Fetch romaneios for this maleta (reseller's sales)
-  const { data: romaneios = [], isLoading: loadingRomaneios } = useQuery({
-    queryKey: ['romaneios-portal', maletaAberta?.id],
-    queryFn: async () => {
-      if (!maletaAberta?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('romaneios')
-        .select('*, romaneios_pecas(*)')
-        .eq('revendedora_id', maletaAberta.revendedora_id)
+        .in('maleta_id', maletaIds)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      return data as Romaneio[];
-    },
-    enabled: !!maletaAberta?.id && isLoggedIn,
-  });
 
-  // Update romaneio status mutation
-  const updateRomaneioStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase
-        .from('romaneios')
-        .update({ status })
-        .eq('id', id);
-      
-      if (error) throw error;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['romaneios-portal'] });
-      if (variables.status === 'confirmado') {
-        toast.success('Venda confirmada!');
-      } else if (variables.status === 'cancelado') {
-        toast.success('Venda cancelada');
-      }
-    },
-    onError: () => {
-      toast.error('Erro ao atualizar venda');
-    },
-  });
+      // Fetch items for each interesse
+      const interessesWithItems = await Promise.all(
+        (data || []).map(async (interesse) => {
+          const { data: itens } = await supabase
+            .from('maleta_interesse_itens')
+            .select(`
+              id,
+              quantidade,
+              peca:pecas(id, nome, codigo, preco_venda)
+            `)
+            .eq('interesse_id', interesse.id);
 
-  // Calculate metrics
-  const metrics = useMemo(() => {
-    const totalVendas = romaneios.length;
-    const vendasPendentes = romaneios.filter(r => r.status === 'pendente').length;
-    const vendasConfirmadas = romaneios.filter(r => r.status === 'confirmado').length;
-    const totalFaturado = romaneios
-      .filter(r => r.status === 'confirmado')
-      .reduce((acc, r) => acc + (r.total || 0), 0);
-    const totalPendente = romaneios
-      .filter(r => r.status === 'pendente')
-      .reduce((acc, r) => acc + (r.total || 0), 0);
-    const comissao = (revendedora as any)?.comissao_percentual || 30;
-    const comissaoGanha = totalFaturado * (comissao / 100);
-    
-    return {
-      totalVendas,
-      vendasPendentes,
-      vendasConfirmadas,
-      totalFaturado,
-      totalPendente,
-      comissaoGanha,
-      comissao,
-    };
-  }, [romaneios, revendedora]);
-
-  const itensPendentes = useMemo(() => 
-    maletaItens.filter((i) => i.status === 'pendente'), 
-    [maletaItens]
-  );
-
-  // Mutation to register a sale (romaneio)
-  const registerSale = useMutation({
-    mutationFn: async (data: {
-      clienteNome: string;
-      items: CarrinhoRevendedora[];
-      total: number;
-    }) => {
-      if (!revendedora || !maletaAberta) throw new Error('Dados incompletos');
-
-      // Create romaneio - get organization_id from maleta
-      const { data: maletaData } = await (supabase as any)
-        .from('maletas')
-        .select('organization_id')
-        .eq('id', maletaAberta.id)
-        .single();
-
-      const { data: romaneioData, error: romaneioError } = await (supabase as any)
-        .from('romaneios')
-        .insert({
-          organization_id: maletaData?.organization_id,
-          revendedora_id: (revendedora as any).id,
-          numero: `ROM-${Date.now()}`,
-          status: 'pendente',
-          data_criacao: new Date().toISOString(),
-          observacoes: data.clienteNome ? `Cliente: ${data.clienteNome}` : null,
+          return {
+            ...interesse,
+            maleta: Array.isArray(interesse.maleta) ? interesse.maleta[0] : interesse.maleta,
+            itens: (itens || []).map(item => ({
+              ...item,
+              peca: Array.isArray(item.peca) ? item.peca[0] : item.peca
+            }))
+          } as Interesse;
         })
-        .select()
-        .single();
-      
-      if (romaneioError) throw romaneioError;
+      );
 
-      // Create romaneio items
-      const romaneioItems = data.items.map((c) => ({
-        romaneio_id: romaneioData.id,
-        peca_id: c.item.peca.id,
-        peca_nome: c.item.peca.nome,
-        quantidade: c.quantidade,
-        preco_unitario: c.item.peca.preco_venda,
-      }));
+      setInteresses(interessesWithItems);
+    } catch (error) {
+      console.error('Error fetching interesses:', error);
+    }
+  };
 
-      // Correct table name is 'romaneios_pecas'
-      const { error: itemsError } = await supabase
-        .from('romaneios_pecas')
-        .insert(romaneioItems);
-      
-      if (itemsError) throw itemsError;
+  const handleAprovarInteresse = async (interesse: Interesse) => {
+    setProcessando(true);
+    try {
+      // Mark all items as sold in maletas_pecas
+      for (const item of interesse.itens) {
+        const { error } = await supabase
+          .from('maletas_pecas')
+          .update({
+            vendida: true,
+            data_venda: new Date().toISOString().split('T')[0]
+          })
+          .eq('maleta_id', interesse.maleta.id)
+          .eq('peca_id', item.peca.id);
 
-      // Mark items as sold in the maleta
-      const pecasVendidas: string[] = [];
-      const contadorPorPeca: { [key: string]: number } = {};
-      
-      for (const c of data.items) {
-        for (let i = 0; i < c.quantidade; i++) {
-          pecasVendidas.push(c.item.peca.id);
-        }
+        if (error) throw error;
       }
 
-      // Update each maleta item status to 'vendido'
-      for (const item of itensPendentes) {
-        const count = contadorPorPeca[item.peca.id] || 0;
-        const quantidadeNecessaria = data.items.find(
-          (c) => c.item.peca.id === item.peca.id
-        )?.quantidade || 0;
-        
-        if (pecasVendidas.includes(item.peca.id) && count < quantidadeNecessaria) {
-          contadorPorPeca[item.peca.id] = count + 1;
-          
-          const { error: updateError } = await supabase
-            .from('maleta_itens')
-            .update({ status: 'vendido' })
-            .eq('id', item.id);
-          
-          if (updateError) console.error('Error updating item:', updateError);
-        }
+      // Update interesse status
+      const { error } = await supabase
+        .from('maleta_interesses')
+        .update({ status: 'aprovado' })
+        .eq('id', interesse.id);
+
+      if (error) throw error;
+
+      toast.success('Venda aprovada! Itens marcados como vendidos.');
+      setInteresseModal(null);
+      fetchInteresses();
+      if (maletaSelecionada) {
+        fetchPecasMaleta(maletaSelecionada.id);
+      }
+    } catch (error) {
+      console.error('Error approving interesse:', error);
+      toast.error('Erro ao aprovar venda');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const handleRejeitarInteresse = async (interesseId: string) => {
+    setProcessando(true);
+    try {
+      const { error } = await supabase
+        .from('maleta_interesses')
+        .update({ status: 'rejeitado' })
+        .eq('id', interesseId);
+
+      if (error) throw error;
+
+      toast.success('Interesse rejeitado');
+      setInteresseModal(null);
+      fetchInteresses();
+    } catch (error) {
+      console.error('Error rejecting interesse:', error);
+      toast.error('Erro ao rejeitar interesse');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const handleMarcarVendida = async () => {
+    if (!vendaModal || !maletaSelecionada) return;
+
+    setProcessando(true);
+    try {
+      const quantidadeRestante = vendaModal.quantidade - quantidadeVenda;
+
+      if (quantidadeRestante > 0) {
+        // Split: update current record and create new one for remaining
+        await supabase
+          .from('maletas_pecas')
+          .update({
+            quantidade: quantidadeVenda,
+            vendida: true,
+            data_venda: new Date().toISOString().split('T')[0]
+          })
+          .eq('id', vendaModal.id);
+
+        // Create new record for remaining pieces
+        await supabase
+          .from('maletas_pecas')
+          .insert({
+            maleta_id: maletaSelecionada.id,
+            peca_id: vendaModal.peca.id,
+            quantidade: quantidadeRestante,
+            vendida: false,
+            preco_unitario: vendaModal.preco_unitario || vendaModal.peca.preco_venda
+          });
+      } else {
+        // Simple update
+        await supabase
+          .from('maletas_pecas')
+          .update({
+            vendida: true,
+            data_venda: new Date().toISOString().split('T')[0]
+          })
+          .eq('id', vendaModal.id);
       }
 
-      return romaneioData;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maleta-itens-portal'] });
-      queryClient.invalidateQueries({ queryKey: ['romaneios'] });
-      setCarrinho([]);
-      setClienteNome('');
-      setIsVendaOpen(false);
-      setIsVendaConcluidaOpen(true);
-    },
-    onError: (error) => {
-      console.error('Error registering sale:', error);
-      toast.error('Erro ao registrar venda');
-    },
-  });
+      toast.success('Peça marcada como vendida!');
+      setVendaModal(null);
+      setQuantidadeVenda(1);
+      fetchPecasMaleta(maletaSelecionada.id);
+    } catch (error) {
+      console.error('Error marking as sold:', error);
+      toast.error('Erro ao marcar como vendida');
+    } finally {
+      setProcessando(false);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'BRL'
     }).format(value);
   };
 
-  const handleLogin = async () => {
-    if (!revendedoraId || !senha) {
-      setSenhaError('Digite sua senha');
-      return;
-    }
+  // Calculate metrics
+  const totalPecas = pecasMaleta.reduce((acc, item) => acc + item.quantidade, 0);
+  const pecasVendidas = pecasMaleta.filter(p => p.vendida).reduce((acc, item) => acc + item.quantidade, 0);
+  const pecasPendentes = pecasMaleta.filter(p => !p.vendida).reduce((acc, item) => acc + item.quantidade, 0);
+  const valorVendido = pecasMaleta
+    .filter(p => p.vendida)
+    .reduce((acc, item) => acc + (item.preco_unitario || item.peca.preco_venda || 0) * item.quantidade, 0);
+  const comissao = valorVendido * ((revendedora?.comissao_percentual || 30) / 100);
+  const interessesPendentes = interesses.filter(i => i.status === 'pendente').length;
 
-    setIsLoggingIn(true);
-    setSenhaError('');
-
-    try {
-      const { data, error } = await (supabase as any).rpc('verify_portal_password', {
-        p_user_id: revendedoraId,
-        p_password: senha
-      });
-
-      if (error) {
-        console.error('Login error:', error);
-        setSenhaError('Erro ao verificar senha');
-        return;
-      }
-
-      const result = data as any;
-      if (!result || (Array.isArray(result) && (result.length === 0 || !result[0]?.is_valid)) || (typeof result === 'object' && !result.is_valid)) {
-        setSenhaError('Senha incorreta');
-        return;
-      }
-
-      setIsLoggedIn(true);
-      setIsLoginOpen(false);
-      setSenha('');
-      setSenhaError('');
-    } catch (error) {
-      console.error('Login error:', error);
-      setSenhaError('Erro ao fazer login');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleAddToCarrinho = (item: MaletaItem & { peca: Peca }) => {
-    const existente = carrinho.find((c) => c.item.peca.id === item.peca.id);
-    if (existente) {
-      const totalNoCarrinho = existente.quantidade;
-      const disponivelNaMaleta = itensPendentes.filter(
-        (i) => i.peca.id === item.peca.id
-      ).length;
-      
-      if (totalNoCarrinho < disponivelNaMaleta) {
-        setCarrinho(
-          carrinho.map((c) =>
-            c.item.peca.id === item.peca.id
-              ? { ...c, quantidade: c.quantidade + 1 }
-              : c
-          )
-        );
-      }
-    } else {
-      setCarrinho([...carrinho, { item, quantidade: 1 }]);
-    }
-  };
-
-  const handleRemoveFromCarrinho = (pecaId: string) => {
-    const existente = carrinho.find((c) => c.item.peca.id === pecaId);
-    if (existente && existente.quantidade > 1) {
-      setCarrinho(
-        carrinho.map((c) =>
-          c.item.peca.id === pecaId
-            ? { ...c, quantidade: c.quantidade - 1 }
-            : c
-        )
-      );
-    } else {
-      setCarrinho(carrinho.filter((c) => c.item.peca.id !== pecaId));
-    }
-  };
-
-  const handleRemoveItemCarrinho = (pecaId: string) => {
-    setCarrinho(carrinho.filter((c) => c.item.peca.id !== pecaId));
-  };
-
-  const totalCarrinho = carrinho.reduce(
-    (acc, c) => acc + Number(c.item.peca.preco_venda) * c.quantidade,
-    0
-  );
-
-  const handleRegistrarVenda = () => {
-    registerSale.mutate({
-      clienteNome,
-      items: carrinho,
-      total: totalCarrinho,
-    });
-  };
-
-  const isLoading = loadingRevendedora || loadingMaleta || loadingItens;
-
-  if (isLoading) {
+  // Login Screen
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Not found state
-  if (!revendedora) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-8">
-        <div className="text-center">
-          <Gem className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-          <h1 className="text-2xl font-display font-semibold mb-2">
-            Revendedora não encontrada
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            O link que você acessou não é válido
-          </p>
-          <Link to="/">
-            <Button variant="outline">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <Briefcase className="w-8 h-8 text-primary" />
+            </div>
+            <CardTitle className="text-2xl">Portal da Revendedora</CardTitle>
+            <CardDescription>
+              Entre com suas credenciais para acessar suas maletas e vendas
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="usuario">Usuário</Label>
+              <Input
+                id="usuario"
+                placeholder="Seu usuário do portal"
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="senha">Senha</Label>
+              <Input
+                id="senha"
+                type="password"
+                placeholder="Sua senha"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              />
+            </div>
+            <Button 
+              className="w-full" 
+              onClick={handleLogin}
+              disabled={loginLoading}
+            >
+              {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Entrar
             </Button>
-          </Link>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // No open maleta
-  if (!maletaAberta) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-8">
-        <div className="text-center">
-          <ShoppingBag className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-          <h1 className="text-2xl font-display font-semibold mb-2">
-            Catálogo Indisponível
-          </h1>
-          <p className="text-muted-foreground mb-2">
-            {(revendedora as any).nome} não possui uma maleta aberta no momento
-          </p>
-          <p className="text-sm text-muted-foreground/60">
-            Entre em contato para mais informações
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Portal Dashboard
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-sidebar text-sidebar-foreground py-6 px-8">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full gold-gradient flex items-center justify-center text-lg font-display text-primary-foreground">
-              {(revendedora as any).nome?.charAt(0)}
+      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <Briefcase className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="font-display text-xl font-semibold">
-                {(revendedora as any).nome}
-              </h1>
-              <p className="text-sm text-sidebar-foreground/60">
-                Catálogo de Semijoias
-              </p>
+              <h1 className="font-semibold">Olá, {revendedora?.nome}</h1>
+              <p className="text-sm text-muted-foreground">Comissão: {revendedora?.comissao_percentual}%</p>
             </div>
           </div>
-          
-          {!isLoggedIn ? (
-            <Button
-              onClick={() => setIsLoginOpen(true)}
-              variant="outline"
-              className="border-sidebar-border text-sidebar-foreground hover:bg-sidebar-accent"
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              Área da Revendedora
-            </Button>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="bg-success/20 text-success border-0">
-                <User className="w-3 h-3 mr-1" />
-                Modo Revendedora
-              </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setIsLoggedIn(false);
-                  setActiveTab('catalogo');
-                  setCarrinho([]);
-                }}
-                className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
+          <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
         </div>
       </header>
 
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/10 rounded-lg">
+                  <Package className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Peças</p>
+                  <p className="text-2xl font-bold">{totalPecas}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto p-8">
-        {/* Sales Dashboard - Only visible when logged in */}
-        {isLoggedIn ? (
-          <div className="space-y-6 animate-fade-in">
-            {/* Metrics Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600">
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/10 rounded-lg">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
                 </div>
-                <div className="relative z-10 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <ShoppingBag className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/80 text-sm">Total Vendas</p>
-                    <p className="text-white text-2xl font-bold">{metrics.totalVendas}</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Vendidas</p>
+                  <p className="text-2xl font-bold">{pecasVendidas}</p>
                 </div>
               </div>
-              
-              <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600">
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-primary" />
                 </div>
-                <div className="relative z-10 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/80 text-sm">Pendentes</p>
-                    <p className="text-white text-2xl font-bold">{metrics.vendasPendentes}</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600">
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-                </div>
-                <div className="relative z-10 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/80 text-sm">Faturado</p>
-                    <p className="text-white text-xl font-bold truncate">{formatCurrency(metrics.totalFaturado)}</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Valor Vendido</p>
+                  <p className="text-xl font-bold">{formatCurrency(valorVendido)}</p>
                 </div>
               </div>
-              
-              <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-500">
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
-                <div className="relative z-10 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white/80 text-sm">Comissão ({metrics.comissao}%)</p>
-                    <p className="text-white text-xl font-bold truncate">{formatCurrency(metrics.comissaoGanha)}</p>
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Sua Comissão</p>
+                  <p className="text-xl font-bold text-primary">{formatCurrency(comissao)}</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pending Interests Alert */}
+        {interessesPendentes > 0 && (
+          <Card className="border-amber-500/50 bg-amber-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-500/10 rounded-lg">
+                  <Clock className="w-5 h-5 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">Você tem {interessesPendentes} pedido(s) aguardando aprovação</p>
+                  <p className="text-sm text-muted-foreground">Vá para a aba "Pedidos" para revisar</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tabs */}
+        <Tabs defaultValue="maletas" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="maletas" className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Minhas Maletas
+            </TabsTrigger>
+            <TabsTrigger value="pedidos" className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4" />
+              Pedidos
+              {interessesPendentes > 0 && (
+                <Badge variant="destructive" className="ml-1">{interessesPendentes}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Maletas Tab */}
+          <TabsContent value="maletas" className="space-y-4">
+            {loading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : maletas.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Você ainda não tem maletas</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Maleta Selector */}
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {maletas.map((maleta) => (
+                    <Button
+                      key={maleta.id}
+                      variant={maletaSelecionada?.id === maleta.id ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setMaletaSelecionada(maleta)}
+                      className="shrink-0"
+                    >
+                      {maleta.nome}
+                      <Badge variant="secondary" className="ml-2">
+                        {maleta.status === 'ativa' ? 'Ativa' : maleta.status}
+                      </Badge>
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Pieces Table */}
+                {maletaSelecionada && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span>{maletaSelecionada.nome}</span>
+                        <Badge>{pecasPendentes} pendente(s)</Badge>
+                      </CardTitle>
+                      {maletaSelecionada.data_devolucao && (
+                        <CardDescription>
+                          Devolução: {format(new Date(maletaSelecionada.data_devolucao), "dd/MM/yyyy", { locale: ptBR })}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <div className="rounded-md border overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Peça</TableHead>
+                              <TableHead className="text-center">Qtd</TableHead>
+                              <TableHead className="text-right">Preço</TableHead>
+                              <TableHead className="text-center">Status</TableHead>
+                              <TableHead className="text-right">Ação</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {pecasMaleta.map((item) => (
+                              <TableRow key={item.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-3">
+                                    {item.peca.imagem_url ? (
+                                      <img
+                                        src={item.peca.imagem_url}
+                                        alt={item.peca.nome}
+                                        className="w-10 h-10 rounded object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                                        <Package className="w-5 h-5 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div>
+                                      <p className="font-medium">{item.peca.nome}</p>
+                                      {item.peca.codigo && (
+                                        <p className="text-xs text-muted-foreground">{item.peca.codigo}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-center">{item.quantidade}</TableCell>
+                                <TableCell className="text-right">
+                                  {formatCurrency(item.preco_unitario || item.peca.preco_venda || 0)}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                  {item.vendida ? (
+                                    <Badge className="bg-green-500">Vendida</Badge>
+                                  ) : (
+                                    <Badge variant="secondary">Pendente</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {!item.vendida && (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => {
+                                        setVendaModal(item);
+                                        setQuantidadeVenda(item.quantidade);
+                                      }}
+                                    >
+                                      <Check className="w-4 h-4 mr-1" />
+                                      Vendi
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          {/* Pedidos Tab */}
+          <TabsContent value="pedidos" className="space-y-4">
+            {interesses.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <ShoppingBag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">Nenhum pedido recebido ainda</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {interesses.map((interesse) => (
+                  <Card key={interesse.id} className={interesse.status === 'pendente' ? 'border-amber-500/50' : ''}>
+                    <CardContent className="py-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium">{interesse.cliente_nome}</p>
+                            <Badge
+                              variant={
+                                interesse.status === 'aprovado' ? 'default' :
+                                interesse.status === 'rejeitado' ? 'destructive' : 'secondary'
+                              }
+                            >
+                              {interesse.status === 'aprovado' ? 'Aprovado' :
+                               interesse.status === 'rejeitado' ? 'Rejeitado' : 'Pendente'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            Maleta: {interesse.maleta?.nome} • {interesse.itens.length} item(s)
+                          </p>
+                          {interesse.created_at && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {format(new Date(interesse.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setInteresseModal(interesse)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
+                          {interesse.status === 'pendente' && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleAprovarInteresse(interesse)}
+                                disabled={processando}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRejeitarInteresse(interesse.id)}
+                                disabled={processando}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Interesse Detail Modal */}
+      <Dialog open={!!interesseModal} onOpenChange={() => setInteresseModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detalhes do Pedido</DialogTitle>
+            <DialogDescription>
+              Pedido de {interesseModal?.cliente_nome}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Cliente</p>
+              <p className="font-medium">{interesseModal?.cliente_nome}</p>
+              {interesseModal?.cliente_telefone && (
+                <p className="text-sm">{interesseModal.cliente_telefone}</p>
+              )}
+              {interesseModal?.cliente_email && (
+                <p className="text-sm">{interesseModal.cliente_email}</p>
+              )}
             </div>
 
-            {/* Pending sales alert */}
-            {metrics.vendasPendentes > 0 && (
-              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-3">
-                <Clock className="w-5 h-5 text-yellow-600" />
-                <div className="flex-1">
-                  <p className="font-medium text-yellow-700">Você tem {metrics.vendasPendentes} venda(s) aguardando confirmação da loja</p>
-                  <p className="text-sm text-yellow-600/80">Total: {formatCurrency(metrics.totalPendente)}</p>
-                </div>
+            {interesseModal?.observacoes && (
+              <div>
+                <p className="text-sm text-muted-foreground">Observações</p>
+                <p className="text-sm">{interesseModal.observacoes}</p>
               </div>
             )}
 
-            {/* Sales List */}
             <div>
-              <h3 className="text-lg font-semibold mb-4">Histórico de Vendas</h3>
-              
-              {loadingRomaneios ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : romaneios.length === 0 ? (
-                <div className="text-center py-12 bg-muted/30 rounded-lg">
-                  <ShoppingBag className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground">Nenhuma venda registrada ainda</p>
-                  <Button 
-                    variant="link" 
-                    onClick={() => setActiveTab('catalogo')}
-                    className="mt-2"
-                  >
-                    Ir para o catálogo
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {romaneios.map((romaneio) => {
-                    const statusColors: Record<string, string> = {
-                      'pendente': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30',
-                      'confirmado': 'bg-success/10 text-success border-success/30',
-                      'cancelado': 'bg-destructive/10 text-destructive border-destructive/30',
-                    };
-                    return (
-                      <Card key={romaneio.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                <span className="font-medium">
-                                  {format(new Date(romaneio.data), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                </span>
-                              </div>
-                              {romaneio.cliente_nome && (
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  Cliente: {romaneio.cliente_nome}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-4 text-sm">
-                                <span className="text-muted-foreground">
-                                  {romaneio.romaneio_itens?.length || 0} {(romaneio.romaneio_itens?.length || 0) === 1 ? 'item' : 'itens'}
-                                </span>
-                                <span className="font-semibold text-lg text-primary">
-                                  {formatCurrency(romaneio.total || 0)}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <Badge 
-                                variant="outline" 
-                                className={cn("capitalize", statusColors[romaneio.status] || '')}
-                              >
-                                {romaneio.status === 'pendente' ? 'Pendente' : 
-                                 romaneio.status === 'confirmado' ? 'Confirmado' : 
-                                 romaneio.status === 'cancelado' ? 'Cancelado' : romaneio.status}
-                              </Badge>
-                              <div className="flex items-center gap-1">
-                                {romaneio.status === 'pendente' && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      className="bg-success hover:bg-success/90 text-success-foreground h-8"
-                                      onClick={() => updateRomaneioStatus.mutate({ id: romaneio.id, status: 'confirmado' })}
-                                      disabled={updateRomaneioStatus.isPending}
-                                    >
-                                      {updateRomaneioStatus.isPending ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <>
-                                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                                          Confirmar
-                                        </>
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-destructive border-destructive/30 hover:bg-destructive/10 h-8"
-                                      onClick={() => {
-                                        if (window.confirm('Deseja cancelar este pedido?')) {
-                                          updateRomaneioStatus.mutate({ id: romaneio.id, status: 'cancelado' });
-                                        }
-                                      }}
-                                      disabled={updateRomaneioStatus.isPending}
-                                    >
-                                      <XCircle className="w-3 h-3" />
-                                    </Button>
-                                  </>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8"
-                                  onClick={() => setSelectedRomaneio(romaneio)}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
+              <p className="text-sm text-muted-foreground mb-2">Itens Solicitados</p>
+              <div className="space-y-2">
+                {interesseModal?.itens.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                    <div>
+                      <p className="font-medium">{item.peca.nome}</p>
+                      {item.peca.codigo && (
+                        <p className="text-xs text-muted-foreground">{item.peca.codigo}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">x{item.quantidade}</p>
+                      <p className="font-medium">{formatCurrency((item.peca.preco_venda || 0) * item.quantidade)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-2 mt-2 border-t flex justify-between">
+                <span className="font-medium">Total</span>
+                <span className="font-bold text-primary">
+                  {formatCurrency(
+                    interesseModal?.itens.reduce((acc, item) => 
+                      acc + (item.peca.preco_venda || 0) * item.quantidade, 0
+                    ) || 0
+                  )}
+                </span>
+              </div>
             </div>
           </div>
-        ) : (
-          /* Catalog View */
-          <>
-            <div className="mb-6">
-              <h2 className="text-2xl font-display font-semibold mb-2">
-                Peças Disponíveis
-              </h2>
-              <p className="text-muted-foreground">
-                {itensPendentes.length} peças disponíveis para venda
+
+          <DialogFooter>
+            {interesseModal?.status === 'pendente' && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => interesseModal && handleRejeitarInteresse(interesseModal.id)}
+                  disabled={processando}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Rejeitar
+                </Button>
+                <Button
+                  onClick={() => interesseModal && handleAprovarInteresse(interesseModal)}
+                  disabled={processando}
+                >
+                  {processando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  <Check className="w-4 h-4 mr-2" />
+                  Aprovar Venda
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark as Sold Modal */}
+      <Dialog open={!!vendaModal} onOpenChange={() => setVendaModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Marcar como Vendida</DialogTitle>
+            <DialogDescription>
+              {vendaModal?.peca.nome}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label>Quantidade vendida</Label>
+              <Input
+                type="number"
+                min={1}
+                max={vendaModal?.quantidade || 1}
+                value={quantidadeVenda}
+                onChange={(e) => setQuantidadeVenda(Math.min(parseInt(e.target.value) || 1, vendaModal?.quantidade || 1))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Disponível: {vendaModal?.quantidade} unidade(s)
               </p>
             </div>
 
-        {itensPendentes.length === 0 ? (
-          <div className="text-center py-16">
-            <Gem className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground">Nenhuma peça disponível no momento</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {Object.values(
-              itensPendentes.reduce((acc, item) => {
-                if (!acc[item.peca.id]) {
-                  acc[item.peca.id] = { item, count: 0 };
-                }
-                acc[item.peca.id].count++;
-                return acc;
-              }, {} as { [key: string]: { item: typeof itensPendentes[0]; count: number } })
-            ).map(({ item, count }) => {
-              const noCarrinho = carrinho.find(
-                (c) => c.item.peca.id === item.peca.id
-              )?.quantidade || 0;
-              const disponivel = count - noCarrinho;
-
-              return (
-                <div
-                  key={item.peca.id}
-                  className="glass-card rounded-xl overflow-hidden hover-lift"
-                >
-                  <div className="aspect-square relative">
-                    <img
-                      src={item.peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
-                      alt={item.peca.nome}
-                      className="w-full h-full object-cover"
-                    />
-                    {count > 1 && (
-                      <Badge className="absolute top-2 right-2 bg-primary">
-                        {count} un.
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium mb-1 truncate">{item.peca.nome}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {item.peca.codigo}
-                    </p>
-                    <p className="text-lg font-display font-semibold text-primary mb-3">
-                      {formatCurrency(Number(item.peca.preco_venda))}
-                    </p>
-
-                    {!isLoggedIn && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleRemoveFromCarrinho(item.peca.id)}
-                          disabled={noCarrinho === 0}
-                        >
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="w-8 text-center font-medium">
-                          {noCarrinho}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleAddToCarrinho(item)}
-                          disabled={disponivel === 0}
-                        >
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-          </>
-        )}
-      </main>
-
-      {/* Fixed Footer Cart - Only for customers (not logged in) */}
-      {!isLoggedIn && carrinho.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4 shadow-lg animate-slide-up">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex -space-x-2">
-                {carrinho.slice(0, 3).map((c) => (
-                  <img
-                    key={c.item.peca.id}
-                    src={c.item.peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
-                    alt=""
-                    className="w-10 h-10 rounded-full border-2 border-background object-cover"
-                  />
-                ))}
-                {carrinho.length > 3 && (
-                  <div className="w-10 h-10 rounded-full border-2 border-background bg-muted flex items-center justify-center text-xs font-medium">
-                    +{carrinho.length - 3}
-                  </div>
-                )}
+            <div className="p-4 bg-muted rounded-lg">
+              <div className="flex justify-between mb-2">
+                <span>Valor unitário:</span>
+                <span>{formatCurrency(vendaModal?.preco_unitario || vendaModal?.peca.preco_venda || 0)}</span>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {carrinho.reduce((acc, c) => acc + c.quantidade, 0)} itens
-                </p>
-                <p className="text-xl font-display font-semibold">
-                  {formatCurrency(totalCarrinho)}
-                </p>
+              <div className="flex justify-between font-bold">
+                <span>Total:</span>
+                <span className="text-primary">
+                  {formatCurrency((vendaModal?.preco_unitario || vendaModal?.peca.preco_venda || 0) * quantidadeVenda)}
+                </span>
               </div>
-            </div>
-            <Button onClick={() => setIsVendaOpen(true)} className="btn-gold" size="lg">
-              <ShoppingBag className="w-5 h-5 mr-2" />
-              Finalizar Pedido
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Login Dialog */}
-      <Dialog open={isLoginOpen} onOpenChange={setIsLoginOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              Área da Revendedora
-            </DialogTitle>
-            <DialogDescription>
-              Digite sua senha para acessar os controles de venda
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Label htmlFor="senha">Senha</Label>
-            <Input
-              id="senha"
-              type="password"
-              value={senha}
-              onChange={(e) => {
-                setSenha(e.target.value);
-                setSenhaError('');
-              }}
-              placeholder="••••••••"
-              className="mt-2"
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-            />
-            {senhaError && (
-              <p className="text-sm text-destructive mt-2">{senhaError}</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLoginOpen(false)} disabled={isLoggingIn}>
-              Cancelar
-            </Button>
-            <Button onClick={handleLogin} className="btn-gold" disabled={isLoggingIn}>
-              {isLoggingIn ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Verificando...
-                </>
-              ) : (
-                'Entrar'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Venda Dialog */}
-      <Dialog open={isVendaOpen} onOpenChange={setIsVendaOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              Finalizar Pedido
-            </DialogTitle>
-            <DialogDescription>
-              Confirme os itens e informe seus dados
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4 space-y-4">
-            {/* Cart Items */}
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {carrinho.map((c) => (
-                <div
-                  key={c.item.peca.id}
-                  className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg"
-                >
-                  <img
-                    src={c.item.peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
-                    alt={c.item.peca.nome}
-                    className="w-12 h-12 rounded object-cover"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{c.item.peca.nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.quantidade}x {formatCurrency(Number(c.item.peca.preco_venda))}
-                    </p>
-                  </div>
-                  <p className="font-medium">
-                    {formatCurrency(Number(c.item.peca.preco_venda) * c.quantidade)}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleRemoveItemCarrinho(c.item.peca.id)}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            {/* Total */}
-            <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-              <span className="font-medium">Total</span>
-              <span className="text-xl font-display font-semibold text-primary">
-                {formatCurrency(totalCarrinho)}
-              </span>
-            </div>
-
-            {/* Client Name */}
-            <div className="space-y-2">
-              <Label htmlFor="clienteNome">Seu Nome</Label>
-              <Input
-                id="clienteNome"
-                value={clienteNome}
-                onChange={(e) => setClienteNome(e.target.value)}
-                placeholder="Digite seu nome"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsVendaOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleRegistrarVenda}
-              className="btn-gold"
-              disabled={registerSale.isPending}
-            >
-              {registerSale.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Confirmar Pedido
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Venda Concluída Dialog */}
-      <Dialog open={isVendaConcluidaOpen} onOpenChange={setIsVendaConcluidaOpen}>
-        <DialogContent className="sm:max-w-md text-center">
-          <div className="py-8">
-            <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10 text-success" />
-            </div>
-            <h2 className="text-2xl font-display font-semibold mb-2">
-              Pedido Enviado!
-            </h2>
-            <p className="text-muted-foreground">
-              Seu pedido foi enviado para a revendedora e será processado em breve.
-            </p>
-          </div>
-          <DialogFooter className="justify-center">
-            <Button
-              onClick={() => setIsVendaConcluidaOpen(false)}
-              className="btn-gold"
-            >
-              Continuar Vendendo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Romaneio Details Dialog */}
-      <Dialog open={!!selectedRomaneio} onOpenChange={(open) => !open && setSelectedRomaneio(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">
-              Detalhes da Venda
-            </DialogTitle>
-            <DialogDescription>
-              {selectedRomaneio && format(new Date(selectedRomaneio.data), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedRomaneio && (
-            <div className="py-4 space-y-4">
-              {/* Status */}
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <Badge 
-                  variant="outline" 
-                  className={cn(
-                    "capitalize",
-                    selectedRomaneio.status === 'pendente' && 'bg-yellow-500/10 text-yellow-600 border-yellow-500/30',
-                    selectedRomaneio.status === 'confirmado' && 'bg-success/10 text-success border-success/30',
-                    selectedRomaneio.status === 'cancelado' && 'bg-destructive/10 text-destructive border-destructive/30',
+              <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                <span>Sua comissão ({revendedora?.comissao_percentual}%):</span>
+                <span>
+                  {formatCurrency(
+                    (vendaModal?.preco_unitario || vendaModal?.peca.preco_venda || 0) * 
+                    quantidadeVenda * 
+                    ((revendedora?.comissao_percentual || 30) / 100)
                   )}
-                >
-                  {selectedRomaneio.status === 'pendente' ? 'Aguardando confirmação' : 
-                   selectedRomaneio.status === 'confirmado' ? 'Confirmado' : 
-                   selectedRomaneio.status === 'cancelado' ? 'Cancelado' : selectedRomaneio.status}
-                </Badge>
-              </div>
-
-              {/* Client */}
-              {selectedRomaneio.cliente_nome && (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Cliente</span>
-                  <span className="font-medium">{selectedRomaneio.cliente_nome}</span>
-                </div>
-              )}
-
-              {/* Items */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Itens vendidos</p>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {selectedRomaneio.romaneio_itens?.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{item.peca_nome}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.quantidade}x {formatCurrency(item.preco_unitario)}
-                        </p>
-                      </div>
-                      <p className="font-medium">
-                        {formatCurrency(item.preco_unitario * item.quantidade)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Total */}
-              <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                <span className="font-medium">Total</span>
-                <span className="text-xl font-display font-semibold text-primary">
-                  {formatCurrency(selectedRomaneio.total)}
-                </span>
-              </div>
-
-              {/* Commission info */}
-              <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                <span className="text-muted-foreground">Sua comissão ({(revendedora as any)?.comissao_percentual || 30}%)</span>
-                <span className="font-semibold text-success">
-                  {formatCurrency(selectedRomaneio.total * (((revendedora as any)?.comissao_percentual || 30) / 100))}
                 </span>
               </div>
             </div>
-          )}
+          </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedRomaneio(null)}>
-              Fechar
+            <Button variant="outline" onClick={() => setVendaModal(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleMarcarVendida} disabled={processando}>
+              {processando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirmar Venda
             </Button>
           </DialogFooter>
         </DialogContent>

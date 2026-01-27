@@ -1452,9 +1452,11 @@ export type Database = {
           observacoes: string | null
           organization_id: string | null
           saldo_comissao: number | null
+          senha_portal: string | null
           telefone: string | null
           updated_at: string | null
           user_id: string | null
+          usuario_portal: string | null
           whatsapp: string | null
         }
         Insert: {
@@ -1473,9 +1475,11 @@ export type Database = {
           observacoes?: string | null
           organization_id?: string | null
           saldo_comissao?: number | null
+          senha_portal?: string | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
+          usuario_portal?: string | null
           whatsapp?: string | null
         }
         Update: {
@@ -1494,9 +1498,11 @@ export type Database = {
           observacoes?: string | null
           organization_id?: string | null
           saldo_comissao?: number | null
+          senha_portal?: string | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
+          usuario_portal?: string | null
           whatsapp?: string | null
         }
         Relationships: [

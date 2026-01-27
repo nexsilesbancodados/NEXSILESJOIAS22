@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import type { Revendedora } from '@/hooks/useSupabaseData';
@@ -23,6 +23,8 @@ const revendedoraSchema = z.object({
     (val) => !val || (parseFloat(val) >= 0 && parseFloat(val) <= 100),
     'Comissão deve ser entre 0 e 100'
   ),
+  usuario_portal: z.string().min(4, 'Usuário deve ter pelo menos 4 caracteres').max(50).regex(/^[a-zA-Z0-9_]+$/, 'Apenas letras, números e _').optional().or(z.literal('')),
+  senha_portal: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(50).optional().or(z.literal('')),
 });
 
 interface RevendedoraFormDialogProps {
@@ -34,6 +36,8 @@ interface RevendedoraFormDialogProps {
     telefone: string | null;
     email: string | null;
     comissao: number;
+    usuario_portal?: string | null;
+    senha_portal?: string | null;
   }) => Promise<void>;
   isLoading?: boolean;
 }
@@ -50,8 +54,11 @@ export function RevendedoraFormDialog({
     telefone: '',
     email: '',
     comissao: '30',
+    usuario_portal: '',
+    senha_portal: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showSenha, setShowSenha] = useState(false);
 
   useEffect(() => {
     if (revendedora) {
@@ -60,6 +67,8 @@ export function RevendedoraFormDialog({
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
         comissao: (revendedora.comissao_percentual || 30).toString(),
+        usuario_portal: (revendedora as any).usuario_portal || '',
+        senha_portal: (revendedora as any).senha_portal || '',
       });
     } else {
       setFormData({
@@ -67,13 +76,37 @@ export function RevendedoraFormDialog({
         telefone: '',
         email: '',
         comissao: '30',
+        usuario_portal: '',
+        senha_portal: '',
       });
     }
     setErrors({});
+    setShowSenha(false);
   }, [revendedora, open]);
 
   const handleSubmit = async () => {
-    const result = revendedoraSchema.safeParse(formData);
+    // Only validate portal fields if at least one is filled
+    const portalFieldsFilled = formData.usuario_portal.trim() || formData.senha_portal.trim();
+    
+    const dataToValidate = {
+      ...formData,
+      usuario_portal: portalFieldsFilled ? formData.usuario_portal : '',
+      senha_portal: portalFieldsFilled ? formData.senha_portal : '',
+    };
+
+    // If one portal field is filled, both are required
+    if (portalFieldsFilled) {
+      if (!formData.usuario_portal.trim()) {
+        setErrors({ usuario_portal: 'Usuário é obrigatório se senha for preenchida' });
+        return;
+      }
+      if (!formData.senha_portal.trim()) {
+        setErrors({ senha_portal: 'Senha é obrigatória se usuário for preenchido' });
+        return;
+      }
+    }
+
+    const result = revendedoraSchema.safeParse(dataToValidate);
     
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
@@ -92,6 +125,8 @@ export function RevendedoraFormDialog({
         telefone: formData.telefone.trim() || null,
         email: formData.email.trim() || null,
         comissao: parseFloat(formData.comissao) || 30,
+        usuario_portal: formData.usuario_portal.trim() || null,
+        senha_portal: formData.senha_portal.trim() || null,
       });
       onOpenChange(false);
     } catch (error) {
@@ -99,9 +134,23 @@ export function RevendedoraFormDialog({
     }
   };
 
+  const copyPortalLink = () => {
+    if (revendedora?.id) {
+      const link = `${window.location.origin}/portal/${revendedora.id}`;
+      navigator.clipboard.writeText(link);
+      toast.success('Link do portal copiado!');
+    }
+  };
+
+  const openPortal = () => {
+    if (revendedora?.id) {
+      window.open(`/portal/${revendedora.id}`, '_blank');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {revendedora ? 'Editar Revendedora' : 'Nova Revendedora'}
@@ -113,7 +162,7 @@ export function RevendedoraFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome *</Label>
             <Input
@@ -131,14 +180,35 @@ export function RevendedoraFormDialog({
             )}
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="telefone">Telefone</Label>
-            <Input
-              id="telefone"
-              value={formData.telefone}
-              onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-              placeholder="(00) 00000-0000"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="telefone">Telefone</Label>
+              <Input
+                id="telefone"
+                value={formData.telefone}
+                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="comissao">Comissão (%)</Label>
+              <Input
+                id="comissao"
+                type="number"
+                min="0"
+                max="100"
+                value={formData.comissao}
+                onChange={(e) => {
+                  setFormData({ ...formData, comissao: e.target.value });
+                  if (errors.comissao) setErrors({ ...errors, comissao: '' });
+                }}
+                className={errors.comissao ? 'border-destructive' : ''}
+              />
+              {errors.comissao && (
+                <p className="text-sm text-destructive">{errors.comissao}</p>
+              )}
+            </div>
           </div>
 
           <div className="grid gap-2">
@@ -159,23 +229,72 @@ export function RevendedoraFormDialog({
             )}
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="comissao">Comissão (%)</Label>
-            <Input
-              id="comissao"
-              type="number"
-              min="0"
-              max="100"
-              value={formData.comissao}
-              onChange={(e) => {
-                setFormData({ ...formData, comissao: e.target.value });
-                if (errors.comissao) setErrors({ ...errors, comissao: '' });
-              }}
-              className={errors.comissao ? 'border-destructive' : ''}
-            />
-            {errors.comissao && (
-              <p className="text-sm text-destructive">{errors.comissao}</p>
-            )}
+          {/* Portal Access Section */}
+          <div className="border-t pt-4 mt-2">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Acesso ao Portal</h4>
+              {revendedora?.id && (formData.usuario_portal || (revendedora as any).usuario_portal) && (
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={copyPortalLink}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={openPortal}>
+                    <ExternalLink className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Crie um usuário e senha para a revendedora acessar o portal e gerenciar suas vendas.
+            </p>
+
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="usuario_portal">Usuário do Portal</Label>
+                <Input
+                  id="usuario_portal"
+                  value={formData.usuario_portal}
+                  onChange={(e) => {
+                    setFormData({ ...formData, usuario_portal: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') });
+                    if (errors.usuario_portal) setErrors({ ...errors, usuario_portal: '' });
+                  }}
+                  placeholder="ex: joaninha44"
+                  className={errors.usuario_portal ? 'border-destructive' : ''}
+                />
+                {errors.usuario_portal && (
+                  <p className="text-sm text-destructive">{errors.usuario_portal}</p>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="senha_portal">Senha do Portal</Label>
+                <div className="relative">
+                  <Input
+                    id="senha_portal"
+                    type={showSenha ? 'text' : 'password'}
+                    value={formData.senha_portal}
+                    onChange={(e) => {
+                      setFormData({ ...formData, senha_portal: e.target.value });
+                      if (errors.senha_portal) setErrors({ ...errors, senha_portal: '' });
+                    }}
+                    placeholder="Mínimo 6 caracteres"
+                    className={errors.senha_portal ? 'border-destructive pr-10' : 'pr-10'}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowSenha(!showSenha)}
+                  >
+                    {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+                {errors.senha_portal && (
+                  <p className="text-sm text-destructive">{errors.senha_portal}</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
