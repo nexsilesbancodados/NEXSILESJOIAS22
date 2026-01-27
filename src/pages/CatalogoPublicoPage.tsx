@@ -463,7 +463,21 @@ export default function CatalogoPublicoPage() {
 
     setIsSending(true);
     try {
-      // Create the order with validated data
+      // Build address string for observacoes field since table doesn't have separate address columns
+      const addressParts: string[] = [];
+      if (validatedData.endereco_logradouro) {
+        addressParts.push(`${validatedData.endereco_logradouro}${validatedData.endereco_numero ? `, ${validatedData.endereco_numero}` : ''}`);
+      }
+      if (validatedData.endereco_complemento) addressParts.push(validatedData.endereco_complemento);
+      if (validatedData.endereco_bairro) addressParts.push(validatedData.endereco_bairro);
+      if (validatedData.endereco_cidade || validatedData.endereco_estado) {
+        addressParts.push(`${validatedData.endereco_cidade || ''}${validatedData.endereco_estado ? ` - ${validatedData.endereco_estado}` : ''}`);
+      }
+      if (validatedData.endereco_cep) addressParts.push(`CEP: ${validatedData.endereco_cep}`);
+      
+      const addressText = addressParts.length > 0 ? `Endereço: ${addressParts.join(', ')}` : null;
+
+      // Create the order with validated data (address goes to observacoes)
       const { data: pedido, error: pedidoError } = await supabase
         .from('pedidos_catalogo')
         .insert({
@@ -471,13 +485,7 @@ export default function CatalogoPublicoPage() {
           cliente_nome: validatedData.cliente_nome,
           cliente_telefone: validatedData.cliente_telefone || null,
           cliente_email: validatedData.cliente_email || null,
-          endereco_cep: validatedData.endereco_cep || null,
-          endereco_logradouro: validatedData.endereco_logradouro || null,
-          endereco_numero: validatedData.endereco_numero || null,
-          endereco_complemento: validatedData.endereco_complemento || null,
-          endereco_bairro: validatedData.endereco_bairro || null,
-          endereco_cidade: validatedData.endereco_cidade || null,
-          endereco_estado: validatedData.endereco_estado || null,
+          observacoes: addressText,
           valor_total: cartGrandTotal,
           status: 'pendente',
         })
@@ -486,12 +494,10 @@ export default function CatalogoPublicoPage() {
 
       if (pedidoError) throw pedidoError;
 
-      // Create order items
+      // Create order items (only include columns that exist in the table)
       const orderItems = cartItems.map(({ item, quantidade }) => ({
         pedido_id: pedido.id,
         peca_id: item.peca_id,
-        peca_nome: item.peca?.nome || 'Peça',
-        peca_codigo: item.peca?.codigo || '-',
         quantidade,
         preco_unitario: item.peca?.preco_venda || 0,
       }));
@@ -612,45 +618,15 @@ export default function CatalogoPublicoPage() {
           </CardContent>
         </Card>
 
-        {/* Summary Card */}
+        {/* Summary Card - Only show item count, not total value */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
+            <div className="flex justify-center">
+              <div className="text-center">
                 <p className="text-2xl font-bold text-primary">{totalItens}</p>
                 <p className="text-sm text-muted-foreground">Peças Disponíveis</p>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-primary">{formatCurrency(totalValor)}</p>
-                <p className="text-sm text-muted-foreground">Valor Total</p>
-              </div>
             </div>
-
-            {custoExtra > 0 && (
-              <>
-                <Separator className="my-4" />
-                <div className="space-y-2 text-sm">
-                  {(catalogo.custo_separacao || 0) > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Custo de Separação</span>
-                      <span>{formatCurrency(catalogo.custo_separacao || 0)}</span>
-                    </div>
-                  )}
-                  {(catalogo.custo_operacional || 0) > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Custo Operacional</span>
-                      <span>{formatCurrency(catalogo.custo_operacional || 0)}</span>
-                    </div>
-                  )}
-                  {(catalogo.taxa_entrega || 0) > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Taxa de Entrega</span>
-                      <span>{formatCurrency(catalogo.taxa_entrega || 0)}</span>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 
