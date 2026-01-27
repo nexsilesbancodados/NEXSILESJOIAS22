@@ -154,33 +154,39 @@ export function useNotificacoesRealtime() {
       processedIdsRef.current = new Set(arr.slice(-50));
     }
     
-    // Play sound and vibrate
-    notificationSound.playNotification(notification.tipo);
-    
-    // Show toast notification
-    const iconMap: Record<string, string> = {
-      interesse_maleta: '💖',
-      visualizacao_maleta: '👀',
-      estoque_baixo: '📦',
-      maleta_vencendo: '⏰',
-      novo_pedido: '🛒',
-      meta_proxima: '🎯',
-      aniversario: '🎂',
-      romaneio_pendente: '📄',
-    };
-    
-    const icon = iconMap[notification.tipo] || '🔔';
-    
-    toast.info(`${icon} ${notification.titulo}`, {
-      description: notification.mensagem,
-      duration: 5000,
-      action: notification.link ? {
-        label: 'Ver',
-        onClick: () => {
-          window.location.href = notification.link;
-        },
-      } : undefined,
+    // Play sound, vibrate, and show push notification if in background
+    notificationSound.playNotification(notification.tipo, {
+      title: notification.titulo,
+      body: notification.mensagem,
+      link: notification.link,
     });
+    
+    // Show toast notification (only if app is in foreground)
+    if (!document.hidden) {
+      const iconMap: Record<string, string> = {
+        interesse_maleta: '💖',
+        visualizacao_maleta: '👀',
+        estoque_baixo: '📦',
+        maleta_vencendo: '⏰',
+        novo_pedido: '🛒',
+        meta_proxima: '🎯',
+        aniversario: '🎂',
+        romaneio_pendente: '📄',
+      };
+      
+      const icon = iconMap[notification.tipo] || '🔔';
+      
+      toast.info(`${icon} ${notification.titulo}`, {
+        description: notification.mensagem,
+        duration: 5000,
+        action: notification.link ? {
+          label: 'Ver',
+          onClick: () => {
+            window.location.href = notification.link;
+          },
+        } : undefined,
+      });
+    }
     
     // Invalidate queries
     queryClient.invalidateQueries({ queryKey: ['notificacoes'] });

@@ -1,4 +1,4 @@
-import { Bell, Check, Trash2, Package, ShoppingCart, FileText, Cake, Target, Briefcase, Heart, Eye, Volume2, VolumeX, Smartphone } from 'lucide-react';
+import { Bell, Check, Trash2, Package, ShoppingCart, FileText, Cake, Target, Briefcase, Heart, Eye, Volume2, VolumeX, Smartphone, BellRing, BellOff } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,12 @@ import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const iconMap: Record<string, typeof Bell> = {
   estoque_baixo: Package,
@@ -53,7 +59,16 @@ export function NotificationBell() {
   const { mutate: marcarComoLida } = useMarcarComoLida();
   const { mutate: marcarTodasComoLidas } = useMarcarTodasComoLidas();
   const { mutate: deletarNotificacao } = useDeletarNotificacao();
-  const { isSoundEnabled, isVibrationEnabled, toggleSound, toggleVibration, playNotification } = useNotificationSound();
+  const { 
+    isSoundEnabled, 
+    isVibrationEnabled, 
+    isPushEnabled,
+    pushPermission,
+    toggleSound, 
+    toggleVibration,
+    togglePush,
+    playNotification 
+  } = useNotificationSound();
   
   // Enable realtime updates with sound/vibration
   useNotificacoesRealtime();
@@ -104,6 +119,19 @@ export function NotificationBell() {
     marcarComoLida(notificacao.id);
   };
 
+  // Get push notification button state
+  const getPushButtonState = () => {
+    if (pushPermission === 'denied') {
+      return { disabled: true, title: 'Notificações bloqueadas no navegador. Altere nas configurações do navegador.' };
+    }
+    if (isPushEnabled) {
+      return { disabled: false, title: 'Desativar notificações do navegador' };
+    }
+    return { disabled: false, title: 'Ativar notificações do navegador (funciona em segundo plano)' };
+  };
+
+  const pushButtonState = getPushButtonState();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -122,34 +150,76 @@ export function NotificationBell() {
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notificações</span>
           <div className="flex items-center gap-1">
-            {/* Sound toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7", !isSoundEnabled && "text-muted-foreground")}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleSound();
-              }}
-              title={isSoundEnabled ? 'Desativar som' : 'Ativar som'}
-            >
-              {isSoundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
-            {/* Vibration toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7", !isVibrationEnabled && "text-muted-foreground")}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleVibration();
-              }}
-              title={isVibrationEnabled ? 'Desativar vibração' : 'Ativar vibração'}
-            >
-              <Smartphone className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              {/* Sound toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-7 w-7", !isSoundEnabled && "text-muted-foreground")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleSound();
+                    }}
+                  >
+                    {isSoundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isSoundEnabled ? 'Desativar som' : 'Ativar som'}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Vibration toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn("h-7 w-7", !isVibrationEnabled && "text-muted-foreground")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleVibration();
+                    }}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isVibrationEnabled ? 'Desativar vibração' : 'Ativar vibração'}</p>
+                </TooltipContent>
+              </Tooltip>
+
+              {/* Push notification toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7", 
+                      !isPushEnabled && "text-muted-foreground",
+                      pushPermission === 'denied' && "opacity-50 cursor-not-allowed"
+                    )}
+                    disabled={pushButtonState.disabled}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      togglePush();
+                    }}
+                  >
+                    {isPushEnabled ? <BellRing className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[200px]">
+                  <p>{pushButtonState.title}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+
             {notificacoes.length > 0 && (
               <Button 
                 variant="ghost" 
