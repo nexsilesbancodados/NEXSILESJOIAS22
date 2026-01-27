@@ -1090,11 +1090,13 @@ export default function RevendedorasPage() {
                     catalogoItems={catalogoItems}
                     onAddPeca={handleAddPecaToMaleta}
                     onAddFromCatalogo={handleAddPecaFromCatalogo}
+                    onRemovePeca={handleRemovePecaFromMaleta}
                     selectedCatalogoId={selectedCatalogoId}
                     onCatalogoChange={setSelectedCatalogoId}
                     searchPeca={searchPeca}
                     onSearchChange={setSearchPeca}
                     isAdding={addMaletaItemMutation.isPending}
+                    isRemoving={deleteMaletaItemMutation.isPending}
                   />
                 )}
 
