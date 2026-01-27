@@ -41,6 +41,8 @@ import {
   Lock,
   FileText,
   AlertTriangle,
+  Printer,
+  Download,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -56,6 +58,10 @@ import {
   type Peca,
 } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface MaletaManagerProps {
   maleta: Maleta;
@@ -240,6 +246,308 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const openEditQtdModal = (item: MaletaItem) => {
     setNovaQuantidade(item.quantidade || 1);
     setEditQtdModal({ open: true, item });
+  };
+
+  // Gerar conteúdo do resumo para PDF/impressão
+  const gerarDadosResumo = () => {
+    return {
+      maletaNome: maleta.nome || `Maleta #${maleta.id.slice(-4)}`,
+      dataFechamento: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
+      dataCriacao: maleta.created_at ? format(new Date(maleta.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+      totalPecas,
+      pecasVendidas,
+      pecasPendentes,
+      valorVendido,
+      valorPendente,
+      comissaoPercentual,
+      comissaoEstimada,
+      itemsVendidos: itemsVendidos.map(i => ({
+        nome: i.peca?.nome || 'Peça desconhecida',
+        codigo: i.peca?.codigo || '-',
+        quantidade: i.quantidade || 1,
+        preco: i.peca?.preco_venda || 0,
+        subtotal: (i.peca?.preco_venda || 0) * (i.quantidade || 1),
+      })),
+      itemsPendentes: itemsPendentes.map(i => ({
+        nome: i.peca?.nome || 'Peça desconhecida',
+        codigo: i.peca?.codigo || '-',
+        quantidade: i.quantidade || 1,
+        preco: i.peca?.preco_venda || 0,
+        subtotal: (i.peca?.preco_venda || 0) * (i.quantidade || 1),
+      })),
+    };
+  };
+
+  const handleExportarPDF = () => {
+    const dados = gerarDadosResumo();
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo de Fechamento de Maleta', 14, 20);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Maleta: ${dados.maletaNome}`, 14, 32);
+    doc.text(`Data de Criação: ${dados.dataCriacao}`, 14, 38);
+    doc.text(`Data de Fechamento: ${dados.dataFechamento}`, 14, 44);
+    
+    // Resumo de Peças
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo de Peças', 14, 56);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total de Peças: ${dados.totalPecas}`, 14, 64);
+    doc.text(`Peças Vendidas: ${dados.pecasVendidas}`, 14, 70);
+    doc.text(`Peças Devolvidas: ${dados.pecasPendentes}`, 14, 76);
+    
+    let yPos = 90;
+    
+    // Tabela de peças vendidas
+    if (dados.itemsVendidos.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Peças Vendidas', 14, yPos);
+      yPos += 4;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
+        body: dados.itemsVendidos.map(item => [
+          item.codigo,
+          item.nome.length > 30 ? item.nome.substring(0, 30) + '...' : item.nome,
+          item.quantidade.toString(),
+          formatCurrency(item.preco),
+          formatCurrency(item.subtotal),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [34, 197, 94] }, // success green
+        styles: { fontSize: 8 },
+        margin: { left: 14, right: 14 },
+      });
+      
+      yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
+      yPos += 10;
+    }
+    
+    // Tabela de peças devolvidas
+    if (dados.itemsPendentes.length > 0 && yPos < 250) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Peças Devolvidas ao Estoque', 14, yPos);
+      yPos += 4;
+      
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Código', 'Produto', 'Qtd', 'Valor Unit.']],
+        body: dados.itemsPendentes.map(item => [
+          item.codigo,
+          item.nome.length > 35 ? item.nome.substring(0, 35) + '...' : item.nome,
+          item.quantidade.toString(),
+          formatCurrency(item.preco),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [234, 179, 8] }, // warning yellow
+        styles: { fontSize: 8 },
+        margin: { left: 14, right: 14 },
+      });
+      
+      yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
+      yPos += 10;
+    }
+    
+    // Resumo Financeiro
+    if (yPos > 230) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo Financeiro', 14, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Valor Total em Vendas: ${formatCurrency(dados.valorVendido)}`, 14, yPos);
+    yPos += 6;
+    doc.text(`Valor Devolvido ao Estoque: ${formatCurrency(dados.valorPendente)}`, 14, yPos);
+    yPos += 10;
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text(`Comissão (${dados.comissaoPercentual}%): ${formatCurrency(dados.comissaoEstimada)}`, 14, yPos);
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        `Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} - Página ${i} de ${pageCount}`,
+        14,
+        doc.internal.pageSize.height - 10
+      );
+    }
+    
+    doc.save(`fechamento-maleta-${maleta.id.slice(-6)}.pdf`);
+    toast.success('PDF exportado com sucesso!');
+  };
+
+  const handleImprimir = () => {
+    const dados = gerarDadosResumo();
+    
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast.error('Não foi possível abrir a janela de impressão. Verifique se popups estão bloqueados.');
+      return;
+    }
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Resumo de Fechamento - ${dados.maletaNome}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #333; }
+          h1 { font-size: 18px; margin-bottom: 20px; color: #1a1a1a; }
+          h2 { font-size: 14px; margin: 20px 0 10px; color: #1a1a1a; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+          .header-info { margin-bottom: 20px; }
+          .header-info p { margin: 4px 0; }
+          .summary-cards { display: flex; gap: 15px; margin-bottom: 20px; }
+          .summary-card { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; text-align: center; }
+          .summary-card.vendidas { background: #dcfce7; border-color: #22c55e; }
+          .summary-card.pendentes { background: #fef9c3; border-color: #eab308; }
+          .summary-card .number { font-size: 22px; font-weight: bold; }
+          .summary-card .label { font-size: 11px; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }
+          th { background: #f5f5f5; font-weight: bold; }
+          .text-right { text-align: right; }
+          .financial-summary { background: #f5f5f5; padding: 15px; border-radius: 4px; }
+          .financial-row { display: flex; justify-content: space-between; margin: 5px 0; }
+          .financial-total { font-size: 14px; font-weight: bold; border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; }
+          .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #999; }
+          @media print { 
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Resumo de Fechamento de Maleta</h1>
+        
+        <div class="header-info">
+          <p><strong>Maleta:</strong> ${dados.maletaNome}</p>
+          <p><strong>Data de Criação:</strong> ${dados.dataCriacao}</p>
+          <p><strong>Data de Fechamento:</strong> ${dados.dataFechamento}</p>
+        </div>
+        
+        <div class="summary-cards">
+          <div class="summary-card">
+            <div class="number">${dados.totalPecas}</div>
+            <div class="label">Total de Peças</div>
+          </div>
+          <div class="summary-card vendidas">
+            <div class="number">${dados.pecasVendidas}</div>
+            <div class="label">Vendidas</div>
+          </div>
+          <div class="summary-card pendentes">
+            <div class="number">${dados.pecasPendentes}</div>
+            <div class="label">Devolvidas</div>
+          </div>
+        </div>
+        
+        ${dados.itemsVendidos.length > 0 ? `
+          <h2>Peças Vendidas</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Produto</th>
+                <th class="text-right">Qtd</th>
+                <th class="text-right">Preço Unit.</th>
+                <th class="text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dados.itemsVendidos.map(item => `
+                <tr>
+                  <td>${item.codigo}</td>
+                  <td>${item.nome}</td>
+                  <td class="text-right">${item.quantidade}</td>
+                  <td class="text-right">${formatCurrency(item.preco)}</td>
+                  <td class="text-right">${formatCurrency(item.subtotal)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+        
+        ${dados.itemsPendentes.length > 0 ? `
+          <h2>Peças Devolvidas ao Estoque</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Produto</th>
+                <th class="text-right">Qtd</th>
+                <th class="text-right">Valor Unit.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${dados.itemsPendentes.map(item => `
+                <tr>
+                  <td>${item.codigo}</td>
+                  <td>${item.nome}</td>
+                  <td class="text-right">${item.quantidade}</td>
+                  <td class="text-right">${formatCurrency(item.preco)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+        
+        <div class="financial-summary">
+          <h2 style="border: none; margin-top: 0;">Resumo Financeiro</h2>
+          <div class="financial-row">
+            <span>Valor Total em Vendas:</span>
+            <span><strong>${formatCurrency(dados.valorVendido)}</strong></span>
+          </div>
+          <div class="financial-row">
+            <span>Valor Devolvido ao Estoque:</span>
+            <span>${formatCurrency(dados.valorPendente)}</span>
+          </div>
+          <div class="financial-row financial-total">
+            <span>Comissão a Pagar (${dados.comissaoPercentual}%):</span>
+            <span>${formatCurrency(dados.comissaoEstimada)}</span>
+          </div>
+        </div>
+        
+        <div class="footer">
+          Documento gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+        </div>
+        
+        <script>
+          window.onload = function() {
+            window.print();
+            window.onafterprint = function() {
+              window.close();
+            };
+          };
+        </script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const handleFecharMaleta = async () => {
@@ -802,22 +1110,46 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
             )}
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setFecharMaletaModal(false)} disabled={closeMaletaMutation.isPending}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleFecharMaleta} 
-              disabled={closeMaletaMutation.isPending}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {closeMaletaMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Lock className="w-4 h-4 mr-2" />
-              )}
-              Confirmar Fechamento
-            </Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleExportarPDF}
+                disabled={closeMaletaMutation.isPending}
+                className="flex-1 sm:flex-initial"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleImprimir}
+                disabled={closeMaletaMutation.isPending}
+                className="flex-1 sm:flex-initial"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Imprimir
+              </Button>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
+              <Button variant="outline" onClick={() => setFecharMaletaModal(false)} disabled={closeMaletaMutation.isPending}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleFecharMaleta} 
+                disabled={closeMaletaMutation.isPending}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {closeMaletaMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Lock className="w-4 h-4 mr-2" />
+                )}
+                Confirmar Fechamento
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
