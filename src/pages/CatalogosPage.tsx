@@ -1001,6 +1001,12 @@ function CatalogoItemsDialog({
     await updateItem.mutateAsync({ id: itemId, quantidade: novaQuantidade });
   };
 
+  const handleUpdateQuantidadeMinima = async (itemId: string, novaQuantidadeMinima: number) => {
+    const validMin = Math.max(1, novaQuantidadeMinima);
+    await updateItem.mutateAsync({ id: itemId, quantidade_minima: validMin });
+    toast.success('Pedido mínimo atualizado');
+  };
+
   const handleCreateAndAddPeca = async () => {
     if (!catalogo || !newPecaData.nome || !newPecaData.codigo || !newPecaData.preco_venda) {
       toast.error('Preencha nome, código e preço de venda');
@@ -1477,57 +1483,86 @@ function CatalogoItemsDialog({
               <p className="text-sm">Nenhuma peça adicionada</p>
             </div>
           ) : (
-            <ScrollArea className="h-[200px]">
+            <ScrollArea className="h-[250px]">
               <div className="space-y-2 pr-4">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg"
+                    className="flex flex-col gap-2 p-3 bg-secondary/50 rounded-lg"
                   >
-                    <img
-                      src={item.peca?.imagem_url || '/placeholder.svg'}
-                      alt={item.peca?.nome}
-                      className="w-12 h-12 rounded object-cover flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.peca?.nome}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(item.peca?.preco_venda || 0)} /un
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={item.peca?.imagem_url || '/placeholder.svg'}
+                        alt={item.peca?.nome}
+                        className="w-12 h-12 rounded object-cover flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{item.peca?.nome}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCurrency(item.peca?.preco_venda || 0)} /un
+                        </p>
+                      </div>
+                      
+                      {/* Controles de quantidade disponível */}
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleUpdateQuantidade(item.id, (item.quantidade || 1) - 1)}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-8 text-center font-medium">{item.quantidade || 1}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleUpdateQuantidade(item.id, (item.quantidade || 1) + 1)}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      
+                      <p className="font-semibold w-24 text-right">
+                        {formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1))}
                       </p>
-                    </div>
-                    
-                    {/* Controles de quantidade */}
-                    <div className="flex items-center gap-1">
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleUpdateQuantidade(item.id, (item.quantidade || 1) - 1)}
+                        className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
+                        onClick={() => handleRemoveItem(item.id)}
                       >
-                        <Minus className="w-3 h-3" />
-                      </Button>
-                      <span className="w-8 text-center font-medium">{item.quantidade || 1}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleUpdateQuantidade(item.id, (item.quantidade || 1) + 1)}
-                      >
-                        <Plus className="w-3 h-3" />
+                        <X className="w-4 h-4" />
                       </Button>
                     </div>
                     
-                    <p className="font-semibold w-24 text-right">
-                      {formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1))}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive flex-shrink-0"
-                      onClick={() => handleRemoveItem(item.id)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                    {/* Quantidade mínima por pedido */}
+                    <div className="flex items-center justify-between pl-14 border-t border-border/50 pt-2 mt-1">
+                      <span className="text-xs text-muted-foreground">Pedido mínimo:</span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleUpdateQuantidadeMinima(item.id, ((item as any).quantidade_minima || 1) - 1)}
+                          disabled={((item as any).quantidade_minima || 1) <= 1}
+                        >
+                          <Minus className="w-3 h-3" />
+                        </Button>
+                        <span className="w-6 text-center text-sm font-medium">{(item as any).quantidade_minima || 1}</span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleUpdateQuantidadeMinima(item.id, ((item as any).quantidade_minima || 1) + 1)}
+                          disabled={((item as any).quantidade_minima || 1) >= (item.quantidade || 1)}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </Button>
+                        <span className="text-xs text-muted-foreground ml-1">un</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>

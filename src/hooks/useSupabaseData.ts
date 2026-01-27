@@ -2134,6 +2134,7 @@ export interface CatalogoItem {
   catalogo_id: string;
   peca_id: string;
   quantidade: number;
+  quantidade_minima?: number;
   destaque: boolean | null;
   ordem?: number | null;
   created_at: string | null;
@@ -2277,10 +2278,14 @@ export function useUpdateCatalogoItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, quantidade }: { id: string; quantidade: number }) => {
+    mutationFn: async ({ id, quantidade, quantidade_minima }: { id: string; quantidade?: number; quantidade_minima?: number }) => {
+      const updateData: { quantidade?: number; quantidade_minima?: number } = {};
+      if (quantidade !== undefined) updateData.quantidade = quantidade;
+      if (quantidade_minima !== undefined) updateData.quantidade_minima = quantidade_minima;
+      
       const { data, error } = await supabase
         .from('catalogos_pecas')
-        .update({ quantidade })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -2292,7 +2297,7 @@ export function useUpdateCatalogoItem() {
       queryClient.invalidateQueries({ queryKey: ['catalogo-items'] });
     },
     onError: () => {
-      toast.error('Erro ao atualizar quantidade');
+      toast.error('Erro ao atualizar item');
     },
   });
 }

@@ -85,6 +85,7 @@ interface CatalogoItemPublico {
   catalogo_id: string;
   peca_id: string;
   quantidade: number;
+  quantidade_minima?: number;
   ordem?: number | null;
   destaque: boolean | null;
   created_at: string | null;
@@ -174,6 +175,7 @@ export default function CatalogoPublicoPage() {
           catalogo_id,
           peca_id,
           quantidade,
+          quantidade_minima,
           ordem,
           destaque,
           created_at,
@@ -209,7 +211,9 @@ export default function CatalogoPublicoPage() {
     if (newSelected.has(item.id)) {
       newSelected.delete(item.id);
     } else {
-      newSelected.set(item.id, { item, quantidade: 1 });
+      // Start with minimum quantity when adding
+      const minQty = item.quantidade_minima || 1;
+      newSelected.set(item.id, { item, quantidade: minQty });
     }
     setSelectedItems(newSelected);
   };
@@ -219,15 +223,17 @@ export default function CatalogoPublicoPage() {
     const selected = newSelected.get(itemId);
     
     if (selected) {
-      // Update existing selection
+      // Update existing selection respecting min/max
+      const minQty = selected.item.quantidade_minima || 1;
       const maxQty = selected.item.quantidade || 999;
-      const newQty = Math.max(1, Math.min(maxQty, selected.quantidade + delta));
+      const newQty = Math.max(minQty, Math.min(maxQty, selected.quantidade + delta));
       newSelected.set(itemId, { ...selected, quantidade: newQty });
       setSelectedItems(newSelected);
     } else if (item) {
-      // Add new item with initial quantity
+      // Add new item with minimum quantity
+      const minQty = item.quantidade_minima || 1;
       const maxQty = item.quantidade || 999;
-      const newQty = Math.max(1, Math.min(maxQty, 1 + delta));
+      const newQty = Math.max(minQty, Math.min(maxQty, minQty + delta));
       newSelected.set(itemId, { item, quantidade: newQty });
       setSelectedItems(newSelected);
     }
@@ -235,11 +241,12 @@ export default function CatalogoPublicoPage() {
 
   const setItemQuantity = (itemId: string, quantity: number, item: CatalogoItemPublico) => {
     const newSelected = new Map(selectedItems);
+    const minQty = item.quantidade_minima || 1;
     const maxQty = item.quantidade || 999;
-    const newQty = Math.max(1, Math.min(maxQty, quantity));
+    const newQty = Math.max(minQty, Math.min(maxQty, quantity));
     const wasSelected = newSelected.has(itemId);
     
-    if (newQty < 1) {
+    if (newQty < minQty) {
       newSelected.delete(itemId);
     } else {
       newSelected.set(itemId, { item, quantidade: newQty });
@@ -247,7 +254,8 @@ export default function CatalogoPublicoPage() {
       // Show feedback when adding new item
       if (!wasSelected) {
         setLastAddedItemId(itemId);
-        toast.success(`${item.peca?.nome || 'Item'} adicionado ao carrinho!`, {
+        const minMsg = minQty > 1 ? ` (mín. ${minQty})` : '';
+        toast.success(`${item.peca?.nome || 'Item'} adicionado ao carrinho!${minMsg}`, {
           duration: 2000,
           icon: '🛒',
         });
@@ -1563,14 +1571,21 @@ export default function CatalogoPublicoPage() {
               {/* Footer Actions */}
               {canOrder && (
                 <DialogFooter className="flex-col sm:flex-row gap-2 pt-4 border-t">
+                  {detailItem.quantidade_minima && detailItem.quantidade_minima > 1 && (
+                    <p className="text-sm text-muted-foreground text-center w-full mb-2">
+                      Pedido mínimo: {detailItem.quantidade_minima} {detailItem.quantidade_minima === 1 ? 'unidade' : 'unidades'}
+                    </p>
+                  )}
                   {selectedItems.has(detailItem.id) ? (
                     <div className="flex items-center justify-center gap-3 w-full">
                       <Button
                         variant="outline"
                         size="icon"
+                        disabled={(selectedItems.get(detailItem.id)?.quantidade || 1) <= (detailItem.quantidade_minima || 1)}
                         onClick={() => {
                           const qty = selectedItems.get(detailItem.id)?.quantidade || 1;
-                          if (qty <= 1) {
+                          const minQty = detailItem.quantidade_minima || 1;
+                          if (qty <= minQty) {
                             toggleItemSelection(detailItem);
                           } else {
                             updateItemQuantity(detailItem.id, -1);
@@ -1606,12 +1621,13 @@ export default function CatalogoPublicoPage() {
                     <Button 
                       className="w-full"
                       onClick={() => {
-                        setItemQuantity(detailItem.id, 1, detailItem);
+                        const minQty = detailItem.quantidade_minima || 1;
+                        setItemQuantity(detailItem.id, minQty, detailItem);
                         setDetailItem(null);
                       }}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Adicionar ao Carrinho
+                      Adicionar ao Carrinho {detailItem.quantidade_minima && detailItem.quantidade_minima > 1 ? `(${detailItem.quantidade_minima} un)` : ''}
                     </Button>
                   )}
                 </DialogFooter>

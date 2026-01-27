@@ -325,6 +325,7 @@ export type Database = {
           ordem: number | null
           peca_id: string
           quantidade: number
+          quantidade_minima: number
         }
         Insert: {
           catalogo_id: string
@@ -334,6 +335,7 @@ export type Database = {
           ordem?: number | null
           peca_id: string
           quantidade?: number
+          quantidade_minima?: number
         }
         Update: {
           catalogo_id?: string
@@ -343,6 +345,7 @@ export type Database = {
           ordem?: number | null
           peca_id?: string
           quantidade?: number
+          quantidade_minima?: number
         }
         Relationships: [
           {
