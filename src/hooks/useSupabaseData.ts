@@ -1609,15 +1609,21 @@ export function useRomaneios() {
   return useQuery({
     queryKey: ['romaneios'],
     queryFn: async () => {
-      // Table 'romaneios' doesn't have user_id column - fetch all records
+      // Table 'romaneios' has RLS by organization_id
       const { data, error } = await supabase
         .from('romaneios')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching romaneios:', error);
+        throw error;
+      }
+      console.log('Romaneios fetched:', data?.length || 0, 'records');
       return data as Romaneio[];
     },
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always refetch
   });
 }
 

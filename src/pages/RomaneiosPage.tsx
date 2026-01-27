@@ -67,11 +67,20 @@ import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useRealtimeRomaneios } from '@/hooks/useRealtimeRomaneios';
 
 export default function RomaneiosPage() {
-  const { data: romaneios = [], isLoading } = useRomaneios();
+  // Enable realtime updates for romaneios
+  useRealtimeRomaneios();
+  
+  const { data: romaneios = [], isLoading, refetch } = useRomaneios();
   const updateRomaneioStatus = useUpdateRomaneioStatus();
   const deleteRomaneiosBulk = useDeleteRomaneiosBulk();
+  
+  // Log for debugging
+  useEffect(() => {
+    console.log('Romaneios loaded:', romaneios.length, romaneios);
+  }, [romaneios]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
