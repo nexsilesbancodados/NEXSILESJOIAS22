@@ -65,6 +65,7 @@ import {
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
 import { MaletaAddPecaSection } from '@/components/revendedoras/MaletaAddPecaSection';
 import { QuantidadeVendaModal } from '@/components/revendedoras/QuantidadeVendaModal';
+import { MaletaManager } from '@/components/revendedoras/MaletaManager';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -1108,215 +1109,14 @@ export default function RevendedorasPage() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Tab Peças */}
+              {/* Tab Peças - Nova Interface Simplificada */}
               <TabsContent value="pecas" className="space-y-4">
-                {selectedMaleta?.status === 'aberta' && (
-                  <MaletaAddPecaSection
-                    pecasDisponiveis={pecasDisponiveis}
-                    maletaItems={maletaItems}
-                    catalogos={catalogos}
-                    catalogoItems={catalogoItems}
-                    onAddPeca={handleAddPecaToMaleta}
-                    onAddFromCatalogo={handleAddPecaFromCatalogo}
-                    onRemovePeca={handleRemovePecaFromMaleta}
-                    selectedCatalogoId={selectedCatalogoId}
-                    onCatalogoChange={setSelectedCatalogoId}
-                    searchPeca={searchPeca}
-                    onSearchChange={setSearchPeca}
-                    isAdding={addMaletaItemMutation.isPending}
-                    isRemoving={deleteMaletaItemMutation.isPending}
+                {selectedMaleta && (
+                  <MaletaManager
+                    maleta={selectedMaleta}
+                    comissaoPercentual={viewingRevendedora?.comissao_percentual || 30}
                   />
                 )}
-
-                {/* Stats Mini - only show when maleta is closed or no add section */}
-                {selectedMaleta?.status !== 'aberta' && (
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-2xl font-bold text-warning">{itemsPendentes.length}</p>
-                      <p className="text-xs text-muted-foreground">Pendentes</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-success/10 text-center">
-                      <p className="text-2xl font-bold text-success">{itemsVendidos.length}</p>
-                      <p className="text-xs text-muted-foreground">Vendidas</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-muted text-center">
-                      <p className="text-2xl font-bold text-muted-foreground">{itemsDevolvidos.length}</p>
-                      <p className="text-xs text-muted-foreground">Devolvidas</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Bulk Actions Bar */}
-                {selectedMaleta?.status === 'aberta' && pendingItems.length > 0 && (
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={isAllPendingSelected}
-                        onCheckedChange={toggleSelectAllPending}
-                        disabled={isBulkActionPending}
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        {selectedPendingItems.length > 0 
-                          ? `${selectedPendingItems.length} ${selectedPendingItems.length === 1 ? 'selecionada' : 'selecionadas'}`
-                          : 'Selecionar todas pendentes'
-                        }
-                      </span>
-                    </div>
-                    {selectedPendingItems.length > 0 && (
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-success text-success-foreground hover:bg-success/90"
-                          onClick={() => handleBulkAction('vendido')}
-                          disabled={isBulkActionPending}
-                        >
-                          {isBulkActionPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                          ) : (
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                          )}
-                          Marcar Vendidas
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleBulkAction('devolvido')}
-                          disabled={isBulkActionPending}
-                        >
-                          {isBulkActionPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                          ) : (
-                            <XCircle className="w-4 h-4 mr-1" />
-                          )}
-                          Marcar Devolvidas
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Items List */}
-                <ScrollArea className="h-64">
-                  <div className="space-y-2 pr-4">
-                    {isLoadingItems ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : maletaItems.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Nenhuma peça na maleta
-                      </div>
-                    ) : (
-                      maletaItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className={cn(
-                            'flex items-center gap-3 p-3 rounded-lg',
-                            item.status === 'vendido' && 'bg-success/10',
-                            item.status === 'devolvido' && 'bg-muted',
-                            item.status === 'pendente' && 'bg-secondary/50',
-                            selectedItemIds.has(item.id) && 'ring-2 ring-primary'
-                          )}
-                        >
-                          {/* Checkbox for pending items when maleta is open */}
-                          {selectedMaleta?.status === 'aberta' && item.status === 'pendente' && (
-                            <Checkbox
-                              checked={selectedItemIds.has(item.id)}
-                              onCheckedChange={() => toggleItemSelection(item.id)}
-                              disabled={isBulkActionPending}
-                            />
-                          )}
-                          <img
-                            src={item.peca?.imagem_url || '/placeholder.svg'}
-                            alt={item.peca?.nome}
-                            className="w-12 h-12 rounded object-cover"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium">{item.peca?.nome}</p>
-                              {(item.quantidade || 1) > 1 && (
-                                <Badge variant="secondary" className="text-xs">
-                                  x{item.quantidade}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {formatCurrency(item.peca?.preco_venda || 0)}
-                              {(item.quantidade || 1) > 1 && (
-                                <span className="ml-2 text-xs">
-                                  (Total: {formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1))})
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                          {selectedMaleta?.status === 'aberta' && item.status === 'pendente' ? (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                className="bg-success text-success-foreground hover:bg-success/90"
-                                onClick={() => {
-                                  if ((item.quantidade || 1) > 1) {
-                                    handleAbrirModalVenda(item);
-                                  } else {
-                                    handleMarcarItem(item.id, item.peca_id, 'vendido', 'pendente', 1, 1, 1);
-                                  }
-                                }}
-                                disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
-                              >
-                                Vendido
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleMarcarItem(item.id, item.peca_id, 'devolvido', 'pendente', item.quantidade)}
-                                disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
-                              >
-                                Devolvido
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                                onClick={() => {
-                                  if (window.confirm(`Remover "${item.peca?.nome || 'Peça'}" da maleta?`)) {
-                                    handleRemovePecaFromMaleta(item.id, item.peca_id);
-                                  }
-                                }}
-                                disabled={deleteMaletaItemMutation.isPending || isBulkActionPending}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ) : selectedMaleta?.status === 'aberta' && item.status === 'vendido' ? (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="default">
-                                Vendido{(item.quantidade || 1) > 1 ? ` (x${item.quantidade})` : ''}
-                              </Badge>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                                onClick={async () => {
-                                  const confirmar = window.confirm(`Desfazer venda de "${item.peca?.nome || 'Peça'}"${(item.quantidade || 1) > 1 ? ` (${item.quantidade} unidades)` : ''}? O item voltará para o status pendente.`);
-                                  if (confirmar) {
-                                    await handleMarcarItem(item.id, item.peca_id, 'pendente', 'vendido', item.quantidade);
-                                  }
-                                }}
-                                disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
-                              >
-                                Desfazer
-                              </Button>
-                            </div>
-                          ) : (
-                            <Badge variant={item.status === 'vendido' ? 'default' : 'secondary'}>
-                              {item.status === 'vendido' ? 'Vendido' : item.status === 'devolvido' ? 'Devolvido' : 'Pendente'}
-                            </Badge>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
               </TabsContent>
 
               {/* Tab Vendas */}
