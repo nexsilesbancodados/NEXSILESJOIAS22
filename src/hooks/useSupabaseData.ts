@@ -1277,10 +1277,10 @@ export function useCloseMaleta() {
         }
       }
 
-      // Close the maleta
+      // Close the maleta (updated_at is auto-updated by trigger)
       const { data, error } = await supabase
         .from('maletas')
-        .update({ status: 'fechada', data_fechamento: new Date().toISOString() })
+        .update({ status: 'fechada' })
         .eq('id', maletaId)
         .select()
         .single();
