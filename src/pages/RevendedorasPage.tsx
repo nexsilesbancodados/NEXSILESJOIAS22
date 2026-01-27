@@ -64,6 +64,7 @@ import {
 } from 'lucide-react';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
 import { MaletaAddPecaSection } from '@/components/revendedoras/MaletaAddPecaSection';
+import { QuantidadeVendaModal } from '@/components/revendedoras/QuantidadeVendaModal';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -221,6 +222,8 @@ export default function RevendedorasPage() {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [isBulkActionPending, setIsBulkActionPending] = useState(false);
   const [selectedCatalogoId, setSelectedCatalogoId] = useState<string>('');
+  const [vendaModalOpen, setVendaModalOpen] = useState(false);
+  const [itemParaVenda, setItemParaVenda] = useState<MaletaItem | null>(null);
 
   // Track revendedora presence when viewing a maleta (broadcasts to public page)
   useRevendedoraPresence(selectedMaleta?.id);
@@ -513,13 +516,36 @@ export default function RevendedorasPage() {
     pecaId: string, 
     status: 'pendente' | 'vendido' | 'devolvido',
     statusAnterior?: 'pendente' | 'vendido' | 'devolvido',
-    quantidade?: number
+    quantidade?: number,
+    quantidadeVendida?: number,
+    quantidadeTotal?: number
   ) => {
     try {
-      await updateMaletaItemMutation.mutateAsync({ id: itemId, status, pecaId, statusAnterior, quantidade: quantidade || 1 });
+      await updateMaletaItemMutation.mutateAsync({ 
+        id: itemId, 
+        status, 
+        pecaId, 
+        statusAnterior, 
+        quantidade: quantidade || 1,
+        quantidadeVendida,
+        quantidadeTotal
+      });
     } catch (error) {
       console.error('Error updating item:', error);
     }
+  };
+
+  // Open modal to select quantity for sale
+  const handleAbrirModalVenda = (item: MaletaItem) => {
+    setItemParaVenda(item);
+    setVendaModalOpen(true);
+  };
+
+  // Handler for confirming partial or full sale
+  const handleConfirmarVenda = async (itemId: string, pecaId: string, quantidadeVendida: number, quantidadeTotal: number) => {
+    await handleMarcarItem(itemId, pecaId, 'vendido', 'pendente', quantidadeVendida, quantidadeVendida, quantidadeTotal);
+    setVendaModalOpen(false);
+    setItemParaVenda(null);
   };
 
   // Bulk selection helpers
@@ -1206,9 +1232,21 @@ export default function RevendedorasPage() {
                             className="w-12 h-12 rounded object-cover"
                           />
                           <div className="flex-1">
-                            <p className="font-medium">{item.peca?.nome}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{item.peca?.nome}</p>
+                              {(item.quantidade || 1) > 1 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  x{item.quantidade}
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
                               {formatCurrency(item.peca?.preco_venda || 0)}
+                              {(item.quantidade || 1) > 1 && (
+                                <span className="ml-2 text-xs">
+                                  (Total: {formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1))})
+                                </span>
+                              )}
                             </p>
                           </div>
                           {selectedMaleta?.status === 'aberta' && item.status === 'pendente' ? (
@@ -1216,7 +1254,13 @@ export default function RevendedorasPage() {
                               <Button
                                 size="sm"
                                 className="bg-success text-success-foreground hover:bg-success/90"
-                                onClick={() => handleMarcarItem(item.id, item.peca_id, 'vendido', 'pendente', item.quantidade)}
+                                onClick={() => {
+                                  if ((item.quantidade || 1) > 1) {
+                                    handleAbrirModalVenda(item);
+                                  } else {
+                                    handleMarcarItem(item.id, item.peca_id, 'vendido', 'pendente', 1, 1, 1);
+                                  }
+                                }}
                                 disabled={updateMaletaItemMutation.isPending || isBulkActionPending}
                               >
                                 Vendido
@@ -1245,13 +1289,15 @@ export default function RevendedorasPage() {
                             </div>
                           ) : selectedMaleta?.status === 'aberta' && item.status === 'vendido' ? (
                             <div className="flex items-center gap-2">
-                              <Badge variant="default">Vendido</Badge>
+                              <Badge variant="default">
+                                Vendido{(item.quantidade || 1) > 1 ? ` (x${item.quantidade})` : ''}
+                              </Badge>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="text-destructive border-destructive/30 hover:bg-destructive/10"
                                 onClick={async () => {
-                                  const confirmar = window.confirm(`Desfazer venda de "${item.peca?.nome || 'Peça'}"? O item voltará para o status pendente.`);
+                                  const confirmar = window.confirm(`Desfazer venda de "${item.peca?.nome || 'Peça'}"${(item.quantidade || 1) > 1 ? ` (${item.quantidade} unidades)` : ''}? O item voltará para o status pendente.`);
                                   if (confirmar) {
                                     await handleMarcarItem(item.id, item.peca_id, 'pendente', 'vendido', item.quantidade);
                                   }
@@ -2151,6 +2197,15 @@ export default function RevendedorasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de seleção de quantidade para venda */}
+      <QuantidadeVendaModal
+        open={vendaModalOpen}
+        onOpenChange={setVendaModalOpen}
+        item={itemParaVenda}
+        onConfirm={handleConfirmarVenda}
+        isPending={updateMaletaItemMutation.isPending}
+      />
     </div>
   );
 }
