@@ -46,12 +46,15 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  ShoppingBag
+  ShoppingBag,
+  ExternalLink,
+  Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
 
 const STATUS_PEDIDO = [
   { value: 'pendente', label: 'Pendente', color: 'bg-yellow-500/20 text-yellow-600', icon: Clock },
@@ -94,10 +97,12 @@ interface Props {
 
 export function PedidosCatalogoList({ catalogoId }: Props) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [selectedPedido, setSelectedPedido] = useState<PedidoCatalogo | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-
+  const [lastCreatedRomaneioId, setLastCreatedRomaneioId] = useState<string | null>(null);
+  const [showRomaneioLink, setShowRomaneioLink] = useState(false);
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ['pedidos-catalogo', catalogoId],
     queryFn: async () => {
@@ -193,16 +198,32 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
           }
         }
 
-        return { romaneioCreated: true };
+        return { romaneioCreated: true, romaneioId: romaneio.id };
       }
 
-      return { romaneioCreated: false };
+      return { romaneioCreated: false, romaneioId: null };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['pedidos-catalogo'] });
       queryClient.invalidateQueries({ queryKey: ['romaneios'] });
-      if (result?.romaneioCreated) {
-        toast.success('Pedido confirmado e romaneio criado!');
+      if (result?.romaneioCreated && result?.romaneioId) {
+        setLastCreatedRomaneioId(result.romaneioId);
+        setShowRomaneioLink(true);
+        toast.success(
+          <div className="flex items-center gap-2">
+            <span>Pedido confirmado e romaneio criado!</span>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-6 px-2 text-xs"
+              onClick={() => navigate('/romaneios')}
+            >
+              <Truck className="w-3 h-3 mr-1" />
+              Ver Romaneio
+            </Button>
+          </div>,
+          { duration: 8000 }
+        );
       } else {
         toast.success('Status atualizado!');
       }
@@ -345,6 +366,18 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
                         <CheckCircle className="w-4 h-4 mr-1" />
                       )}
                       Aprovar e Criar Romaneio
+                    </Button>
+                  )}
+
+                  {pedido.status === 'confirmado' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-primary text-primary hover:bg-primary/10"
+                      onClick={() => navigate('/romaneios')}
+                    >
+                      <Truck className="w-4 h-4 mr-1" />
+                      Ver Romaneio
                     </Button>
                   )}
 
