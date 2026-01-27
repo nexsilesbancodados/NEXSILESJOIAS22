@@ -1135,12 +1135,22 @@ export function useUpdateMaletaItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, status, pecaId, statusAnterior, quantidade = 1 }: { 
+    mutationFn: async ({ 
+      id, 
+      status, 
+      pecaId, 
+      statusAnterior, 
+      quantidade = 1,
+      quantidadeVendida,
+      quantidadeTotal
+    }: { 
       id: string; 
       status: 'pendente' | 'vendido' | 'devolvido'; 
       pecaId: string;
       statusAnterior?: 'pendente' | 'vendido' | 'devolvido';
       quantidade?: number;
+      quantidadeVendida?: number;
+      quantidadeTotal?: number;
     }) => {
       // For 'devolvido' status, we need to delete the item and return to stock
       if (status === 'devolvido') {
@@ -1168,7 +1178,48 @@ export function useUpdateMaletaItem() {
         return { id, deleted: true };
       }
 
-      // For 'vendido' and 'pendente' status, update the record
+      // For 'vendido' status with partial quantity (selling part of a multi-quantity item)
+      if (status === 'vendido' && quantidadeVendida && quantidadeTotal && quantidadeVendida < quantidadeTotal) {
+        // Get the current item to get maleta_id
+        const { data: currentItem, error: fetchError } = await supabase
+          .from('maletas_pecas')
+          .select('maleta_id, preco_unitario')
+          .eq('id', id)
+          .single();
+        
+        if (fetchError) throw fetchError;
+
+        // Update the original item with remaining pending quantity
+        const remainingQuantity = quantidadeTotal - quantidadeVendida;
+        const { error: updateOriginalError } = await supabase
+          .from('maletas_pecas')
+          .update({ 
+            quantidade: remainingQuantity,
+            vendida: false 
+          })
+          .eq('id', id);
+        
+        if (updateOriginalError) throw updateOriginalError;
+
+        // Create a new item for the sold quantity
+        const { data: newItem, error: insertError } = await supabase
+          .from('maletas_pecas')
+          .insert({
+            maleta_id: currentItem.maleta_id,
+            peca_id: pecaId,
+            quantidade: quantidadeVendida,
+            vendida: true,
+            data_venda: new Date().toISOString().split('T')[0],
+            preco_unitario: currentItem.preco_unitario
+          })
+          .select()
+          .single();
+        
+        if (insertError) throw insertError;
+        return { id, partialSale: true, soldItem: newItem };
+      }
+
+      // For 'vendido' and 'pendente' status with full quantity, update the record
       const { data, error } = await supabase
         .from('maletas_pecas')
         .update({ 
@@ -1182,14 +1233,18 @@ export function useUpdateMaletaItem() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_, { status, statusAnterior }) => {
+    onSuccess: (_, { status, statusAnterior, quantidadeVendida, quantidadeTotal }) => {
       queryClient.invalidateQueries({ queryKey: ['maleta-items'] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
       
       if (status === 'pendente' && statusAnterior === 'vendido') {
         toast.success('Venda desfeita! Item voltou para pendente.');
       } else if (status === 'vendido') {
-        toast.success('Item marcado como vendido!');
+        if (quantidadeVendida && quantidadeTotal && quantidadeVendida < quantidadeTotal) {
+          toast.success(`${quantidadeVendida} unidade(s) marcada(s) como vendida(s)!`);
+        } else {
+          toast.success('Item marcado como vendido!');
+        }
       } else if (status === 'devolvido') {
         toast.success('Item devolvido ao estoque!');
       }
