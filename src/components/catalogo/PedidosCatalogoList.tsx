@@ -84,11 +84,17 @@ interface PedidoCatalogoItem {
   id: string;
   pedido_id: string;
   peca_id: string;
-  peca_nome: string;
-  peca_codigo: string;
   quantidade: number;
   preco_unitario: number;
   created_at: string;
+  peca?: {
+    id: string;
+    nome: string;
+    codigo: string | null;
+    imagem_url: string | null;
+    categoria: string | null;
+    material: string | null;
+  } | null;
 }
 
 interface Props {
@@ -130,7 +136,10 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
       if (!selectedPedido) return [];
       const { data, error } = await db
         .from('pedidos_catalogo_itens')
-        .select('*')
+        .select(`
+          *,
+          peca:pecas(id, nome, codigo, imagem_url, categoria, material)
+        `)
         .eq('pedido_id', selectedPedido.id);
       if (error) throw error;
       return data as PedidoCatalogoItem[];
@@ -467,28 +476,62 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
 
             {/* Items */}
             <div>
-              <h4 className="font-medium mb-2 flex items-center gap-2">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
                 <Package className="w-4 h-4" />
-                Itens do Pedido
+                Itens do Pedido ({pedidoItens.length})
               </h4>
               {loadingItens ? (
                 <div className="flex justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 </div>
+              ) : pedidoItens.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhum item encontrado
+                </p>
               ) : (
-                <ScrollArea className="h-[200px]">
-                  <div className="space-y-2">
+                <ScrollArea className="h-[280px]">
+                  <div className="space-y-3 pr-2">
                     {pedidoItens.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center p-2 bg-muted/30 rounded-lg">
-                        <div>
-                          <p className="font-medium text-sm">{item.peca_nome}</p>
-                          <p className="text-xs text-muted-foreground">Cód: {item.peca_codigo}</p>
+                      <div key={item.id} className="flex gap-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+                        {/* Product Image */}
+                        <div className="w-16 h-16 rounded-md overflow-hidden bg-muted shrink-0">
+                          {item.peca?.imagem_url ? (
+                            <img 
+                              src={item.peca.imagem_url} 
+                              alt={item.peca?.nome || 'Produto'}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-6 h-6 text-muted-foreground/50" />
+                            </div>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm">{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
-                          <p className="font-semibold text-primary text-sm">
-                            {formatCurrency(item.quantidade * item.preco_unitario)}
+                        
+                        {/* Product Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {item.peca?.nome || 'Produto não encontrado'}
                           </p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-1">
+                            {item.peca?.codigo && (
+                              <span>Cód: {item.peca.codigo}</span>
+                            )}
+                            {item.peca?.categoria && (
+                              <span>{item.peca.categoria}</span>
+                            )}
+                            {item.peca?.material && (
+                              <span>{item.peca.material}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {item.quantidade}x {formatCurrency(item.preco_unitario || 0)}
+                            </Badge>
+                            <span className="font-semibold text-primary text-sm">
+                              {formatCurrency((item.quantidade || 0) * (item.preco_unitario || 0))}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -498,10 +541,15 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
             </div>
 
             {/* Totals */}
-            <div className="bg-primary/5 rounded-lg p-3 space-y-2">
-              <div className="flex justify-between font-semibold">
+            <div className="bg-primary/5 rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Subtotal ({pedidoItens.length} {pedidoItens.length === 1 ? 'item' : 'itens'})</span>
+                <span>{formatCurrency(pedidoItens.reduce((acc, item) => acc + (item.quantidade || 0) * (item.preco_unitario || 0), 0))}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between font-semibold text-lg">
                 <span>Total</span>
-                <span className="text-primary">{formatCurrency(selectedPedido?.total || 0)}</span>
+                <span className="text-primary">{formatCurrency(selectedPedido?.total || pedidoItens.reduce((acc, item) => acc + (item.quantidade || 0) * (item.preco_unitario || 0), 0))}</span>
               </div>
             </div>
           </div>
