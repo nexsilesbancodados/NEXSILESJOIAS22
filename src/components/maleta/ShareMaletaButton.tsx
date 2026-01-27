@@ -168,6 +168,11 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
 
   const handleCopyLink = useCallback(async () => {
     try {
+      // Auto-enable is_public if not already enabled
+      if (!isPublic) {
+        await togglePublic.mutateAsync(true);
+      }
+      
       await navigator.clipboard.writeText(maletaLink);
       setCopied(true);
       toast.success('Link copiado!');
@@ -175,17 +180,37 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
     } catch {
       toast.error('Erro ao copiar link');
     }
-  }, [maletaLink]);
+  }, [maletaLink, isPublic, togglePublic]);
 
-  const handleShareWhatsApp = useCallback(() => {
+  const handleShareWhatsApp = useCallback(async () => {
+    // Auto-enable is_public if not already enabled
+    if (!isPublic) {
+      try {
+        await togglePublic.mutateAsync(true);
+      } catch {
+        toast.error('Erro ao ativar vitrine pública');
+        return;
+      }
+    }
+    
     const message = encodeURIComponent(
       `🛍️ *${maletaNome}*\n\nConfira as peças disponíveis e escolha as suas favoritas:\n${maletaLink}`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
     setIsOpen(false);
-  }, [maletaLink, maletaNome]);
+  }, [maletaLink, maletaNome, isPublic, togglePublic]);
 
   const handleNativeShare = useCallback(async () => {
+    // Auto-enable is_public if not already enabled
+    if (!isPublic) {
+      try {
+        await togglePublic.mutateAsync(true);
+      } catch {
+        toast.error('Erro ao ativar vitrine pública');
+        return;
+      }
+    }
+    
     if (navigator.share) {
       try {
         await navigator.share({
@@ -202,7 +227,7 @@ export const ShareMaletaButton = memo(function ShareMaletaButton({
     } else {
       handleCopyLink();
     }
-  }, [maletaLink, maletaNome, handleCopyLink]);
+  }, [maletaLink, maletaNome, handleCopyLink, isPublic, togglePublic]);
 
   const handleStartEdit = () => {
     setCustomSlug(currentSlug);
