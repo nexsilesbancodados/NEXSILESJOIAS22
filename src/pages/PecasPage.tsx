@@ -81,6 +81,7 @@ export default function PecasPage() {
   const [filterCategoria, setFilterCategoria] = useState('');
   const [filterBanho, setFilterBanho] = useState('');
   const [filterFornecedor, setFilterFornecedor] = useState('');
+  const [filterEstoque, setFilterEstoque] = useState<'all' | 'disponivel' | 'esgotado' | 'baixo'>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [sortField, setSortField] = useState<'nome' | 'preco_venda' | 'estoque' | 'created_at'>('nome');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -115,12 +116,18 @@ export default function PecasPage() {
     descricao: '',
   });
 
-  const activeFiltersCount = [filterCategoria, filterBanho, filterFornecedor].filter(f => f && f !== 'all').length;
+  const activeFiltersCount = [
+    filterCategoria, 
+    filterBanho, 
+    filterFornecedor,
+    filterEstoque !== 'all' ? filterEstoque : ''
+  ].filter(f => f && f !== 'all').length;
 
   const clearFilters = () => {
     setFilterCategoria('');
     setFilterBanho('');
     setFilterFornecedor('');
+    setFilterEstoque('all');
   };
 
   const handleSort = (field: typeof sortField) => {
@@ -149,7 +156,17 @@ export default function PecasPage() {
       const matchesMaterial = !filterBanho || filterBanho === 'all' || peca.material === filterBanho;
       const matchesFornecedor = !filterFornecedor || filterFornecedor === 'all' || peca.fornecedor_id === filterFornecedor;
       
-      return matchesSearch && matchesCategoria && matchesMaterial && matchesFornecedor;
+      // Filtro de estoque
+      let matchesEstoque = true;
+      if (filterEstoque === 'esgotado') {
+        matchesEstoque = peca.estoque === 0;
+      } else if (filterEstoque === 'disponivel') {
+        matchesEstoque = peca.estoque > 0;
+      } else if (filterEstoque === 'baixo') {
+        matchesEstoque = peca.estoque > 0 && peca.estoque <= (peca.estoque_minimo || 5);
+      }
+      
+      return matchesSearch && matchesCategoria && matchesMaterial && matchesFornecedor && matchesEstoque;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -423,7 +440,7 @@ export default function PecasPage() {
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Categoria</Label>
                 <Select value={filterCategoria} onValueChange={setFilterCategoria}>
@@ -466,6 +483,20 @@ export default function PecasPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Estoque</Label>
+                <Select value={filterEstoque} onValueChange={(v) => setFilterEstoque(v as typeof filterEstoque)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="disponivel">Em estoque</SelectItem>
+                    <SelectItem value="baixo">Estoque baixo</SelectItem>
+                    <SelectItem value="esgotado">Esgotado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             {activeFiltersCount > 0 && (
               <div className="mt-4 pt-4 border-t border-border/50">
@@ -476,6 +507,46 @@ export default function PecasPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Quick Stock Filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="text-sm text-muted-foreground mr-2">Estoque:</span>
+        <Button
+          variant={filterEstoque === 'all' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-8"
+          onClick={() => setFilterEstoque('all')}
+        >
+          Todos ({pecas.length})
+        </Button>
+        <Button
+          variant={filterEstoque === 'disponivel' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-8"
+          onClick={() => setFilterEstoque('disponivel')}
+        >
+          <Package className="w-3.5 h-3.5 mr-1.5 text-success" />
+          Em estoque ({pecas.filter(p => p.estoque > 0).length})
+        </Button>
+        <Button
+          variant={filterEstoque === 'baixo' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-8"
+          onClick={() => setFilterEstoque('baixo')}
+        >
+          <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-warning" />
+          Baixo ({pecas.filter(p => p.estoque > 0 && p.estoque <= (p.estoque_minimo || 5)).length})
+        </Button>
+        <Button
+          variant={filterEstoque === 'esgotado' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="h-8"
+          onClick={() => setFilterEstoque('esgotado')}
+        >
+          <X className="w-3.5 h-3.5 mr-1.5 text-destructive" />
+          Esgotado ({pecas.filter(p => p.estoque === 0).length})
+        </Button>
       </div>
 
       {/* Table */}
