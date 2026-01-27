@@ -9,7 +9,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { Copy, Share2, MessageCircle, ExternalLink } from 'lucide-react';
+import { Copy, Share2, MessageCircle, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { useCatalogos } from '@/hooks/useSupabaseData';
 import { cn } from '@/lib/utils';
 
@@ -22,22 +22,31 @@ export const ShareCatalogDropdown = memo(function ShareCatalogDropdown({
 }: ShareCatalogDropdownProps) {
   const { data: catalogos = [] } = useCatalogos();
   const [isOpen, setIsOpen] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const openCatalogs = catalogos.filter(c => c.ativo !== false);
 
-  const handleCopyLink = useCallback(async (catalogoId: string, catalogoNome: string) => {
-    const link = `${window.location.origin}/catalogo/${catalogoId}`;
+  const handleCopyLink = useCallback(async (catalogoId: string, catalogoNome: string, slug?: string | null) => {
+    const linkId = slug || catalogoId;
+    const link = `${window.location.origin}/catalogo/${linkId}`;
     try {
       await navigator.clipboard.writeText(link);
-      toast.success(`Link do catálogo "${catalogoNome}" copiado!`);
-      setIsOpen(false);
+      setCopiedId(catalogoId);
+      toast.success(`Link do catálogo "${catalogoNome}" copiado!`, {
+        icon: <CheckCircle2 className="w-4 h-4 text-success" />,
+      });
+      setTimeout(() => {
+        setCopiedId(null);
+        setIsOpen(false);
+      }, 1000);
     } catch {
       toast.error('Erro ao copiar link');
     }
   }, []);
 
-  const handleShareWhatsApp = useCallback((catalogoId: string, catalogoNome: string) => {
-    const link = `${window.location.origin}/catalogo/${catalogoId}`;
+  const handleShareWhatsApp = useCallback((catalogoId: string, catalogoNome: string, slug?: string | null) => {
+    const linkId = slug || catalogoId;
+    const link = `${window.location.origin}/catalogo/${linkId}`;
     const message = encodeURIComponent(
       `🛍️ *${catalogoNome}*\n\nConfira nosso catálogo e faça seu pedido:\n${link}`
     );
@@ -45,8 +54,9 @@ export const ShareCatalogDropdown = memo(function ShareCatalogDropdown({
     setIsOpen(false);
   }, []);
 
-  const handleOpenCatalog = useCallback((catalogoId: string) => {
-    window.open(`${window.location.origin}/catalogo/${catalogoId}`, '_blank');
+  const handleOpenCatalog = useCallback((catalogoId: string, slug?: string | null) => {
+    const linkId = slug || catalogoId;
+    window.open(`${window.location.origin}/catalogo/${linkId}`, '_blank');
     setIsOpen(false);
   }, []);
 
@@ -67,39 +77,45 @@ export const ShareCatalogDropdown = memo(function ShareCatalogDropdown({
           Compartilhar Catálogo
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64 bg-popover">
+      <DropdownMenuContent align="end" className="w-72 bg-popover">
         <DropdownMenuLabel className="text-xs text-muted-foreground">
           Selecione um catálogo para compartilhar
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {openCatalogs.map((catalogo) => (
-          <div key={catalogo.id} className="px-2 py-1.5">
-            <p className="text-sm font-medium mb-1 px-2">{catalogo.nome}</p>
+        {openCatalogs.map((catalogo, index) => (
+          <div key={catalogo.id} className="px-2 py-2">
+            <p className="text-sm font-medium mb-2 px-2 truncate" title={catalogo.nome}>
+              {catalogo.nome}
+            </p>
             <div className="flex gap-1">
               <DropdownMenuItem
-                className="flex-1 justify-center cursor-pointer"
-                onClick={() => handleCopyLink(catalogo.id, catalogo.nome)}
+                className="flex-1 justify-center cursor-pointer h-8"
+                onClick={() => handleCopyLink(catalogo.id, catalogo.nome, catalogo.slug)}
               >
-                <Copy className="w-3.5 h-3.5 mr-1" />
+                {copiedId === catalogo.id ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-success" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 mr-1" />
+                )}
                 Copiar
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="flex-1 justify-center cursor-pointer"
-                onClick={() => handleShareWhatsApp(catalogo.id, catalogo.nome)}
+                className="flex-1 justify-center cursor-pointer h-8"
+                onClick={() => handleShareWhatsApp(catalogo.id, catalogo.nome, catalogo.slug)}
               >
-                <MessageCircle className="w-3.5 h-3.5 mr-1 text-green-500" />
+                <MessageCircle className="w-3.5 h-3.5 mr-1 text-success" />
                 WhatsApp
               </DropdownMenuItem>
               <DropdownMenuItem
-                className="flex-1 justify-center cursor-pointer"
-                onClick={() => handleOpenCatalog(catalogo.id)}
+                className="flex-1 justify-center cursor-pointer h-8"
+                onClick={() => handleOpenCatalog(catalogo.id, catalogo.slug)}
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1" />
                 Abrir
               </DropdownMenuItem>
             </div>
-            {openCatalogs.indexOf(catalogo) < openCatalogs.length - 1 && (
+            {index < openCatalogs.length - 1 && (
               <DropdownMenuSeparator className="mt-2" />
             )}
           </div>
