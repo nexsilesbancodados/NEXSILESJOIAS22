@@ -55,6 +55,7 @@ import { ptBR } from 'date-fns/locale';
 
 const STATUS_PEDIDO = [
   { value: 'pendente', label: 'Pendente', color: 'bg-yellow-500/20 text-yellow-600', icon: Clock },
+  { value: 'aprovado', label: 'Aprovado', color: 'bg-blue-500/20 text-blue-600', icon: CheckCircle },
   { value: 'confirmado', label: 'Confirmado', color: 'bg-green-500/20 text-green-600', icon: CheckCircle },
   { value: 'cancelado', label: 'Cancelado', color: 'bg-red-500/20 text-red-600', icon: XCircle },
 ];
@@ -330,7 +331,23 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
 
                 <Separator className="my-3" />
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {pedido.status === 'pendente' && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => updateStatus.mutate({ id: pedido.id, status: 'confirmado', pedido })}
+                      disabled={updateStatus.isPending}
+                    >
+                      {updateStatus.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                      )}
+                      Aprovar e Criar Romaneio
+                    </Button>
+                  )}
+
                   <Select
                     value={pedido.status}
                     onValueChange={(value) => updateStatus.mutate({ id: pedido.id, status: value, pedido })}
