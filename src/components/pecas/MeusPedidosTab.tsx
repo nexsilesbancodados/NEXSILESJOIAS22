@@ -1,6 +1,7 @@
 import { useState, memo, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, supabase } from '@/lib/supabase-db';
+import { translateDatabaseError } from '@/lib/error-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -178,8 +179,8 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
       setSelectedPedido(null);
       toast.success('Pedido excluído!');
     },
-    onError: () => {
-      toast.error('Erro ao excluir pedido');
+    onError: (err) => {
+      toast.error(translateDatabaseError(err, 'excluir pedido'));
     },
   });
 

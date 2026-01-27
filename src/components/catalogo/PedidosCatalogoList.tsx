@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getOrganizationIdAsync } from '@/hooks/useOrganization';
+import { translateDatabaseError } from '@/lib/error-utils';
 
 const db = supabase;
 import { Badge } from '@/components/ui/badge';
@@ -225,8 +226,8 @@ export function PedidosCatalogoList({ catalogoId }: Props) {
       setSelectedPedido(null);
       toast.success('Pedido excluído!');
     },
-    onError: () => {
-      toast.error('Erro ao excluir pedido');
+    onError: (err) => {
+      toast.error(translateDatabaseError(err, 'excluir pedido'));
     },
   });
 

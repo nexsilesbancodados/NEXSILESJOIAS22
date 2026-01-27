@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { toast } from 'sonner';
+import { translateDatabaseError } from '@/lib/error-utils';
 
 const from = (table: string) => supabase.from(table);
 
@@ -181,8 +182,8 @@ export function useDeleteEnvio() {
       queryClient.invalidateQueries({ queryKey: ['envios'] });
       toast.success('Envio removido!');
     },
-    onError: () => {
-      toast.error('Erro ao remover envio');
+    onError: (err) => {
+      toast.error(translateDatabaseError(err, 'remover envio'));
     },
   });
 }
