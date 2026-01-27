@@ -473,6 +473,58 @@ export type Database = {
           },
         ]
       }
+      envio_galvanica_itens: {
+        Row: {
+          banho_id: string | null
+          created_at: string
+          envio_id: string | null
+          id: string
+          peca_id: string | null
+          peso: number | null
+          quantidade: number
+        }
+        Insert: {
+          banho_id?: string | null
+          created_at?: string
+          envio_id?: string | null
+          id?: string
+          peca_id?: string | null
+          peso?: number | null
+          quantidade?: number
+        }
+        Update: {
+          banho_id?: string | null
+          created_at?: string
+          envio_id?: string | null
+          id?: string
+          peca_id?: string | null
+          peso?: number | null
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_galvanica_itens_banho_id_fkey"
+            columns: ["banho_id"]
+            isOneToOne: false
+            referencedRelation: "banhos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_galvanica_itens_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios_galvanica"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_galvanica_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       envios: {
         Row: {
           codigo_rastreio: string | null
@@ -566,6 +618,66 @@ export type Database = {
             columns: ["romaneio_id"]
             isOneToOne: false
             referencedRelation: "romaneios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      envios_galvanica: {
+        Row: {
+          created_at: string
+          data_envio: string
+          data_retorno: string | null
+          fornecedor_id: string | null
+          id: string
+          observacoes: string | null
+          organization_id: string | null
+          peso_cobrado: number | null
+          peso_total: number | null
+          status: string
+          updated_at: string
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_envio?: string
+          data_retorno?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          organization_id?: string | null
+          peso_cobrado?: number | null
+          peso_total?: number | null
+          status?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_envio?: string
+          data_retorno?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          observacoes?: string | null
+          organization_id?: string | null
+          peso_cobrado?: number | null
+          peso_total?: number | null
+          status?: string
+          updated_at?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envios_galvanica_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envios_galvanica_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
