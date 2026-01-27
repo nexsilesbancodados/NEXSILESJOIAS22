@@ -6,7 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GalvanicaReportExport } from '@/components/export/GalvanicaReportExport';
 import { LucratividadeTab } from '@/components/reports/LucratividadeTab';
 import { DesempenhoVendas } from '@/components/reports/DesempenhoVendas';
+import { ReplenishmentReport } from '@/components/reports/ReplenishmentReport';
 import { ExportBuilder } from '@/components/export/ExportBuilder';
+import { useFornecedores } from '@/hooks/useSupabaseData';
 import {
   Popover,
   PopoverContent,
@@ -34,6 +36,7 @@ import {
   ArrowUpDown,
   PiggyBank,
   FileSpreadsheet,
+  PackageX,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -79,9 +82,11 @@ export default function RelatoriosPage() {
   const { data: banhos = [], isLoading: loadingBanhos } = useBanhos();
   const { data: vendasPecas = [] } = useVendasPecas();
   const { data: clientes = [] } = useClientes();
+  const { data: fornecedores = [] } = useFornecedores();
   
   const [periodoSelecionado, setPeriodoSelecionado] = useState('mensal');
   const [isExportBuilderOpen, setIsExportBuilderOpen] = useState(false);
+  const [isReplenishmentOpen, setIsReplenishmentOpen] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date(),
@@ -406,6 +411,12 @@ export default function RelatoriosPage() {
                 </PopoverContent>
               </Popover>
             )}
+
+            {/* Botão Reposição de Estoque */}
+            <Button onClick={() => setIsReplenishmentOpen(true)} variant="outline" size="sm" className="gap-2">
+              <PackageX className="w-4 h-4" />
+              Reposição
+            </Button>
 
             {/* Botão Relatório Avançado */}
             <Button onClick={() => setIsExportBuilderOpen(true)} variant="outline" size="sm" className="gap-2">
@@ -1132,6 +1143,14 @@ export default function RelatoriosPage() {
         revendedoras={revendedoras}
         romaneios={romaneios}
         clientes={clientes}
+      />
+
+      {/* Replenishment Report Modal */}
+      <ReplenishmentReport
+        open={isReplenishmentOpen}
+        onOpenChange={setIsReplenishmentOpen}
+        pecas={pecas}
+        fornecedores={fornecedores}
       />
     </div>
   );
