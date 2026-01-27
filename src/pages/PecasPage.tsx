@@ -545,8 +545,11 @@ export default function PecasPage() {
                   {formatCurrency(peca.preco_venda)}
                 </TableCell>
                 <TableCell className="text-center">
-                  <span className={cn(peca.estoque <= (peca.estoque_minimo || 5) ? 'stock-low' : 'stock-ok')}>
-                    {peca.estoque}
+                  <span className={cn(
+                    peca.estoque === 0 ? 'stock-empty' : 
+                    peca.estoque <= (peca.estoque_minimo || 5) ? 'stock-low' : 'stock-ok'
+                  )}>
+                    {peca.estoque === 0 ? 'Esgotado' : peca.estoque}
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">

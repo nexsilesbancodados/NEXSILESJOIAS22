@@ -1181,7 +1181,12 @@ function CatalogoItemsDialog({
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="font-medium text-sm">{formatCurrency(peca.preco_venda || 0)}</p>
-                          <p className="text-xs text-muted-foreground">Est: {peca.estoque || 0}</p>
+                          <p className={cn(
+                            "text-xs",
+                            (peca.estoque || 0) === 0 ? "text-muted-foreground font-medium" : "text-muted-foreground"
+                          )}>
+                            {(peca.estoque || 0) === 0 ? 'Esgotado' : `Est: ${peca.estoque || 0}`}
+                          </p>
                         </div>
                       </div>
                     ))
@@ -1232,7 +1237,12 @@ function CatalogoItemsDialog({
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{formatCurrency(peca.preco_venda)}</p>
-                        <p className="text-xs text-muted-foreground">Estoque: {peca.estoque}</p>
+                        <p className={cn(
+                          "text-xs",
+                          (peca.estoque || 0) === 0 ? "text-muted-foreground font-medium" : "text-muted-foreground"
+                        )}>
+                          {(peca.estoque || 0) === 0 ? 'Esgotado' : `Estoque: ${peca.estoque}`}
+                        </p>
                       </div>
                     </div>
                   ))}

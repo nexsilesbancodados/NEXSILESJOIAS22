@@ -609,8 +609,11 @@ export function LucratividadeTab({ pecas }: LucratividadeTabProps) {
                     <TableCell className="text-center">
                       {getMarginBadge(item.status, item.margem_percentual)}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {item.estoque}
+                    <TableCell className={cn(
+                      "text-right font-mono text-sm",
+                      item.estoque === 0 && "text-muted-foreground"
+                    )}>
+                      {item.estoque === 0 ? 'Esgotado' : item.estoque}
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-mono text-sm font-medium",

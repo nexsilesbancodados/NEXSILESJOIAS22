@@ -812,6 +812,7 @@ export default function CatalogoPublicoPage() {
                   const selectedQty = selectedItems.get(item.id)?.quantidade || 0;
                   const maxQty = item.quantidade || 1;
                   const justAdded = lastAddedItemId === item.id;
+                  const isOutOfStock = (item.peca?.estoque || 0) === 0;
                   
                   // Grid View Card
                   if (viewMode === 'grid') {
@@ -821,10 +822,11 @@ export default function CatalogoPublicoPage() {
                         className={cn(
                           "overflow-hidden transition-all duration-300",
                           isSelected && "ring-2 ring-primary bg-primary/5",
-                          canOrder && "hover:shadow-md cursor-pointer",
+                          canOrder && !isOutOfStock && "hover:shadow-md cursor-pointer",
+                          isOutOfStock && "opacity-60",
                           justAdded && "animate-scale-in ring-2 ring-primary shadow-lg"
                         )}
-                        onClick={() => canOrder && toggleItemSelection(item)}
+                        onClick={() => canOrder && !isOutOfStock && toggleItemSelection(item)}
                       >
                         <CardContent className="p-0">
                           {/* Image */}
@@ -882,12 +884,19 @@ export default function CatalogoPublicoPage() {
                             <p className="text-xs text-muted-foreground">
                               Cód: {item.peca?.codigo || '-'}
                             </p>
-                            <p className="font-semibold text-lg text-primary">
-                              {formatCurrency(item.peca?.preco_venda || 0)}
-                            </p>
+                            <div className="flex items-center justify-between">
+                              <p className="font-semibold text-lg text-primary">
+                                {formatCurrency(item.peca?.preco_venda || 0)}
+                              </p>
+                              {isOutOfStock && (
+                                <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                                  Esgotado
+                                </span>
+                              )}
+                            </div>
                             
                             {/* Quantity Controls for Grid */}
-                            {canOrder && (
+                            {canOrder && !isOutOfStock && (
                               <div className="pt-2 border-t">
                                 {isSelected ? (
                                   <div className="flex items-center justify-center gap-2">
@@ -949,7 +958,8 @@ export default function CatalogoPublicoPage() {
                       className={cn(
                         "overflow-hidden transition-all duration-300",
                         isSelected && "ring-2 ring-primary bg-primary/5",
-                        canOrder && "hover:shadow-md",
+                        canOrder && !isOutOfStock && "hover:shadow-md",
+                        isOutOfStock && "opacity-60",
                         justAdded && "animate-scale-in ring-2 ring-primary shadow-lg"
                       )}
                     >
@@ -996,7 +1006,7 @@ export default function CatalogoPublicoPage() {
                           <div className="flex-1 py-3 pr-4">
                             <div 
                               className="flex items-start justify-between gap-2 cursor-pointer"
-                              onClick={() => canOrder && toggleItemSelection(item)}
+                              onClick={() => canOrder && !isOutOfStock && toggleItemSelection(item)}
                             >
                               <div className="min-w-0">
                                 <h3 className="font-medium text-foreground truncate">
@@ -1006,9 +1016,16 @@ export default function CatalogoPublicoPage() {
                                   Cód: {item.peca?.codigo || '-'}
                                 </p>
                               </div>
-                              <span className="font-semibold text-lg text-primary shrink-0">
-                                {formatCurrency(item.peca?.preco_venda || 0)}
-                              </span>
+                              <div className="flex flex-col items-end shrink-0">
+                                <span className="font-semibold text-lg text-primary">
+                                  {formatCurrency(item.peca?.preco_venda || 0)}
+                                </span>
+                                {isOutOfStock && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground font-medium">
+                                    Esgotado
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             
                             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -1025,7 +1042,7 @@ export default function CatalogoPublicoPage() {
                             </div>
 
                             {/* Quantity Controls */}
-                            {canOrder && (
+                            {canOrder && !isOutOfStock && (
                               <div className="flex items-center justify-between mt-3">
                                 <span className="text-xs text-muted-foreground">
                                   Disponível: {maxQty}

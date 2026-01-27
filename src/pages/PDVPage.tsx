@@ -740,9 +740,10 @@ export default function PDVPage() {
                   </p>
                   <span className={cn(
                     'text-xs px-1.5 py-0.5 rounded font-medium',
+                    peca.estoque === 0 ? 'bg-muted text-muted-foreground' :
                     peca.estoque <= (peca.estoque_minimo || 5) ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'
                   )}>
-                    {peca.estoque}
+                    {peca.estoque === 0 ? 'Esgotado' : peca.estoque}
                   </span>
                 </div>
               </div>
