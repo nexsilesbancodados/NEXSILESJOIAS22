@@ -79,6 +79,7 @@ function AppRoutes() {
         <Route path="/maleta/:maletaId" element={<MaletaPublicaPage />} />
         
         {/* Portal da Revendedora - Public page without MainLayout */}
+        <Route path="/portal/login" element={<PortalRevendedoraPage />} />
         <Route path="/portal/:revendedoraId" element={<PortalRevendedoraPage />} />
         
         {/* Admin pages with MainLayout - Protected */}

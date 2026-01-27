@@ -779,6 +779,8 @@ export interface Revendedora {
   saldo_comissao?: number | null;
   ativo?: boolean | null;
   observacoes?: string | null;
+  usuario_portal?: string | null;
+  senha_portal?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -823,6 +825,8 @@ export function useAddRevendedora() {
           saldo_comissao: revendedora.saldo_comissao ?? 0,
           ativo: revendedora.ativo ?? true,
           observacoes: revendedora.observacoes || null,
+          usuario_portal: revendedora.usuario_portal || null,
+          senha_portal: revendedora.senha_portal || null,
         })
         .select()
         .single();
@@ -850,7 +854,7 @@ export function useUpdateRevendedora() {
       const validUpdates: Record<string, unknown> = {};
       const allowedFields = ['nome', 'telefone', 'whatsapp', 'email', 'cpf', 'endereco', 
         'cidade', 'estado', 'cep', 'data_nascimento', 'comissao_percentual', 
-        'saldo_comissao', 'ativo', 'observacoes', 'user_id'];
+        'saldo_comissao', 'ativo', 'observacoes', 'user_id', 'usuario_portal', 'senha_portal'];
       
       for (const [key, value] of Object.entries(updates)) {
         if (allowedFields.includes(key)) {

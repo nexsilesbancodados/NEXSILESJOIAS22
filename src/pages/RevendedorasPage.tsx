@@ -250,6 +250,8 @@ export default function RevendedorasPage() {
     telefone: '',
     email: '',
     comissao: '30',
+    usuario_portal: '',
+    senha_portal: '',
   });
 
   const [maletaFormData, setMaletaFormData] = useState({
@@ -342,6 +344,8 @@ export default function RevendedorasPage() {
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
         comissao: (revendedora.comissao_percentual || 30).toString(),
+        usuario_portal: (revendedora as any).usuario_portal || '',
+        senha_portal: (revendedora as any).senha_portal || '',
       });
     } else {
       setSelectedRevendedora(null);
@@ -350,6 +354,8 @@ export default function RevendedorasPage() {
         telefone: '',
         email: '',
         comissao: '30',
+        usuario_portal: '',
+        senha_portal: '',
       });
     }
     setIsFormOpen(true);
@@ -365,7 +371,9 @@ export default function RevendedorasPage() {
       nome: formData.nome,
       telefone: formData.telefone || null,
       email: formData.email || null,
-      comissao: parseFloat(formData.comissao) || 30,
+      comissao_percentual: parseFloat(formData.comissao) || 30,
+      usuario_portal: formData.usuario_portal || null,
+      senha_portal: formData.senha_portal || null,
     };
 
     try {
@@ -2077,6 +2085,35 @@ export default function RevendedorasPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="maria@email.com"
               />
+            </div>
+            
+            {/* Portal Access */}
+            <div className="border-t pt-4 mt-2">
+              <h4 className="text-sm font-medium mb-3">Acesso ao Portal</h4>
+              <p className="text-xs text-muted-foreground mb-3">
+                Crie credenciais para a revendedora acessar o portal e gerenciar suas vendas.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="usuario_portal">Usuário</Label>
+                  <Input
+                    id="usuario_portal"
+                    value={formData.usuario_portal}
+                    onChange={(e) => setFormData({ ...formData, usuario_portal: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                    placeholder="joaninha44"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="senha_portal">Senha</Label>
+                  <Input
+                    id="senha_portal"
+                    type="password"
+                    value={formData.senha_portal}
+                    onChange={(e) => setFormData({ ...formData, senha_portal: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
