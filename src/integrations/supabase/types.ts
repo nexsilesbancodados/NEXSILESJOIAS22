@@ -435,6 +435,7 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           id: string
+          organization_id: string | null
           tipo: string | null
           updated_at: string | null
           valor: string | null
@@ -444,6 +445,7 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           id?: string
+          organization_id?: string | null
           tipo?: string | null
           updated_at?: string | null
           valor?: string | null
@@ -453,11 +455,20 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           id?: string
+          organization_id?: string | null
           tipo?: string | null
           updated_at?: string | null
           valor?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fidelidade_transacoes: {
         Row: {
@@ -574,6 +585,7 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          organization_id: string | null
           salario: number | null
           telefone: string | null
           updated_at: string | null
@@ -589,6 +601,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome: string
+          organization_id?: string | null
           salario?: number | null
           telefone?: string | null
           updated_at?: string | null
@@ -604,12 +617,21 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string
+          organization_id?: string | null
           salario?: number | null
           telefone?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "funcionarios_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       historico_atividades: {
         Row: {
@@ -1022,6 +1044,7 @@ export type Database = {
           id: string
           largura: number
           nome: string
+          organization_id: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -1033,6 +1056,7 @@ export type Database = {
           id?: string
           largura?: number
           nome?: string
+          organization_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -1044,10 +1068,19 @@ export type Database = {
           id?: string
           largura?: number
           nome?: string
+          organization_id?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "modelos_etiquetas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       movimentos_caixa: {
         Row: {

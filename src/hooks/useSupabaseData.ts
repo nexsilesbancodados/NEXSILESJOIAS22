@@ -2066,13 +2066,16 @@ export function useSaveConfiguracoes() {
   
   return useMutation({
     mutationFn: async (configs: Record<string, string>) => {
+      const organizationId = await getOrganizationId();
+      
       // Upsert each config key-value pair
       for (const [chave, valor] of Object.entries(configs)) {
-        // Check if config exists
+        // Check if config exists for this organization
         const { data: existing } = await supabase
           .from('configuracoes')
           .select('id')
           .eq('chave', chave)
+          .eq('organization_id', organizationId)
           .maybeSingle();
         
         if (existing) {
@@ -2084,7 +2087,7 @@ export function useSaveConfiguracoes() {
         } else {
           const { error } = await supabase
             .from('configuracoes')
-            .insert({ chave, valor });
+            .insert({ chave, valor, organization_id: organizationId });
           if (error) throw error;
         }
       }
@@ -2623,7 +2626,7 @@ export function useModelosEtiquetas() {
   return useQuery({
     queryKey: ['modelos-etiquetas'],
     queryFn: async () => {
-      // RLS handles organization filtering
+      // RLS handles organization filtering via organization_id
       const { data, error } = await supabase
         .from('modelos_etiquetas')
         .select('*')
@@ -2658,7 +2661,7 @@ export function useAddModeloEtiqueta() {
           altura: altura || 30,
           ativo: ativo ?? true,
           campos: extraFields,
-          user_id: organizationId, // Using organization_id for proper isolation
+          organization_id: organizationId,
         })
         .select()
         .single();

@@ -101,16 +101,22 @@ export function useOfflineSync(): UseOfflineSyncReturn {
 
       for (const venda of pendingVendas) {
         try {
-          // Insert venda
+          // Insert venda with organization_id from user's membership
+          const { data: membership } = await db
+            .from('memberships')
+            .select('organization_id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
           const { data: vendaData, error: vendaError } = await db
             .from('vendas')
             .insert({
-              total: venda.total,
+              organization_id: membership?.organization_id,
+              valor_total: venda.total,
+              subtotal: venda.total,
               desconto: venda.desconto,
-              cliente_nome: venda.cliente_nome,
               status: 'finalizada',
               forma_pagamento: venda.pagamentos[0]?.metodo || 'dinheiro',
-              user_id: user.id,
             })
             .select()
             .single();

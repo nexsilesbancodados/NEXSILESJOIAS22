@@ -29,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSaveUserPreference, PREFERENCE_KEYS } from '@/hooks/useUserPreferences';
 import { supabase } from '@/integrations/supabase/client';
+import { getOrganizationIdAsync } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
 
 // ============ STEP DEFINITIONS ============
@@ -145,6 +146,8 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
 
     setIsSubmitting(true);
     try {
+      const organizationId = await getOrganizationIdAsync();
+      
       // Save each config key individually using upsert
       const configs = [
         { chave: 'nome_loja', valor: storeData.nome_loja },
@@ -156,11 +159,12 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
       ];
 
       for (const config of configs) {
-        // Check if exists
+        // Check if exists for this organization
         const { data: existing } = await supabase
           .from('configuracoes')
           .select('id')
           .eq('chave', config.chave)
+          .eq('organization_id', organizationId)
           .maybeSingle();
 
         if (existing) {
@@ -171,7 +175,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
         } else {
           await supabase
             .from('configuracoes')
-            .insert({ chave: config.chave, valor: config.valor, tipo: 'string' });
+            .insert({ chave: config.chave, valor: config.valor, tipo: 'string', organization_id: organizationId });
         }
       }
 
@@ -203,11 +207,14 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
 
     setIsSubmitting(true);
     try {
+      const organizationId = await getOrganizationIdAsync();
+      
       // Save meta config
       const { data: existing } = await supabase
         .from('configuracoes')
         .select('id')
         .eq('chave', 'meta_faturamento_mensal')
+        .eq('organization_id', organizationId)
         .maybeSingle();
 
       if (existing) {
@@ -218,10 +225,10 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
       } else {
         await supabase
           .from('configuracoes')
-          .insert({ chave: 'meta_faturamento_mensal', valor: metaMensal, tipo: 'number' });
+          .insert({ chave: 'meta_faturamento_mensal', valor: metaMensal, tipo: 'number', organization_id: organizationId });
       }
 
-      // Also create a meta record
+      // Also create a meta record with organization_id
       await supabase
         .from('metas')
         .insert({
@@ -230,6 +237,7 @@ export function SetupWizard({ onComplete, onSkip }: SetupWizardProps) {
           tipo: 'vendas',
           data_inicio: new Date().toISOString().slice(0, 10),
           data_fim: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().slice(0, 10),
+          organization_id: organizationId,
         });
 
       toast.success('Configurações salvas com sucesso!');

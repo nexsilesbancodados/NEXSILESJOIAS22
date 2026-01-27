@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, supabase } from '@/lib/supabase-db';
 import { toast } from '@/hooks/use-toast';
+import { getOrganizationIdAsync } from '@/hooks/useOrganization';
 
 export interface Meta {
   id: string;
@@ -64,12 +65,12 @@ export function useAddMeta() {
   
   return useMutation({
     mutationFn: async (meta: Omit<Meta, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      const organizationId = await getOrganizationIdAsync();
       
       const { data, error } = await db
         .from('metas')
         .insert({
+          organization_id: organizationId,
           titulo: meta.titulo,
           descricao: meta.descricao,
           tipo: meta.tipo,
