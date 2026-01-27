@@ -63,6 +63,7 @@ import {
   Palette
 } from 'lucide-react';
 import { WhatsAppTemplates } from '@/components/whatsapp/WhatsAppTemplates';
+import { MaletaAddPecaSection } from '@/components/revendedoras/MaletaAddPecaSection';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -219,7 +220,6 @@ export default function RevendedorasPage() {
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [isBulkActionPending, setIsBulkActionPending] = useState(false);
-  const [addPecaSource, setAddPecaSource] = useState<'estoque' | 'catalogo'>('estoque');
   const [selectedCatalogoId, setSelectedCatalogoId] = useState<string>('');
 
   // Track revendedora presence when viewing a maleta (broadcasts to public page)
@@ -465,13 +465,14 @@ export default function RevendedorasPage() {
     }
   };
 
-  const handleAddPecaToMaleta = async (peca: Peca) => {
+  const handleAddPecaToMaleta = async (peca: Peca, quantidade: number = 1) => {
     if (!selectedMaleta) return;
 
     try {
       await addMaletaItemMutation.mutateAsync({
         maletaId: selectedMaleta.id,
         pecaId: peca.id,
+        quantidade,
       });
       setSearchPeca('');
     } catch (error) {
@@ -493,15 +494,15 @@ export default function RevendedorasPage() {
     }
   };
 
-  const handleAddPecaFromCatalogo = async (peca: Peca) => {
+  const handleAddPecaFromCatalogo = async (peca: Peca, quantidade: number = 1) => {
     if (!selectedMaleta) return;
     
     try {
       await addMaletaItemMutation.mutateAsync({
         maletaId: selectedMaleta.id,
         pecaId: peca.id,
+        quantidade,
       });
-      toast.success(`${peca.nome} adicionado à maleta!`);
     } catch (error) {
       console.error('Error adding peca from catalog:', error);
     }
@@ -1082,177 +1083,38 @@ export default function RevendedorasPage() {
               {/* Tab Peças */}
               <TabsContent value="pecas" className="space-y-4">
                 {selectedMaleta?.status === 'aberta' && (
-                  <div className="space-y-3">
-                    <Label>Adicionar Peça</Label>
-                    
-                    {/* Source Toggle */}
-                    <div className="flex gap-2">
-                      <Button
-                        variant={addPecaSource === 'estoque' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setAddPecaSource('estoque')}
-                      >
-                        <Package className="w-4 h-4 mr-1" />
-                        Do Estoque
-                      </Button>
-                      <Button
-                        variant={addPecaSource === 'catalogo' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setAddPecaSource('catalogo')}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-1" />
-                        Do Catálogo
-                      </Button>
-                    </div>
-
-                    {addPecaSource === 'estoque' ? (
-                      <div className="space-y-3">
-                        <Input
-                          placeholder="Buscar por nome ou código..."
-                          value={searchPeca}
-                          onChange={(e) => setSearchPeca(e.target.value)}
-                        />
-                        
-                        {/* Estoque List */}
-                        <ScrollArea className="h-[250px] border rounded-lg">
-                          <div className="p-2 space-y-2">
-                            {pecasDisponiveis.length === 0 ? (
-                              <p className="text-center text-muted-foreground py-8 text-sm">
-                                {searchPeca 
-                                  ? 'Nenhuma peça encontrada para esta busca' 
-                                  : 'Nenhuma peça disponível no estoque'}
-                              </p>
-                            ) : (
-                              pecasDisponiveis.map((peca) => {
-                                const jaAdicionada = maletaItems.some(mi => mi.peca_id === peca.id);
-                                return (
-                                  <div
-                                    key={peca.id}
-                                    className={cn(
-                                      "flex items-center gap-3 p-3 rounded-lg transition-colors border",
-                                      jaAdicionada 
-                                        ? "bg-muted/50 opacity-60 border-transparent" 
-                                        : "hover:bg-secondary/50 cursor-pointer border-border/50 hover:border-primary/30"
-                                    )}
-                                    onClick={() => !jaAdicionada && handleAddPecaToMaleta(peca)}
-                                  >
-                                    <img
-                                      src={peca.imagem_url || '/placeholder.svg'}
-                                      alt={peca.nome}
-                                      className="w-12 h-12 rounded-lg object-cover"
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-medium text-sm truncate">{peca.nome}</p>
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span>{peca.codigo}</span>
-                                        {peca.categoria && (
-                                          <>
-                                            <span>•</span>
-                                            <span>{peca.categoria}</span>
-                                          </>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                      <p className="font-semibold">{formatCurrency(peca.preco_venda)}</p>
-                                      {jaAdicionada ? (
-                                        <Badge variant="secondary" className="text-xs">Na maleta</Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="text-xs">Estoque: {peca.estoque}</Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        </ScrollArea>
-                        <p className="text-xs text-muted-foreground text-center">
-                          {pecasDisponiveis.length} peça(s) disponível(is) no estoque
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {/* Catalog Selector */}
-                        <select
-                          className="w-full p-2 border rounded-lg bg-background"
-                          value={selectedCatalogoId}
-                          onChange={(e) => setSelectedCatalogoId(e.target.value)}
-                        >
-                          <option value="">Selecione um catálogo...</option>
-                          {catalogos.filter(c => c.ativo).map((catalogo) => (
-                            <option key={catalogo.id} value={catalogo.id}>
-                              {catalogo.nome}
-                            </option>
-                          ))}
-                        </select>
-
-                        {/* Catalog Items */}
-                        {selectedCatalogoId && (
-                          <ScrollArea className="h-[200px] border rounded-lg">
-                            <div className="p-2 space-y-2">
-                              {catalogoItems.length === 0 ? (
-                                <p className="text-center text-muted-foreground py-4 text-sm">
-                                  Nenhuma peça neste catálogo
-                                </p>
-                              ) : (
-                                catalogoItems.map((item) => {
-                                  const jaAdicionada = maletaItems.some(mi => mi.peca_id === item.peca_id);
-                                  return (
-                                    <div
-                                      key={item.id}
-                                      className={cn(
-                                        "flex items-center gap-3 p-2 rounded-lg transition-colors",
-                                        jaAdicionada 
-                                          ? "bg-muted/50 opacity-60" 
-                                          : "hover:bg-secondary/50 cursor-pointer"
-                                      )}
-                                      onClick={() => !jaAdicionada && item.peca && handleAddPecaFromCatalogo(item.peca)}
-                                    >
-                                      <img
-                                        src={item.peca?.imagem_url || '/placeholder.svg'}
-                                        alt={item.peca?.nome}
-                                        className="w-10 h-10 rounded object-cover"
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-sm truncate">{item.peca?.nome}</p>
-                                        <p className="text-xs text-muted-foreground">{item.peca?.codigo}</p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="font-medium text-sm">{formatCurrency(item.peca?.preco_venda || 0)}</p>
-                                        {jaAdicionada ? (
-                                          <Badge variant="secondary" className="text-xs">Já na maleta</Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="text-xs">Qtd: {item.quantidade || 1}</Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-                          </ScrollArea>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <MaletaAddPecaSection
+                    pecasDisponiveis={pecasDisponiveis}
+                    maletaItems={maletaItems}
+                    catalogos={catalogos}
+                    catalogoItems={catalogoItems}
+                    onAddPeca={handleAddPecaToMaleta}
+                    onAddFromCatalogo={handleAddPecaFromCatalogo}
+                    selectedCatalogoId={selectedCatalogoId}
+                    onCatalogoChange={setSelectedCatalogoId}
+                    searchPeca={searchPeca}
+                    onSearchChange={setSearchPeca}
+                    isAdding={addMaletaItemMutation.isPending}
+                  />
                 )}
 
-                {/* Stats Mini */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-3 rounded-lg bg-muted/50 text-center">
-                    <p className="text-2xl font-bold text-yellow-600">{itemsPendentes.length}</p>
-                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                {/* Stats Mini - only show when maleta is closed or no add section */}
+                {selectedMaleta?.status !== 'aberta' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="p-3 rounded-lg bg-muted/50 text-center">
+                      <p className="text-2xl font-bold text-warning">{itemsPendentes.length}</p>
+                      <p className="text-xs text-muted-foreground">Pendentes</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-success/10 text-center">
+                      <p className="text-2xl font-bold text-success">{itemsVendidos.length}</p>
+                      <p className="text-xs text-muted-foreground">Vendidas</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-muted text-center">
+                      <p className="text-2xl font-bold text-muted-foreground">{itemsDevolvidos.length}</p>
+                      <p className="text-xs text-muted-foreground">Devolvidas</p>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-success/10 text-center">
-                    <p className="text-2xl font-bold text-success">{itemsVendidos.length}</p>
-                    <p className="text-xs text-muted-foreground">Vendidas</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted text-center">
-                    <p className="text-2xl font-bold text-muted-foreground">{itemsDevolvidos.length}</p>
-                    <p className="text-xs text-muted-foreground">Devolvidas</p>
-                  </div>
-                </div>
+                )}
 
                 {/* Bulk Actions Bar */}
                 {selectedMaleta?.status === 'aberta' && pendingItems.length > 0 && (
