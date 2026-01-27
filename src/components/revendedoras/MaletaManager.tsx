@@ -38,13 +38,18 @@ import {
   DollarSign,
   TrendingUp,
   Percent,
+  Lock,
+  FileText,
+  AlertTriangle,
 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
   useMaletaItems,
   useAddMaletaItem,
   useUpdateMaletaItem,
   useDeleteMaletaItem,
+  useCloseMaleta,
   usePecas,
   type Maleta,
   type MaletaItem,
@@ -65,6 +70,7 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
   const addMaletaItemMutation = useAddMaletaItem();
   const updateMaletaItemMutation = useUpdateMaletaItem();
   const deleteMaletaItemMutation = useDeleteMaletaItem();
+  const closeMaletaMutation = useCloseMaleta();
 
   // State
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -75,6 +81,7 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
   const [vendaModal, setVendaModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
   const [editQtdModal, setEditQtdModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
   const [detalhesModal, setDetalhesModal] = useState<{ open: boolean; peca: Peca | null }>({ open: false, peca: null });
+  const [fecharMaletaModal, setFecharMaletaModal] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
 
@@ -234,7 +241,20 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
     setEditQtdModal({ open: true, item });
   };
 
-  const isPending = addMaletaItemMutation.isPending || updateMaletaItemMutation.isPending || deleteMaletaItemMutation.isPending;
+  const handleFecharMaleta = async () => {
+    try {
+      await closeMaletaMutation.mutateAsync({
+        maletaId: maleta.id,
+        returnPendingToStock: true,
+      });
+      setFecharMaletaModal(false);
+      if (onClose) onClose();
+    } catch (error) {
+      console.error('Error closing maleta:', error);
+    }
+  };
+
+  const isPending = addMaletaItemMutation.isPending || updateMaletaItemMutation.isPending || deleteMaletaItemMutation.isPending || closeMaletaMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -284,6 +304,37 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
           </CardContent>
         </Card>
       </div>
+
+      {/* Close Maleta Button */}
+      {maleta.status === 'aberta' && (
+        <div className="flex justify-end">
+          <Button
+            variant="default"
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => setFecharMaletaModal(true)}
+            disabled={isPending}
+          >
+            <Lock className="w-4 h-4 mr-2" />
+            Fechar Maleta
+          </Button>
+        </div>
+      )}
+
+      {/* Maleta Fechada Banner */}
+      {maleta.status === 'fechada' && (
+        <Card className="bg-muted/50 border-muted-foreground/20">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Lock className="w-5 h-5 text-muted-foreground" />
+            <div>
+              <p className="font-medium">Maleta Fechada</p>
+              <p className="text-sm text-muted-foreground">
+                Esta maleta foi fechada. Total vendido: {formatCurrency(valorVendido)} | 
+                Comissão: {formatCurrency(comissaoEstimada)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Pieces Section (Collapsible) */}
       {maleta.status === 'aberta' && (
@@ -681,6 +732,91 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetalhesModal({ open: false, peca: null })}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Fechar Maleta com Resumo */}
+      <Dialog open={fecharMaletaModal} onOpenChange={setFecharMaletaModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Fechar Maleta - Resumo Final
+            </DialogTitle>
+            <DialogDescription>
+              Revise o resumo antes de fechar a maleta "{maleta.nome}"
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Resumo de Peças */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 bg-secondary/50 rounded-lg">
+                <p className="text-2xl font-bold">{totalPecas}</p>
+                <p className="text-xs text-muted-foreground">Total Peças</p>
+              </div>
+              <div className="text-center p-3 bg-success/10 rounded-lg">
+                <p className="text-2xl font-bold text-success">{pecasVendidas}</p>
+                <p className="text-xs text-muted-foreground">Vendidas</p>
+              </div>
+              <div className="text-center p-3 bg-warning/10 rounded-lg">
+                <p className="text-2xl font-bold text-warning">{pecasPendentes}</p>
+                <p className="text-xs text-muted-foreground">A devolver</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Resumo Financeiro */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center py-2">
+                <span className="text-muted-foreground">Valor total em vendas:</span>
+                <span className="font-semibold text-success">{formatCurrency(valorVendido)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-muted-foreground">Valor devolvido ao estoque:</span>
+                <span className="font-semibold text-warning">{formatCurrency(valorPendente)}</span>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center py-3 bg-primary/10 rounded-lg px-3">
+                <div>
+                  <span className="font-medium">Comissão a pagar ({comissaoPercentual}%)</span>
+                  <p className="text-xs text-muted-foreground">Sobre o valor vendido</p>
+                </div>
+                <span className="text-xl font-bold text-primary">{formatCurrency(comissaoEstimada)}</span>
+              </div>
+            </div>
+
+            {pecasPendentes > 0 && (
+              <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-warning">Atenção</p>
+                  <p className="text-muted-foreground">
+                    {pecasPendentes} peça(s) pendente(s) serão automaticamente devolvidas ao estoque ao fechar a maleta.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setFecharMaletaModal(false)} disabled={closeMaletaMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleFecharMaleta} 
+              disabled={closeMaletaMutation.isPending}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {closeMaletaMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Lock className="w-4 h-4 mr-2" />
+              )}
+              Confirmar Fechamento
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
