@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Suspense, lazy, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +63,7 @@ const ChartsSkeleton = () => (
 );
 
 export default function DashboardPage() {
+  const { profile } = useAuth();
   const { showTour, endTour, startTour } = useTourManager('dashboard');
   const { showWizard, setShowWizard, isLoading: wizardLoading } = useSetupWizard();
   const { data: pecas = [], isLoading: loadingPecas } = usePecas();
@@ -152,9 +154,11 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <p className="text-muted-foreground text-sm mb-1">Bom dia,</p>
+          <p className="text-muted-foreground text-sm mb-1">
+            {new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite'},
+          </p>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-            Nexsiles <Badge variant="outline" className="ml-2 text-xs font-normal">Sistema de Gestão</Badge>
+            {profile?.nome || 'Usuário'} <Badge variant="outline" className="ml-2 text-xs font-normal">Sistema de Gestão</Badge>
           </h1>
         </div>
         <div className="flex items-center gap-2">
