@@ -1106,34 +1106,70 @@ export default function RevendedorasPage() {
                     </div>
 
                     {addPecaSource === 'estoque' ? (
-                      <div className="relative">
+                      <div className="space-y-3">
                         <Input
-                          placeholder="Buscar peça no estoque..."
+                          placeholder="Buscar por nome ou código..."
                           value={searchPeca}
                           onChange={(e) => setSearchPeca(e.target.value)}
                         />
-                        {searchPeca && pecasDisponiveis.length > 0 && (
-                          <div className="absolute z-10 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {pecasDisponiveis.slice(0, 5).map((peca) => (
-                              <div
-                                key={peca.id}
-                                className="flex items-center gap-3 p-3 hover:bg-secondary/50 cursor-pointer"
-                                onClick={() => handleAddPecaToMaleta(peca)}
-                              >
-                                <img
-                                  src={peca.imagem_url || '/placeholder.svg'}
-                                  alt={peca.nome}
-                                  className="w-10 h-10 rounded object-cover"
-                                />
-                                <div className="flex-1">
-                                  <p className="font-medium text-sm">{peca.nome}</p>
-                                  <p className="text-xs text-muted-foreground">{peca.codigo}</p>
-                                </div>
-                                <p className="font-medium">{formatCurrency(peca.preco_venda)}</p>
-                              </div>
-                            ))}
+                        
+                        {/* Estoque List */}
+                        <ScrollArea className="h-[250px] border rounded-lg">
+                          <div className="p-2 space-y-2">
+                            {pecasDisponiveis.length === 0 ? (
+                              <p className="text-center text-muted-foreground py-8 text-sm">
+                                {searchPeca 
+                                  ? 'Nenhuma peça encontrada para esta busca' 
+                                  : 'Nenhuma peça disponível no estoque'}
+                              </p>
+                            ) : (
+                              pecasDisponiveis.map((peca) => {
+                                const jaAdicionada = maletaItems.some(mi => mi.peca_id === peca.id);
+                                return (
+                                  <div
+                                    key={peca.id}
+                                    className={cn(
+                                      "flex items-center gap-3 p-3 rounded-lg transition-colors border",
+                                      jaAdicionada 
+                                        ? "bg-muted/50 opacity-60 border-transparent" 
+                                        : "hover:bg-secondary/50 cursor-pointer border-border/50 hover:border-primary/30"
+                                    )}
+                                    onClick={() => !jaAdicionada && handleAddPecaToMaleta(peca)}
+                                  >
+                                    <img
+                                      src={peca.imagem_url || '/placeholder.svg'}
+                                      alt={peca.nome}
+                                      className="w-12 h-12 rounded-lg object-cover"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm truncate">{peca.nome}</p>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{peca.codigo}</span>
+                                        {peca.categoria && (
+                                          <>
+                                            <span>•</span>
+                                            <span>{peca.categoria}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <p className="font-semibold">{formatCurrency(peca.preco_venda)}</p>
+                                      {jaAdicionada ? (
+                                        <Badge variant="secondary" className="text-xs">Na maleta</Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-xs">Estoque: {peca.estoque}</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
                           </div>
-                        )}
+                        </ScrollArea>
+                        <p className="text-xs text-muted-foreground text-center">
+                          {pecasDisponiveis.length} peça(s) disponível(is) no estoque
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-3">
