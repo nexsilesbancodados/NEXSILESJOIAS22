@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { toast } from 'sonner';
+import { translateDatabaseError } from '@/lib/error-utils';
 
 const db = supabase;
 
@@ -140,8 +141,8 @@ export function useDeleteNivelFidelidade() {
       queryClient.invalidateQueries({ queryKey: ['niveis-fidelidade'] });
       toast.success('Nível removido!');
     },
-    onError: () => {
-      toast.error('Erro ao remover nível');
+    onError: (err) => {
+      toast.error(translateDatabaseError(err, 'remover nível'));
     },
   });
 }

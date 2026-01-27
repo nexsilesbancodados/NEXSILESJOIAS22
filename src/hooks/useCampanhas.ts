@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase-db';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
+import { translateDatabaseError } from '@/lib/error-utils';
 
 const db = supabase;
 
@@ -141,8 +142,8 @@ export function useDeleteCampanha() {
       queryClient.invalidateQueries({ queryKey: ['campanhas'] });
       toast.success('Campanha excluída!');
     },
-    onError: () => {
-      toast.error('Erro ao excluir campanha');
+    onError: (err) => {
+      toast.error(translateDatabaseError(err, 'excluir campanha'));
     },
   });
 }
