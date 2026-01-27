@@ -7,7 +7,7 @@ const from = (table: string) => supabase.from(table);
 
 export interface Envio {
   id: string;
-  user_id: string;
+  organization_id: string | null;
   romaneio_id: string | null;
   maleta_id: string | null;
   destinatario_nome: string;
@@ -18,10 +18,10 @@ export interface Envio {
   destinatario_cep: string | null;
   codigo_rastreio: string | null;
   transportadora: string | null;
-  tipo_envio: 'sedex' | 'pac' | 'transportadora' | 'motoboy' | 'retirada';
+  tipo_envio: string;
   valor_frete: number;
   peso: number | null;
-  status: 'preparando' | 'postado' | 'em_transito' | 'entregue' | 'devolvido';
+  status: string;
   data_postagem: string | null;
   data_entrega: string | null;
   previsao_entrega: string | null;
@@ -43,12 +43,8 @@ export function useEnvios() {
   return useQuery({
     queryKey: ['envios'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-      
       const { data, error } = await from('envios')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -97,12 +93,9 @@ export function useAddEnvio() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (envio: Omit<Envio, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-      
+    mutationFn: async (envio: Omit<Envio, 'id' | 'organization_id' | 'created_at' | 'updated_at'> & { organization_id: string }) => {
       const { data, error } = await from('envios')
-        .insert({ ...envio, user_id: user.id })
+        .insert(envio)
         .select()
         .single();
       

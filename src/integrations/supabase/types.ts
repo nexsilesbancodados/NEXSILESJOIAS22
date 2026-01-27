@@ -473,6 +473,103 @@ export type Database = {
           },
         ]
       }
+      envios: {
+        Row: {
+          codigo_rastreio: string | null
+          created_at: string
+          data_entrega: string | null
+          data_postagem: string | null
+          destinatario_cep: string | null
+          destinatario_cidade: string | null
+          destinatario_endereco: string | null
+          destinatario_estado: string | null
+          destinatario_nome: string
+          destinatario_telefone: string | null
+          id: string
+          maleta_id: string | null
+          observacoes: string | null
+          organization_id: string | null
+          peso: number | null
+          previsao_entrega: string | null
+          romaneio_id: string | null
+          status: string
+          tipo_envio: string
+          transportadora: string | null
+          updated_at: string
+          valor_frete: number
+        }
+        Insert: {
+          codigo_rastreio?: string | null
+          created_at?: string
+          data_entrega?: string | null
+          data_postagem?: string | null
+          destinatario_cep?: string | null
+          destinatario_cidade?: string | null
+          destinatario_endereco?: string | null
+          destinatario_estado?: string | null
+          destinatario_nome: string
+          destinatario_telefone?: string | null
+          id?: string
+          maleta_id?: string | null
+          observacoes?: string | null
+          organization_id?: string | null
+          peso?: number | null
+          previsao_entrega?: string | null
+          romaneio_id?: string | null
+          status?: string
+          tipo_envio?: string
+          transportadora?: string | null
+          updated_at?: string
+          valor_frete?: number
+        }
+        Update: {
+          codigo_rastreio?: string | null
+          created_at?: string
+          data_entrega?: string | null
+          data_postagem?: string | null
+          destinatario_cep?: string | null
+          destinatario_cidade?: string | null
+          destinatario_endereco?: string | null
+          destinatario_estado?: string | null
+          destinatario_nome?: string
+          destinatario_telefone?: string | null
+          id?: string
+          maleta_id?: string | null
+          observacoes?: string | null
+          organization_id?: string | null
+          peso?: number | null
+          previsao_entrega?: string | null
+          romaneio_id?: string | null
+          status?: string
+          tipo_envio?: string
+          transportadora?: string | null
+          updated_at?: string
+          valor_frete?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envios_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envios_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envios_romaneio_id_fkey"
+            columns: ["romaneio_id"]
+            isOneToOne: false
+            referencedRelation: "romaneios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fidelidade_transacoes: {
         Row: {
           cliente_id: string
@@ -1434,6 +1531,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      rastreio_eventos: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          envio_id: string
+          id: string
+          local: string | null
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          descricao: string
+          envio_id: string
+          id?: string
+          local?: string | null
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          envio_id?: string
+          id?: string
+          local?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rastreio_eventos_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       revendedoras: {
         Row: {
