@@ -70,6 +70,7 @@ const STATUS_OPTIONS = [
 interface CatalogoPublico {
   id: string;
   nome: string;
+  organization_id?: string | null;
   status?: string | null;
   observacao?: string | null;
   custo_separacao?: number | null;
@@ -507,6 +508,57 @@ export default function CatalogoPublicoPage() {
         .insert(orderItems);
 
       if (itensError) throw itensError;
+
+      // Criar romaneio automaticamente para o pedido
+      // Buscar organization_id do catálogo
+      if (catalogo?.organization_id) {
+        const enderecoCompleto = [
+          validatedData.endereco_logradouro,
+          validatedData.endereco_numero ? `nº ${validatedData.endereco_numero}` : '',
+          validatedData.endereco_complemento,
+          validatedData.endereco_bairro,
+        ].filter(Boolean).join(', ');
+
+        const cidadeEstado = [
+          validatedData.endereco_cidade,
+          validatedData.endereco_estado,
+        ].filter(Boolean).join(' - ');
+
+        const { data: romaneio, error: romaneioError } = await supabase
+          .from('romaneios')
+          .insert({
+            organization_id: catalogo.organization_id,
+            endereco_entrega: enderecoCompleto || null,
+            cidade: validatedData.endereco_cidade || null,
+            estado: validatedData.endereco_estado || null,
+            cep: validatedData.endereco_cep || null,
+            cliente_telefone: validatedData.cliente_telefone || null,
+            observacoes: `Pedido do catálogo: ${catalogo.nome}. Cliente: ${validatedData.cliente_nome}${validatedData.cliente_email ? `. Email: ${validatedData.cliente_email}` : ''}`,
+            status: 'pendente',
+          })
+          .select()
+          .single();
+
+        if (romaneioError) {
+          console.error('Erro ao criar romaneio:', romaneioError);
+          // Não interromper o fluxo, pedido já foi criado
+        } else if (romaneio) {
+          // Criar itens do romaneio
+          const romaneioItens = cartItems.map(({ item, quantidade }) => ({
+            romaneio_id: romaneio.id,
+            peca_id: item.peca_id,
+            quantidade,
+          }));
+
+          const { error: romaneioItensError } = await supabase
+            .from('romaneios_pecas')
+            .insert(romaneioItens);
+
+          if (romaneioItensError) {
+            console.error('Erro ao criar itens do romaneio:', romaneioItensError);
+          }
+        }
+      }
 
       // Success! Reset form
       setIsOrderSent(true);
