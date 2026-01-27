@@ -1454,8 +1454,11 @@ export default function RevendedorasPage() {
               <div className="flex w-full justify-between">
                 <Button 
                   variant="destructive" 
-                  onClick={() => setIsDeleteMaletaOpen(true)}
-                  disabled={deleteMaletaMutation.isPending}
+                  onClick={() => {
+                    console.log('Opening delete maleta dialog for:', selectedMaleta?.id);
+                    setIsDeleteMaletaOpen(true);
+                  }}
+                  disabled={deleteMaletaMutation.isPending || !selectedMaleta}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Excluir Maleta
@@ -1953,8 +1956,14 @@ export default function RevendedorasPage() {
       </AlertDialog>
 
       {/* Delete Maleta Alert Dialog */}
-      <AlertDialog open={isDeleteMaletaOpen} onOpenChange={setIsDeleteMaletaOpen}>
-        <AlertDialogContent>
+      <AlertDialog 
+        open={isDeleteMaletaOpen} 
+        onOpenChange={(open) => {
+          setIsDeleteMaletaOpen(open);
+          // If closing the dialog without deleting, the maleta dialog stays open
+        }}
+      >
+        <AlertDialogContent className="z-[100]" overlayClassName="z-[99]">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Maleta</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1972,18 +1981,23 @@ export default function RevendedorasPage() {
             <AlertDialogAction
               onClick={async (e) => {
                 e.preventDefault();
+                console.log('Delete maleta button clicked, selectedMaleta:', selectedMaleta?.id);
                 if (selectedMaleta) {
                   try {
+                    console.log('Starting deletion...');
                     await deleteMaletaMutation.mutateAsync({ 
                       maletaId: selectedMaleta.id, 
                       returnToStock: true 
                     });
+                    console.log('Deletion successful');
                     setIsDeleteMaletaOpen(false);
                     setIsMaletaOpen(false);
                     setSelectedMaleta(null);
                   } catch (error) {
                     console.error('Error deleting maleta:', error);
                   }
+                } else {
+                  console.error('No selectedMaleta to delete!');
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

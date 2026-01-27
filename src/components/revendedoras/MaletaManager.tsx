@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, forwardRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -63,7 +63,8 @@ interface MaletaManagerProps {
   onClose?: () => void;
 }
 
-export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaManagerProps) {
+export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
+  function MaletaManager({ maleta, comissaoPercentual, onClose }, ref) {
   const { data: items = [], isLoading: isLoadingItems } = useMaletaItems(maleta.id);
   const { data: pecas = [] } = usePecas();
   
@@ -257,7 +258,7 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
   const isPending = addMaletaItemMutation.isPending || updateMaletaItemMutation.isPending || deleteMaletaItemMutation.isPending || closeMaletaMutation.isPending;
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
@@ -822,4 +823,6 @@ export function MaletaManager({ maleta, comissaoPercentual, onClose }: MaletaMan
       </Dialog>
     </div>
   );
-}
+});
+
+MaletaManager.displayName = 'MaletaManager';
