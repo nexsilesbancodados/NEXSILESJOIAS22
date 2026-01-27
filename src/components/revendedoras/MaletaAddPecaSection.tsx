@@ -5,13 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { 
   Package, 
   ShoppingCart, 
   Plus, 
   Minus,
   Loader2,
-  DollarSign
+  DollarSign,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  Clock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Peca, MaletaItem, CatalogoItem } from '@/hooks/useSupabaseData';
@@ -57,6 +62,16 @@ export function MaletaAddPecaSection({
   // Calcular totais da maleta
   const totalPecas = maletaItems.length;
   const valorTotal = maletaItems.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  
+  // Separar por status
+  const itemsVendidos = maletaItems.filter(item => item.status === 'vendido');
+  const itemsPendentes = maletaItems.filter(item => item.status === 'pendente');
+  const itemsDevolvidos = maletaItems.filter(item => item.status === 'devolvido');
+  
+  const valorVendido = itemsVendidos.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  const valorPendente = itemsPendentes.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  
+  const percentualVendido = totalPecas > 0 ? (itemsVendidos.length / totalPecas) * 100 : 0;
 
   const getQuantidade = (pecaId: string) => quantidades[pecaId] || 1;
 
@@ -89,194 +104,206 @@ export function MaletaAddPecaSection({
 
   return (
     <div className="space-y-4">
-      {/* Resumo da Maleta */}
-      <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
+      {/* Resumo Completo da Maleta */}
+      <Card className="border-primary/20 overflow-hidden">
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Total de Peças */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
                 <Package className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Peças na Maleta</p>
-                  <p className="text-2xl font-bold">{totalPecas}</p>
-                </div>
               </div>
-              <div className="h-10 w-px bg-border" />
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-success" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Valor Total</p>
-                  <p className="text-2xl font-bold text-success">{formatCurrency(valorTotal)}</p>
-                </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Peças</p>
+                <p className="text-xl font-bold">{totalPecas}</p>
+              </div>
+            </div>
+            
+            {/* Valor Total */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-muted">
+                <DollarSign className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Valor Total</p>
+                <p className="text-xl font-bold">{formatCurrency(valorTotal)}</p>
+              </div>
+            </div>
+            
+            {/* Vendidas */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-success/10">
+                <CheckCircle2 className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Vendido</p>
+                <p className="text-xl font-bold text-success">{formatCurrency(valorVendido)}</p>
+              </div>
+            </div>
+            
+            {/* Pendente */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-warning/10">
+                <Clock className="w-5 h-5 text-warning" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Pendente</p>
+                <p className="text-xl font-bold text-warning">{formatCurrency(valorPendente)}</p>
               </div>
             </div>
           </div>
-        </CardContent>
+          
+          {/* Progresso de Vendas */}
+          {totalPecas > 0 && (
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <TrendingUp className="w-4 h-4" />
+                  Progresso de Vendas
+                </span>
+                <span className="font-medium">{Math.round(percentualVendido)}%</span>
+              </div>
+              <Progress value={percentualVendido} className="h-2" />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>{itemsVendidos.length} vendidas</span>
+                <span>{itemsPendentes.length} pendentes</span>
+                <span>{itemsDevolvidos.length} devolvidas</span>
+              </div>
+            </div>
+          )}
+        </div>
       </Card>
 
-      <Label className="text-base font-semibold">Adicionar Peça</Label>
-      
-      {/* Source Toggle */}
-      <div className="flex gap-2">
-        <Button
-          variant={addPecaSource === 'estoque' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setAddPecaSource('estoque')}
-        >
-          <Package className="w-4 h-4 mr-1" />
-          Do Estoque
-        </Button>
-        <Button
-          variant={addPecaSource === 'catalogo' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setAddPecaSource('catalogo')}
-        >
-          <ShoppingCart className="w-4 h-4 mr-1" />
-          Do Catálogo
-        </Button>
-      </div>
-
-      {addPecaSource === 'estoque' ? (
+      {/* Lista de Peças na Maleta por Status */}
+      {maletaItems.length > 0 && (
         <div className="space-y-3">
-          <Input
-            placeholder="Buscar por nome ou código..."
-            value={searchPeca}
-            onChange={(e) => onSearchChange(e.target.value)}
-          />
-          
-          {/* Estoque List */}
-          <ScrollArea className="h-[280px] border rounded-lg">
-            <div className="p-2 space-y-2">
-              {pecasDisponiveis.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 text-sm">
-                  {searchPeca 
-                    ? 'Nenhuma peça encontrada para esta busca' 
-                    : 'Nenhuma peça disponível no estoque'}
-                </p>
-              ) : (
-                pecasDisponiveis.map((peca) => {
-                  const jaAdicionada = maletaItems.some(mi => mi.peca_id === peca.id);
-                  const qtd = getQuantidade(peca.id);
-                  const isAddingThis = addingPecaId === peca.id;
-                  const maxQtd = peca.estoque;
-
-                  return (
-                    <div
-                      key={peca.id}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg transition-colors border",
-                        jaAdicionada 
-                          ? "bg-muted/50 opacity-60 border-transparent" 
-                          : "border-border/50 hover:border-primary/30"
-                      )}
-                    >
-                      <img
-                        src={peca.imagem_url || '/placeholder.svg'}
-                        alt={peca.nome}
-                        className="w-14 h-14 rounded-lg object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{peca.nome}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className="font-mono">{peca.codigo}</span>
-                          {peca.categoria && (
-                            <>
-                              <span>•</span>
-                              <span>{peca.categoria}</span>
-                            </>
-                          )}
-                        </div>
-                        <p className="font-semibold text-primary mt-1">{formatCurrency(peca.preco_venda)}</p>
-                      </div>
-                      
-                      {jaAdicionada ? (
-                        <Badge variant="secondary" className="shrink-0">Na maleta</Badge>
-                      ) : (
-                        <div className="flex items-center gap-2 shrink-0">
-                          {/* Quantity Selector */}
-                          <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => setQuantidade(peca.id, qtd - 1)}
-                              disabled={qtd <= 1 || isAddingThis}
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <span className="w-8 text-center text-sm font-medium">{qtd}</span>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => setQuantidade(peca.id, qtd + 1)}
-                              disabled={qtd >= maxQtd || isAddingThis}
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </div>
-                          
-                          <Button
-                            size="sm"
-                            className="btn-gold"
-                            onClick={() => handleAddPeca(peca, 'estoque')}
-                            disabled={isAddingThis || isAdding}
-                          >
-                            {isAddingThis ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Plus className="w-4 h-4 mr-1" />
-                                Adicionar
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+          {/* Peças Vendidas */}
+          {itemsVendidos.length > 0 && (
+            <div className="p-3 rounded-lg border bg-success/5 border-success/20">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="font-semibold text-success text-sm">
+                  Vendidas ({itemsVendidos.length}) - {formatCurrency(valorVendido)}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {itemsVendidos.map((item) => (
+                  <Badge key={item.id} variant="outline" className="bg-success/10 border-success/30 py-1 px-2">
+                    <img
+                      src={item.peca?.imagem_url || '/placeholder.svg'}
+                      alt={item.peca?.nome}
+                      className="w-5 h-5 rounded mr-2 object-cover"
+                    />
+                    <span className="truncate max-w-[80px] text-xs">{item.peca?.nome}</span>
+                    <span className="ml-1 text-xs font-semibold">{formatCurrency(item.peca?.preco_venda || 0)}</span>
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </ScrollArea>
-          <p className="text-xs text-muted-foreground text-center">
-            {pecasDisponiveis.length} peça(s) disponível(is) no estoque
-          </p>
+          )}
+          
+          {/* Peças Pendentes */}
+          {itemsPendentes.length > 0 && (
+            <div className="p-3 rounded-lg border bg-warning/5 border-warning/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-warning" />
+                <span className="font-semibold text-warning text-sm">
+                  Pendentes ({itemsPendentes.length}) - {formatCurrency(valorPendente)}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {itemsPendentes.map((item) => (
+                  <Badge key={item.id} variant="outline" className="bg-warning/10 border-warning/30 py-1 px-2">
+                    <img
+                      src={item.peca?.imagem_url || '/placeholder.svg'}
+                      alt={item.peca?.nome}
+                      className="w-5 h-5 rounded mr-2 object-cover"
+                    />
+                    <span className="truncate max-w-[80px] text-xs">{item.peca?.nome}</span>
+                    <span className="ml-1 text-xs font-semibold">{formatCurrency(item.peca?.preco_venda || 0)}</span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Peças Devolvidas */}
+          {itemsDevolvidos.length > 0 && (
+            <div className="p-3 rounded-lg border bg-muted/50">
+              <div className="flex items-center gap-2 mb-2">
+                <XCircle className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold text-muted-foreground text-sm">
+                  Devolvidas ({itemsDevolvidos.length})
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {itemsDevolvidos.map((item) => (
+                  <Badge key={item.id} variant="secondary" className="py-1 px-2 opacity-70">
+                    <img
+                      src={item.peca?.imagem_url || '/placeholder.svg'}
+                      alt={item.peca?.nome}
+                      className="w-5 h-5 rounded mr-2 object-cover"
+                    />
+                    <span className="truncate max-w-[80px] text-xs">{item.peca?.nome}</span>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="space-y-3">
-          {/* Catalog Selector */}
-          <select
-            className="w-full p-2 border rounded-lg bg-background"
-            value={selectedCatalogoId}
-            onChange={(e) => onCatalogoChange(e.target.value)}
-          >
-            <option value="">Selecione um catálogo...</option>
-            {catalogos.filter(c => c.ativo).map((catalogo) => (
-              <option key={catalogo.id} value={catalogo.id}>
-                {catalogo.nome}
-              </option>
-            ))}
-          </select>
+      )}
 
-          {/* Catalog Items */}
-          {selectedCatalogoId && (
-            <ScrollArea className="h-[230px] border rounded-lg">
+      {/* Seção de Adicionar Peças */}
+      <div className="pt-3 border-t">
+        <Label className="text-base font-semibold mb-3 block">Adicionar Peça</Label>
+        
+        {/* Source Toggle */}
+        <div className="flex gap-2 mb-3">
+          <Button
+            variant={addPecaSource === 'estoque' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setAddPecaSource('estoque')}
+          >
+            <Package className="w-4 h-4 mr-1" />
+            Do Estoque
+          </Button>
+          <Button
+            variant={addPecaSource === 'catalogo' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setAddPecaSource('catalogo')}
+          >
+            <ShoppingCart className="w-4 h-4 mr-1" />
+            Do Catálogo
+          </Button>
+        </div>
+
+        {addPecaSource === 'estoque' ? (
+          <div className="space-y-3">
+            <Input
+              placeholder="Buscar por nome ou código..."
+              value={searchPeca}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+            
+            {/* Estoque List */}
+            <ScrollArea className="h-[220px] border rounded-lg">
               <div className="p-2 space-y-2">
-                {catalogoItems.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-4 text-sm">
-                    Nenhuma peça neste catálogo
+                {pecasDisponiveis.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8 text-sm">
+                    {searchPeca 
+                      ? 'Nenhuma peça encontrada para esta busca' 
+                      : 'Nenhuma peça disponível no estoque'}
                   </p>
                 ) : (
-                  catalogoItems.map((item) => {
-                    const jaAdicionada = maletaItems.some(mi => mi.peca_id === item.peca_id);
-                    const qtd = getQuantidade(item.peca?.id || '');
-                    const isAddingThis = addingPecaId === item.peca?.id;
-                    const maxQtd = item.quantidade || 1;
+                  pecasDisponiveis.map((peca) => {
+                    const jaAdicionada = maletaItems.some(mi => mi.peca_id === peca.id);
+                    const qtd = getQuantidade(peca.id);
+                    const isAddingThis = addingPecaId === peca.id;
+                    const maxQtd = peca.estoque;
 
                     return (
                       <div
-                        key={item.id}
+                        key={peca.id}
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-lg transition-colors border",
                           jaAdicionada 
@@ -285,37 +312,45 @@ export function MaletaAddPecaSection({
                         )}
                       >
                         <img
-                          src={item.peca?.imagem_url || '/placeholder.svg'}
-                          alt={item.peca?.nome}
-                          className="w-12 h-12 rounded object-cover"
+                          src={peca.imagem_url || '/placeholder.svg'}
+                          alt={peca.nome}
+                          className="w-14 h-14 rounded-lg object-cover"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{item.peca?.nome}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{item.peca?.codigo}</p>
-                          <p className="font-semibold text-primary mt-1">{formatCurrency(item.peca?.preco_venda || 0)}</p>
+                          <p className="font-medium text-sm truncate">{peca.nome}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="font-mono">{peca.codigo}</span>
+                            {peca.categoria && (
+                              <>
+                                <span>•</span>
+                                <span>{peca.categoria}</span>
+                              </>
+                            )}
+                          </div>
+                          <p className="font-semibold text-primary mt-1">{formatCurrency(peca.preco_venda)}</p>
                         </div>
                         
                         {jaAdicionada ? (
                           <Badge variant="secondary" className="shrink-0">Na maleta</Badge>
-                        ) : item.peca && (
+                        ) : (
                           <div className="flex items-center gap-2 shrink-0">
                             {/* Quantity Selector */}
                             <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => setQuantidade(item.peca!.id, qtd - 1)}
+                                className="h-7 w-7"
+                                onClick={() => setQuantidade(peca.id, qtd - 1)}
                                 disabled={qtd <= 1 || isAddingThis}
                               >
                                 <Minus className="w-3 h-3" />
                               </Button>
-                              <span className="w-6 text-center text-sm font-medium">{qtd}</span>
+                              <span className="w-8 text-center text-sm font-medium">{qtd}</span>
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-6 w-6"
-                                onClick={() => setQuantidade(item.peca!.id, qtd + 1)}
+                                className="h-7 w-7"
+                                onClick={() => setQuantidade(peca.id, qtd + 1)}
                                 disabled={qtd >= maxQtd || isAddingThis}
                               >
                                 <Plus className="w-3 h-3" />
@@ -325,13 +360,16 @@ export function MaletaAddPecaSection({
                             <Button
                               size="sm"
                               className="btn-gold"
-                              onClick={() => handleAddPeca(item.peca!, 'catalogo')}
+                              onClick={() => handleAddPeca(peca, 'estoque')}
                               disabled={isAddingThis || isAdding}
                             >
                               {isAddingThis ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <Plus className="w-4 h-4" />
+                                <>
+                                  <Plus className="w-4 h-4 mr-1" />
+                                  Adicionar
+                                </>
                               )}
                             </Button>
                           </div>
@@ -342,41 +380,113 @@ export function MaletaAddPecaSection({
                 )}
               </div>
             </ScrollArea>
-          )}
-        </div>
-      )}
-
-      {/* Lista de peças já na maleta */}
-      {maletaItems.length > 0 && (
-        <div className="pt-3 border-t">
-          <Label className="text-sm font-medium text-muted-foreground mb-2 block">
-            Peças na Maleta ({totalPecas})
-          </Label>
-          <ScrollArea className="h-[120px]">
-            <div className="flex flex-wrap gap-2">
-              {maletaItems.map((item) => (
-                <Badge 
-                  key={item.id} 
-                  variant="outline" 
-                  className={cn(
-                    "py-1 px-2",
-                    item.status === 'vendido' && "bg-success/10 border-success/30",
-                    item.status === 'devolvido' && "bg-muted"
-                  )}
-                >
-                  <img
-                    src={item.peca?.imagem_url || '/placeholder.svg'}
-                    alt={item.peca?.nome}
-                    className="w-5 h-5 rounded mr-2 object-cover"
-                  />
-                  <span className="truncate max-w-[100px]">{item.peca?.nome}</span>
-                  <span className="ml-2 text-muted-foreground">{formatCurrency(item.peca?.preco_venda || 0)}</span>
-                </Badge>
+            <p className="text-xs text-muted-foreground text-center">
+              {pecasDisponiveis.length} peça(s) disponível(is) no estoque
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Catalog Selector */}
+            <select
+              className="w-full p-2 border rounded-lg bg-background"
+              value={selectedCatalogoId}
+              onChange={(e) => onCatalogoChange(e.target.value)}
+            >
+              <option value="">Selecione um catálogo...</option>
+              {catalogos.filter(c => c.ativo).map((catalogo) => (
+                <option key={catalogo.id} value={catalogo.id}>
+                  {catalogo.nome}
+                </option>
               ))}
-            </div>
-          </ScrollArea>
-        </div>
-      )}
+            </select>
+
+            {/* Catalog Items */}
+            {selectedCatalogoId && (
+              <ScrollArea className="h-[180px] border rounded-lg">
+                <div className="p-2 space-y-2">
+                  {catalogoItems.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4 text-sm">
+                      Nenhuma peça neste catálogo
+                    </p>
+                  ) : (
+                    catalogoItems.map((item) => {
+                      const jaAdicionada = maletaItems.some(mi => mi.peca_id === item.peca_id);
+                      const qtd = getQuantidade(item.peca?.id || '');
+                      const isAddingThis = addingPecaId === item.peca?.id;
+                      const maxQtd = item.quantidade || 1;
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-lg transition-colors border",
+                            jaAdicionada 
+                              ? "bg-muted/50 opacity-60 border-transparent" 
+                              : "border-border/50 hover:border-primary/30"
+                          )}
+                        >
+                          <img
+                            src={item.peca?.imagem_url || '/placeholder.svg'}
+                            alt={item.peca?.nome}
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{item.peca?.nome}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{item.peca?.codigo}</p>
+                            <p className="font-semibold text-primary mt-1">{formatCurrency(item.peca?.preco_venda || 0)}</p>
+                          </div>
+                          
+                          {jaAdicionada ? (
+                            <Badge variant="secondary" className="shrink-0">Na maleta</Badge>
+                          ) : item.peca && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              {/* Quantity Selector */}
+                              <div className="flex items-center gap-1 bg-secondary rounded-lg p-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => setQuantidade(item.peca!.id, qtd - 1)}
+                                  disabled={qtd <= 1 || isAddingThis}
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <span className="w-6 text-center text-sm font-medium">{qtd}</span>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => setQuantidade(item.peca!.id, qtd + 1)}
+                                  disabled={qtd >= maxQtd || isAddingThis}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              
+                              <Button
+                                size="sm"
+                                className="btn-gold"
+                                onClick={() => handleAddPeca(item.peca!, 'catalogo')}
+                                disabled={isAddingThis || isAdding}
+                              >
+                                {isAddingThis ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Plus className="w-4 h-4" />
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
