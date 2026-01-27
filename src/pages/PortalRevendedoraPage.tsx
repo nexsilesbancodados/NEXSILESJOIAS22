@@ -212,10 +212,17 @@ export default function PortalRevendedoraPage() {
     }) => {
       if (!revendedora || !maletaAberta) throw new Error('Dados incompletos');
 
-      // Create romaneio
+      // Create romaneio - get organization_id from maleta
+      const { data: maletaData } = await (supabase as any)
+        .from('maletas')
+        .select('organization_id')
+        .eq('id', maletaAberta.id)
+        .single();
+
       const { data: romaneioData, error: romaneioError } = await (supabase as any)
         .from('romaneios')
         .insert({
+          organization_id: maletaData?.organization_id,
           revendedora_id: (revendedora as any).id,
           numero: `ROM-${Date.now()}`,
           status: 'pendente',

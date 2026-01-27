@@ -69,6 +69,7 @@ import {
   EnvioGalvanica
 } from '@/hooks/useSupabaseData';
 import { supabase } from '@/lib/supabase-db';
+import { getOrganizationIdAsync } from '@/hooks/useOrganization';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Eye, Lightbulb, Info } from 'lucide-react';
@@ -798,11 +799,11 @@ export default function BanhosPage() {
         toast.success('Envio atualizado com sucesso!');
       } else {
         // Para novo envio, precisamos do ID retornado
-        const { data: { user } } = await supabase.auth.getUser();
+        const organizationId = await getOrganizationIdAsync();
         
         const { data: novoEnvio, error } = await supabase
           .from('envios_galvanica')
-          .insert({ ...envioData, user_id: user?.id })
+          .insert({ ...envioData, organization_id: organizationId })
           .select()
           .single();
         
