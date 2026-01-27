@@ -731,8 +731,8 @@ export default function RevendedorasPage() {
     
     // Summary
     const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 100;
-    const totalPecas = maletaItems.length;
-    const totalValor = maletaItems.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+    const totalPecas = maletaItems.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+    const totalValor = maletaItems.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
     
     doc.setFontSize(12);
     doc.text(`Total de Peças: ${totalPecas}`, 14, finalY + 15);
@@ -752,8 +752,8 @@ export default function RevendedorasPage() {
   const imprimirPecasMaleta = () => {
     if (!selectedMaleta || !viewingRevendedora) return;
     
-    const totalPecas = maletaItems.length;
-    const totalValor = maletaItems.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+    const totalPecas = maletaItems.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+    const totalValor = maletaItems.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
     
     const conteudo = `
       <!DOCTYPE html>
@@ -826,15 +826,15 @@ export default function RevendedorasPage() {
     }
   };
 
-  // Calculate total sold for current maleta
+  // Calculate total sold for current maleta (considering quantities)
   const totalVendidoMaleta = maletaItems
     .filter((item) => item.status === 'vendido')
-    .reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+    .reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
 
   const calcularAcertoMaleta = (items: (MaletaItem & { peca: Peca })[], comissao: number) => {
     const totalVendido = items
       .filter((item) => item.status === 'vendido')
-      .reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+      .reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
     
     // Use scale if enabled
     let comissaoInfo;
@@ -1453,13 +1453,19 @@ export default function RevendedorasPage() {
                 {maletaItems.length > 0 && (
                   <div className="p-4 rounded-lg border bg-card">
                     <p className="text-sm text-muted-foreground mb-2">Progresso das Vendas</p>
-                    <Progress 
-                      value={(itemsVendidos.length / maletaItems.length) * 100} 
-                      className="h-2"
-                    />
-                    <p className="text-sm mt-2">
-                      {itemsVendidos.length} de {maletaItems.length} peças vendidas ({Math.round((itemsVendidos.length / maletaItems.length) * 100)}%)
-                    </p>
+                    {(() => {
+                      const totalQtd = maletaItems.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+                      const vendidosQtd = itemsVendidos.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+                      const percentual = totalQtd > 0 ? Math.round((vendidosQtd / totalQtd) * 100) : 0;
+                      return (
+                        <>
+                          <Progress value={percentual} className="h-2" />
+                          <p className="text-sm mt-2">
+                            {vendidosQtd} de {totalQtd} peças vendidas ({percentual}%)
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -2172,10 +2178,12 @@ function MaletaCard({
 
   const totalVendido = items
     .filter((item) => item.status === 'vendido')
-    .reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+    .reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
 
-  const pendentes = items.filter(i => i.status === 'pendente').length;
-  const vendidas = items.filter(i => i.status === 'vendido').length;
+  // Count quantities, not just records
+  const totalPecas = items.reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  const pendentes = items.filter(i => i.status === 'pendente').reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  const vendidas = items.filter(i => i.status === 'vendido').reduce((acc, i) => acc + (i.quantidade || 1), 0);
 
   const calcularDiasRestantes = (prazo: string | null) => {
     if (!prazo) return null;
@@ -2233,7 +2241,7 @@ function MaletaCard({
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {items.length} peças • {vendidas} vendidas • {pendentes} pendentes
+                {totalPecas} peças • {vendidas} vendidas • {pendentes} pendentes
               </p>
             </div>
           </div>

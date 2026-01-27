@@ -83,16 +83,18 @@ export function MaletaAddPecaSection({
     }).format(value);
   };
 
-  // Calcular totais da maleta
-  const totalPecas = maletaItems.length;
-  const valorTotal = maletaItems.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  // Calcular totais da maleta (considerando quantidade de cada item)
+  const totalPecas = maletaItems.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+  const valorTotal = maletaItems.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
   
   // Separar por status
   const itemsVendidos = maletaItems.filter(item => item.status === 'vendido');
   const itemsPendentes = maletaItems.filter(item => item.status === 'pendente');
   const itemsDevolvidos = maletaItems.filter(item => item.status === 'devolvido');
   
-  const valorVendido = itemsVendidos.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
+  const valorVendido = itemsVendidos.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
+  const qtdVendidas = itemsVendidos.reduce((acc, item) => acc + (item.quantidade || 1), 0);
+  const qtdPendentes = itemsPendentes.reduce((acc, item) => acc + (item.quantidade || 1), 0);
   const valorPendente = itemsPendentes.reduce((acc, item) => acc + (item.peca?.preco_venda || 0), 0);
   
   const percentualVendido = totalPecas > 0 ? (itemsVendidos.length / totalPecas) * 100 : 0;

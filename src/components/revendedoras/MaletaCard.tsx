@@ -58,10 +58,12 @@ export function MaletaCard({
 
   const totalVendido = items
     .filter((item) => item.status === 'vendido')
-    .reduce((acc, item) => acc + ((item.peca as Peca)?.preco_venda || 0), 0);
+    .reduce((acc, item) => acc + ((item.peca as Peca)?.preco_venda || 0) * (item.quantidade || 1), 0);
 
-  const pendentes = items.filter(i => i.status === 'pendente').length;
-  const vendidas = items.filter(i => i.status === 'vendido').length;
+  // Count quantities, not just records
+  const pendentes = items.filter(i => i.status === 'pendente').reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  const vendidas = items.filter(i => i.status === 'vendido').reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  const totalPecas = items.reduce((acc, i) => acc + (i.quantidade || 1), 0);
 
   const calcularDiasRestantes = (prazo: string | null) => {
     if (!prazo) return null;
@@ -197,7 +199,7 @@ export function MaletaCard({
                 )}
               </div>
               <p className="text-sm text-muted-foreground">
-                {items.length} peças • {vendidas} vendidas • {pendentes} pendentes
+                {totalPecas} peças • {vendidas} vendidas • {pendentes} pendentes
               </p>
             </div>
           </div>
