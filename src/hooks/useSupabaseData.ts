@@ -1056,7 +1056,7 @@ export function useAddMaletaItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ maletaId, pecaId }: { maletaId: string; pecaId: string }) => {
+    mutationFn: async ({ maletaId, pecaId, quantidade = 1 }: { maletaId: string; pecaId: string; quantidade?: number }) => {
       // Check if item already exists in maleta
       const { data: existingItem } = await supabase
         .from('maletas_pecas')
@@ -1071,7 +1071,7 @@ export function useAddMaletaItem() {
         // Update quantity if item already exists
         const { data, error } = await supabase
           .from('maletas_pecas')
-          .update({ quantidade: existingItem.quantidade + 1 })
+          .update({ quantidade: existingItem.quantidade + quantidade })
           .eq('id', existingItem.id)
           .select()
           .single();
@@ -1082,7 +1082,7 @@ export function useAddMaletaItem() {
         // Add new item to maleta
         const { data, error } = await supabase
           .from('maletas_pecas')
-          .insert({ maleta_id: maletaId, peca_id: pecaId, quantidade: 1 })
+          .insert({ maleta_id: maletaId, peca_id: pecaId, quantidade })
           .select()
           .single();
         
@@ -1100,16 +1100,16 @@ export function useAddMaletaItem() {
       if (pecaData && (pecaData.estoque || 0) > 0) {
         await supabase
           .from('pecas')
-          .update({ estoque: Math.max(0, (pecaData.estoque || 0) - 1) })
+          .update({ estoque: Math.max(0, (pecaData.estoque || 0) - quantidade) })
           .eq('id', pecaId);
       }
 
       return result;
     },
-    onSuccess: (_, { maletaId }) => {
+    onSuccess: (_, { maletaId, quantidade = 1 }) => {
       queryClient.invalidateQueries({ queryKey: ['maleta-items', maletaId] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
-      toast.success('Peça adicionada à maleta!');
+      toast.success(quantidade > 1 ? `${quantidade} peças adicionadas à maleta!` : 'Peça adicionada à maleta!');
     },
     onError: (error: any) => {
       console.error('Erro ao adicionar peça à maleta:', error);
