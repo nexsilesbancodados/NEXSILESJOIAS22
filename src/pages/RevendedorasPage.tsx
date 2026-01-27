@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRevendedoraPresence } from '@/hooks/useMaletaPresence';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { MiniGradientCard } from '@/components/dashboard/MiniGradientCard';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -230,6 +237,10 @@ export default function RevendedorasPage() {
   const [itemParaVenda, setItemParaVenda] = useState<MaletaItem | null>(null);
   const [maletaViewMode, setMaletaViewMode] = useState<'cards' | 'list'>('cards');
   const [isDeletingMaleta, setIsDeletingMaleta] = useState(false);
+  
+  // Filtros de maletas
+  const [maletaStatusFilter, setMaletaStatusFilter] = useState<'todas' | 'aberta' | 'fechada'>('todas');
+  const [maletaPeriodoFilter, setMaletaPeriodoFilter] = useState<'todas' | 'vencidas' | 'vencendo' | 'em_dia'>('todas');
 
   // Track revendedora presence when viewing a maleta (broadcasts to public page)
   useRevendedoraPresence(selectedMaleta?.id);
@@ -273,7 +284,33 @@ export default function RevendedorasPage() {
   const [comissaoFixaMaleta, setComissaoFixaMaleta] = useState(30);
 
   // Fetch maletas for viewing revendedora
-  const { data: maletas = [], isLoading: isLoadingMaletas } = useMaletas(viewingRevendedora?.id);
+  const { data: maletasRaw = [], isLoading: isLoadingMaletas } = useMaletas(viewingRevendedora?.id);
+  
+  // Filtrar maletas baseado nos filtros selecionados
+  const maletasFiltradas = useMemo(() => {
+    return maletasRaw.filter((maleta) => {
+      // Filtro de status
+      if (maletaStatusFilter !== 'todas') {
+        if (maleta.status !== maletaStatusFilter) return false;
+      }
+      
+      // Filtro de período (só aplica para maletas abertas)
+      if (maletaPeriodoFilter !== 'todas' && maleta.status === 'aberta') {
+        if (!maleta.data_devolucao) {
+          // Maletas sem prazo são consideradas "em dia"
+          if (maletaPeriodoFilter !== 'em_dia') return false;
+        } else {
+          const diasRestantes = differenceInDays(new Date(maleta.data_devolucao), new Date());
+          
+          if (maletaPeriodoFilter === 'vencidas' && diasRestantes >= 0) return false;
+          if (maletaPeriodoFilter === 'vencendo' && (diasRestantes < 0 || diasRestantes > 3)) return false;
+          if (maletaPeriodoFilter === 'em_dia' && diasRestantes < 3) return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [maletasRaw, maletaStatusFilter, maletaPeriodoFilter]);
   
   // Fetch items for selected maleta
   const { data: maletaItems = [], isLoading: isLoadingItems } = useMaletaItems(selectedMaleta?.id || '');
@@ -990,24 +1027,73 @@ export default function RevendedorasPage() {
 
         {/* Toggle de visualização e Maletas */}
         <div className="space-y-4">
-          {maletas.length > 0 && (
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant={maletaViewMode === 'cards' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setMaletaViewMode('cards')}
-                className="h-8 w-8 p-0"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={maletaViewMode === 'list' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setMaletaViewMode('list')}
-                className="h-8 w-8 p-0"
-              >
-                <LayoutList className="h-4 w-4" />
-              </Button>
+          {maletasRaw.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Filtros */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={maletaStatusFilter}
+                  onValueChange={(value: 'todas' | 'aberta' | 'fechada') => setMaletaStatusFilter(value)}
+                >
+                  <SelectTrigger className="w-[140px] h-9">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    <SelectItem value="aberta">Abertas</SelectItem>
+                    <SelectItem value="fechada">Fechadas</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Select
+                  value={maletaPeriodoFilter}
+                  onValueChange={(value: 'todas' | 'vencidas' | 'vencendo' | 'em_dia') => setMaletaPeriodoFilter(value)}
+                >
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todos períodos</SelectItem>
+                    <SelectItem value="vencidas">Vencidas</SelectItem>
+                    <SelectItem value="vencendo">Vencendo em 3 dias</SelectItem>
+                    <SelectItem value="em_dia">Em dia</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {(maletaStatusFilter !== 'todas' || maletaPeriodoFilter !== 'todas') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-muted-foreground"
+                    onClick={() => {
+                      setMaletaStatusFilter('todas');
+                      setMaletaPeriodoFilter('todas');
+                    }}
+                  >
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
+              
+              {/* Toggle de visualização */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={maletaViewMode === 'cards' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setMaletaViewMode('cards')}
+                  className="h-8 w-8 p-0"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={maletaViewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setMaletaViewMode('list')}
+                  className="h-8 w-8 p-0"
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
           
@@ -1018,16 +1104,37 @@ export default function RevendedorasPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
-            ) : maletas.length === 0 ? (
+            ) : maletasFiltradas.length === 0 ? (
               <div className="glass-card rounded-xl p-12 text-center">
                 <Briefcase className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">Nenhuma maleta criada</p>
-                <p className="text-muted-foreground/60 text-sm">
-                  Clique em "Nova Maleta" para começar
-                </p>
+                {maletasRaw.length === 0 ? (
+                  <>
+                    <p className="text-muted-foreground">Nenhuma maleta criada</p>
+                    <p className="text-muted-foreground/60 text-sm">
+                      Clique em "Nova Maleta" para começar
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted-foreground">Nenhuma maleta encontrada</p>
+                    <p className="text-muted-foreground/60 text-sm mb-3">
+                      Nenhuma maleta corresponde aos filtros selecionados
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setMaletaStatusFilter('todas');
+                        setMaletaPeriodoFilter('todas');
+                      }}
+                    >
+                      Limpar filtros
+                    </Button>
+                  </>
+                )}
               </div>
             ) : maletaViewMode === 'cards' ? (
-              maletas.map((maleta) => (
+              maletasFiltradas.map((maleta) => (
                 <MaletaCard
                   key={maleta.id}
                   maleta={maleta}
@@ -1055,7 +1162,7 @@ export default function RevendedorasPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {maletas.map((maleta) => (
+                      {maletasFiltradas.map((maleta) => (
                         <MaletaListRow
                           key={maleta.id}
                           maleta={maleta}
@@ -1867,7 +1974,7 @@ export default function RevendedorasPage() {
         />
         <MiniGradientCard
           title="Com Maleta Ativa"
-          value={revendedoras.filter(r => maletas.some(m => m.revendedora_id === r.id && m.status === 'aberta')).length}
+          value={revendedoras.filter(r => maletasRaw.some(m => m.revendedora_id === r.id && m.status === 'aberta')).length}
           icon={Briefcase}
           gradient="teal"
         />
