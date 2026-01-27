@@ -1,4 +1,4 @@
-import { Bell, Check, Trash2, Package, ShoppingCart, FileText, Cake, Target, Briefcase, Filter, Heart } from 'lucide-react';
+import { Bell, Check, Trash2, Package, ShoppingCart, FileText, Cake, Target, Briefcase, Heart, Eye, Volume2, VolumeX, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   useNotificacoesNaoLidas, 
   useMarcarComoLida, 
@@ -20,8 +19,10 @@ import {
   useNotificacoesRealtime,
   Notificacao 
 } from '@/hooks/useNotificacoes';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, typeof Bell> = {
   estoque_baixo: Package,
@@ -31,6 +32,7 @@ const iconMap: Record<string, typeof Bell> = {
   meta_proxima: Target,
   maleta_vencendo: Briefcase,
   interesse_maleta: Heart,
+  visualizacao_maleta: Eye,
 };
 
 const categoryLabels: Record<string, string> = {
@@ -42,6 +44,7 @@ const categoryLabels: Record<string, string> = {
   meta_proxima: 'Metas',
   maleta_vencendo: 'Maletas',
   interesse_maleta: 'Interesses',
+  visualizacao_maleta: 'Visualizações',
 };
 
 export function NotificationBell() {
@@ -50,8 +53,9 @@ export function NotificationBell() {
   const { mutate: marcarComoLida } = useMarcarComoLida();
   const { mutate: marcarTodasComoLidas } = useMarcarTodasComoLidas();
   const { mutate: deletarNotificacao } = useDeletarNotificacao();
+  const { isSoundEnabled, isVibrationEnabled, toggleSound, toggleVibration, playNotification } = useNotificationSound();
   
-  // Enable realtime updates
+  // Enable realtime updates with sound/vibration
   useNotificacoesRealtime();
 
   const filteredNotificacoes = filter === 'all' 
@@ -82,9 +86,18 @@ export function NotificationBell() {
         return 'text-orange-500';
       case 'interesse_maleta':
         return 'text-rose-500';
+      case 'visualizacao_maleta':
+        return 'text-blue-500';
       default:
         return 'text-muted-foreground';
     }
+  };
+
+  // Test sound button handler
+  const handleTestSound = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    playNotification('interesse_maleta');
   };
 
   const handleNotificationClick = (notificacao: Notificacao) => {
@@ -108,17 +121,47 @@ export function NotificationBell() {
       <DropdownMenuContent align="end" className="w-96 bg-popover">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>Notificações</span>
-          {notificacoes.length > 0 && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-auto p-1 text-xs"
-              onClick={() => marcarTodasComoLidas()}
+          <div className="flex items-center gap-1">
+            {/* Sound toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-7 w-7", !isSoundEnabled && "text-muted-foreground")}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSound();
+              }}
+              title={isSoundEnabled ? 'Desativar som' : 'Ativar som'}
             >
-              <Check className="h-3 w-3 mr-1" />
-              Marcar todas como lidas
+              {isSoundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
-          )}
+            {/* Vibration toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn("h-7 w-7", !isVibrationEnabled && "text-muted-foreground")}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleVibration();
+              }}
+              title={isVibrationEnabled ? 'Desativar vibração' : 'Ativar vibração'}
+            >
+              <Smartphone className="h-4 w-4" />
+            </Button>
+            {notificacoes.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-auto p-1 text-xs"
+                onClick={() => marcarTodasComoLidas()}
+              >
+                <Check className="h-3 w-3 mr-1" />
+                Marcar lidas
+              </Button>
+            )}
+          </div>
         </DropdownMenuLabel>
         
         {/* Category filters */}
