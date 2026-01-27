@@ -1,7 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Briefcase, ChevronRight, Pencil, ImageIcon, Heart } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Briefcase, ChevronRight, Pencil, ImageIcon, Heart, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { differenceInDays } from 'date-fns';
 import { useMaletaItems, useMaletaInteressesPendentes, type Maleta, type Peca } from '@/hooks/useSupabaseData';
@@ -53,6 +54,9 @@ export function MaletaCard({
   const corPrimaria = maleta.cor_primaria || '#8B5CF6';
   const corSecundaria = maleta.cor_secundaria || '#EC4899';
   const hasCustomImage = !!maleta.imagem_capa;
+  
+  // Check if link exists but showcase is disabled
+  const hasLinkButDisabled = !!maleta.sharing_slug && !maleta.is_public;
 
   return (
     <Card
@@ -88,6 +92,16 @@ export function MaletaCard({
       />
       
       <CardContent className="p-6">
+        {/* Alert for link exists but showcase disabled */}
+        {hasLinkButDisabled && maleta.status === 'aberta' && (
+          <Alert variant="destructive" className="mb-4 py-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Link gerado, mas vitrine desativada. Clientes não poderão finalizar pedidos.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             {/* Custom styled icon with colors or image */}
