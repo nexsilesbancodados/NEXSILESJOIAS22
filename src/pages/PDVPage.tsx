@@ -49,7 +49,9 @@ import {
   Percent,
   Ticket,
   Maximize,
-  Minimize
+  Minimize,
+  Package,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReciboVenda } from '@/components/recibo/ReciboVenda';
@@ -127,6 +129,7 @@ export default function PDVPage() {
 
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterEstoque, setFilterEstoque] = useState<'all' | 'disponivel' | 'baixo'>('disponivel');
   const [isAbrirCaixaOpen, setIsAbrirCaixaOpen] = useState(false);
   const [isFechamentoCaixaOpen, setIsFechamentoCaixaOpen] = useState(false);
   const [isPagamentoOpen, setIsPagamentoOpen] = useState(false);
@@ -233,12 +236,22 @@ export default function PDVPage() {
   const totalDesconto = calcularDescontoManual + calcularDescontoCupom;
 
   const filteredPecas = useMemo(() => {
-    return pecas.filter(
-      (peca) =>
+    return pecas.filter((peca) => {
+      const matchesSearch =
         peca.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        peca.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [pecas, searchTerm]);
+        peca.codigo.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Filtro de estoque
+      let matchesEstoque = true;
+      if (filterEstoque === 'disponivel') {
+        matchesEstoque = peca.estoque > 0;
+      } else if (filterEstoque === 'baixo') {
+        matchesEstoque = peca.estoque > 0 && peca.estoque <= (peca.estoque_minimo || 5);
+      }
+      
+      return matchesSearch && matchesEstoque;
+    });
+  }, [pecas, searchTerm, filterEstoque]);
 
   const subtotalCarrinho = carrinho.reduce(
     (acc, item) => acc + item.peca.preco_venda * item.quantidade,
@@ -699,8 +712,8 @@ export default function PDVPage() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="shrink-0 px-4 py-3">
+        {/* Search Bar + Quick Filters */}
+        <div className="shrink-0 px-4 py-3 space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -710,6 +723,36 @@ export default function PDVPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+          
+          {/* Quick Stock Filters */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <Button
+              variant={filterEstoque === 'all' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              onClick={() => setFilterEstoque('all')}
+            >
+              Todos ({pecas.length})
+            </Button>
+            <Button
+              variant={filterEstoque === 'disponivel' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              onClick={() => setFilterEstoque('disponivel')}
+            >
+              <Package className="w-3 h-3 mr-1 text-success" />
+              Disponível ({pecas.filter(p => p.estoque > 0).length})
+            </Button>
+            <Button
+              variant={filterEstoque === 'baixo' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 text-xs shrink-0"
+              onClick={() => setFilterEstoque('baixo')}
+            >
+              <AlertTriangle className="w-3 h-3 mr-1 text-warning" />
+              Baixo ({pecas.filter(p => p.estoque > 0 && p.estoque <= (p.estoque_minimo || 5)).length})
+            </Button>
           </div>
         </div>
 
