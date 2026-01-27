@@ -1090,17 +1090,17 @@ export function useAddMaletaItem() {
         result = data;
       }
 
-      // Decrease stock
+      // Decrease stock (only if available)
       const { data: pecaData } = await supabase
         .from('pecas')
         .select('estoque')
         .eq('id', pecaId)
         .single();
       
-      if (pecaData && pecaData.estoque > 0) {
+      if (pecaData && (pecaData.estoque || 0) > 0) {
         await supabase
           .from('pecas')
-          .update({ estoque: pecaData.estoque - 1 })
+          .update({ estoque: Math.max(0, (pecaData.estoque || 0) - 1) })
           .eq('id', pecaId);
       }
 
