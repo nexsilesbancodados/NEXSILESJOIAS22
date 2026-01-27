@@ -122,15 +122,20 @@ export function useOrganizationId() {
 }
 
 // Standalone function to get organization_id (for use outside React components)
-export async function getOrganizationIdAsync(): Promise<string | null> {
+// Throws an error if organization is not found
+export async function getOrganizationIdAsync(): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user) throw new Error('Usuário não autenticado');
   
   const { data } = await supabase
     .from('memberships')
     .select('organization_id')
     .eq('user_id', user.id)
     .maybeSingle();
-    
-  return data?.organization_id || null;
+  
+  if (!data?.organization_id) {
+    throw new Error('Organização não encontrada. Por favor, faça login novamente.');
+  }
+  
+  return data.organization_id;
 }

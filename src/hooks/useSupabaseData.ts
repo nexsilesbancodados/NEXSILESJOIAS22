@@ -9,15 +9,20 @@ async function getCurrentUserId(): Promise<string> {
   return user.id;
 }
 
-// Helper function to get organization_id from membership
-async function getOrganizationId(): Promise<string | null> {
+// Helper function to get organization_id from membership - throws if not found
+async function getOrganizationId(): Promise<string> {
   const userId = await getCurrentUserId();
   const { data } = await supabase
     .from('memberships')
     .select('organization_id')
     .eq('user_id', userId)
     .maybeSingle();
-  return data?.organization_id || null;
+  
+  if (!data?.organization_id) {
+    throw new Error('Organização não encontrada. Por favor, faça login novamente.');
+  }
+  
+  return data.organization_id;
 }
 
 // Types based on actual database schema
@@ -2454,11 +2459,9 @@ export function useEnviosGalvanica() {
   return useQuery({
     queryKey: ['envios-galvanica'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // RLS handles organization filtering
       const { data, error } = await supabase.from('envios_galvanica')
         .select('*')
-        .eq('user_id', user?.id)
         .order('data_envio', { ascending: false });
       
       if (error) throw error;
@@ -2491,12 +2494,9 @@ export function useAllEnvioGalvanicaItens() {
   return useQuery({
     queryKey: ['all-envio-galvanica-itens'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Primeiro buscar os IDs dos envios do usuário
+      // Primeiro buscar os IDs dos envios da organização (RLS filtra)
       const { data: envios } = await supabase.from('envios_galvanica')
-        .select('id')
-        .eq('user_id', user?.id);
+        .select('id');
       
       if (!envios || envios.length === 0) return [];
       
@@ -2518,10 +2518,10 @@ export function useAddEnvioGalvanica() {
   
   return useMutation({
     mutationFn: async (envio: Omit<EnvioGalvanica, 'id' | 'user_id' | 'created_at' | 'banho'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const organizationId = await getOrganizationId();
       
       const { data, error } = await supabase.from('envios_galvanica')
-        .insert({ ...envio, user_id: user?.id })
+        .insert({ ...envio, user_id: organizationId }) // Using organization_id in user_id field for now
         .select()
         .single();
       
@@ -2623,12 +2623,10 @@ export function useModelosEtiquetas() {
   return useQuery({
     queryKey: ['modelos-etiquetas'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // RLS handles organization filtering
       const { data, error } = await supabase
         .from('modelos_etiquetas')
         .select('*')
-        .eq('user_id', user?.id)
         .order('nome');
       
       if (error) throw error;
@@ -2647,7 +2645,7 @@ export function useAddModeloEtiqueta() {
   
   return useMutation({
     mutationFn: async (modelo: Partial<ModeloEtiqueta>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const organizationId = await getOrganizationId();
       
       // Extract fields that go into 'campos' JSON
       const { id, user_id, nome, largura, altura, ativo, campos, created_at, updated_at, ...extraFields } = modelo;
@@ -2660,7 +2658,7 @@ export function useAddModeloEtiqueta() {
           altura: altura || 30,
           ativo: ativo ?? true,
           campos: extraFields,
-          user_id: user?.id,
+          user_id: organizationId, // Using organization_id for proper isolation
         })
         .select()
         .single();
