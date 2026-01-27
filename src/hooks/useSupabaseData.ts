@@ -2676,17 +2676,19 @@ export interface EnvioGalvanicaItem {
 // Interface sincronizada com a tabela real do banco de dados
 export interface EnvioGalvanica {
   id: string;
-  user_id: string | null;
+  organization_id: string | null;
   data_envio: string;
-  data_retorno: string | null;
-  peso_total: number | null;
+  data_retorno?: string | null;
   status: string;
+  fornecedor_id: string | null;
+  peso_total: number | null;
+  peso_cobrado: number | null;
+  valor_total: number | null;
   observacoes: string | null;
   created_at: string;
   updated_at: string;
   // Campos calculados (para compatibilidade com UI legada)
   banho_id?: string | null;
-  valor_total?: number | null;
   banho?: Banho | null;
   // Itens do envio (opcional quando fazemos join)
   itens?: EnvioGalvanicaItem[];
@@ -2754,11 +2756,15 @@ export function useAddEnvioGalvanica() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (envio: Omit<EnvioGalvanica, 'id' | 'user_id' | 'created_at' | 'banho'>) => {
+    mutationFn: async (envio: Omit<EnvioGalvanica, 'id' | 'organization_id' | 'created_at' | 'updated_at' | 'banho' | 'itens'>) => {
       const organizationId = await getOrganizationId();
       
+      if (!organizationId) {
+        throw new Error('Organização não encontrada');
+      }
+      
       const { data, error } = await supabase.from('envios_galvanica')
-        .insert({ ...envio, user_id: organizationId }) // Using organization_id in user_id field for now
+        .insert({ ...envio, organization_id: organizationId })
         .select()
         .single();
       
