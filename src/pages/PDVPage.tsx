@@ -809,8 +809,9 @@ export default function PDVPage() {
         </div>
       </div>
 
-      {/* Cart Sidebar */}
-      <aside className="w-full lg:w-80 xl:w-96 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col shrink-0 max-h-[40vh] lg:max-h-none">
+      {/* Cart Sidebar - Only shows when items in cart */}
+      {carrinho.length > 0 && (
+      <aside className="w-full lg:w-80 xl:w-96 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col shrink-0 max-h-[40vh] lg:max-h-none animate-fade-in">
         {/* Cart Header */}
         <div className="shrink-0 p-2 sm:p-4 border-b border-border">
           <h2 className="font-semibold flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
@@ -826,16 +827,7 @@ export default function PDVPage() {
 
         {/* Cart Items - Scrollable */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 min-h-0">
-          {carrinho.length === 0 ? (
-            <div className="text-center py-6 sm:py-8">
-              <ShoppingCart className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-muted-foreground text-xs sm:text-sm">Carrinho vazio</p>
-              <p className="text-muted-foreground/60 text-[10px] sm:text-xs">
-                Clique em um produto para adicionar
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-1.5 sm:space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
               {carrinho.map((item) => (
                 <div 
                   key={item.peca.id} 
@@ -882,7 +874,6 @@ export default function PDVPage() {
                 </div>
               ))}
             </div>
-          )}
         </div>
 
         {/* Cart Footer - Fixed */}
@@ -929,6 +920,7 @@ export default function PDVPage() {
           </Button>
         </div>
       </aside>
+      )}
 
       {/* Modal de Pagamento */}
       <Dialog open={isPagamentoOpen} onOpenChange={setIsPagamentoOpen}>
