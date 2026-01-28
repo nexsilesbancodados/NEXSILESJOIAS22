@@ -1047,6 +1047,8 @@ export function useAddMaleta() {
           cor_primaria: maletaData.cor_primaria || '#8B5CF6',
           cor_secundaria: maletaData.cor_secundaria || '#EC4899',
           imagem_capa: maletaData.imagem_capa || null,
+          is_public: true,
+          sharing_slug: `nexsiles-maleta-${Date.now().toString(36)}`,
         })
         .select()
         .single();

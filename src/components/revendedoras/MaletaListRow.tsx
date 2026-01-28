@@ -118,28 +118,26 @@ export function MaletaListRow({ maleta, onClick, onEdit }: MaletaListRowProps) {
       </td>
       <td className="p-3 text-right">
         <div className="flex items-center justify-end gap-1">
+          <ShareMaletaButton
+            maletaId={maleta.id}
+            maletaNome={maleta.nome}
+            isPublic={maleta.is_public || false}
+            sharingSlug={maleta.sharing_slug || null}
+            variant="icon"
+            className="h-8 w-8"
+          />
           {maleta.status === 'aberta' && (
-            <>
-              <ShareMaletaButton
-                maletaId={maleta.id}
-                maletaNome={maleta.nome}
-                isPublic={maleta.is_public || false}
-                sharingSlug={maleta.sharing_slug || null}
-                variant="icon"
-                className="h-8 w-8"
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit();
-                }}
-              >
-                <Pencil className="w-4 h-4" />
-              </Button>
-            </>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
           )}
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
