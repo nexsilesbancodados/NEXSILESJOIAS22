@@ -512,21 +512,21 @@ export default function PDVPage() {
 
   // PDV View
   return (
-    <div className="h-screen flex flex-col lg:flex-row animate-fade-in">
+    <div className="h-screen flex flex-col lg:flex-row animate-fade-in text-sm md:text-base">
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Compact Header */}
         <header className="shrink-0 border-b border-border bg-card/50 backdrop-blur-sm">
-          <div className="px-4 py-3">
+          <div className="px-2 sm:px-4 py-2 sm:py-3">
             {/* Row 1: Title + Status Indicators */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl gold-gradient flex items-center justify-center shrink-0">
-                  <ShoppingCart className="w-5 h-5 text-primary-foreground" />
+            <div className="flex items-center justify-between gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl gold-gradient flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="text-lg font-display font-semibold truncate">PDV</h1>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <h1 className="text-base sm:text-lg font-display font-semibold truncate">PDV</h1>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                     Aberto às {formatTime(caixaAtual.data_abertura)} • {vendasCaixa.length} vendas
                   </p>
                 </div>
@@ -560,7 +560,7 @@ export default function PDVPage() {
             </div>
             
             {/* Row 2: Quick Actions */}
-            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+            <div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 overflow-x-auto pb-1">
               <Sheet open={isHistoricoOpen} onOpenChange={setIsHistoricoOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" className="shrink-0">
@@ -655,22 +655,22 @@ export default function PDVPage() {
         </header>
 
         {/* Toolbar Compacto - Stats e Ações em linha única */}
-        <div className="shrink-0 px-4 py-2 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-3 overflow-x-auto">
+        <div className="shrink-0 px-2 sm:px-4 py-1.5 sm:py-2 border-b border-border bg-muted/30">
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
             {/* Mini Stats Inline */}
-            <div className="flex items-center gap-3 text-sm shrink-0">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-success/10 rounded-lg">
-                <Banknote className="w-4 h-4 text-success" />
-                <span className="font-semibold text-success">{formatCurrency(totais.saldoFinal)}</span>
+            <div className="flex items-center gap-1.5 sm:gap-3 text-xs sm:text-sm shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-0.5 sm:py-1 bg-success/10 rounded-md sm:rounded-lg">
+                <Banknote className="w-3 h-3 sm:w-4 sm:h-4 text-success" />
+                <span className="font-semibold text-success text-xs sm:text-sm">{formatCurrency(totais.saldoFinal)}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-lg">
-                <DollarSign className="w-4 h-4 text-primary" />
-                <span className="font-medium">{formatCurrency(totais.vendas)}</span>
-                <span className="text-muted-foreground text-xs">({vendasCaixa.length})</span>
+              <div className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2.5 py-0.5 sm:py-1 bg-primary/10 rounded-md sm:rounded-lg">
+                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
+                <span className="font-medium text-xs sm:text-sm">{formatCurrency(totais.vendas)}</span>
+                <span className="text-muted-foreground text-[10px] sm:text-xs">({vendasCaixa.length})</span>
               </div>
             </div>
             
-            <div className="h-5 w-px bg-border shrink-0" />
+            <div className="h-4 sm:h-5 w-px bg-border shrink-0" />
             
             {/* Quick Actions */}
             <PDVToolbar
@@ -701,24 +701,24 @@ export default function PDVPage() {
             <div className="flex-1" />
             
             {/* Status Badges */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {clienteSelecionado && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 rounded-full text-xs">
-                  <User className="w-3 h-3 text-primary" />
-                  <span className="font-medium truncate max-w-[80px]">{clienteSelecionado.nome}</span>
-                  <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => setClienteSelecionado(null)}>
-                    <X className="w-2.5 h-2.5" />
+                <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary/10 rounded-full text-[10px] sm:text-xs">
+                  <User className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-primary" />
+                  <span className="font-medium truncate max-w-[60px] sm:max-w-[80px]">{clienteSelecionado.nome}</span>
+                  <Button variant="ghost" size="icon" className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" onClick={() => setClienteSelecionado(null)}>
+                    <X className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                   </Button>
                 </div>
               )}
               {descontoAplicado && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 rounded-full text-xs">
-                  <Percent className="w-3 h-3 text-destructive" />
+                <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-destructive/10 rounded-full text-[10px] sm:text-xs">
+                  <Percent className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-destructive" />
                   <span className="font-medium">
                     {descontoAplicado.tipo === 'percentual' ? `${descontoAplicado.valor}%` : `R$ ${descontoAplicado.valor.toFixed(2)}`}
                   </span>
-                  <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => setDescontoAplicado(null)}>
-                    <X className="w-2.5 h-2.5" />
+                  <Button variant="ghost" size="icon" className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" onClick={() => setDescontoAplicado(null)}>
+                    <X className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                   </Button>
                 </div>
               )}
@@ -727,24 +727,24 @@ export default function PDVPage() {
         </div>
 
         {/* Search Bar + Quick Filters */}
-        <div className="shrink-0 px-4 py-3 space-y-2">
+        <div className="shrink-0 px-2 sm:px-4 py-2 sm:py-3 space-y-1.5 sm:space-y-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
             <Input
               ref={searchInputRef}
-              placeholder="Buscar produto por nome ou código... (F4)"
+              placeholder="Buscar produto... (F4)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-8 sm:pl-10 h-8 sm:h-10 text-xs sm:text-sm"
             />
           </div>
           
           {/* Quick Stock Filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1">
             <Button
               variant={filterEstoque === 'all' ? 'secondary' : 'ghost'}
               size="sm"
-              className="h-7 text-xs shrink-0"
+              className="h-6 sm:h-7 text-[10px] sm:text-xs px-2 sm:px-3 shrink-0"
               onClick={() => setFilterEstoque('all')}
             >
               Todos ({pecas.length})
@@ -752,51 +752,51 @@ export default function PDVPage() {
             <Button
               variant={filterEstoque === 'disponivel' ? 'secondary' : 'ghost'}
               size="sm"
-              className="h-7 text-xs shrink-0"
+              className="h-6 sm:h-7 text-[10px] sm:text-xs px-2 sm:px-3 shrink-0"
               onClick={() => setFilterEstoque('disponivel')}
             >
-              <Package className="w-3 h-3 mr-1 text-success" />
+              <Package className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-success" />
               Disponível ({pecas.filter(p => p.estoque > 0).length})
             </Button>
             <Button
               variant={filterEstoque === 'baixo' ? 'secondary' : 'ghost'}
               size="sm"
-              className="h-7 text-xs shrink-0"
+              className="h-6 sm:h-7 text-[10px] sm:text-xs px-2 sm:px-3 shrink-0"
               onClick={() => setFilterEstoque('baixo')}
             >
-              <AlertTriangle className="w-3 h-3 mr-1 text-warning" />
+              <AlertTriangle className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 text-warning" />
               Baixo ({pecas.filter(p => p.estoque > 0 && p.estoque <= (p.estoque_minimo || 5)).length})
             </Button>
           </div>
         </div>
 
         {/* Products Grid - Scrollable */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="flex-1 overflow-y-auto px-2 sm:px-4 pb-2 sm:pb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-3">
             {filteredPecas.map((peca) => (
               <div
                 key={peca.id}
                 onClick={() => peca.estoque > 0 && addToCarrinho(peca)}
                 className={cn(
-                  'bg-card border border-border rounded-xl p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/30',
+                  'bg-card border border-border rounded-lg sm:rounded-xl p-2 sm:p-3 cursor-pointer transition-all hover:shadow-md hover:border-primary/30',
                   peca.estoque <= 0 && 'opacity-50 cursor-not-allowed'
                 )}
               >
-                <div className="aspect-square rounded-lg overflow-hidden mb-2 bg-muted">
+                <div className="aspect-square rounded-md sm:rounded-lg overflow-hidden mb-1.5 sm:mb-2 bg-muted">
                   <img
                     src={peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
                     alt={peca.nome}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <p className="font-medium text-sm truncate">{peca.nome}</p>
-                <p className="text-xs text-muted-foreground truncate">{peca.codigo}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <p className="font-semibold text-primary text-sm">
+                <p className="font-medium text-xs sm:text-sm truncate">{peca.nome}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{peca.codigo}</p>
+                <div className="flex items-center justify-between mt-1 sm:mt-2">
+                  <p className="font-semibold text-primary text-xs sm:text-sm">
                     {formatCurrency(peca.preco_venda)}
                   </p>
                   <span className={cn(
-                    'text-xs px-1.5 py-0.5 rounded font-medium',
+                    'text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded font-medium',
                     peca.estoque === 0 ? 'bg-muted text-muted-foreground' :
                     peca.estoque <= (peca.estoque_minimo || 5) ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'
                   )}>
@@ -810,14 +810,14 @@ export default function PDVPage() {
       </div>
 
       {/* Cart Sidebar */}
-      <aside className="w-full lg:w-96 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col shrink-0 max-h-[40vh] lg:max-h-none">
+      <aside className="w-full lg:w-80 xl:w-96 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col shrink-0 max-h-[40vh] lg:max-h-none">
         {/* Cart Header */}
-        <div className="shrink-0 p-4 border-b border-border">
-          <h2 className="font-semibold flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5" />
+        <div className="shrink-0 p-2 sm:p-4 border-b border-border">
+          <h2 className="font-semibold flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base">
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
             Carrinho
             {carrinho.length > 0 && (
-              <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-primary text-primary-foreground text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
                 {carrinho.reduce((acc, item) => acc + item.quantidade, 0)}
               </span>
             )}
@@ -825,58 +825,58 @@ export default function PDVPage() {
         </div>
 
         {/* Cart Items - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 min-h-0">
           {carrinho.length === 0 ? (
-            <div className="text-center py-8">
-              <ShoppingCart className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-muted-foreground text-sm">Carrinho vazio</p>
-              <p className="text-muted-foreground/60 text-xs">
+            <div className="text-center py-6 sm:py-8">
+              <ShoppingCart className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-muted-foreground text-xs sm:text-sm">Carrinho vazio</p>
+              <p className="text-muted-foreground/60 text-[10px] sm:text-xs">
                 Clique em um produto para adicionar
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {carrinho.map((item) => (
                 <div 
                   key={item.peca.id} 
-                  className="flex items-center gap-3 p-2 bg-muted/50 rounded-lg animate-scale-in"
+                  className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 bg-muted/50 rounded-md sm:rounded-lg animate-scale-in"
                 >
                   <img
                     src={item.peca.imagem_url || 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=200&h=200&fit=crop'}
                     alt={item.peca.nome}
-                    className="w-10 h-10 rounded-lg object-cover shrink-0"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-md sm:rounded-lg object-cover shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{item.peca.nome}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="font-medium text-xs sm:text-sm truncate">{item.peca.nome}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">
                       {formatCurrency(item.peca.preco_venda)} × {item.quantidade}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-5 w-5 sm:h-6 sm:w-6"
                       onClick={() => updateCarrinhoQuantidade(item.peca.id, item.quantidade - 1)}
                     >
-                      <Minus className="w-3 h-3" />
+                      <Minus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </Button>
-                    <span className="w-6 text-center text-sm font-medium">{item.quantidade}</span>
+                    <span className="w-5 sm:w-6 text-center text-xs sm:text-sm font-medium">{item.quantidade}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6"
+                      className="h-5 w-5 sm:h-6 sm:w-6"
                       onClick={() => updateCarrinhoQuantidade(item.peca.id, item.quantidade + 1)}
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-destructive hover:text-destructive"
+                      className="h-5 w-5 sm:h-6 sm:w-6 text-destructive hover:text-destructive"
                       onClick={() => removeFromCarrinho(item.peca.id)}
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </Button>
                   </div>
                 </div>
@@ -886,7 +886,7 @@ export default function PDVPage() {
         </div>
 
         {/* Cart Footer - Fixed */}
-        <div className="shrink-0 p-4 border-t border-border bg-card space-y-3">
+        <div className="shrink-0 p-2 sm:p-4 border-t border-border bg-card space-y-2 sm:space-y-3">
           {/* Coupon Input */}
           <CupomInput
             cupomAplicado={cupomAplicado}
@@ -895,38 +895,37 @@ export default function PDVPage() {
           />
           
           {/* Totals */}
-          <div className="space-y-1">
+          <div className="space-y-0.5 sm:space-y-1">
             {totalDesconto > 0 && (
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>{formatCurrency(subtotalCarrinho)}</span>
               </div>
             )}
             {totalDesconto > 0 && (
-              <div className="flex items-center justify-between text-sm text-success">
+              <div className="flex items-center justify-between text-xs sm:text-sm text-success">
                 <span className="flex items-center gap-1">
-                  <Ticket className="w-3 h-3" />
+                  <Ticket className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   Desconto
                 </span>
                 <span>-{formatCurrency(totalDesconto)}</span>
               </div>
             )}
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <span className="text-muted-foreground font-medium">Total</span>
-              <span className="text-xl font-display font-semibold text-primary">
+            <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-border">
+              <span className="text-muted-foreground font-medium text-xs sm:text-sm">Total</span>
+              <span className="text-lg sm:text-xl font-display font-semibold text-primary">
                 {formatCurrency(totalCarrinho)}
               </span>
             </div>
           </div>
           
           <Button
-            className="w-full btn-gold"
-            size="lg"
+            className="w-full btn-gold h-9 sm:h-11 text-xs sm:text-sm"
             disabled={carrinho.length === 0 || isReadOnly}
             onClick={() => setIsPagamentoOpen(true)}
           >
-            <DollarSign className="w-5 h-5 mr-2" />
-            {isReadOnly ? 'Modo Leitura' : 'Finalizar Venda (F12)'}
+            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+            {isReadOnly ? 'Modo Leitura' : 'Finalizar (F12)'}
           </Button>
         </div>
       </aside>
