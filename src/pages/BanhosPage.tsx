@@ -765,10 +765,15 @@ export default function BanhosPage() {
     
     const pesoFinal = totais.totalPesoCobrado + pesoTotalPecas;
     
-    // Não incluir banho_id no envio principal - só nos itens
+    // Montar dados apenas com campos válidos da tabela envios_galvanica
     const envioData = {
-      ...envioFormData,
+      data_envio: envioFormData.data_envio,
+      data_retorno: envioFormData.data_retorno,
+      status: envioFormData.status,
+      observacoes: envioFormData.observacoes,
+      fornecedor_id: envioFormData.fornecedor || null, // Converter 'fornecedor' para 'fornecedor_id'
       peso_total: pesoFinal,
+      peso_cobrado: pesoFinal,
       valor_total: totais.valorTotal,
     };
 
