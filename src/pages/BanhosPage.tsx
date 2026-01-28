@@ -765,13 +765,24 @@ export default function BanhosPage() {
     
     const pesoFinal = totais.totalPesoCobrado + pesoTotalPecas;
     
+    // Validar se fornecedor é um UUID válido (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    const isValidUUID = (str: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(str);
+    };
+    
+    // Só usar fornecedor_id se for um UUID válido, senão null
+    const fornecedorId = envioFormData.fornecedor && isValidUUID(envioFormData.fornecedor) 
+      ? envioFormData.fornecedor 
+      : null;
+    
     // Montar dados apenas com campos válidos da tabela envios_galvanica
     const envioData = {
       data_envio: envioFormData.data_envio,
       data_retorno: envioFormData.data_retorno,
       status: envioFormData.status,
       observacoes: envioFormData.observacoes,
-      fornecedor_id: envioFormData.fornecedor || null, // Converter 'fornecedor' para 'fornecedor_id'
+      fornecedor_id: fornecedorId,
       peso_total: pesoFinal,
       peso_cobrado: pesoFinal,
       valor_total: totais.valorTotal,
