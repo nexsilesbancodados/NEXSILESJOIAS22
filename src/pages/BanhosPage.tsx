@@ -757,7 +757,7 @@ export default function BanhosPage() {
       return;
     }
 
-    // Usar o primeiro banho_id para o registro principal (compatibilidade)
+    // Usar o primeiro banho_id para os itens (não para o envio principal)
     const primeiroItem = envioItens.find(item => item.banho_id);
     
     // Calcular totais incluindo peças cadastradas
@@ -765,9 +765,9 @@ export default function BanhosPage() {
     
     const pesoFinal = totais.totalPesoCobrado + pesoTotalPecas;
     
+    // Não incluir banho_id no envio principal - só nos itens
     const envioData = {
       ...envioFormData,
-      banho_id: primeiroItem?.banho_id || null,
       peso_total: pesoFinal,
       valor_total: totais.valorTotal,
     };
