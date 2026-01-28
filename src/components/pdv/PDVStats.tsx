@@ -28,6 +28,52 @@ const gradientStyles = {
   pink: 'bg-gradient-to-br from-pink-400 via-rose-500 to-red-500',
 };
 
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  gradient: string;
+  isHighlight?: boolean;
+  progressBar?: number;
+}
+
+function StatCard({ icon, label, value, gradient, isHighlight, progressBar }: StatCardProps) {
+  return (
+    <div className={cn(
+      'relative overflow-hidden rounded-2xl p-4 shadow-lg min-w-[150px] w-[150px] flex-shrink-0',
+      gradient,
+      isHighlight && 'ring-2 ring-white/30'
+    )}>
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
+        <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
+      </div>
+      <div className="relative z-10 flex flex-col gap-2">
+        <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+          {icon}
+        </div>
+        <div>
+          <p className={cn(
+            "text-xs font-medium",
+            isHighlight ? "text-white/90 font-semibold uppercase tracking-wide" : "text-white/80"
+          )}>
+            {label}
+          </p>
+          <p className="text-white text-lg font-bold leading-tight">{value}</p>
+        </div>
+        {progressBar !== undefined && (
+          <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full bg-white transition-all"
+              style={{ width: `${Math.min(100, progressBar)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PDVStats({
   vendasCaixa,
   movimentosCaixa,
@@ -80,155 +126,58 @@ export function PDVStats({
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
-      {/* Saldo em Caixa - DESTAQUE */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg ring-2 ring-white/30',
-        'bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700'
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/30 backdrop-blur-sm flex items-center justify-center">
-            <Banknote className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/90 text-xs font-semibold uppercase tracking-wide">Saldo Caixa</p>
-            <p className="text-white text-xl font-bold truncate">{formatCurrency(stats.saldoAtual)}</p>
-          </div>
-        </div>
-      </div>
+    <div className="w-full overflow-x-auto pb-2 mb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+      <div className="flex gap-3 min-w-max px-1">
+        <StatCard
+          icon={<Banknote className="w-5 h-5 text-white" />}
+          label="Saldo Caixa"
+          value={formatCurrency(stats.saldoAtual)}
+          gradient="bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700"
+          isHighlight
+        />
 
-      {/* Total Vendas */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg',
-        gradientStyles.purple
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <DollarSign className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-xs font-medium">Total Vendas</p>
-            <p className="text-white text-lg font-bold truncate">{formatCurrency(stats.totalVendas)}</p>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          icon={<DollarSign className="w-5 h-5 text-white" />}
+          label="Total Vendas"
+          value={formatCurrency(stats.totalVendas)}
+          gradient={gradientStyles.purple}
+        />
 
-      {/* Qtd. Vendas */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg',
-        gradientStyles.green
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <ShoppingBag className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-xs font-medium">Qtd. Vendas</p>
-            <p className="text-white text-lg font-bold">{stats.qtdVendas}</p>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          icon={<ShoppingBag className="w-5 h-5 text-white" />}
+          label="Qtd. Vendas"
+          value={stats.qtdVendas}
+          gradient={gradientStyles.green}
+        />
 
-      {/* Ticket Médio */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg',
-        gradientStyles.blue
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-xs font-medium">Ticket Médio</p>
-            <p className="text-white text-lg font-bold truncate">{formatCurrency(stats.ticketMedio)}</p>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          icon={<TrendingUp className="w-5 h-5 text-white" />}
+          label="Ticket Médio"
+          value={formatCurrency(stats.ticketMedio)}
+          gradient={gradientStyles.blue}
+        />
 
-      {/* Clientes ID */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg',
-        gradientStyles.pink
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Users className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-xs font-medium">Clientes ID</p>
-            <p className="text-white text-lg font-bold">{stats.clientesIdentificados}/{stats.qtdVendas}</p>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          icon={<Users className="w-5 h-5 text-white" />}
+          label="Clientes ID"
+          value={`${stats.clientesIdentificados}/${stats.qtdVendas}`}
+          gradient={gradientStyles.pink}
+        />
 
-      {/* Tempo Aberto */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg',
-        gradientStyles.orange
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-            <Clock className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-xs font-medium">Tempo Aberto</p>
-            <p className="text-white text-lg font-bold">{stats.horasAberto}h {stats.minutosAberto}m</p>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          icon={<Clock className="w-5 h-5 text-white" />}
+          label="Tempo Aberto"
+          value={`${stats.horasAberto}h ${stats.minutosAberto}m`}
+          gradient={gradientStyles.orange}
+        />
 
-      {/* Meta Diária */}
-      <div className={cn(
-        'relative overflow-hidden rounded-2xl p-4 shadow-lg',
-        gradientStyles.teal
-      )}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-white/10" />
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Target className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white/80 text-xs font-medium">Meta Diária</p>
-              <p className="text-white text-lg font-bold">
-                {Math.min(100, Math.round(stats.progressoMeta))}%
-              </p>
-            </div>
-          </div>
-          <div className="mt-2 h-1.5 bg-white/20 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-white transition-all"
-              style={{ width: `${Math.min(100, stats.progressoMeta)}%` }}
-            />
-          </div>
-        </div>
+        <StatCard
+          icon={<Target className="w-5 h-5 text-white" />}
+          label="Meta Diária"
+          value={`${Math.min(100, Math.round(stats.progressoMeta))}%`}
+          gradient={gradientStyles.teal}
+          progressBar={stats.progressoMeta}
+        />
       </div>
     </div>
   );
