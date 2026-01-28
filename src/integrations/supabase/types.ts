@@ -479,6 +479,7 @@ export type Database = {
           created_at: string
           envio_id: string | null
           id: string
+          nome_peca: string | null
           peca_id: string | null
           peso: number | null
           quantidade: number
@@ -488,6 +489,7 @@ export type Database = {
           created_at?: string
           envio_id?: string | null
           id?: string
+          nome_peca?: string | null
           peca_id?: string | null
           peso?: number | null
           quantidade?: number
@@ -497,6 +499,7 @@ export type Database = {
           created_at?: string
           envio_id?: string | null
           id?: string
+          nome_peca?: string | null
           peca_id?: string | null
           peso?: number | null
           quantidade?: number
