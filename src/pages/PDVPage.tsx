@@ -60,7 +60,7 @@ import { usePDVShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ShortcutsHelp } from '@/components/pdv/ShortcutsHelp';
 import { BarcodeScanner } from '@/components/pdv/BarcodeScanner';
 import { PDVToolbar } from '@/components/pdv/PDVToolbar';
-import { PDVStats } from '@/components/pdv/PDVStats';
+// PDVStats removido - stats inline no toolbar
 import { CalculatorModal } from '@/components/pdv/CalculatorModal';
 import { DescontoModal } from '@/components/pdv/DescontoModal';
 import { ClienteFielModal } from '@/components/pdv/ClienteFielModal';
@@ -647,19 +647,25 @@ export default function PDVPage() {
           </div>
         </header>
 
-        {/* Stats Bar */}
-        <div className="shrink-0 px-4 py-2 border-b border-border">
-          <PDVStats
-            vendasCaixa={vendasCaixa}
-            movimentosCaixa={movimentosCaixa}
-            fundoTroco={caixaAtual?.fundo_troco || 0}
-            horaAbertura={caixaAtual?.data_abertura || ''}
-          />
-        </div>
-
-        {/* Toolbar */}
+        {/* Toolbar Compacto - Stats e Ações em linha única */}
         <div className="shrink-0 px-4 py-2 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-3 overflow-x-auto pb-1">
+          <div className="flex items-center gap-3 overflow-x-auto">
+            {/* Mini Stats Inline */}
+            <div className="flex items-center gap-3 text-sm shrink-0">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-success/10 rounded-lg">
+                <Banknote className="w-4 h-4 text-success" />
+                <span className="font-semibold text-success">{formatCurrency(totais.saldoFinal)}</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 rounded-lg">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <span className="font-medium">{formatCurrency(totais.vendas)}</span>
+                <span className="text-muted-foreground text-xs">({vendasCaixa.length})</span>
+              </div>
+            </div>
+            
+            <div className="h-5 w-px bg-border shrink-0" />
+            
+            {/* Quick Actions */}
             <PDVToolbar
               onCalculator={() => setIsCalculatorOpen(true)}
               onDesconto={() => setIsDescontoOpen(true)}
@@ -685,21 +691,22 @@ export default function PDVPage() {
               ultimaVendaId={ultimaVenda?.id}
             />
             
-            <div className="h-6 w-px bg-border shrink-0" />
+            <div className="flex-1" />
             
+            {/* Status Badges */}
             <div className="flex items-center gap-2 shrink-0">
               {clienteSelecionado && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 rounded-full text-sm">
-                  <User className="w-3.5 h-3.5 text-primary" />
-                  <span className="font-medium truncate max-w-[100px]">{clienteSelecionado.nome}</span>
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 rounded-full text-xs">
+                  <User className="w-3 h-3 text-primary" />
+                  <span className="font-medium truncate max-w-[80px]">{clienteSelecionado.nome}</span>
                   <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0" onClick={() => setClienteSelecionado(null)}>
                     <X className="w-2.5 h-2.5" />
                   </Button>
                 </div>
               )}
               {descontoAplicado && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 rounded-full text-sm">
-                  <Percent className="w-3.5 h-3.5 text-destructive" />
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-destructive/10 rounded-full text-xs">
+                  <Percent className="w-3 h-3 text-destructive" />
                   <span className="font-medium">
                     {descontoAplicado.tipo === 'percentual' ? `${descontoAplicado.valor}%` : `R$ ${descontoAplicado.valor.toFixed(2)}`}
                   </span>
