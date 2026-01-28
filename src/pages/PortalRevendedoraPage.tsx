@@ -322,10 +322,10 @@ export default function PortalRevendedoraPage() {
         if (error) throw error;
       }
 
-      // Update interesse status
+      // Update interesse status to 'atendido' (valid constraint value)
       const { error } = await supabase
         .from('maleta_interesses')
-        .update({ status: 'aprovado' })
+        .update({ status: 'atendido' })
         .eq('id', interesse.id);
 
       if (error) throw error;
@@ -347,9 +347,10 @@ export default function PortalRevendedoraPage() {
   const handleRejeitarInteresse = async (interesseId: string) => {
     setProcessando(true);
     try {
+      // Update interesse status to 'cancelado' (valid constraint value)
       const { error } = await supabase
         .from('maleta_interesses')
-        .update({ status: 'rejeitado' })
+        .update({ status: 'cancelado' })
         .eq('id', interesseId);
 
       if (error) throw error;
