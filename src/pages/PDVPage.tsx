@@ -60,7 +60,7 @@ import { usePDVShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ShortcutsHelp } from '@/components/pdv/ShortcutsHelp';
 import { BarcodeScanner } from '@/components/pdv/BarcodeScanner';
 import { PDVToolbar } from '@/components/pdv/PDVToolbar';
-// PDVStats removido - stats inline no toolbar
+import { PDVDashboardSheet } from '@/components/pdv/PDVDashboardSheet';
 import { CalculatorModal } from '@/components/pdv/CalculatorModal';
 import { DescontoModal } from '@/components/pdv/DescontoModal';
 import { ClienteFielModal } from '@/components/pdv/ClienteFielModal';
@@ -631,6 +631,13 @@ export default function PDVPage() {
                 <ArrowUpCircle className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1.5">Suprimento</span>
               </Button>
+              
+              <PDVDashboardSheet
+                vendasCaixa={vendasCaixa}
+                movimentosCaixa={movimentosCaixa}
+                fundoTroco={caixaAtual?.fundo_troco || 0}
+                horaAbertura={caixaAtual?.data_abertura || ''}
+              />
               
               <div className="flex-1 min-w-4" />
               
