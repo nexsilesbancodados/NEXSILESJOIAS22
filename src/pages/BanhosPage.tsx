@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -373,6 +374,7 @@ const METODOS_BANHO = [
 ];
 
 export default function BanhosPage() {
+  const queryClient = useQueryClient();
   const { data: banhos = [], isLoading: isLoadingBanhos } = useBanhos();
   const { data: envios = [], isLoading: isLoadingEnvios } = useEnviosGalvanica();
   const { data: allEnvioItens = [], isLoading: isLoadingItens } = useAllEnvioGalvanicaItens();
@@ -813,6 +815,8 @@ export default function BanhosPage() {
         }
         
         toast.success('Envio atualizado com sucesso!');
+        // Invalidar cache de itens
+        queryClient.invalidateQueries({ queryKey: ['all-envio-galvanica-itens'] });
       } else {
         // Para novo envio, precisamos do ID retornado
         const organizationId = await getOrganizationIdAsync();
@@ -840,6 +844,9 @@ export default function BanhosPage() {
         }
         
         toast.success('Envio cadastrado com sucesso!');
+        // Invalidar cache para atualizar a lista automaticamente
+        queryClient.invalidateQueries({ queryKey: ['envios-galvanica'] });
+        queryClient.invalidateQueries({ queryKey: ['all-envio-galvanica-itens'] });
       }
     } catch (error) {
       console.error('Erro ao salvar envio:', error);
