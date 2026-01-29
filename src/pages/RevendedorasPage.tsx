@@ -903,15 +903,18 @@ export default function RevendedorasPage() {
     }
   };
 
-  // Calculate total sold for current maleta (considering quantities)
-  const totalVendidoMaleta = maletaItems
-    .filter((item) => item.status === 'vendido')
-    .reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
+  // Calculate total sold for current maleta using quantidade_vendida
+  const totalVendidoMaleta = maletaItems.reduce((acc, item) => {
+    const quantidadeVendida = item.quantidade_vendida || 0;
+    return acc + ((item.peca?.preco_venda || 0) * quantidadeVendida);
+  }, 0);
 
   const calcularAcertoMaleta = (items: (MaletaItem & { peca: Peca })[], comissao: number) => {
-    const totalVendido = items
-      .filter((item) => item.status === 'vendido')
-      .reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
+    // Calculate total sold using quantidade_vendida for accurate tracking
+    const totalVendido = items.reduce((acc, item) => {
+      const quantidadeVendida = item.quantidade_vendida || 0;
+      return acc + ((item.peca?.preco_venda || 0) * quantidadeVendida);
+    }, 0);
     
     // Use scale if enabled
     let comissaoInfo;

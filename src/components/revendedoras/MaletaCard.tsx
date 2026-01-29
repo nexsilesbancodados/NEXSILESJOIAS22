@@ -56,14 +56,16 @@ export function MaletaCard({
     }).format(value);
   };
 
-  const totalVendido = items
-    .filter((item) => item.status === 'vendido')
-    .reduce((acc, item) => acc + ((item.peca as Peca)?.preco_venda || 0) * (item.quantidade || 1), 0);
+  // Calculate total sold using quantidade_vendida for accurate tracking
+  const totalVendido = items.reduce((acc, item) => {
+    const quantidadeVendida = item.quantidade_vendida || 0;
+    return acc + ((item.peca as Peca)?.preco_venda || 0) * quantidadeVendida;
+  }, 0);
 
-  // Count quantities, not just records
-  const pendentes = items.filter(i => i.status === 'pendente').reduce((acc, i) => acc + (i.quantidade || 1), 0);
-  const vendidas = items.filter(i => i.status === 'vendido').reduce((acc, i) => acc + (i.quantidade || 1), 0);
-  const totalPecas = items.reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  // Count quantities correctly: quantidade is pending, quantidade_vendida is sold
+  const pendentes = items.reduce((acc, i) => acc + (i.quantidade || 0), 0);
+  const vendidas = items.reduce((acc, i) => acc + (i.quantidade_vendida || 0), 0);
+  const totalPecas = pendentes + vendidas;
 
   const calcularDiasRestantes = (prazo: string | null) => {
     if (!prazo) return null;
