@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +20,17 @@ import {
   Bot,
   Headphones,
   Star,
-  ArrowRight
+  ArrowRight,
+  Loader2,
+  CreditCard,
+  Settings
 } from 'lucide-react';
 import { useAssinatura, PLANOS } from '@/hooks/useAssinatura';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const FEATURES = [
   { 
@@ -95,14 +101,89 @@ const FEATURES = [
 ];
 
 export default function PlanosPage() {
-  const { assinatura, planoInfo } = useAssinatura();
+  const { assinatura, planoInfo, isAtivo, dataVencimentoFormatada } = useAssinatura();
   const [isAnual, setIsAnual] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle success/cancel from Stripe
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      toast.success('Pagamento realizado com sucesso!', {
+        description: 'Sua assinatura foi ativada. Aproveite todas as funcionalidades!'
+      });
+      setSearchParams({});
+    } else if (searchParams.get('canceled') === 'true') {
+      toast.info('Pagamento cancelado', {
+        description: 'Você pode tentar novamente quando quiser.'
+      });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const getPrecoComDesconto = (preco: number) => {
     if (isAnual) {
       return (preco * 12 * 0.8) / 12; // 20% de desconto anual
     }
     return preco;
+  };
+
+  const handleSelectPlan = async (plano: 'nexsiles' | 'nexsiles_max') => {
+    setLoadingPlan(plano);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+        body: {
+          action: 'create-checkout',
+          plano,
+          successUrl: `${window.location.origin}/planos?success=true`,
+          cancelUrl: `${window.location.origin}/planos?canceled=true`,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('Não foi possível criar a sessão de pagamento');
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast.error('Erro ao processar pagamento', {
+        description: 'Por favor, tente novamente ou entre em contato com o suporte.'
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setLoadingPlan('portal');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+        body: {
+          action: 'create-portal',
+          successUrl: `${window.location.origin}/planos`,
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('Não foi possível acessar o portal de assinatura');
+      }
+    } catch (error) {
+      console.error('Error accessing portal:', error);
+      toast.error('Erro ao acessar portal', {
+        description: 'Por favor, tente novamente ou entre em contato com o suporte.'
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
   const planoAtual = assinatura?.plano;
@@ -115,6 +196,60 @@ export default function PlanosPage() {
           title="Escolha seu Plano"
           subtitle="Selecione o plano ideal para o seu negócio"
         />
+
+        {/* Status da Assinatura Atual */}
+        {assinatura && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-5xl mx-auto mb-8"
+          >
+            <Card className={cn(
+              "border-2",
+              isAtivo ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"
+            )}>
+              <CardContent className="py-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className={cn(
+                      "p-3 rounded-xl",
+                      isAtivo ? "bg-success/10" : "bg-destructive/10"
+                    )}>
+                      <CreditCard className={cn(
+                        "w-6 h-6",
+                        isAtivo ? "text-success" : "text-destructive"
+                      )} />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        Plano {planoInfo?.nome || 'Não definido'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {isAtivo 
+                          ? `Ativo até ${dataVencimentoFormatada}` 
+                          : 'Assinatura expirada'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleManageSubscription}
+                    disabled={loadingPlan === 'portal'}
+                    className="gap-2"
+                  >
+                    {loadingPlan === 'portal' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Settings className="w-4 h-4" />
+                    )}
+                    Gerenciar Assinatura
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Toggle Mensal/Anual */}
         <div className="flex items-center justify-center gap-4 mb-8">
@@ -199,9 +334,19 @@ export default function PlanosPage() {
                 <Button 
                   className="w-full" 
                   variant={planoAtual === 'nexsiles' ? 'outline' : 'default'}
-                  disabled={planoAtual === 'nexsiles'}
+                  disabled={planoAtual === 'nexsiles' || loadingPlan === 'nexsiles'}
+                  onClick={() => handleSelectPlan('nexsiles')}
                 >
-                  {planoAtual === 'nexsiles' ? 'Plano Atual' : 'Escolher Nexsiles'}
+                  {loadingPlan === 'nexsiles' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : planoAtual === 'nexsiles' ? (
+                    'Plano Atual'
+                  ) : (
+                    'Escolher Nexsiles'
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -286,9 +431,17 @@ export default function PlanosPage() {
                     planoAtual !== 'nexsiles_max' && "btn-gold"
                   )}
                   variant={planoAtual === 'nexsiles_max' ? 'outline' : 'default'}
-                  disabled={planoAtual === 'nexsiles_max'}
+                  disabled={planoAtual === 'nexsiles_max' || loadingPlan === 'nexsiles_max'}
+                  onClick={() => handleSelectPlan('nexsiles_max')}
                 >
-                  {planoAtual === 'nexsiles_max' ? 'Plano Atual' : (
+                  {loadingPlan === 'nexsiles_max' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : planoAtual === 'nexsiles_max' ? (
+                    'Plano Atual'
+                  ) : (
                     <>
                       Escolher Nexsiles Max
                       <ArrowRight className="w-4 h-4 ml-2" />
