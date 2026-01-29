@@ -190,6 +190,7 @@ export interface MaletaItem {
   maleta_id: string;
   peca_id: string | null;
   quantidade: number;
+  quantidade_vendida?: number;
   preco_unitario: number | null;
   status: string;
   vendida: boolean | null;
@@ -1185,11 +1186,12 @@ export function useUpdateMaletaItem() {
       }
 
       // For 'vendido' status with partial quantity (selling part of a multi-quantity item)
-      if (status === 'vendido' && quantidadeVendida && quantidadeTotal && quantidadeVendida < quantidadeTotal) {
-        // Get the current item to get maleta_id and peca price
+      // We track sold quantity in quantidade_vendida column and reduce quantidade (pending)
+      if (status === 'vendido' && quantidadeVendida && quantidadeTotal) {
+        // Get the current item info
         const { data: currentItem, error: fetchError } = await supabase
           .from('maletas_pecas')
-          .select('maleta_id, preco_unitario, peca_id')
+          .select('maleta_id, preco_unitario, peca_id, quantidade_vendida')
           .eq('id', id)
           .single();
         
@@ -1198,45 +1200,31 @@ export function useUpdateMaletaItem() {
           throw new Error('Erro ao buscar item da maleta');
         }
 
-        // Update the original item with remaining pending quantity
+        // Calculate new values
         const remainingQuantity = quantidadeTotal - quantidadeVendida;
-        const { error: updateOriginalError } = await supabase
+        const newQuantidadeVendida = (currentItem.quantidade_vendida || 0) + quantidadeVendida;
+        const isFullySold = remainingQuantity <= 0;
+        
+        // Update the item: reduce pending quantity and increase sold quantity
+        const { data, error: updateError } = await supabase
           .from('maletas_pecas')
           .update({ 
-            quantidade: remainingQuantity,
-            vendida: false 
-          })
-          .eq('id', id);
-        
-        if (updateOriginalError) {
-          console.error('Error updating remaining quantity:', updateOriginalError);
-          throw new Error('Erro ao atualizar quantidade restante');
-        }
-
-        // Create a new item for the sold quantity
-        const { data: newItem, error: insertError } = await supabase
-          .from('maletas_pecas')
-          .insert({
-            maleta_id: currentItem.maleta_id,
-            peca_id: currentItem.peca_id || pecaId,
-            quantidade: quantidadeVendida,
-            vendida: true,
+            quantidade: Math.max(0, remainingQuantity),
+            quantidade_vendida: newQuantidadeVendida,
+            vendida: isFullySold,
             data_venda: new Date().toISOString().split('T')[0],
-            preco_unitario: currentItem.preco_unitario
+            updated_at: new Date().toISOString()
           })
+          .eq('id', id)
           .select()
           .single();
         
-        if (insertError) {
-          console.error('Error inserting sold item:', insertError);
-          // Rollback - restore the original quantity
-          await supabase
-            .from('maletas_pecas')
-            .update({ quantidade: quantidadeTotal })
-            .eq('id', id);
-          throw new Error('Erro ao registrar item vendido');
+        if (updateError) {
+          console.error('Error updating quantity after sale:', updateError);
+          throw new Error('Erro ao registrar venda');
         }
-        return { id, partialSale: true, soldItem: newItem };
+        
+        return { id, partialSale: !isFullySold, quantidadeSold: quantidadeVendida, remainingQuantity, data };
       }
 
       // For 'vendido' and 'pendente' status with full quantity, update the record
