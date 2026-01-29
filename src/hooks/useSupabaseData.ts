@@ -1268,7 +1268,22 @@ export function useDeleteMaletaItem() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, pecaId, returnToStock = true }: { id: string; pecaId: string; returnToStock?: boolean }) => {
+    mutationFn: async ({ id, pecaId, returnToStock = true, quantidade }: { id: string; pecaId: string; returnToStock?: boolean; quantidade?: number }) => {
+      // First, get the item to know the quantity if not provided
+      let quantidadeToReturn = quantidade || 1;
+      
+      if (returnToStock && !quantidade) {
+        const { data: itemData } = await supabase
+          .from('maletas_pecas')
+          .select('quantidade')
+          .eq('id', id)
+          .single();
+        
+        if (itemData) {
+          quantidadeToReturn = itemData.quantidade || 1;
+        }
+      }
+      
       // Delete the item from maleta
       const { error } = await supabase
         .from('maletas_pecas')
@@ -1288,7 +1303,7 @@ export function useDeleteMaletaItem() {
         if (pecaData) {
           await supabase
             .from('pecas')
-            .update({ estoque: (pecaData.estoque || 0) + 1 })
+            .update({ estoque: (pecaData.estoque || 0) + quantidadeToReturn })
             .eq('id', pecaId);
         }
       }

@@ -33,14 +33,15 @@ export function MaletaListRow({ maleta, onClick, onEdit }: MaletaListRowProps) {
   const isVencida = diasRestantes !== null && diasRestantes < 0;
   const isVencendo = diasRestantes !== null && diasRestantes >= 0 && diasRestantes <= 3;
 
-  // Calculate totals from items
-  const totalPecas = items.reduce((acc, item) => acc + (item.quantidade || 1), 0);
-  const vendidas = items.filter(i => i.status === 'vendido').reduce((acc, i) => acc + (i.quantidade || 1), 0);
-  const pendentes = items.filter(i => i.status === 'pendente').reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  // Calculate totals using quantidade_vendida for accurate tracking
+  const pendentes = items.reduce((acc, i) => acc + (i.quantidade || 0), 0);
+  const vendidas = items.reduce((acc, i) => acc + (i.quantidade_vendida || 0), 0);
+  const totalPecas = pendentes + vendidas;
   
-  const totalVendido = items
-    .filter((item) => item.status === 'vendido')
-    .reduce((acc, item) => acc + ((item.peca as Peca)?.preco_venda || 0) * (item.quantidade || 1), 0);
+  const totalVendido = items.reduce((acc, item) => {
+    const quantidadeVendida = item.quantidade_vendida || 0;
+    return acc + ((item.peca as Peca)?.preco_venda || 0) * quantidadeVendida;
+  }, 0);
 
   return (
     <tr 

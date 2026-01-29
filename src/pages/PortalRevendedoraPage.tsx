@@ -38,6 +38,7 @@ interface Maleta {
 interface MaletaPeca {
   id: string;
   quantidade: number;
+  quantidade_vendida?: number;
   vendida: boolean;
   preco_unitario?: number;
   data_venda?: string;
@@ -228,6 +229,7 @@ export default function PortalRevendedoraPage() {
         .select(`
           id,
           quantidade,
+          quantidade_vendida,
           vendida,
           preco_unitario,
           data_venda,
@@ -308,18 +310,34 @@ export default function PortalRevendedoraPage() {
   const handleAprovarInteresse = async (interesse: Interesse) => {
     setProcessando(true);
     try {
-      // Mark all items as sold in maletas_pecas
+      // Mark all items as sold in maletas_pecas using quantidade_vendida
       for (const item of interesse.itens) {
-        const { error } = await supabase
+        // Get current item data
+        const { data: currentItem } = await supabase
           .from('maletas_pecas')
-          .update({
-            vendida: true,
-            data_venda: new Date().toISOString().split('T')[0]
-          })
+          .select('id, quantidade, quantidade_vendida')
           .eq('maleta_id', interesse.maleta.id)
-          .eq('peca_id', item.peca.id);
+          .eq('peca_id', item.peca.id)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (currentItem) {
+          const quantidadeVenda = item.quantidade || 1;
+          const quantidadeRestante = Math.max(0, (currentItem.quantidade || 0) - quantidadeVenda);
+          const novaQuantidadeVendida = (currentItem.quantidade_vendida || 0) + quantidadeVenda;
+          const isFullySold = quantidadeRestante <= 0;
+
+          const { error } = await supabase
+            .from('maletas_pecas')
+            .update({
+              quantidade: quantidadeRestante,
+              quantidade_vendida: novaQuantidadeVendida,
+              vendida: isFullySold,
+              data_venda: new Date().toISOString().split('T')[0]
+            })
+            .eq('id', currentItem.id);
+
+          if (error) throw error;
+        }
       }
 
       // Update interesse status to 'atendido' (valid constraint value)
@@ -371,41 +389,37 @@ export default function PortalRevendedoraPage() {
 
     setProcessando(true);
     try {
+      // Get current item data
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('maletas_pecas')
+        .select('quantidade_vendida')
+        .eq('id', vendaModal.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const quantidadeRestante = vendaModal.quantidade - quantidadeVenda;
+      const novaQuantidadeVendida = (currentItem?.quantidade_vendida || 0) + quantidadeVenda;
+      const isFullySold = quantidadeRestante <= 0;
 
-      if (quantidadeRestante > 0) {
-        // Split: update current record and create new one for remaining
-        await supabase
-          .from('maletas_pecas')
-          .update({
-            quantidade: quantidadeVenda,
-            vendida: true,
-            data_venda: new Date().toISOString().split('T')[0]
-          })
-          .eq('id', vendaModal.id);
+      // Update using quantidade_vendida for tracking (consistent with admin panel)
+      const { error: updateError } = await supabase
+        .from('maletas_pecas')
+        .update({
+          quantidade: Math.max(0, quantidadeRestante),
+          quantidade_vendida: novaQuantidadeVendida,
+          vendida: isFullySold,
+          data_venda: new Date().toISOString().split('T')[0],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vendaModal.id);
 
-        // Create new record for remaining pieces
-        await supabase
-          .from('maletas_pecas')
-          .insert({
-            maleta_id: maletaSelecionada.id,
-            peca_id: vendaModal.peca.id,
-            quantidade: quantidadeRestante,
-            vendida: false,
-            preco_unitario: vendaModal.preco_unitario || vendaModal.peca.preco_venda
-          });
-      } else {
-        // Simple update
-        await supabase
-          .from('maletas_pecas')
-          .update({
-            vendida: true,
-            data_venda: new Date().toISOString().split('T')[0]
-          })
-          .eq('id', vendaModal.id);
-      }
+      if (updateError) throw updateError;
 
-      toast.success('Peça marcada como vendida!');
+      toast.success(quantidadeVenda > 1 
+        ? `${quantidadeVenda} peças marcadas como vendidas!` 
+        : 'Peça marcada como vendida!'
+      );
       setVendaModal(null);
       setQuantidadeVenda(1);
       fetchPecasMaleta(maletaSelecionada.id);
@@ -424,13 +438,14 @@ export default function PortalRevendedoraPage() {
     }).format(value);
   };
 
-  // Calculate metrics
-  const totalPecas = pecasMaleta.reduce((acc, item) => acc + item.quantidade, 0);
-  const pecasVendidas = pecasMaleta.filter(p => p.vendida).reduce((acc, item) => acc + item.quantidade, 0);
-  const pecasPendentes = pecasMaleta.filter(p => !p.vendida).reduce((acc, item) => acc + item.quantidade, 0);
-  const valorVendido = pecasMaleta
-    .filter(p => p.vendida)
-    .reduce((acc, item) => acc + (item.preco_unitario || item.peca.preco_venda || 0) * item.quantidade, 0);
+  // Calculate metrics using quantidade_vendida for accuracy
+  const pecasPendentes = pecasMaleta.reduce((acc, item) => acc + (item.quantidade || 0), 0);
+  const pecasVendidas = pecasMaleta.reduce((acc, item) => acc + (item.quantidade_vendida || 0), 0);
+  const totalPecas = pecasPendentes + pecasVendidas;
+  const valorVendido = pecasMaleta.reduce((acc, item) => {
+    const qtdVendida = item.quantidade_vendida || 0;
+    return acc + (item.preco_unitario || item.peca.preco_venda || 0) * qtdVendida;
+  }, 0);
   const comissao = valorVendido * ((revendedora?.comissao_percentual || 30) / 100);
   const interessesPendentes = interesses.filter(i => i.status === 'pendente').length;
 
