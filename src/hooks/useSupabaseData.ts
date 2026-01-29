@@ -1186,14 +1186,17 @@ export function useUpdateMaletaItem() {
 
       // For 'vendido' status with partial quantity (selling part of a multi-quantity item)
       if (status === 'vendido' && quantidadeVendida && quantidadeTotal && quantidadeVendida < quantidadeTotal) {
-        // Get the current item to get maleta_id
+        // Get the current item to get maleta_id and peca price
         const { data: currentItem, error: fetchError } = await supabase
           .from('maletas_pecas')
-          .select('maleta_id, preco_unitario')
+          .select('maleta_id, preco_unitario, peca_id')
           .eq('id', id)
           .single();
         
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+          console.error('Error fetching current item:', fetchError);
+          throw new Error('Erro ao buscar item da maleta');
+        }
 
         // Update the original item with remaining pending quantity
         const remainingQuantity = quantidadeTotal - quantidadeVendida;
@@ -1205,14 +1208,17 @@ export function useUpdateMaletaItem() {
           })
           .eq('id', id);
         
-        if (updateOriginalError) throw updateOriginalError;
+        if (updateOriginalError) {
+          console.error('Error updating remaining quantity:', updateOriginalError);
+          throw new Error('Erro ao atualizar quantidade restante');
+        }
 
         // Create a new item for the sold quantity
         const { data: newItem, error: insertError } = await supabase
           .from('maletas_pecas')
           .insert({
             maleta_id: currentItem.maleta_id,
-            peca_id: pecaId,
+            peca_id: currentItem.peca_id || pecaId,
             quantidade: quantidadeVendida,
             vendida: true,
             data_venda: new Date().toISOString().split('T')[0],
@@ -1221,7 +1227,15 @@ export function useUpdateMaletaItem() {
           .select()
           .single();
         
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error inserting sold item:', insertError);
+          // Rollback - restore the original quantity
+          await supabase
+            .from('maletas_pecas')
+            .update({ quantidade: quantidadeTotal })
+            .eq('id', id);
+          throw new Error('Erro ao registrar item vendido');
+        }
         return { id, partialSale: true, soldItem: newItem };
       }
 
@@ -1255,8 +1269,9 @@ export function useUpdateMaletaItem() {
         toast.success('Item devolvido ao estoque!');
       }
     },
-    onError: () => {
-      toast.error('Erro ao atualizar item');
+    onError: (err: Error) => {
+      console.error('Error updating maleta item:', err);
+      toast.error(err.message || 'Erro ao atualizar item');
     },
   });
 }
