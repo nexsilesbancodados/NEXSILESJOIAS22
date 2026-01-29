@@ -1103,6 +1103,7 @@ export type Database = {
           peca_id: string
           preco_unitario: number | null
           quantidade: number
+          quantidade_vendida: number | null
           updated_at: string | null
           vendida: boolean | null
         }
@@ -1114,6 +1115,7 @@ export type Database = {
           peca_id: string
           preco_unitario?: number | null
           quantidade?: number
+          quantidade_vendida?: number | null
           updated_at?: string | null
           vendida?: boolean | null
         }
@@ -1125,6 +1127,7 @@ export type Database = {
           peca_id?: string
           preco_unitario?: number | null
           quantidade?: number
+          quantidade_vendida?: number | null
           updated_at?: string | null
           vendida?: boolean | null
         }

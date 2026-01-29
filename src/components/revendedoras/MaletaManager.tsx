@@ -92,17 +92,21 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
 
-  // Computed values
-  const itemsVendidos = items.filter(i => i.status === 'vendido');
-  const itemsPendentes = items.filter(i => i.status === 'pendente');
+  // Computed values - Now using quantidade_vendida for accurate tracking
+  // Items with quantidade_vendida > 0 have had sales
+  const itemsComVendas = items.filter(i => (i.quantidade_vendida || 0) > 0);
+  const itemsPendentes = items.filter(i => (i.quantidade || 0) > 0 && !i.vendida);
+  const itemsTotalmenteVendidos = items.filter(i => i.vendida === true);
   
-  const totalPecas = items.reduce((acc, i) => acc + (i.quantidade || 1), 0);
-  const pecasVendidas = itemsVendidos.reduce((acc, i) => acc + (i.quantidade || 1), 0);
-  const pecasPendentes = itemsPendentes.reduce((acc, i) => acc + (i.quantidade || 1), 0);
+  // Total pieces = pending + sold
+  const pecasPendentes = items.reduce((acc, i) => acc + (i.quantidade || 0), 0);
+  const pecasVendidas = items.reduce((acc, i) => acc + (i.quantidade_vendida || 0), 0);
+  const totalPecas = pecasPendentes + pecasVendidas;
   
-  const valorTotal = items.reduce((acc, i) => acc + ((i.peca?.preco_venda || 0) * (i.quantidade || 1)), 0);
-  const valorVendido = itemsVendidos.reduce((acc, i) => acc + ((i.peca?.preco_venda || 0) * (i.quantidade || 1)), 0);
-  const valorPendente = itemsPendentes.reduce((acc, i) => acc + ((i.peca?.preco_venda || 0) * (i.quantidade || 1)), 0);
+  // Values
+  const valorPendente = items.reduce((acc, i) => acc + ((i.peca?.preco_venda || 0) * (i.quantidade || 0)), 0);
+  const valorVendido = items.reduce((acc, i) => acc + ((i.peca?.preco_venda || 0) * (i.quantidade_vendida || 0)), 0);
+  const valorTotal = valorPendente + valorVendido;
   
   const comissaoEstimada = (valorVendido * comissaoPercentual) / 100;
   const percentualVendido = totalPecas > 0 ? (pecasVendidas / totalPecas) * 100 : 0;
@@ -261,12 +265,12 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
       valorPendente,
       comissaoPercentual,
       comissaoEstimada,
-      itemsVendidos: itemsVendidos.map(i => ({
+      itemsVendidos: itemsComVendas.map(i => ({
         nome: i.peca?.nome || 'Peça desconhecida',
         codigo: i.peca?.codigo || '-',
-        quantidade: i.quantidade || 1,
+        quantidade: i.quantidade_vendida || 0,
         preco: i.peca?.preco_venda || 0,
-        subtotal: (i.peca?.preco_venda || 0) * (i.quantidade || 1),
+        subtotal: (i.peca?.preco_venda || 0) * (i.quantidade_vendida || 0),
       })),
       itemsPendentes: itemsPendentes.map(i => ({
         nome: i.peca?.nome || 'Peça desconhecida',
@@ -861,7 +865,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
       </Card>
 
       {/* Sold Items Table */}
-      {itemsVendidos.length > 0 && (
+      {itemsComVendas.length > 0 && (
         <Card className="border-success/30 bg-success/5">
           <CardHeader className="py-3">
             <CardTitle className="text-base flex items-center gap-2 text-success">
@@ -876,17 +880,17 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   <TableRow>
                     <TableHead className="w-[60px]">Foto</TableHead>
                     <TableHead>Peça</TableHead>
-                    <TableHead className="text-center w-[80px]">Qtd</TableHead>
+                    <TableHead className="text-center w-[80px]">Qtd Vendida</TableHead>
                     <TableHead className="text-right w-[100px]">Preço Un.</TableHead>
                     <TableHead className="text-right w-[100px]">Subtotal</TableHead>
                     <TableHead className="text-right w-[80px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {itemsVendidos.map((item) => {
+                  {itemsComVendas.map((item) => {
                     const preco = item.peca?.preco_venda || 0;
-                    const qtd = item.quantidade || 1;
-                    const subtotal = preco * qtd;
+                    const qtdVendida = item.quantidade_vendida || 0;
+                    const subtotal = preco * qtdVendida;
 
                     return (
                       <TableRow key={item.id}>
@@ -903,7 +907,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                             <p className="text-xs text-muted-foreground">{item.peca?.codigo}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center font-medium">{qtd}</TableCell>
+                        <TableCell className="text-center font-medium">{qtdVendida}</TableCell>
                         <TableCell className="text-right">{formatCurrency(preco)}</TableCell>
                         <TableCell className="text-right font-medium text-success">{formatCurrency(subtotal)}</TableCell>
                         <TableCell>
