@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.notificar-novo-pedido-revendedora]
 verify_jwt = false
+
+[functions.stripe-checkout]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.verificar-assinaturas]
+verify_jwt = false
