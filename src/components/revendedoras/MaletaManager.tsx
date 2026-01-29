@@ -738,21 +738,23 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         </Collapsible>
       )}
 
-      {/* Items Table */}
+      {/* Pending Items Table */}
       <Card>
         <CardHeader className="py-3">
-          <CardTitle className="text-base">Peças na Maleta ({totalPecas})</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Package className="w-4 h-4 text-warning" />
+            Peças Pendentes ({pecasPendentes})
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoadingItems ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Package className="w-12 h-12 mb-2 opacity-50" />
-              <p>Nenhuma peça na maleta</p>
-              <p className="text-sm">Adicione peças usando a seção acima</p>
+          ) : itemsPendentes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Check className="w-10 h-10 mb-2 text-success opacity-50" />
+              <p className="text-sm">Todas as peças foram vendidas!</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -764,19 +766,17 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                     <TableHead className="text-center w-[80px]">Qtd</TableHead>
                     <TableHead className="text-right w-[100px]">Preço Un.</TableHead>
                     <TableHead className="text-right w-[100px]">Subtotal</TableHead>
-                    <TableHead className="text-center w-[80px]">Status</TableHead>
                     <TableHead className="text-right w-[150px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {itemsPendentes.map((item) => {
                     const preco = item.peca?.preco_venda || 0;
                     const qtd = item.quantidade || 1;
                     const subtotal = preco * qtd;
-                    const isVendido = item.status === 'vendido';
 
                     return (
-                      <TableRow key={item.id} className={cn(isVendido && "bg-success/5")}>
+                      <TableRow key={item.id}>
                         <TableCell>
                           <img
                             src={item.peca?.imagem_url || '/placeholder.svg'}
@@ -793,14 +793,9 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                         <TableCell className="text-center font-medium">{qtd}</TableCell>
                         <TableCell className="text-right">{formatCurrency(preco)}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(subtotal)}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={isVendido ? 'default' : 'secondary'} className={cn(isVendido && "bg-success")}>
-                            {isVendido ? 'Vendido' : 'Pendente'}
-                          </Badge>
-                        </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
-                            {maleta.status === 'aberta' && !isVendido && (
+                            {maleta.status === 'aberta' && (
                               <>
                                 <Button
                                   size="icon"
@@ -864,6 +859,75 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           )}
         </CardContent>
       </Card>
+
+      {/* Sold Items Table */}
+      {itemsVendidos.length > 0 && (
+        <Card className="border-success/30 bg-success/5">
+          <CardHeader className="py-3">
+            <CardTitle className="text-base flex items-center gap-2 text-success">
+              <Check className="w-4 h-4" />
+              Peças Vendidas ({pecasVendidas})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[60px]">Foto</TableHead>
+                    <TableHead>Peça</TableHead>
+                    <TableHead className="text-center w-[80px]">Qtd</TableHead>
+                    <TableHead className="text-right w-[100px]">Preço Un.</TableHead>
+                    <TableHead className="text-right w-[100px]">Subtotal</TableHead>
+                    <TableHead className="text-right w-[80px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {itemsVendidos.map((item) => {
+                    const preco = item.peca?.preco_venda || 0;
+                    const qtd = item.quantidade || 1;
+                    const subtotal = preco * qtd;
+
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <img
+                            src={item.peca?.imagem_url || '/placeholder.svg'}
+                            alt={item.peca?.nome}
+                            className="w-10 h-10 rounded object-cover"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-sm">{item.peca?.nome}</p>
+                            <p className="text-xs text-muted-foreground">{item.peca?.codigo}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-medium">{qtd}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(preco)}</TableCell>
+                        <TableCell className="text-right font-medium text-success">{formatCurrency(subtotal)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 hover:bg-secondary"
+                              onClick={() => setDetalhesModal({ open: true, peca: item.peca as Peca })}
+                              title="Ver detalhes"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal: Marcar Vendido */}
       <Dialog open={vendaModal.open} onOpenChange={(open) => setVendaModal({ open, item: vendaModal.item })}>
