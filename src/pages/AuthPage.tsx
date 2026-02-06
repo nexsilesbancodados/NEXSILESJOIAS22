@@ -4,18 +4,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Lock, User, ArrowRight, Sparkles, Shield, Zap, ChevronLeft } from 'lucide-react';
+import { Loader2, Mail, Lock, User, ArrowRight, Sparkles, Shield, Zap, ChevronLeft, KeyRound, Crown, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logo from '@/assets/logo.png';
 import loginBg from '@/assets/login-background.jpg';
 import { ValidatedInput } from '@/components/ui/validated-input';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'Senha deve ter pelo menos 6 caracteres');
 const nomeSchema = z.string().min(2, 'Nome deve ter pelo menos 2 caracteres');
-
+const codigoSchema = z.string().length(12, 'Código deve ter 12 caracteres');
 export default function AuthPage() {
   const navigate = useNavigate();
   const { signIn, signUp, resetPassword, user, loading: authLoading } = useAuth();
@@ -39,6 +41,9 @@ export default function AuthPage() {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [signupCodigo, setSignupCodigo] = useState('');
+  const [codigoValidado, setCodigoValidado] = useState<{ valido: boolean; plano?: string; email?: string } | null>(null);
+  const [validandoCodigo, setValidandoCodigo] = useState(false);
   const [signupTouched, setSignupTouched] = useState<Record<string, boolean>>({});
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
 
@@ -62,6 +67,10 @@ export default function AuthPage() {
 
   const validateSignupField = (field: string, value: string): string => {
     switch (field) {
+      case 'codigo':
+        if (!value.trim()) return 'Código de acesso é obrigatório';
+        if (value.trim().length !== 12) return 'Código deve ter 12 caracteres';
+        break;
       case 'nome':
         if (!value.trim()) return 'Nome é obrigatório';
         if (value.trim().length < 2) return 'Nome deve ter pelo menos 2 caracteres';
@@ -80,6 +89,51 @@ export default function AuthPage() {
         break;
     }
     return '';
+  };
+
+  // Validate access code
+  const validarCodigo = async (codigo: string) => {
+    if (codigo.length !== 12) return;
+    
+    setValidandoCodigo(true);
+    try {
+      const { data, error } = await supabase
+        .from('codigos_acesso')
+        .select('codigo, email, plano, usado, valido_ate')
+        .eq('codigo', codigo.toUpperCase())
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        setCodigoValidado({ valido: false });
+        setSignupErrors(prev => ({ ...prev, codigo: 'Código não encontrado' }));
+        return;
+      }
+
+      if (data.usado) {
+        setCodigoValidado({ valido: false });
+        setSignupErrors(prev => ({ ...prev, codigo: 'Código já foi utilizado' }));
+        return;
+      }
+
+      if (new Date(data.valido_ate) < new Date()) {
+        setCodigoValidado({ valido: false });
+        setSignupErrors(prev => ({ ...prev, codigo: 'Código expirado' }));
+        return;
+      }
+
+      setCodigoValidado({ valido: true, plano: data.plano, email: data.email });
+      setSignupEmail(data.email); // Pre-fill email from code
+      setSignupErrors(prev => ({ ...prev, codigo: '' }));
+      toast.success('Código validado!', { description: `Plano: ${data.plano}` });
+    } catch (error) {
+      console.error('Error validating code:', error);
+      setCodigoValidado({ valido: false });
+      setSignupErrors(prev => ({ ...prev, codigo: 'Erro ao validar código' }));
+    } finally {
+      setValidandoCodigo(false);
+    }
   };
 
   const handleLoginBlur = (field: string, value: string) => {
@@ -127,7 +181,20 @@ export default function AuthPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate access code first
+    if (!codigoValidado?.valido) {
+      toast.error('Código de acesso inválido', {
+        description: 'Você precisa de um código válido para criar uma conta. Adquira um plano primeiro.',
+        action: {
+          label: 'Ver Planos',
+          onClick: () => navigate('/planos'),
+        },
+      });
+      return;
+    }
+
     try {
+      codigoSchema.parse(signupCodigo);
       nomeSchema.parse(signupNome);
       emailSchema.parse(signupEmail);
       passwordSchema.parse(signupPassword);
@@ -144,22 +211,34 @@ export default function AuthPage() {
     }
 
     setLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupNome);
-    setLoading(false);
+    
+    try {
+      // Create the account
+      const { error } = await signUp(signupEmail, signupPassword, signupNome);
 
-    if (error) {
-      if (error.message.includes('User already registered')) {
-        toast.error('Este email já está cadastrado');
-      } else {
-        toast.error('Erro ao criar conta. Tente novamente.');
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          toast.error('Este email já está cadastrado');
+        } else {
+          toast.error('Erro ao criar conta. Tente novamente.');
+        }
+        return;
       }
-      return;
-    }
 
-    toast.success('Conta criada! Verifique seu email para confirmar o cadastro.', {
-      duration: 6000,
-    });
-    setActiveTab('login');
+      // Mark code as used (will be done by trigger after user confirms email)
+      // For now, we store the code in localStorage to mark it later
+      localStorage.setItem('pending_access_code', signupCodigo.toUpperCase());
+
+      toast.success('Conta criada! Verifique seu email para confirmar o cadastro.', {
+        duration: 6000,
+      });
+      setActiveTab('login');
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Erro ao criar conta. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -446,6 +525,64 @@ export default function AuthPage() {
 
                     <TabsContent value="signup" className="mt-0 space-y-5">
                       <form onSubmit={handleSignup} className="space-y-4">
+                        {/* Access Code Field - Required First */}
+                        <div className="space-y-2">
+                          <div className="relative">
+                            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600/60" />
+                            <ValidatedInput
+                              id="signup-codigo"
+                              placeholder="CÓDIGO DE ACESSO"
+                              value={signupCodigo}
+                              onChange={(e) => {
+                                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+                                setSignupCodigo(value);
+                                setCodigoValidado(null);
+                                if (signupTouched.codigo) {
+                                  setSignupErrors(prev => ({ ...prev, codigo: validateSignupField('codigo', value) }));
+                                }
+                              }}
+                              onBlur={() => {
+                                handleSignupBlur('codigo', signupCodigo);
+                                if (signupCodigo.length === 12) {
+                                  validarCodigo(signupCodigo);
+                                }
+                              }}
+                              error={signupErrors.codigo}
+                              touched={signupTouched.codigo}
+                              required
+                              className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm font-mono tracking-wider"
+                            />
+                            {validandoCodigo && (
+                              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-amber-600" />
+                            )}
+                            {codigoValidado?.valido && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {!codigoValidado?.valido && (
+                            <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50">
+                              <Crown className="h-4 w-4 text-amber-600" />
+                              <AlertDescription className="text-xs text-amber-700 dark:text-amber-300">
+                                Não tem código? <button type="button" onClick={() => navigate('/planos')} className="font-semibold underline hover:no-underline">Adquira um plano</button> para receber seu código de acesso.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          {codigoValidado?.valido && (
+                            <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-700/50">
+                              <Crown className="h-4 w-4 text-green-600" />
+                              <AlertDescription className="text-xs text-green-700 dark:text-green-300">
+                                Código válido! Plano: <span className="font-semibold">{codigoValidado.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}</span>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600/60" />
                           <ValidatedInput
@@ -462,7 +599,8 @@ export default function AuthPage() {
                             error={signupErrors.nome}
                             touched={signupTouched.nome}
                             required
-                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm"
+                            disabled={!codigoValidado?.valido}
+                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
                         <div className="relative">
@@ -482,7 +620,8 @@ export default function AuthPage() {
                             error={signupErrors.email}
                             touched={signupTouched.email}
                             required
-                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm"
+                            disabled={!codigoValidado?.valido}
+                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
                         <div className="relative">
@@ -502,7 +641,8 @@ export default function AuthPage() {
                             error={signupErrors.password}
                             touched={signupTouched.password}
                             required
-                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm"
+                            disabled={!codigoValidado?.valido}
+                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
                         <div className="relative">
@@ -522,10 +662,15 @@ export default function AuthPage() {
                             error={signupErrors.confirmPassword}
                             touched={signupTouched.confirmPassword}
                             required
-                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm"
+                            disabled={!codigoValidado?.valido}
+                            className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
-                        <Button type="submit" className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium rounded-xl shadow-lg shadow-amber-500/30 transition-all mt-2" disabled={loading}>
+                        <Button 
+                          type="submit" 
+                          className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium rounded-xl shadow-lg shadow-amber-500/30 transition-all mt-2" 
+                          disabled={loading || !codigoValidado?.valido}
+                        >
                           {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (

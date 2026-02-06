@@ -1013,6 +1013,51 @@ export type Database = {
           },
         ]
       }
+      codigos_acesso: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          email: string
+          id: string
+          mercadopago_payment_id: string | null
+          plano: string
+          updated_at: string | null
+          usado: boolean | null
+          usado_em: string | null
+          usado_por: string | null
+          valido_ate: string
+          valor_pago: number
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          email: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          plano: string
+          updated_at?: string | null
+          usado?: boolean | null
+          usado_em?: string | null
+          usado_por?: string | null
+          valido_ate: string
+          valor_pago: number
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          email?: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          plano?: string
+          updated_at?: string | null
+          usado?: boolean | null
+          usado_em?: string | null
+          usado_por?: string | null
+          valido_ate?: string
+          valor_pago?: number
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           chave: string
@@ -3038,6 +3083,7 @@ export type Database = {
     }
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
+      gerar_codigo_acesso: { Args: never; Returns: string }
       get_user_organization_id: { Args: never; Returns: string }
       get_user_organization_ids: { Args: never; Returns: string[] }
       has_role: {
