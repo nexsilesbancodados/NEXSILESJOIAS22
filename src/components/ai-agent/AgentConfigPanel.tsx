@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, Bot, CreditCard, MessageSquare, Send } from 'lucide-react';
+import { Loader2, Save, Bot, CreditCard, MessageSquare } from 'lucide-react';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
+import { WhatsAppQRConnect } from './WhatsAppQRConnect';
 
 interface AgentConfigPanelProps {
   organizationId: string;
@@ -26,7 +27,7 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
     pix_tipo: 'email',
     pix_nome: '',
     whatsapp_numero: '',
-    whatsapp_instancia: 'default'
+    whatsapp_instancia: ''
   });
 
   useEffect(() => {
@@ -41,13 +42,19 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
         pix_tipo: config.pix_tipo || 'email',
         pix_nome: config.pix_nome || '',
         whatsapp_numero: config.whatsapp_numero || '',
-        whatsapp_instancia: config.whatsapp_instancia || 'default'
+        whatsapp_instancia: config.whatsapp_instancia || ''
       });
     }
   }, [config]);
 
   const handleSave = () => {
     saveConfig.mutate(formData);
+  };
+
+  const handleWhatsAppConnected = (instanceName: string) => {
+    setFormData(prev => ({ ...prev, whatsapp_instancia: instanceName }));
+    // Auto-save when WhatsApp is connected
+    saveConfig.mutate({ ...formData, whatsapp_instancia: instanceName });
   };
 
   if (isLoading) {
@@ -60,6 +67,15 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
+      {/* WhatsApp Connection - First and prominent */}
+      <div className="md:col-span-2">
+        <WhatsAppQRConnect 
+          organizationId={organizationId}
+          currentInstance={formData.whatsapp_instancia || undefined}
+          onConnected={handleWhatsAppConnected}
+        />
+      </div>
+
       {/* Identidade do Agente */}
       <Card>
         <CardHeader>
@@ -205,15 +221,14 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
         </CardContent>
       </Card>
 
-      {/* WhatsApp & Evolution API */}
+      {/* Número WhatsApp manual (backup) */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Send className="h-5 w-5" />
-            WhatsApp (Evolution API)
+            📱 Número WhatsApp
           </CardTitle>
           <CardDescription>
-            Configure a integração com Evolution API para envio automático de mensagens
+            Número para envio de mensagens (se diferente do conectado)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -230,25 +245,13 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
             </p>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp_instancia">Nome da Instância (Evolution API)</Label>
-            <Input
-              id="whatsapp_instancia"
-              value={formData.whatsapp_instancia}
-              onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_instancia: e.target.value }))}
-              placeholder="default"
-            />
-            <p className="text-xs text-muted-foreground">
-              Nome da instância configurada na Evolution API. Deixe "default" se tiver apenas uma.
-            </p>
-          </div>
-
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              <strong>Dica:</strong> As credenciais da Evolution API são configuradas nos secrets do projeto 
-              (EVOLUTION_API_URL e EVOLUTION_API_KEY).
-            </p>
-          </div>
+          {formData.whatsapp_instancia && (
+            <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+              <p className="text-sm text-green-700 dark:text-green-300">
+                ✅ Instância conectada: <strong>{formData.whatsapp_instancia}</strong>
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
