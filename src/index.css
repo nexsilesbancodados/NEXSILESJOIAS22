@@ -44,6 +44,26 @@ div[style*="Edit with Lovable"],
     scroll-behavior: smooth;
   }
   
+  /* Content visibility for off-screen elements */
+  .content-visibility-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
+  }
+  
+  /* Optimize images */
+  img {
+    image-rendering: optimizeQuality;
+  }
+  
+  /* Reduce layout thrashing */
+  .contain-layout {
+    contain: layout;
+  }
+  
+  .contain-paint {
+    contain: paint;
+  }
+  
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

@@ -34,21 +34,64 @@ interface PecaItem {
   estoque_minimo: number | null;
 }
 
+// Helper to validate authentication
+async function validateAuth(req: Request): Promise<{ user: any; organizationId: string } | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return null;
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error } = await supabaseClient.auth.getUser();
+  if (error || !user) {
+    return null;
+  }
+
+  // Get user's organization
+  const { data: membership } = await supabaseClient
+    .from('memberships')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!membership?.organization_id) {
+    return null;
+  }
+
+  return { user, organizationId: membership.organization_id };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Validate authentication
+    const auth = await validateAuth(req);
+    if (!auth) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Não autorizado. Faça login para continuar.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
+    // Use service role but filter by organization
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: RelatorioRequest = await req.json();
     const { tipo, dataInicio, dataFim, formato = 'json' } = body;
 
-    console.log(`Gerando relatório: ${tipo}`, { dataInicio, dataFim, formato });
+    console.log(`Gerando relatório: ${tipo} para org: ${auth.organizationId}`, { dataInicio, dataFim, formato });
 
     let data: any[] = [];
     let resumo: any = {};
@@ -69,6 +112,7 @@ Deno.serve(async (req) => {
             clientes (nome),
             revendedoras (nome)
           `)
+          .eq('organization_id', auth.organizationId)
           .order('data_venda', { ascending: false });
 
         if (dataInicio) {
@@ -121,6 +165,7 @@ Deno.serve(async (req) => {
         const { data: pecas, error } = await supabase
           .from('pecas')
           .select('id, codigo, nome, categoria, preco_venda, preco_custo, estoque, estoque_minimo, ativo')
+          .eq('organization_id', auth.organizationId)
           .eq('ativo', true)
           .order('nome');
 
@@ -165,16 +210,18 @@ Deno.serve(async (req) => {
             saldo_comissao,
             ativo
           `)
+          .eq('organization_id', auth.organizationId)
           .order('nome');
 
         if (error) throw error;
 
         data = revendedoras || [];
 
-        // Buscar vendas por revendedora
+        // Buscar vendas por revendedora (filtered by org)
         const { data: vendas } = await supabase
           .from('vendas')
           .select('revendedora_id, valor_total')
+          .eq('organization_id', auth.organizationId)
           .not('revendedora_id', 'is', null);
 
         const vendasPorRevendedora = (vendas || []).reduce((acc: any, v) => {
@@ -216,16 +263,18 @@ Deno.serve(async (req) => {
             pontos_fidelidade,
             ativo
           `)
+          .eq('organization_id', auth.organizationId)
           .order('nome');
 
         if (error) throw error;
 
         data = clientes || [];
 
-        // Buscar vendas por cliente
+        // Buscar vendas por cliente (filtered by org)
         const { data: vendas } = await supabase
           .from('vendas')
           .select('cliente_id, valor_total')
+          .eq('organization_id', auth.organizationId)
           .not('cliente_id', 'is', null);
 
         const vendasPorCliente = (vendas || []).reduce((acc: any, v) => {
@@ -269,6 +318,7 @@ Deno.serve(async (req) => {
             valor_total,
             revendedoras (nome)
           `)
+          .eq('organization_id', auth.organizationId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
