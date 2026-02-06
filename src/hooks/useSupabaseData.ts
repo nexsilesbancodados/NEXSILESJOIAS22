@@ -2283,14 +2283,23 @@ export function useHistoricoCaixas() {
 }
 
 // ========== CONFIGURAÇÕES ==========
-// Persist configurations to Supabase configuracoes table (global settings)
+// Persist configurations to Supabase configuracoes table (per organization)
 export function useConfiguracoes() {
   return useQuery({
     queryKey: ['configuracoes'],
     queryFn: async () => {
+      // Get current organization to filter configs
+      const organizationId = await getOrganizationId().catch(() => null);
+      
+      if (!organizationId) {
+        // No organization yet - return empty config for new users
+        return {};
+      }
+      
       const { data, error } = await supabase
         .from('configuracoes')
-        .select('chave, valor');
+        .select('chave, valor')
+        .eq('organization_id', organizationId);
       
       if (error) {
         console.error('Error fetching configuracoes:', error);
