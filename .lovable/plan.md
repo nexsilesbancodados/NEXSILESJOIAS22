@@ -1,110 +1,115 @@
+# Plano de Melhorias - Agente de IA
 
-# Plano: Excluir Usuário com Limpeza Total de Dados
+## Fase 1: Funcionalidades Essenciais ✅ Prioridade Alta
 
-## Situação Atual
+### 1.1 Dashboard de Conversas
+- [ ] Lista de todas as conversas com filtros (status, data, cliente)
+- [ ] Visualização do histórico completo de cada conversa
+- [ ] Métricas: total de atendimentos, tempo médio, satisfação
+- [ ] Busca por cliente/telefone/conteúdo
+- [ ] Status: ativa, encerrada, aguardando humano
 
-O banco de dados tem **22 tabelas** vinculadas a `auth.users`. Atualmente:
+### 1.2 Transferir para Humano
+- [ ] Botão/comando para cliente solicitar atendente humano
+- [ ] Fila de atendimentos pendentes
+- [ ] Notificação para operadores quando há transferência
+- [ ] Interface de atendimento para operador continuar conversa
+- [ ] Histórico visível ao operador antes de assumir
 
-| Comportamento | Tabelas |
-|--------------|---------|
-| **CASCADE** (já excluem dados) | `profiles`, `user_roles`, `notificacoes`, `user_preferences`, `modelos_etiquetas`, `assinaturas`, `notificacoes_assinatura`, `memberships` |
-| **SET NULL** (apenas limpa referência) | `organizations` |
-| **NO ACTION** (bloqueia exclusão) | `revendedoras`, `vendas`, `historico_atividades`, `funcionarios`, `historico_precos`, `caixa_sessoes`, `movimentos_caixa` |
-
-## Solução
-
-Alterar as 7 tabelas com "NO ACTION" para usar **ON DELETE CASCADE**, fazendo com que todos os dados do usuário sejam automaticamente excluídos quando ele for removido.
-
-### Tabelas que serão alteradas:
-
-| Tabela | Coluna | Dados que serão excluídos |
-|--------|--------|---------------------------|
-| `revendedoras` | `user_id` | Revendedoras vinculadas ao usuário |
-| `vendas` | `vendedor_id` | Vendas feitas pelo vendedor |
-| `historico_atividades` | `user_id` | Logs de atividade do usuário |
-| `funcionarios` | `user_id` | Funcionários vinculados |
-| `historico_precos` | `user_id` | Histórico de alterações de preços |
-| `caixa_sessoes` | `operador_id` | Sessões de caixa do operador |
-| `movimentos_caixa` | `operador_id` | Movimentações de caixa |
-
-### Efeito Cascata Adicional
-
-Ao excluir uma **revendedora**, também serão excluídos:
-- Todas as **maletas** da revendedora
-- Todos os **itens** das maletas (`maletas_pecas`)
-- Todas as **metas** da revendedora
-- Todos os **romaneios** da revendedora
-- Todos os **interesses** nas maletas
-
-Ao excluir uma **sessão de caixa**, serão excluídos:
-- Todos os **movimentos de caixa** daquela sessão
+### 1.3 Respostas Rápidas/FAQ
+- [ ] Cadastro de perguntas e respostas frequentes
+- [ ] Detecção automática de perguntas similares
+- [ ] Prioridade sobre IA para respostas cadastradas
+- [ ] Categorização de FAQs
+- [ ] Sugestões de novas FAQs baseadas em conversas
 
 ---
 
-## Implementação Técnica
+## Fase 2: Inteligência e Engajamento 🧠
 
-### Migração SQL
+### 2.1 Recomendações Inteligentes
+- [ ] Histórico de compras do cliente
+- [ ] Preferências detectadas (categorias, faixa de preço)
+- [ ] Sugestões de produtos complementares
+- [ ] "Clientes que compraram X também compraram Y"
+- [ ] Alertas de produtos favoritos em promoção
 
-```sql
--- 1. Alterar revendedoras (CASCADE para excluir tudo)
-ALTER TABLE revendedoras 
-  DROP CONSTRAINT revendedoras_user_id_fkey;
-ALTER TABLE revendedoras 
-  ADD CONSTRAINT revendedoras_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+### 2.2 Pesquisa de Satisfação (NPS)
+- [ ] Envio automático ao encerrar conversa
+- [ ] Escala de satisfação (1-5 estrelas ou 0-10)
+- [ ] Campo de comentário opcional
+- [ ] Dashboard de NPS por período
+- [ ] Alertas para avaliações negativas
 
--- 2. Alterar vendas
-ALTER TABLE vendas 
-  DROP CONSTRAINT vendas_vendedor_id_fkey;
-ALTER TABLE vendas 
-  ADD CONSTRAINT vendas_vendedor_id_fkey 
-  FOREIGN KEY (vendedor_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- 3. Alterar historico_atividades
-ALTER TABLE historico_atividades 
-  DROP CONSTRAINT historico_atividades_user_id_fkey;
-ALTER TABLE historico_atividades 
-  ADD CONSTRAINT historico_atividades_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- 4. Alterar funcionarios
-ALTER TABLE funcionarios 
-  DROP CONSTRAINT funcionarios_user_id_fkey;
-ALTER TABLE funcionarios 
-  ADD CONSTRAINT funcionarios_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- 5. Alterar historico_precos
-ALTER TABLE historico_precos 
-  DROP CONSTRAINT historico_precos_user_id_fkey;
-ALTER TABLE historico_precos 
-  ADD CONSTRAINT historico_precos_user_id_fkey 
-  FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- 6. Alterar caixa_sessoes
-ALTER TABLE caixa_sessoes 
-  DROP CONSTRAINT caixa_sessoes_operador_id_fkey;
-ALTER TABLE caixa_sessoes 
-  ADD CONSTRAINT caixa_sessoes_operador_id_fkey 
-  FOREIGN KEY (operador_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
--- 7. Alterar movimentos_caixa
-ALTER TABLE movimentos_caixa 
-  DROP CONSTRAINT movimentos_caixa_operador_id_fkey;
-ALTER TABLE movimentos_caixa 
-  ADD CONSTRAINT movimentos_caixa_operador_id_fkey 
-  FOREIGN KEY (operador_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-```
+### 2.3 Notificações Push
+- [ ] Notificação web para novos atendimentos
+- [ ] Alertas de transferência para humano
+- [ ] Notificação de pedidos criados via chat
+- [ ] Configuração de preferências de notificação
 
 ---
 
-## Aviso Importante
+## Fase 3: Multicanal 📱
 
-Esta ação é **irreversível**. Ao excluir um usuário:
+### 3.1 Instagram Direct
+- [ ] Integração com Meta Business API
+- [ ] Webhook para receber mensagens
+- [ ] Resposta automática via IA
+- [ ] Sincronização de conversas
 
-- Todo o histórico de vendas será **permanentemente excluído**
-- Todas as revendedoras vinculadas serão **removidas** junto com suas maletas
-- Todo o histórico de atividades será **perdido**
-- Todas as sessões de caixa e movimentações serão **apagadas**
+### 3.2 E-mail Automático
+- [ ] Template de confirmação de pedido
+- [ ] Follow-up após atendimento
+- [ ] Resumo de conversa por e-mail
+- [ ] Campanhas baseadas em interações
 
-Se você precisar manter dados históricos (para relatórios, auditoria, etc.), recomendo usar **SET NULL** em vez de CASCADE nas tabelas de histórico (`historico_atividades`, `historico_precos`, `vendas`).
+---
+
+## Fase 4: Funcionalidades Avançadas 🚀
+
+### 4.1 Áudio/Voz
+- [ ] Receber mensagens de áudio do WhatsApp
+- [ ] Transcrição automática (Whisper/similar)
+- [ ] Resposta do agente em texto
+- [ ] Opção de resposta em áudio (TTS)
+
+### 4.2 Agendamento Automático
+- [ ] Integração com calendário
+- [ ] Cliente pode agendar via chat
+- [ ] Confirmação e lembretes automáticos
+- [ ] Sincronização com Google Calendar
+
+### 4.3 Multi-agentes
+- [ ] Diferentes agentes por departamento (vendas, suporte, etc.)
+- [ ] Roteamento inteligente baseado na mensagem
+- [ ] Configurações independentes por agente
+- [ ] Transferência entre agentes
+
+---
+
+## Cronograma Sugerido
+
+| Fase | Funcionalidade | Estimativa |
+|------|---------------|------------|
+| 1.1 | Dashboard de Conversas | 2-3 dias |
+| 1.2 | Transferir para Humano | 2 dias |
+| 1.3 | Respostas Rápidas/FAQ | 1-2 dias |
+| 2.1 | Recomendações | 2-3 dias |
+| 2.2 | NPS | 1 dia |
+| 2.3 | Notificações Push | 1 dia |
+| 3.1 | Instagram | 3-4 dias |
+| 3.2 | E-mail | 1-2 dias |
+| 4.1 | Áudio | 2-3 dias |
+| 4.2 | Agendamento | 2-3 dias |
+| 4.3 | Multi-agentes | 3-4 dias |
+
+---
+
+## Próximos Passos
+
+1. **Começar pela Fase 1** - São as funcionalidades mais solicitadas e de maior impacto
+2. **Dashboard primeiro** - Base para visualizar e gerenciar tudo
+3. **Transferência humana** - Crítico para casos que IA não resolve
+4. **FAQs** - Melhora a qualidade e velocidade das respostas
+
+**Por qual funcionalidade deseja começar?**
