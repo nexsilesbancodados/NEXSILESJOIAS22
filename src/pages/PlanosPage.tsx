@@ -31,6 +31,7 @@ import { motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { TrialActivation } from '@/components/subscription/TrialActivation';
 
 const FEATURES = [
   { 
@@ -197,6 +198,17 @@ export default function PlanosPage() {
           subtitle="Selecione o plano ideal para o seu negócio"
         />
 
+        {/* Trial Activation for new users */}
+        {!assinatura && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-2xl mx-auto mb-8"
+          >
+            <TrialActivation />
+          </motion.div>
+        )}
+
         {/* Status da Assinatura Atual */}
         {assinatura && (
           <motion.div
@@ -223,10 +235,13 @@ export default function PlanosPage() {
                     <div>
                       <p className="font-semibold text-foreground">
                         Plano {planoInfo?.nome || 'Não definido'}
+                        {assinatura.trial_ativo && ' (Trial)'}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {isAtivo 
-                          ? `Ativo até ${dataVencimentoFormatada}` 
+                          ? assinatura.trial_ativo 
+                            ? `Trial ativo até ${dataVencimentoFormatada}` 
+                            : `Ativo até ${dataVencimentoFormatada}` 
                           : 'Assinatura expirada'}
                       </p>
                     </div>

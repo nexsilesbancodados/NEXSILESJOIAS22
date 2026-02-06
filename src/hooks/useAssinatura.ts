@@ -18,6 +18,17 @@ export interface Assinatura {
   notificacao_vencimento_enviada: boolean;
   created_at: string;
   updated_at: string;
+  // Trial fields
+  trial_ativo?: boolean;
+  trial_iniciado_em?: string;
+  trial_dias?: number;
+  // Payment fields
+  metodo_pagamento?: 'pix' | 'boleto' | 'cartao';
+  pagamento_recorrente?: boolean;
+  ultimo_pagamento_em?: string;
+  proximo_pagamento_em?: string;
+  mercadopago_preference_id?: string;
+  mercadopago_payment_id?: string;
 }
 
 export interface NotificacaoAssinatura {

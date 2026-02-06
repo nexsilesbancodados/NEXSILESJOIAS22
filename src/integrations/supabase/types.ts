@@ -508,12 +508,21 @@ export type Database = {
           data_inicio: string
           data_vencimento: string
           id: string
+          mercadopago_payment_id: string | null
+          mercadopago_preference_id: string | null
+          metodo_pagamento: string | null
           notificacao_3dias_enviada: boolean | null
           notificacao_vencimento_enviada: boolean | null
+          pagamento_recorrente: boolean | null
           plano: string
+          proximo_pagamento_em: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          trial_ativo: boolean | null
+          trial_dias: number | null
+          trial_iniciado_em: string | null
+          ultimo_pagamento_em: string | null
           updated_at: string
           user_id: string
           valor_mensal: number
@@ -523,12 +532,21 @@ export type Database = {
           data_inicio?: string
           data_vencimento: string
           id?: string
+          mercadopago_payment_id?: string | null
+          mercadopago_preference_id?: string | null
+          metodo_pagamento?: string | null
           notificacao_3dias_enviada?: boolean | null
           notificacao_vencimento_enviada?: boolean | null
+          pagamento_recorrente?: boolean | null
           plano: string
+          proximo_pagamento_em?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ativo?: boolean | null
+          trial_dias?: number | null
+          trial_iniciado_em?: string | null
+          ultimo_pagamento_em?: string | null
           updated_at?: string
           user_id: string
           valor_mensal: number
@@ -538,12 +556,21 @@ export type Database = {
           data_inicio?: string
           data_vencimento?: string
           id?: string
+          mercadopago_payment_id?: string | null
+          mercadopago_preference_id?: string | null
+          metodo_pagamento?: string | null
           notificacao_3dias_enviada?: boolean | null
           notificacao_vencimento_enviada?: boolean | null
+          pagamento_recorrente?: boolean | null
           plano?: string
+          proximo_pagamento_em?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ativo?: boolean | null
+          trial_dias?: number | null
+          trial_iniciado_em?: string | null
+          ultimo_pagamento_em?: string | null
           updated_at?: string
           user_id?: string
           valor_mensal?: number
