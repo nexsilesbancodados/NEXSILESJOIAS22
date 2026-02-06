@@ -16,38 +16,166 @@ export type Database = {
     Tables: {
       agente_conversas: {
         Row: {
+          assigned_to: string | null
           cliente_nome: string | null
           cliente_telefone: string | null
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           id: string
+          nps_comentario: string | null
+          nps_enviado_at: string | null
+          nps_rating: number | null
           organization_id: string | null
+          origem: string | null
           session_id: string
           status: string | null
+          tempo_primeira_resposta: number | null
+          total_mensagens: number | null
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           id?: string
+          nps_comentario?: string | null
+          nps_enviado_at?: string | null
+          nps_rating?: number | null
           organization_id?: string | null
+          origem?: string | null
           session_id: string
           status?: string | null
+          tempo_primeira_resposta?: number | null
+          total_mensagens?: number | null
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           id?: string
+          nps_comentario?: string | null
+          nps_enviado_at?: string | null
+          nps_rating?: number | null
           organization_id?: string | null
+          origem?: string | null
           session_id?: string
           status?: string | null
+          tempo_primeira_resposta?: number | null
+          total_mensagens?: number | null
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "agente_conversas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_faqs: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          palavras_chave: string[] | null
+          pergunta: string
+          resposta: string
+          updated_at: string | null
+          uso_count: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          palavras_chave?: string[] | null
+          pergunta: string
+          resposta: string
+          updated_at?: string | null
+          uso_count?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          palavras_chave?: string[] | null
+          pergunta?: string
+          resposta?: string
+          updated_at?: string | null
+          uso_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_faqs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_fila_humana: {
+        Row: {
+          atendente_id: string | null
+          atendido_at: string | null
+          conversa_id: string | null
+          created_at: string | null
+          entrou_fila_at: string | null
+          id: string
+          motivo: string | null
+          organization_id: string | null
+          prioridade: number | null
+          status: string | null
+        }
+        Insert: {
+          atendente_id?: string | null
+          atendido_at?: string | null
+          conversa_id?: string | null
+          created_at?: string | null
+          entrou_fila_at?: string | null
+          id?: string
+          motivo?: string | null
+          organization_id?: string | null
+          prioridade?: number | null
+          status?: string | null
+        }
+        Update: {
+          atendente_id?: string | null
+          atendido_at?: string | null
+          conversa_id?: string | null
+          created_at?: string | null
+          entrou_fila_at?: string | null
+          id?: string
+          motivo?: string | null
+          organization_id?: string | null
+          prioridade?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_fila_humana_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_fila_humana_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

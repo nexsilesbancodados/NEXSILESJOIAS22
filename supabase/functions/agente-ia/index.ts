@@ -179,9 +179,56 @@ const allTools = [
         }
       }
     }
+  },
+  {
+    id: 'transferir_humano',
+    tool: {
+      type: "function",
+      function: {
+        name: "transferir_para_humano",
+        description: "Transfere o atendimento para um atendente humano. Use quando o cliente pedir explicitamente para falar com um humano, ou quando a situação for complexa demais para o agente resolver.",
+        parameters: {
+          type: "object",
+          properties: {
+            motivo: { type: "string", description: "Motivo da transferência" },
+            prioridade: { type: "number", description: "Nível de prioridade (0=normal, 1=alta)" }
+          }
+        }
+      }
+    }
+  },
+  {
+    id: 'buscar_faq',
+    tool: {
+      type: "function",
+      function: {
+        name: "buscar_faq",
+        description: "Busca respostas em perguntas frequentes (FAQ) cadastradas. Use para responder perguntas comuns de forma rápida e precisa.",
+        parameters: {
+          type: "object",
+          properties: {
+            pergunta: { type: "string", description: "Pergunta ou palavras-chave para buscar" }
+          },
+          required: ["pergunta"]
+        }
+      }
+    }
+  },
+  {
+    id: 'enviar_nps',
+    tool: {
+      type: "function",
+      function: {
+        name: "enviar_pesquisa_satisfacao",
+        description: "Envia uma pesquisa de satisfação (NPS) para o cliente. Use ao final do atendimento quando o cliente indicar que sua dúvida foi resolvida.",
+        parameters: {
+          type: "object",
+          properties: {}
+        }
+      }
+    }
   }
 ];
-
 // Get filtered tools based on config
 function getActiveTools(config: Record<string, unknown> | null) {
   const ferramentasAtivas = config?.ferramentas_ativas as Record<string, boolean> || {
@@ -191,7 +238,10 @@ function getActiveTools(config: Record<string, unknown> | null) {
     enviar_whatsapp: true,
     listar_catalogos: true,
     criar_pedido: true,
-    verificar_pedido: true
+    verificar_pedido: true,
+    transferir_humano: true,
+    buscar_faq: true,
+    enviar_nps: true
   };
 
   return allTools
@@ -588,6 +638,134 @@ O pedido foi registrado e será processado em breve!`;
           console.error('Error sending WhatsApp media:', error);
           return `❌ Erro ao enviar imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
         }
+      }
+
+      case "consultar_estoque": {
+        const { data, error } = await supabase
+          .from('pecas')
+          .select('nome, codigo, estoque, estoque_minimo')
+          .eq('organization_id', organizationId)
+          .or(`codigo.ilike.%${args.codigo}%,nome.ilike.%${args.codigo}%`)
+          .limit(5);
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          return "Produto não encontrado.";
+        }
+
+        return data.map((p: Record<string, unknown>) => 
+          `• ${p.nome} (${p.codigo || 'N/A'}): ${p.estoque || 0} em estoque${p.estoque_minimo ? ` (mínimo: ${p.estoque_minimo})` : ''}`
+        ).join('\n');
+      }
+
+      case "transferir_para_humano": {
+        // Get the current conversation
+        const { data: conversas } = await supabase
+          .from('agente_conversas')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('status', 'ativa')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        const conversaId = conversas?.[0]?.id;
+
+        if (conversaId) {
+          // Update conversation status
+          await supabase
+            .from('agente_conversas')
+            .update({ status: 'aguardando_humano' })
+            .eq('id', conversaId);
+
+          // Add to human queue
+          await supabase
+            .from('agente_fila_humana')
+            .insert({
+              organization_id: organizationId,
+              conversa_id: conversaId,
+              motivo: args.motivo || 'Cliente solicitou atendimento humano',
+              prioridade: args.prioridade || 0,
+              status: 'aguardando'
+            });
+        }
+
+        return `👤 **Transferindo para atendimento humano**
+
+Sua solicitação foi registrada e um atendente humano assumirá a conversa em breve.
+
+${args.motivo ? `Motivo: ${args.motivo}` : ''}
+
+Por favor, aguarde. Você será notificado quando um atendente estiver disponível.`;
+      }
+
+      case "buscar_faq": {
+        const pergunta = (args.pergunta as string).toLowerCase();
+        
+        // Search FAQs by question similarity and keywords
+        const { data: faqs, error } = await supabase
+          .from('agente_faqs')
+          .select('id, pergunta, resposta, palavras_chave')
+          .eq('organization_id', organizationId)
+          .eq('ativo', true);
+
+        if (error) throw error;
+
+        if (!faqs || faqs.length === 0) {
+          return "FAQ_NOT_FOUND";
+        }
+
+        // Simple matching - check if any words match
+        const palavrasBusca = pergunta.split(/\s+/).filter(p => p.length > 2);
+        
+        let melhorMatch: { faq: Record<string, unknown>; score: number } | null = null;
+        
+        for (const faq of faqs) {
+          let score = 0;
+          const perguntaFaq = (faq.pergunta as string).toLowerCase();
+          const palavrasChave = (faq.palavras_chave as string[]) || [];
+          
+          // Check direct match
+          if (perguntaFaq.includes(pergunta) || pergunta.includes(perguntaFaq)) {
+            score += 10;
+          }
+          
+          // Check word matches
+          for (const palavra of palavrasBusca) {
+            if (perguntaFaq.includes(palavra)) score += 2;
+            if (palavrasChave.some(k => k.toLowerCase().includes(palavra))) score += 3;
+          }
+          
+          if (score > 0 && (!melhorMatch || score > melhorMatch.score)) {
+            melhorMatch = { faq, score };
+          }
+        }
+
+        if (melhorMatch && melhorMatch.score >= 2) {
+          // Increment usage count
+          await supabase
+            .from('agente_faqs')
+            .update({ uso_count: (melhorMatch.faq.uso_count as number || 0) + 1 })
+            .eq('id', melhorMatch.faq.id);
+          
+          return `FAQ_FOUND: ${melhorMatch.faq.resposta}`;
+        }
+
+        return "FAQ_NOT_FOUND";
+      }
+
+      case "enviar_pesquisa_satisfacao": {
+        return `📊 **Pesquisa de Satisfação**
+
+Gostaríamos muito de saber sua opinião sobre nosso atendimento!
+
+Em uma escala de 0 a 10, quanto você recomendaria nosso atendimento para um amigo ou familiar?
+
+- **0-6**: Precisa melhorar
+- **7-8**: Bom atendimento
+- **9-10**: Excelente atendimento!
+
+Por favor, responda com um número de 0 a 10.`;
       }
 
       default:

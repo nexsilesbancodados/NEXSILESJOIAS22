@@ -1,31 +1,31 @@
 # Plano de Melhorias - Agente de IA
 
-## Fase 1: Funcionalidades Essenciais ✅ Prioridade Alta
+## Fase 1: Funcionalidades Essenciais ✅ CONCLUÍDA
 
-### 1.1 Dashboard de Conversas
-- [ ] Lista de todas as conversas com filtros (status, data, cliente)
-- [ ] Visualização do histórico completo de cada conversa
-- [ ] Métricas: total de atendimentos, tempo médio, satisfação
-- [ ] Busca por cliente/telefone/conteúdo
-- [ ] Status: ativa, encerrada, aguardando humano
+### 1.1 Dashboard de Conversas ✅
+- [x] Lista de todas as conversas com filtros (status, data, cliente)
+- [x] Visualização do histórico completo de cada conversa
+- [x] Métricas: total de atendimentos, tempo médio, satisfação
+- [x] Busca por cliente/telefone/conteúdo
+- [x] Status: ativa, encerrada, aguardando humano
 
-### 1.2 Transferir para Humano
-- [ ] Botão/comando para cliente solicitar atendente humano
-- [ ] Fila de atendimentos pendentes
-- [ ] Notificação para operadores quando há transferência
-- [ ] Interface de atendimento para operador continuar conversa
-- [ ] Histórico visível ao operador antes de assumir
+### 1.2 Transferir para Humano ✅
+- [x] Botão/comando para cliente solicitar atendente humano
+- [x] Fila de atendimentos pendentes
+- [x] Notificação para operadores quando há transferência
+- [x] Interface de atendimento para operador continuar conversa
+- [x] Histórico visível ao operador antes de assumir
 
-### 1.3 Respostas Rápidas/FAQ
-- [ ] Cadastro de perguntas e respostas frequentes
-- [ ] Detecção automática de perguntas similares
-- [ ] Prioridade sobre IA para respostas cadastradas
-- [ ] Categorização de FAQs
-- [ ] Sugestões de novas FAQs baseadas em conversas
+### 1.3 Respostas Rápidas/FAQ ✅
+- [x] Cadastro de perguntas e respostas frequentes
+- [x] Detecção automática de perguntas similares
+- [x] Prioridade sobre IA para respostas cadastradas
+- [x] Categorização de FAQs
+- [x] Sugestões de novas FAQs baseadas em conversas
 
 ---
 
-## Fase 2: Inteligência e Engajamento 🧠
+## Fase 2: Inteligência e Engajamento 🧠 EM PROGRESSO
 
 ### 2.1 Recomendações Inteligentes
 - [ ] Histórico de compras do cliente
@@ -34,18 +34,18 @@
 - [ ] "Clientes que compraram X também compraram Y"
 - [ ] Alertas de produtos favoritos em promoção
 
-### 2.2 Pesquisa de Satisfação (NPS)
-- [ ] Envio automático ao encerrar conversa
-- [ ] Escala de satisfação (1-5 estrelas ou 0-10)
-- [ ] Campo de comentário opcional
+### 2.2 Pesquisa de Satisfação (NPS) ✅
+- [x] Envio automático ao encerrar conversa
+- [x] Escala de satisfação (0-10)
+- [x] Campo de comentário opcional
 - [ ] Dashboard de NPS por período
 - [ ] Alertas para avaliações negativas
 
-### 2.3 Notificações Push
-- [ ] Notificação web para novos atendimentos
-- [ ] Alertas de transferência para humano
-- [ ] Notificação de pedidos criados via chat
-- [ ] Configuração de preferências de notificação
+### 2.3 Notificações Push ✅
+- [x] Notificação web para novos atendimentos
+- [x] Alertas de transferência para humano
+- [x] Notificação de pedidos criados via chat
+- [x] Configuração de preferências de notificação
 
 ---
 
@@ -87,29 +87,43 @@
 
 ---
 
-## Cronograma Sugerido
+## Cronograma Atualizado
 
-| Fase | Funcionalidade | Estimativa |
-|------|---------------|------------|
-| 1.1 | Dashboard de Conversas | 2-3 dias |
-| 1.2 | Transferir para Humano | 2 dias |
-| 1.3 | Respostas Rápidas/FAQ | 1-2 dias |
-| 2.1 | Recomendações | 2-3 dias |
-| 2.2 | NPS | 1 dia |
-| 2.3 | Notificações Push | 1 dia |
-| 3.1 | Instagram | 3-4 dias |
-| 3.2 | E-mail | 1-2 dias |
-| 4.1 | Áudio | 2-3 dias |
-| 4.2 | Agendamento | 2-3 dias |
-| 4.3 | Multi-agentes | 3-4 dias |
+| Fase | Funcionalidade | Status |
+|------|---------------|--------|
+| 1.1 | Dashboard de Conversas | ✅ Concluído |
+| 1.2 | Transferir para Humano | ✅ Concluído |
+| 1.3 | Respostas Rápidas/FAQ | ✅ Concluído |
+| 2.1 | Recomendações | ⏳ Pendente |
+| 2.2 | NPS | ✅ Concluído |
+| 2.3 | Notificações Push | ✅ Concluído |
+| 3.1 | Instagram | ⏳ Pendente |
+| 3.2 | E-mail | ⏳ Pendente |
+| 4.1 | Áudio | ⏳ Pendente |
+| 4.2 | Agendamento | ⏳ Pendente |
+| 4.3 | Multi-agentes | ⏳ Pendente |
 
 ---
 
-## Próximos Passos
+## Arquivos Criados/Modificados
 
-1. **Começar pela Fase 1** - São as funcionalidades mais solicitadas e de maior impacto
-2. **Dashboard primeiro** - Base para visualizar e gerenciar tudo
-3. **Transferência humana** - Crítico para casos que IA não resolve
-4. **FAQs** - Melhora a qualidade e velocidade das respostas
+### Hooks
+- `src/hooks/useConversas.ts` - Gerenciamento de conversas
+- `src/hooks/useFAQs.ts` - CRUD de FAQs
+- `src/hooks/useFilaHumana.ts` - Fila de atendimento humano
+- `src/hooks/usePushNotifications.ts` - Notificações push web
 
-**Por qual funcionalidade deseja começar?**
+### Componentes
+- `src/components/ai-agent/ConversasDashboard.tsx` - Dashboard principal
+- `src/components/ai-agent/ConversaViewer.tsx` - Visualizador de conversa
+- `src/components/ai-agent/FilaHumanaPanel.tsx` - Painel da fila humana
+- `src/components/ai-agent/FAQManager.tsx` - Gerenciador de FAQs
+- `src/components/ai-agent/NotificationSettings.tsx` - Config notificações
+
+### Database
+- Tabela `agente_faqs` - FAQs/Respostas rápidas
+- Tabela `agente_fila_humana` - Fila de atendimento humano
+- Colunas extras em `agente_conversas` - NPS, origem, etc.
+
+### Edge Functions
+- `supabase/functions/agente-ia/index.ts` - Novas ferramentas: transferir_humano, buscar_faq, enviar_nps
