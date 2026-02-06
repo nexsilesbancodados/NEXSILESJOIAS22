@@ -15,6 +15,7 @@ interface AgentConfig {
   pix_tipo: string;
   pix_nome: string | null;
   whatsapp_numero: string | null;
+  whatsapp_instancia: string | null;
 }
 
 export function useAgentConfig(organizationId: string) {

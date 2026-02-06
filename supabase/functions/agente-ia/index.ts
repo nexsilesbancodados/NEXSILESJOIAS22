@@ -112,14 +112,30 @@ const tools = [
     type: "function",
     function: {
       name: "enviar_whatsapp",
-      description: "Prepara uma mensagem para envio via WhatsApp. Retorna o link para abrir o WhatsApp com a mensagem.",
+      description: "Envia uma mensagem via WhatsApp para o cliente usando a Evolution API. Use quando precisar enviar catálogos, confirmações de pedidos ou mensagens para clientes.",
+      parameters: {
+        type: "object",
+        properties: {
+          telefone: { type: "string", description: "Número do telefone (com DDD, ex: 11999999999)" },
+          mensagem: { type: "string", description: "Mensagem a ser enviada" }
+        },
+        required: ["telefone", "mensagem"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "enviar_whatsapp_midia",
+      description: "Envia uma imagem ou arquivo via WhatsApp para o cliente. Use para enviar fotos de produtos.",
       parameters: {
         type: "object",
         properties: {
           telefone: { type: "string", description: "Número do telefone (com DDD)" },
-          mensagem: { type: "string", description: "Mensagem a ser enviada" }
+          midia_url: { type: "string", description: "URL da imagem ou arquivo" },
+          legenda: { type: "string", description: "Legenda da mídia (opcional)" }
         },
-        required: ["telefone", "mensagem"]
+        required: ["telefone", "midia_url"]
       }
     }
   }
@@ -375,11 +391,102 @@ O pedido foi registrado e será processado em breve!`;
       }
 
       case "enviar_whatsapp": {
-        const telefone = (args.telefone as string).replace(/\D/g, '');
-        const mensagem = encodeURIComponent(args.mensagem as string);
-        const link = `https://wa.me/55${telefone}?text=${mensagem}`;
+        const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
+        const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
         
-        return `📱 Link para WhatsApp:\n${link}\n\nClique no link acima para abrir o WhatsApp com a mensagem pronta!`;
+        if (!evolutionUrl || !evolutionKey) {
+          // Fallback to WhatsApp link if Evolution API not configured
+          const telefone = (args.telefone as string).replace(/\D/g, '');
+          const mensagem = encodeURIComponent(args.mensagem as string);
+          const link = `https://wa.me/55${telefone}?text=${mensagem}`;
+          return `📱 Evolution API não configurada. Use este link:\n${link}`;
+        }
+        
+        let telefone = (args.telefone as string).replace(/\D/g, '');
+        // Ensure phone has country code
+        if (!telefone.startsWith('55')) {
+          telefone = '55' + telefone;
+        }
+        
+        try {
+          // Get the default instance name (usually the first one or from config)
+          const instanceName = config?.whatsapp_instancia || 'default';
+          
+          const response = await fetch(`${evolutionUrl}/message/sendText/${instanceName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evolutionKey
+            },
+            body: JSON.stringify({
+              number: telefone,
+              text: args.mensagem
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Evolution API error:', response.status, errorData);
+            throw new Error(`Erro ao enviar: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('WhatsApp sent successfully:', result);
+          
+          return `✅ **Mensagem enviada com sucesso!**\n\nDestinatário: ${telefone}\nStatus: Entregue ao WhatsApp`;
+        } catch (error) {
+          console.error('Error sending WhatsApp:', error);
+          // Fallback to link
+          const mensagem = encodeURIComponent(args.mensagem as string);
+          const link = `https://wa.me/${telefone}?text=${mensagem}`;
+          return `⚠️ Não foi possível enviar automaticamente. Use este link:\n${link}`;
+        }
+      }
+
+      case "enviar_whatsapp_midia": {
+        const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
+        const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+        
+        if (!evolutionUrl || !evolutionKey) {
+          return `⚠️ Evolution API não configurada. Configure EVOLUTION_API_URL e EVOLUTION_API_KEY.`;
+        }
+        
+        let telefone = (args.telefone as string).replace(/\D/g, '');
+        if (!telefone.startsWith('55')) {
+          telefone = '55' + telefone;
+        }
+        
+        try {
+          const instanceName = config?.whatsapp_instancia || 'default';
+          
+          const response = await fetch(`${evolutionUrl}/message/sendMedia/${instanceName}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': evolutionKey
+            },
+            body: JSON.stringify({
+              number: telefone,
+              mediatype: 'image',
+              media: args.midia_url,
+              caption: args.legenda || ''
+            })
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.text();
+            console.error('Evolution API media error:', response.status, errorData);
+            throw new Error(`Erro ao enviar mídia: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('WhatsApp media sent:', result);
+          
+          return `✅ **Imagem enviada com sucesso!**\n\nDestinatário: ${telefone}${args.legenda ? `\nLegenda: ${args.legenda}` : ''}`;
+        } catch (error) {
+          console.error('Error sending WhatsApp media:', error);
+          return `❌ Erro ao enviar imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
+        }
       }
 
       default:

@@ -70,6 +70,7 @@ export type Database = {
           pix_tipo: string | null
           prompt_sistema: string
           updated_at: string
+          whatsapp_instancia: string | null
           whatsapp_numero: string | null
         }
         Insert: {
@@ -86,6 +87,7 @@ export type Database = {
           pix_tipo?: string | null
           prompt_sistema?: string
           updated_at?: string
+          whatsapp_instancia?: string | null
           whatsapp_numero?: string | null
         }
         Update: {
@@ -102,6 +104,7 @@ export type Database = {
           pix_tipo?: string | null
           prompt_sistema?: string
           updated_at?: string
+          whatsapp_instancia?: string | null
           whatsapp_numero?: string | null
         }
         Relationships: [
