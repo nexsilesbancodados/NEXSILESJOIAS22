@@ -7,139 +7,240 @@ const corsHeaders = {
 };
 
 // Tool definitions for the AI agent
-const tools = [
+const allTools = [
   {
-    type: "function",
-    function: {
-      name: "buscar_produtos",
-      description: "Busca produtos/peças no catálogo por nome, código, categoria ou faixa de preço. Use para responder perguntas sobre disponibilidade, preços e detalhes de produtos.",
-      parameters: {
-        type: "object",
-        properties: {
-          termo: { type: "string", description: "Termo de busca (nome, código ou categoria)" },
-          categoria: { type: "string", description: "Filtrar por categoria específica" },
-          preco_max: { type: "number", description: "Preço máximo" },
-          preco_min: { type: "number", description: "Preço mínimo" },
-          limite: { type: "number", description: "Número máximo de resultados (padrão 5)" }
+    id: 'buscar_pecas',
+    tool: {
+      type: "function",
+      function: {
+        name: "buscar_produtos",
+        description: "Busca produtos/peças no catálogo por nome, código, categoria ou faixa de preço. Use para responder perguntas sobre disponibilidade, preços e detalhes de produtos.",
+        parameters: {
+          type: "object",
+          properties: {
+            termo: { type: "string", description: "Termo de busca (nome, código ou categoria)" },
+            categoria: { type: "string", description: "Filtrar por categoria específica" },
+            preco_max: { type: "number", description: "Preço máximo" },
+            preco_min: { type: "number", description: "Preço mínimo" },
+            limite: { type: "number", description: "Número máximo de resultados (padrão 5)" }
+          }
         }
       }
     }
   },
   {
-    type: "function",
-    function: {
-      name: "listar_catalogos",
-      description: "Lista os catálogos disponíveis para compartilhar com clientes.",
-      parameters: {
-        type: "object",
-        properties: {
-          ativo: { type: "boolean", description: "Filtrar apenas catálogos ativos" }
+    id: 'listar_catalogos',
+    tool: {
+      type: "function",
+      function: {
+        name: "listar_catalogos",
+        description: "Lista os catálogos disponíveis para compartilhar com clientes.",
+        parameters: {
+          type: "object",
+          properties: {
+            ativo: { type: "boolean", description: "Filtrar apenas catálogos ativos" }
+          }
         }
       }
     }
   },
   {
-    type: "function",
-    function: {
-      name: "gerar_link_catalogo",
-      description: "Gera um link de compartilhamento para um catálogo específico.",
-      parameters: {
-        type: "object",
-        properties: {
-          catalogo_id: { type: "string", description: "ID do catálogo" }
-        },
-        required: ["catalogo_id"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "gerar_pix",
-      description: "Gera informações de pagamento PIX para um valor específico. Use quando o cliente quiser finalizar uma compra.",
-      parameters: {
-        type: "object",
-        properties: {
-          valor: { type: "number", description: "Valor do PIX em reais" },
-          descricao: { type: "string", description: "Descrição do pagamento" }
-        },
-        required: ["valor"]
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "consultar_pedido",
-      description: "Consulta status de um pedido pelo número ou nome do cliente.",
-      parameters: {
-        type: "object",
-        properties: {
-          numero_pedido: { type: "string", description: "Número do pedido" },
-          nome_cliente: { type: "string", description: "Nome do cliente" }
-        }
-      }
-    }
-  },
-  {
-    type: "function",
-    function: {
-      name: "criar_pedido",
-      description: "Cria um novo pedido no sistema. Use quando o cliente confirmar a compra.",
-      parameters: {
-        type: "object",
-        properties: {
-          cliente_nome: { type: "string", description: "Nome do cliente" },
-          cliente_telefone: { type: "string", description: "Telefone do cliente" },
-          itens: { 
-            type: "array", 
-            items: {
-              type: "object",
-              properties: {
-                peca_id: { type: "string" },
-                quantidade: { type: "number" }
-              }
-            },
-            description: "Lista de itens do pedido" 
+    id: 'listar_catalogos',
+    tool: {
+      type: "function",
+      function: {
+        name: "gerar_link_catalogo",
+        description: "Gera um link de compartilhamento para um catálogo específico.",
+        parameters: {
+          type: "object",
+          properties: {
+            catalogo_id: { type: "string", description: "ID do catálogo" }
           },
-          observacoes: { type: "string", description: "Observações do pedido" }
-        },
-        required: ["cliente_nome", "itens"]
+          required: ["catalogo_id"]
+        }
       }
     }
   },
   {
-    type: "function",
-    function: {
-      name: "enviar_whatsapp",
-      description: "Envia uma mensagem via WhatsApp para o cliente usando a Evolution API. Use quando precisar enviar catálogos, confirmações de pedidos ou mensagens para clientes.",
-      parameters: {
-        type: "object",
-        properties: {
-          telefone: { type: "string", description: "Número do telefone (com DDD, ex: 11999999999)" },
-          mensagem: { type: "string", description: "Mensagem a ser enviada" }
-        },
-        required: ["telefone", "mensagem"]
+    id: 'gerar_pix',
+    tool: {
+      type: "function",
+      function: {
+        name: "gerar_pix",
+        description: "Gera informações de pagamento PIX para um valor específico. Use quando o cliente quiser finalizar uma compra.",
+        parameters: {
+          type: "object",
+          properties: {
+            valor: { type: "number", description: "Valor do PIX em reais" },
+            descricao: { type: "string", description: "Descrição do pagamento" }
+          },
+          required: ["valor"]
+        }
       }
     }
   },
   {
-    type: "function",
-    function: {
-      name: "enviar_whatsapp_midia",
-      description: "Envia uma imagem ou arquivo via WhatsApp para o cliente. Use para enviar fotos de produtos.",
-      parameters: {
-        type: "object",
-        properties: {
-          telefone: { type: "string", description: "Número do telefone (com DDD)" },
-          midia_url: { type: "string", description: "URL da imagem ou arquivo" },
-          legenda: { type: "string", description: "Legenda da mídia (opcional)" }
-        },
-        required: ["telefone", "midia_url"]
+    id: 'verificar_pedido',
+    tool: {
+      type: "function",
+      function: {
+        name: "consultar_pedido",
+        description: "Consulta status de um pedido pelo número ou nome do cliente.",
+        parameters: {
+          type: "object",
+          properties: {
+            numero_pedido: { type: "string", description: "Número do pedido" },
+            nome_cliente: { type: "string", description: "Nome do cliente" }
+          }
+        }
+      }
+    }
+  },
+  {
+    id: 'criar_pedido',
+    tool: {
+      type: "function",
+      function: {
+        name: "criar_pedido",
+        description: "Cria um novo pedido no sistema. Use quando o cliente confirmar a compra.",
+        parameters: {
+          type: "object",
+          properties: {
+            cliente_nome: { type: "string", description: "Nome do cliente" },
+            cliente_telefone: { type: "string", description: "Telefone do cliente" },
+            itens: { 
+              type: "array", 
+              items: {
+                type: "object",
+                properties: {
+                  peca_id: { type: "string" },
+                  quantidade: { type: "number" }
+                }
+              },
+              description: "Lista de itens do pedido" 
+            },
+            observacoes: { type: "string", description: "Observações do pedido" }
+          },
+          required: ["cliente_nome", "itens"]
+        }
+      }
+    }
+  },
+  {
+    id: 'enviar_whatsapp',
+    tool: {
+      type: "function",
+      function: {
+        name: "enviar_whatsapp",
+        description: "Envia uma mensagem via WhatsApp para o cliente usando a Evolution API. Use quando precisar enviar catálogos, confirmações de pedidos ou mensagens para clientes.",
+        parameters: {
+          type: "object",
+          properties: {
+            telefone: { type: "string", description: "Número do telefone (com DDD, ex: 11999999999)" },
+            mensagem: { type: "string", description: "Mensagem a ser enviada" }
+          },
+          required: ["telefone", "mensagem"]
+        }
+      }
+    }
+  },
+  {
+    id: 'enviar_whatsapp',
+    tool: {
+      type: "function",
+      function: {
+        name: "enviar_whatsapp_midia",
+        description: "Envia uma imagem ou arquivo via WhatsApp para o cliente. Use para enviar fotos de produtos.",
+        parameters: {
+          type: "object",
+          properties: {
+            telefone: { type: "string", description: "Número do telefone (com DDD)" },
+            midia_url: { type: "string", description: "URL da imagem ou arquivo" },
+            legenda: { type: "string", description: "Legenda da mídia (opcional)" }
+          },
+          required: ["telefone", "midia_url"]
+        }
+      }
+    }
+  },
+  {
+    id: 'consultar_estoque',
+    tool: {
+      type: "function",
+      function: {
+        name: "consultar_estoque",
+        description: "Verifica a quantidade em estoque de um produto específico.",
+        parameters: {
+          type: "object",
+          properties: {
+            codigo: { type: "string", description: "Código ou nome do produto" }
+          },
+          required: ["codigo"]
+        }
       }
     }
   }
 ];
+
+// Get filtered tools based on config
+function getActiveTools(config: Record<string, unknown> | null) {
+  const ferramentasAtivas = config?.ferramentas_ativas as Record<string, boolean> || {
+    consultar_estoque: true,
+    buscar_pecas: true,
+    gerar_pix: true,
+    enviar_whatsapp: true,
+    listar_catalogos: true,
+    criar_pedido: true,
+    verificar_pedido: true
+  };
+
+  return allTools
+    .filter(t => ferramentasAtivas[t.id] !== false)
+    .map(t => t.tool);
+}
+
+// Check if within business hours
+function isWithinBusinessHours(config: Record<string, unknown> | null): { isOpen: boolean; message?: string } {
+  const horario = config?.horario_funcionamento as { 
+    ativo: boolean; 
+    inicio: string; 
+    fim: string; 
+    dias: number[]; 
+    mensagem_fora: string 
+  } | null;
+
+  if (!horario?.ativo) {
+    return { isOpen: true };
+  }
+
+  const now = new Date();
+  const currentDay = now.getDay();
+  const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+
+  const isWorkingDay = horario.dias?.includes(currentDay);
+  const isWorkingHour = currentTime >= horario.inicio && currentTime <= horario.fim;
+
+  if (!isWorkingDay || !isWorkingHour) {
+    return { 
+      isOpen: false, 
+      message: horario.mensagem_fora || 'Nosso atendimento está fechado no momento. Retornaremos em breve!' 
+    };
+  }
+
+  return { isOpen: true };
+}
+
+// Get tone instructions
+function getToneInstructions(tom: string): string {
+  const tones: Record<string, string> = {
+    profissional: 'Seja formal, objetivo e profissional. Use linguagem clara e direta.',
+    amigavel: 'Seja casual, acolhedor e use uma linguagem informal. Trate o cliente como um amigo.',
+    entusiasmado: 'Seja animado e expressivo! Use emojis com frequência e demonstre empolgação.',
+    tecnico: 'Seja detalhado e preciso. Forneça informações técnicas quando relevante.',
+    minimalista: 'Seja extremamente conciso. Respostas curtas e diretas, sem floreios.'
+  };
+  return tones[tom] || tones.profissional;
+}
 
 // Tool execution functions
 async function executarTool(
@@ -530,21 +631,57 @@ serve(async (req) => {
       .eq('organization_id', organizationId)
       .maybeSingle();
 
-    const systemPrompt = config?.prompt_sistema || 
-      `Você é um assistente virtual de uma joalheria. Ajude os clientes com informações sobre produtos, pedidos e pagamentos.
-      
-Seja sempre educado, prestativo e profissional. Use emojis com moderação para tornar a conversa mais agradável.
+    // Check if agent is active
+    if (config?.ativo === false) {
+      return new Response(JSON.stringify({
+        content: 'O atendimento virtual está temporariamente desativado. Por favor, tente novamente mais tarde.',
+        role: 'assistant'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-Você tem acesso a ferramentas para:
-- Buscar produtos no catálogo
-- Listar e compartilhar catálogos
-- Gerar informações de pagamento PIX
-- Consultar e criar pedidos
-- Enviar mensagens via WhatsApp
+    // Check business hours
+    const businessHours = isWithinBusinessHours(config);
+    if (!businessHours.isOpen) {
+      return new Response(JSON.stringify({
+        content: businessHours.message,
+        role: 'assistant'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-Sempre que possível, use as ferramentas disponíveis para fornecer informações precisas e atualizadas.`;
+    // Get active tools based on configuration
+    const activeTools = getActiveTools(config);
 
-    // First AI call with tools
+    // Build dynamic system prompt
+    const toneInstructions = getToneInstructions(config?.tom_resposta || 'profissional');
+    const idioma = config?.idioma || 'pt-BR';
+    const instrucoesEspeciais = config?.instrucoes_especiais || '';
+    const palavrasProibidas = (config?.palavras_proibidas as string[]) || [];
+
+    const basePrompt = config?.prompt_sistema || 
+      `Você é um assistente virtual de uma joalheria. Ajude os clientes com informações sobre produtos, pedidos e pagamentos.`;
+
+    const systemPrompt = `${basePrompt}
+
+## Tom de Comunicação
+${toneInstructions}
+
+## Idioma
+Responda sempre em ${idioma === 'pt-BR' ? 'português brasileiro' : idioma === 'en-US' ? 'inglês' : 'espanhol'}.
+
+${instrucoesEspeciais ? `## Instruções Especiais\n${instrucoesEspeciais}\n` : ''}
+
+${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras ou termos: ${palavrasProibidas.join(', ')}\n` : ''}
+
+## Ferramentas Disponíveis
+Você tem acesso a ferramentas para ajudar os clientes. Use-as quando necessário para fornecer informações precisas.
+
+Seja sempre educado e prestativo.`;
+
+    // First AI call with filtered tools
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -557,9 +694,10 @@ Sempre que possível, use as ferramentas disponíveis para fornecer informaçõe
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        tools: tools,
-        tool_choice: 'auto',
-        temperature: 0.7
+        tools: activeTools.length > 0 ? activeTools : undefined,
+        tool_choice: activeTools.length > 0 ? 'auto' : undefined,
+        temperature: config?.temperatura || 0.7,
+        max_tokens: config?.max_tokens || 1024
       })
     });
 

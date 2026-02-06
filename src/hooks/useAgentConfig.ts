@@ -2,7 +2,30 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface AgentConfig {
+interface FerramentasAtivas {
+  consultar_estoque: boolean;
+  buscar_pecas: boolean;
+  gerar_pix: boolean;
+  enviar_whatsapp: boolean;
+  listar_catalogos: boolean;
+  criar_pedido: boolean;
+  verificar_pedido: boolean;
+}
+
+interface HorarioFuncionamento {
+  ativo: boolean;
+  inicio: string;
+  fim: string;
+  dias: number[];
+  mensagem_fora: string;
+}
+
+interface RespostaRapida {
+  gatilho: string;
+  resposta: string;
+}
+
+export interface AgentConfig {
   id: string;
   organization_id: string;
   nome_agente: string;
@@ -16,7 +39,49 @@ interface AgentConfig {
   pix_nome: string | null;
   whatsapp_numero: string | null;
   whatsapp_instancia: string | null;
+  ferramentas_ativas: FerramentasAtivas;
+  tom_resposta: string;
+  idioma: string;
+  max_tokens: number;
+  temperatura: number;
+  instrucoes_especiais: string | null;
+  horario_funcionamento: HorarioFuncionamento;
+  respostas_rapidas: RespostaRapida[];
+  palavras_proibidas: string[];
+  limite_mensagens_sessao: number;
 }
+
+const defaultConfig: Partial<AgentConfig> = {
+  nome_agente: 'Assistente Virtual',
+  prompt_sistema: 'Você é um assistente virtual de uma joalheria. Ajude os clientes com informações sobre produtos, pedidos e pagamentos.',
+  cor_primaria: '#9b87f5',
+  mensagem_boas_vindas: 'Olá! 👋 Como posso ajudar você hoje?',
+  ativo: true,
+  pix_tipo: 'email',
+  ferramentas_ativas: {
+    consultar_estoque: true,
+    buscar_pecas: true,
+    gerar_pix: true,
+    enviar_whatsapp: true,
+    listar_catalogos: true,
+    criar_pedido: true,
+    verificar_pedido: true
+  },
+  tom_resposta: 'profissional',
+  idioma: 'pt-BR',
+  max_tokens: 1024,
+  temperatura: 0.7,
+  horario_funcionamento: {
+    ativo: false,
+    inicio: '09:00',
+    fim: '18:00',
+    dias: [1, 2, 3, 4, 5],
+    mensagem_fora: 'Nosso atendimento funciona de segunda a sexta, das 9h às 18h.'
+  },
+  respostas_rapidas: [],
+  palavras_proibidas: [],
+  limite_mensagens_sessao: 50
+};
 
 export function useAgentConfig(organizationId: string) {
   const queryClient = useQueryClient();
@@ -37,7 +102,27 @@ export function useAgentConfig(organizationId: string) {
         return null;
       }
 
-      return data as AgentConfig | null;
+      if (!data) return defaultConfig as AgentConfig;
+
+      // Merge with defaults to handle missing fields
+      const ferramentas = data.ferramentas_ativas as unknown as FerramentasAtivas | null;
+      const horario = data.horario_funcionamento as unknown as HorarioFuncionamento | null;
+      const respostas = data.respostas_rapidas as unknown as RespostaRapida[] | null;
+
+      return {
+        ...defaultConfig,
+        ...data,
+        ferramentas_ativas: {
+          ...defaultConfig.ferramentas_ativas,
+          ...(ferramentas || {})
+        },
+        horario_funcionamento: {
+          ...defaultConfig.horario_funcionamento,
+          ...(horario || {})
+        },
+        respostas_rapidas: respostas || [],
+        palavras_proibidas: data.palavras_proibidas || []
+      } as AgentConfig;
     },
     enabled: !!organizationId
   });
@@ -45,6 +130,18 @@ export function useAgentConfig(organizationId: string) {
   const saveConfig = useMutation({
     mutationFn: async (configData: Partial<AgentConfig>) => {
       if (!organizationId) throw new Error('Organization ID is required');
+
+      // Convert to database format
+      const dbData: Record<string, unknown> = {
+        ...configData,
+        ferramentas_ativas: configData.ferramentas_ativas as unknown,
+        horario_funcionamento: configData.horario_funcionamento as unknown,
+        respostas_rapidas: configData.respostas_rapidas as unknown
+      };
+
+      // Remove id and organization_id from update data
+      delete dbData.id;
+      delete dbData.organization_id;
 
       const { data: existing } = await supabase
         .from('agente_ia_config')
@@ -56,9 +153,9 @@ export function useAgentConfig(organizationId: string) {
         const { error } = await supabase
           .from('agente_ia_config')
           .update({
-            ...configData,
+            ...dbData,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('id', existing.id);
 
         if (error) throw error;
@@ -66,9 +163,9 @@ export function useAgentConfig(organizationId: string) {
         const { error } = await supabase
           .from('agente_ia_config')
           .insert({
-            ...configData,
+            ...dbData,
             organization_id: organizationId
-          });
+          } as any);
 
         if (error) throw error;
       }
@@ -86,6 +183,7 @@ export function useAgentConfig(organizationId: string) {
   return {
     config,
     isLoading,
-    saveConfig
+    saveConfig,
+    defaultConfig
   };
 }
