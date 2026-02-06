@@ -26,7 +26,8 @@ import {
   PinOff,
   UserCog,
   TrendingUp,
-  MessageCircle
+  MessageCircle,
+  GraduationCap
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRomaneios } from '@/hooks/useSupabaseData';
@@ -114,6 +115,7 @@ const menuItems = [
   { icon: BarChart3, label: 'Relatórios', path: '/relatorios', color: 'from-cyan-500 to-blue-600' },
   { icon: History, label: 'Histórico', path: '/historico', color: 'from-gray-500 to-slate-600' },
   { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600' },
+  { icon: GraduationCap, label: 'Tutorial', path: '/tutorial', color: 'from-emerald-500 to-green-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
 ];
