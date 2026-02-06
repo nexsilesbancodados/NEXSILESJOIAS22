@@ -5,11 +5,11 @@ import { useCallback } from 'react';
 
 interface UseReadOnlyGuardOptions {
   showToast?: boolean;
-  redirectToPlanos?: boolean;
+  redirectToLanding?: boolean;
 }
 
 export function useReadOnlyGuard(options: UseReadOnlyGuardOptions = {}) {
-  const { showToast = true, redirectToPlanos = false } = options;
+  const { showToast = true, redirectToLanding = true } = options;
   const { isReadOnly, isExpired, isExpiring, daysRemaining } = useSubscriptionSafe();
   const navigate = useNavigate();
 
@@ -18,23 +18,19 @@ export function useReadOnlyGuard(options: UseReadOnlyGuardOptions = {}) {
       if (showToast) {
         toast.error('Acesso restrito', {
           description: actionName 
-            ? `Não é possível ${actionName} no modo leitura. Renove seu plano para continuar.`
-            : 'Seu plano expirou. Renove para continuar editando.',
-          action: {
-            label: 'Ver Planos',
-            onClick: () => navigate('/planos'),
-          },
+            ? `Não é possível ${actionName}. Adquira um plano para continuar.`
+            : 'Você precisa de um plano ativo para usar esta função.',
         });
       }
       
-      if (redirectToPlanos) {
-        navigate('/planos');
+      if (redirectToLanding) {
+        navigate('/landing');
       }
       
       return false;
     }
     return true;
-  }, [isReadOnly, showToast, redirectToPlanos, navigate]);
+  }, [isReadOnly, showToast, redirectToLanding, navigate]);
 
   const guardedAction = useCallback(<T extends (...args: any[]) => any>(
     action: T,
@@ -48,6 +44,15 @@ export function useReadOnlyGuard(options: UseReadOnlyGuardOptions = {}) {
     }) as T;
   }, [checkAccess]);
 
+  // Redirect immediately if in read-only mode and user tries to access protected area
+  const redirectIfReadOnly = useCallback(() => {
+    if (isReadOnly) {
+      navigate('/landing');
+      return true;
+    }
+    return false;
+  }, [isReadOnly, navigate]);
+
   return {
     isReadOnly,
     isExpired,
@@ -55,5 +60,6 @@ export function useReadOnlyGuard(options: UseReadOnlyGuardOptions = {}) {
     daysRemaining,
     checkAccess,
     guardedAction,
+    redirectIfReadOnly,
   };
 }

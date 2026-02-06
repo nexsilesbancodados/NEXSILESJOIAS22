@@ -1,10 +1,10 @@
 import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
-import { AlertTriangle, Crown, Lock } from 'lucide-react';
+import { AlertTriangle, Crown, Lock, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 export function ReadOnlyBanner() {
-  const { isReadOnly, isExpiring, daysRemaining } = useSubscriptionSafe();
+  const { isReadOnly, isExpiring, daysRemaining, hasSubscription } = useSubscriptionSafe();
   const navigate = useNavigate();
 
   if (!isReadOnly && !isExpiring) {
@@ -20,20 +20,22 @@ export function ReadOnlyBanner() {
               <Lock className="w-4 h-4 text-destructive" />
             </div>
             <div>
-              <p className="font-medium text-destructive">Modo Leitura Ativado</p>
+              <p className="font-medium text-destructive">
+                {hasSubscription ? 'Plano Expirado' : 'Sem Plano Ativo'}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Seu plano expirou. Você pode visualizar seus dados, mas não pode criar ou editar.
+                {hasSubscription 
+                  ? 'Seu plano expirou. Renove para continuar usando todas as funcionalidades.'
+                  : 'Adquira um plano para usar todas as funcionalidades do sistema.'}
               </p>
             </div>
           </div>
           <Button 
-            variant="destructive" 
-            size="sm"
-            onClick={() => navigate('/configuracoes')}
-            className="gap-2"
+            onClick={() => navigate('/landing')}
+            className="gap-2 bg-gradient-to-r from-primary to-primary/80"
           >
-            <Crown className="w-4 h-4" />
-            Renovar Plano
+            <Sparkles className="w-4 h-4" />
+            Ver Planos
           </Button>
         </div>
       </div>
@@ -58,7 +60,7 @@ export function ReadOnlyBanner() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate('/configuracoes')}
+            onClick={() => navigate('/landing')}
             className="gap-2 border-warning text-warning hover:bg-warning hover:text-warning-foreground"
           >
             <Crown className="w-4 h-4" />
