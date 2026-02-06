@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.evolution-instance]
 verify_jwt = false
+
+[functions.gerar-codigo-acesso]
+verify_jwt = false
