@@ -61,14 +61,24 @@ export type Database = {
           avatar_url: string | null
           cor_primaria: string | null
           created_at: string
+          ferramentas_ativas: Json | null
+          horario_funcionamento: Json | null
           id: string
+          idioma: string | null
+          instrucoes_especiais: string | null
+          limite_mensagens_sessao: number | null
+          max_tokens: number | null
           mensagem_boas_vindas: string | null
           nome_agente: string
           organization_id: string | null
+          palavras_proibidas: string[] | null
           pix_chave: string | null
           pix_nome: string | null
           pix_tipo: string | null
           prompt_sistema: string
+          respostas_rapidas: Json | null
+          temperatura: number | null
+          tom_resposta: string | null
           updated_at: string
           whatsapp_instancia: string | null
           whatsapp_numero: string | null
@@ -78,14 +88,24 @@ export type Database = {
           avatar_url?: string | null
           cor_primaria?: string | null
           created_at?: string
+          ferramentas_ativas?: Json | null
+          horario_funcionamento?: Json | null
           id?: string
+          idioma?: string | null
+          instrucoes_especiais?: string | null
+          limite_mensagens_sessao?: number | null
+          max_tokens?: number | null
           mensagem_boas_vindas?: string | null
           nome_agente?: string
           organization_id?: string | null
+          palavras_proibidas?: string[] | null
           pix_chave?: string | null
           pix_nome?: string | null
           pix_tipo?: string | null
           prompt_sistema?: string
+          respostas_rapidas?: Json | null
+          temperatura?: number | null
+          tom_resposta?: string | null
           updated_at?: string
           whatsapp_instancia?: string | null
           whatsapp_numero?: string | null
@@ -95,14 +115,24 @@ export type Database = {
           avatar_url?: string | null
           cor_primaria?: string | null
           created_at?: string
+          ferramentas_ativas?: Json | null
+          horario_funcionamento?: Json | null
           id?: string
+          idioma?: string | null
+          instrucoes_especiais?: string | null
+          limite_mensagens_sessao?: number | null
+          max_tokens?: number | null
           mensagem_boas_vindas?: string | null
           nome_agente?: string
           organization_id?: string | null
+          palavras_proibidas?: string[] | null
           pix_chave?: string | null
           pix_nome?: string | null
           pix_tipo?: string | null
           prompt_sistema?: string
+          respostas_rapidas?: Json | null
+          temperatura?: number | null
+          tom_resposta?: string | null
           updated_at?: string
           whatsapp_instancia?: string | null
           whatsapp_numero?: string | null
