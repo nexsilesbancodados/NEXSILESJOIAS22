@@ -203,13 +203,15 @@ export default function LandingPlanosPage() {
   // Show test button with keyboard shortcut (Ctrl+Shift+T)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'T' || e.key === 't')) {
+        e.preventDefault();
         setShowTestButton(prev => !prev);
+        toast.info(showTestButton ? 'Modo teste desativado' : 'Modo teste ativado');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [showTestButton]);
 
   // Handle payment status from URL
   useEffect(() => {
