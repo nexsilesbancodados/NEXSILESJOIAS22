@@ -51,6 +51,39 @@ interface WhatsAppResponse {
   error?: string;
 }
 
+// Helper to validate authentication
+async function validateAuth(req: Request): Promise<{ user: any; organizationId: string } | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return null;
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error } = await supabaseClient.auth.getUser();
+  if (error || !user) {
+    return null;
+  }
+
+  // Get user's organization
+  const { data: membership } = await supabaseClient
+    .from('memberships')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!membership?.organization_id) {
+    return null;
+  }
+
+  return { user, organizationId: membership.organization_id };
+}
+
 // Templates de mensagens
 const templates = {
   recibo: (dados: WhatsAppRequest['dados']) => {
@@ -181,6 +214,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Validate authentication
+    const auth = await validateAuth(req);
+    if (!auth) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Não autorizado. Faça login para continuar.' } as WhatsAppResponse),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
@@ -189,7 +231,7 @@ Deno.serve(async (req) => {
     const body: WhatsAppRequest = await req.json();
     const { tipo, telefone, dados } = body;
 
-    console.log(`Gerando mensagem WhatsApp: ${tipo}`, { telefone });
+    console.log(`Gerando mensagem WhatsApp: ${tipo} para org: ${auth.organizationId}`, { telefone });
 
     if (!telefone) {
       throw new Error('Telefone é obrigatório');
@@ -199,7 +241,7 @@ Deno.serve(async (req) => {
       throw new Error(`Tipo de mensagem inválido: ${tipo}`);
     }
 
-    // Se for recibo e tiver vendaId, buscar dados da venda
+    // Se for recibo e tiver vendaId, buscar dados da venda (filtered by org)
     if (tipo === 'recibo' && dados.vendaId && !dados.items) {
       const { data: venda, error: vendaError } = await supabase
         .from('vendas')
@@ -209,6 +251,7 @@ Deno.serve(async (req) => {
           clientes (nome)
         `)
         .eq('id', dados.vendaId)
+        .eq('organization_id', auth.organizationId)
         .single();
 
       if (vendaError) {
@@ -252,11 +295,13 @@ Deno.serve(async (req) => {
 
     console.log(`Mensagem ${tipo} gerada com sucesso para ${cleanPhone}`);
 
-    // Registrar envio (opcional - para histórico)
+    // Registrar envio (com organization_id)
     try {
       await supabase.from('historico_atividades').insert({
         tabela: 'whatsapp',
         acao: 'envio',
+        organization_id: auth.organizationId,
+        user_id: auth.user.id,
         dados_novos: {
           tipo,
           telefone: cleanPhone,
