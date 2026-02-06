@@ -172,6 +172,24 @@ export function EmailManager() {
     }
   });
 
+  // Seed default templates
+  const seedMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('seed_default_email_templates', {
+        p_organization_id: organizationId
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Templates padrão carregados!');
+      queryClient.invalidateQueries({ queryKey: ['email-templates'] });
+    },
+    onError: (error) => {
+      console.error('Error seeding templates:', error);
+      toast.error('Erro ao carregar templates padrão');
+    }
+  });
+
   const openEditDialog = (template: EmailTemplate) => {
     setEditingTemplate(template);
     setFormData({
@@ -361,9 +379,16 @@ export function EmailManager() {
                 <div className="text-center py-8">
                   <Mail className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                   <p className="text-muted-foreground">Nenhum template criado ainda.</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Crie templates para enviar e-mails automáticos.
+                  <p className="text-sm text-muted-foreground mt-2 mb-4">
+                    Crie templates para enviar e-mails automáticos ou carregue os templates padrão.
                   </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => seedMutation.mutate()}
+                    disabled={seedMutation.isPending}
+                  >
+                    {seedMutation.isPending ? 'Carregando...' : 'Carregar Templates Padrão'}
+                  </Button>
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">

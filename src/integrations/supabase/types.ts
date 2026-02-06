@@ -3020,6 +3020,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      seed_default_email_templates: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }
     }
