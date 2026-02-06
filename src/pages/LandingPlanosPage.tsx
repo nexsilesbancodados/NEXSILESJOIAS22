@@ -193,11 +193,23 @@ export default function LandingPlanosPage() {
   const [isAnual, setIsAnual] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [selectedPlano, setSelectedPlano] = useState<'nexsiles' | 'nexsiles_max' | null>(null);
+  const [selectedPlano, setSelectedPlano] = useState<'nexsiles' | 'nexsiles_max' | 'teste' | null>(null);
   const [email, setEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showTestButton, setShowTestButton] = useState(false);
   const { scrollYProgress } = useScroll();
   const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0.95]);
+
+  // Show test button with keyboard shortcut (Ctrl+Shift+T)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+        setShowTestButton(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Handle payment status from URL
   useEffect(() => {
@@ -230,7 +242,7 @@ export default function LandingPlanosPage() {
     return preco;
   };
 
-  const handleSelectPlan = (plano: 'nexsiles' | 'nexsiles_max') => {
+  const handleSelectPlan = (plano: 'nexsiles' | 'nexsiles_max' | 'teste') => {
     setSelectedPlano(plano);
     setShowEmailModal(true);
   };
@@ -304,10 +316,13 @@ export default function LandingPlanosPage() {
                 <Crown className="w-8 h-8 text-primary" />
               </div>
               <h3 className="text-2xl font-bold text-foreground mb-2">
-                {selectedPlano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
+                {selectedPlano === 'teste' ? '🧪 Teste (R$1)' : selectedPlano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
               </h3>
               <p className="text-muted-foreground">
-                Informe seu email para receber o código de acesso após o pagamento
+                {selectedPlano === 'teste' 
+                  ? 'Produto de teste para validar a integração'
+                  : 'Informe seu email para receber o código de acesso após o pagamento'
+                }
               </p>
             </div>
 
@@ -329,21 +344,23 @@ export default function LandingPlanosPage() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Plano</span>
                   <span className="font-medium text-foreground">
-                    {selectedPlano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
+                    {selectedPlano === 'teste' ? 'Teste' : selectedPlano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">Período</span>
                   <span className="font-medium text-foreground">
-                    {isAnual ? 'Anual' : 'Mensal'}
+                    {selectedPlano === 'teste' ? 'Único' : isAnual ? 'Anual' : 'Mensal'}
                   </span>
                 </div>
                 <div className="flex justify-between text-base pt-2 border-t border-border">
                   <span className="font-medium text-foreground">Total</span>
                   <span className="font-bold text-foreground">
-                    R$ {selectedPlano === 'nexsiles_max' 
-                      ? (isAnual ? '2.490,00' : '249,00')
-                      : (isAnual ? '1.890,00' : '189,00')
+                    R$ {selectedPlano === 'teste' 
+                      ? '1,00'
+                      : selectedPlano === 'nexsiles_max' 
+                        ? (isAnual ? '2.490,00' : '249,00')
+                        : (isAnual ? '1.890,00' : '189,00')
                     }
                   </span>
                 </div>
@@ -376,7 +393,18 @@ export default function LandingPlanosPage() {
         </div>
       )}
 
-      {/* Floating Header */}
+      {/* Test Button (Ctrl+Shift+T to toggle) */}
+      {showTestButton && (
+        <div className="fixed bottom-4 right-4 z-[60]">
+          <Button 
+            onClick={() => handleSelectPlan('teste')}
+            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg"
+          >
+            🧪 Testar R$1
+          </Button>
+        </div>
+      )}
+
       {/* Floating Header */}
       <motion.header
         style={{ opacity: headerOpacity }}
