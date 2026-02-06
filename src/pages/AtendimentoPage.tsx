@@ -11,17 +11,30 @@ import {
   Loader2, 
   MessageCircle, 
   Settings, 
-  Trash2,
   Bot,
   User,
   RefreshCw,
-  LayoutDashboard
+  LayoutDashboard,
+  Star,
+  Sparkles,
+  Mail,
+  Calendar,
+  Users,
+  Instagram,
+  Mic
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIAgent } from '@/hooks/useAIAgent';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
 import { AgentConfigPanel } from '@/components/ai-agent/AgentConfigPanel';
 import { ConversasDashboard } from '@/components/ai-agent/ConversasDashboard';
+import { NPSDashboard } from '@/components/ai-agent/NPSDashboard';
+import { RecommendationsPanel } from '@/components/ai-agent/RecommendationsPanel';
+import { EmailManager } from '@/components/ai-agent/EmailManager';
+import { AgendamentosPanel } from '@/components/ai-agent/AgendamentosPanel';
+import { MultiAgentManager } from '@/components/ai-agent/MultiAgentManager';
+import { InstagramConfig } from '@/components/ai-agent/InstagramConfig';
+import { AudioConfig } from '@/components/ai-agent/AudioConfig';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -75,23 +88,81 @@ export default function AtendimentoPage() {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="dashboard" className="gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="chat" className="gap-2">
-            <MessageCircle className="h-4 w-4" />
-            Testar Chat
-          </TabsTrigger>
-          <TabsTrigger value="config" className="gap-2">
-            <Settings className="h-4 w-4" />
-            Configurações
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList className="inline-flex h-auto flex-wrap gap-1">
+            <TabsTrigger value="dashboard" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="nps" className="gap-2">
+              <Star className="h-4 w-4" />
+              <span className="hidden sm:inline">NPS</span>
+            </TabsTrigger>
+            <TabsTrigger value="recomendacoes" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Recomendações</span>
+            </TabsTrigger>
+            <TabsTrigger value="email" className="gap-2">
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">E-mail</span>
+            </TabsTrigger>
+            <TabsTrigger value="agendamentos" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Agenda</span>
+            </TabsTrigger>
+            <TabsTrigger value="multi-agentes" className="gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Agentes</span>
+            </TabsTrigger>
+            <TabsTrigger value="instagram" className="gap-2">
+              <Instagram className="h-4 w-4" />
+              <span className="hidden sm:inline">Instagram</span>
+            </TabsTrigger>
+            <TabsTrigger value="audio" className="gap-2">
+              <Mic className="h-4 w-4" />
+              <span className="hidden sm:inline">Áudio</span>
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="gap-2">
+              <MessageCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Testar</span>
+            </TabsTrigger>
+            <TabsTrigger value="config" className="gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Config</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="dashboard" className="space-y-0">
           <ConversasDashboard />
+        </TabsContent>
+
+        <TabsContent value="nps" className="space-y-0">
+          <NPSDashboard />
+        </TabsContent>
+
+        <TabsContent value="recomendacoes" className="space-y-0">
+          <RecommendationsPanel />
+        </TabsContent>
+
+        <TabsContent value="email" className="space-y-0">
+          <EmailManager />
+        </TabsContent>
+
+        <TabsContent value="agendamentos" className="space-y-0">
+          <AgendamentosPanel />
+        </TabsContent>
+
+        <TabsContent value="multi-agentes" className="space-y-0">
+          <MultiAgentManager />
+        </TabsContent>
+
+        <TabsContent value="instagram" className="space-y-0">
+          <InstagramConfig />
+        </TabsContent>
+
+        <TabsContent value="audio" className="space-y-0">
+          <AudioConfig />
         </TabsContent>
 
         <TabsContent value="chat" className="space-y-0">
