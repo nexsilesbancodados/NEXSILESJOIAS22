@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, Bot, Palette, CreditCard, MessageSquare } from 'lucide-react';
+import { Loader2, Save, Bot, CreditCard, MessageSquare, Send } from 'lucide-react';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
 
 interface AgentConfigPanelProps {
@@ -25,7 +25,8 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
     pix_chave: '',
     pix_tipo: 'email',
     pix_nome: '',
-    whatsapp_numero: ''
+    whatsapp_numero: '',
+    whatsapp_instancia: 'default'
   });
 
   useEffect(() => {
@@ -39,7 +40,8 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
         pix_chave: config.pix_chave || '',
         pix_tipo: config.pix_tipo || 'email',
         pix_nome: config.pix_nome || '',
-        whatsapp_numero: config.whatsapp_numero || ''
+        whatsapp_numero: config.whatsapp_numero || '',
+        whatsapp_instancia: config.whatsapp_instancia || 'default'
       });
     }
   }, [config]);
@@ -203,15 +205,15 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
         </CardContent>
       </Card>
 
-      {/* WhatsApp */}
+      {/* WhatsApp & Evolution API */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Palette className="h-5 w-5" />
-            WhatsApp
+            <Send className="h-5 w-5" />
+            WhatsApp (Evolution API)
           </CardTitle>
           <CardDescription>
-            Configure o número para envio de mensagens
+            Configure a integração com Evolution API para envio automático de mensagens
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -225,6 +227,26 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
             />
             <p className="text-xs text-muted-foreground">
               Número com DDD, sem espaços ou caracteres especiais.
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp_instancia">Nome da Instância (Evolution API)</Label>
+            <Input
+              id="whatsapp_instancia"
+              value={formData.whatsapp_instancia}
+              onChange={(e) => setFormData(prev => ({ ...prev, whatsapp_instancia: e.target.value }))}
+              placeholder="default"
+            />
+            <p className="text-xs text-muted-foreground">
+              Nome da instância configurada na Evolution API. Deixe "default" se tiver apenas uma.
+            </p>
+          </div>
+
+          <div className="p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              <strong>Dica:</strong> As credenciais da Evolution API são configuradas nos secrets do projeto 
+              (EVOLUTION_API_URL e EVOLUTION_API_KEY).
             </p>
           </div>
         </CardContent>
