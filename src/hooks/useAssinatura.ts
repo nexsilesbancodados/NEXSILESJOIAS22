@@ -34,27 +34,28 @@ export interface NotificacaoAssinatura {
 export const PLANOS = {
   nexsiles: {
     nome: 'Nexsiles',
-    descricao: 'Plano básico para gestão de joias',
+    descricao: 'Plano completo para gestão de semi-joias',
     recursos: [
       'Gestão de peças e estoque',
-      'Controle de vendas',
-      'Gestão de revendedoras',
-      'Relatórios básicos',
+      'Controle de vendas (PDV)',
+      'Gestão de revendedoras e maletas',
       'Catálogos digitais',
+      'Relatórios completos',
+      'Portal da revendedora',
     ],
-    valor: 49.90,
+    valor: 189.00,
   },
   nexsiles_max: {
     nome: 'Nexsiles Max',
-    descricao: 'Plano completo com IA integrada',
+    descricao: 'Tudo do Nexsiles + IA integrada',
     recursos: [
       'Tudo do plano Nexsiles',
       'Atendente de IA integrado',
       'Chatbot WhatsApp automatizado',
-      'Relatórios avançados',
+      'Recomendações inteligentes',
       'Suporte prioritário',
     ],
-    valor: 99.90,
+    valor: 249.00,
   },
 } as const;
 
