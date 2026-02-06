@@ -356,6 +356,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "catalogos_pecas_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "catalogos_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "catalogos_pecas_peca_id_fkey"
             columns: ["peca_id"]
             isOneToOne: false
@@ -607,6 +614,13 @@ export type Database = {
             columns: ["maleta_id"]
             isOneToOne: false
             referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envios_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
             referencedColumns: ["id"]
           },
           {
@@ -1014,6 +1028,13 @@ export type Database = {
             referencedRelation: "maletas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maleta_interesses_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maletas: {
@@ -1092,6 +1113,13 @@ export type Database = {
             referencedRelation: "revendedoras"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maletas_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maletas_pecas: {
@@ -1137,6 +1165,13 @@ export type Database = {
             columns: ["maleta_id"]
             isOneToOne: false
             referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maletas_pecas_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
             referencedColumns: ["id"]
           },
           {
@@ -1249,6 +1284,13 @@ export type Database = {
             columns: ["revendedora_id"]
             isOneToOne: false
             referencedRelation: "revendedoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metas_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1573,6 +1615,13 @@ export type Database = {
             referencedRelation: "catalogos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pedidos_catalogo_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "catalogos_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pedidos_catalogo_itens: {
@@ -1847,6 +1896,13 @@ export type Database = {
             referencedRelation: "revendedoras"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "romaneios_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       romaneios_pecas: {
@@ -2022,6 +2078,13 @@ export type Database = {
             referencedRelation: "revendedoras"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "vendas_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       vendas_pecas: {
@@ -2118,7 +2181,114 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      catalogos_public: {
+        Row: {
+          ativo: boolean | null
+          banner_url: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          data_validade: string | null
+          descricao: string | null
+          id: string | null
+          imagem_capa: string | null
+          imagem_url: string | null
+          logo_url: string | null
+          mensagem_boas_vindas: string | null
+          nome: string | null
+          pedido_minimo_pecas: number | null
+          slug: string | null
+          titulo: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          banner_url?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          data_validade?: string | null
+          descricao?: string | null
+          id?: string | null
+          imagem_capa?: string | null
+          imagem_url?: string | null
+          logo_url?: string | null
+          mensagem_boas_vindas?: string | null
+          nome?: string | null
+          pedido_minimo_pecas?: number | null
+          slug?: string | null
+          titulo?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          banner_url?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          data_validade?: string | null
+          descricao?: string | null
+          id?: string | null
+          imagem_capa?: string | null
+          imagem_url?: string | null
+          logo_url?: string | null
+          mensagem_boas_vindas?: string | null
+          nome?: string | null
+          pedido_minimo_pecas?: number | null
+          slug?: string | null
+          titulo?: string | null
+        }
+        Relationships: []
+      }
+      maletas_public: {
+        Row: {
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          descricao: string | null
+          id: string | null
+          imagem_capa: string | null
+          is_public: boolean | null
+          nome: string | null
+          sharing_slug: string | null
+          status: string | null
+        }
+        Insert: {
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          descricao?: string | null
+          id?: string | null
+          imagem_capa?: string | null
+          is_public?: boolean | null
+          nome?: string | null
+          sharing_slug?: string | null
+          status?: string | null
+        }
+        Update: {
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          descricao?: string | null
+          id?: string | null
+          imagem_capa?: string | null
+          is_public?: boolean | null
+          nome?: string | null
+          sharing_slug?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      revendedoras_portal_public: {
+        Row: {
+          id: string | null
+          nome: string | null
+          usuario_portal: string | null
+        }
+        Insert: {
+          id?: string | null
+          nome?: string | null
+          usuario_portal?: string | null
+        }
+        Update: {
+          id?: string | null
+          nome?: string | null
+          usuario_portal?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }

@@ -1,10 +1,43 @@
-import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
+import { useEffect, useState } from "react";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
+// Safe theme hook that works outside ThemeProvider
+function useSafeTheme(): 'light' | 'dark' | 'system' {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+  
+  useEffect(() => {
+    // Initial check
+    const checkTheme = () => {
+      if (document.documentElement.classList.contains('dark')) {
+        setTheme('dark');
+      } else {
+        setTheme('light');
+      }
+    };
+    
+    checkTheme();
+    
+    // Watch for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          checkTheme();
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => observer.disconnect();
+  }, []);
+  
+  return theme;
+}
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  const theme = useSafeTheme();
 
   return (
     <Sonner

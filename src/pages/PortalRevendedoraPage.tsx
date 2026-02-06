@@ -146,28 +146,46 @@ export default function PortalRevendedoraPage() {
 
     setLoginLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('revendedoras')
-        .select('id, nome, comissao_percentual, telefone, email, usuario_portal, senha_portal')
+      // Step 1: Use secure public view to find user (no password exposed)
+      const { data: publicData, error: publicError } = await supabase
+        .from('revendedoras_portal_public' as 'revendedoras')
+        .select('id, nome, usuario_portal')
         .eq('usuario_portal', usuario.trim().toLowerCase())
         .maybeSingle();
 
-      if (error || !data) {
+      if (publicError || !publicData) {
         toast.error('Usuário não encontrado');
+        setLoginLoading(false);
         return;
       }
 
-      if (data.senha_portal !== senha) {
-        toast.error('Senha incorreta');
+      // Step 2: Verify password via edge function (never expose password hash to client)
+      const { data: authResult, error: authError } = await supabase.functions.invoke('verificar-senha-portal', {
+        body: { 
+          revendedora_id: publicData.id,
+          senha: senha
+        }
+      });
+
+      if (authError || !authResult?.success) {
+        toast.error(authResult?.message || 'Senha incorreta');
+        setLoginLoading(false);
         return;
       }
+
+      // Step 3: Get full revendedora data (authenticated RLS will apply)
+      const { data: fullData } = await supabase
+        .from('revendedoras')
+        .select('id, nome, comissao_percentual, telefone, email')
+        .eq('id', publicData.id)
+        .single();
 
       const revendedoraData = {
-        id: data.id,
-        nome: data.nome,
-        comissao_percentual: data.comissao_percentual || 30,
-        telefone: data.telefone || undefined,
-        email: data.email || undefined,
+        id: fullData?.id || publicData.id,
+        nome: fullData?.nome || publicData.nome,
+        comissao_percentual: fullData?.comissao_percentual || 30,
+        telefone: fullData?.telefone || undefined,
+        email: fullData?.email || undefined,
       };
 
       setRevendedora(revendedoraData);
@@ -177,8 +195,8 @@ export default function PortalRevendedoraPage() {
       }));
       
       setIsAuthenticated(true);
-      navigate(`/portal/${data.id}`, { replace: true });
-      toast.success(`Bem-vinda, ${data.nome}!`);
+      navigate(`/portal/${revendedoraData.id}`, { replace: true });
+      toast.success(`Bem-vinda, ${revendedoraData.nome}!`);
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Erro ao fazer login');
