@@ -15,14 +15,22 @@ serve(async (req) => {
     const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
     const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
 
+    // Log config for debugging (mask key)
+    console.log('Evolution URL:', evolutionUrl);
+    console.log('Evolution Key configured:', evolutionKey ? `${evolutionKey.substring(0, 8)}...` : 'NOT SET');
+
     if (!evolutionUrl || !evolutionKey) {
+      console.error('Missing config - URL:', !!evolutionUrl, 'Key:', !!evolutionKey);
       return new Response(JSON.stringify({ 
-        error: 'Evolution API não configurada' 
+        error: 'Evolution API não configurada. Configure EVOLUTION_API_URL e EVOLUTION_API_KEY nos secrets.' 
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Normalize URL (remove trailing slash)
+    const baseUrl = evolutionUrl.replace(/\/+$/, '');
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -36,9 +44,10 @@ serve(async (req) => {
     switch (action) {
       case 'create': {
         console.log('Creating instance:', finalInstanceName);
+        console.log('Request URL:', `${baseUrl}/instance/create`);
         
         // Create the instance
-        const createResponse = await fetch(`${evolutionUrl}/instance/create`, {
+        const createResponse = await fetch(`${baseUrl}/instance/create`, {
           method: 'POST',
           headers: {
             'apikey': evolutionKey,
@@ -52,14 +61,21 @@ serve(async (req) => {
         });
 
         const createResult = await createResponse.json();
-        console.log('Create result:', createResult);
+        console.log('Create response status:', createResponse.status);
+        console.log('Create result:', JSON.stringify(createResult));
 
         if (!createResponse.ok) {
           // Instance might already exist, try to connect
           if (createResult.message?.includes('already') || createResult.error?.includes('already')) {
             console.log('Instance already exists, getting connection status');
           } else {
-            throw new Error(createResult.message || 'Erro ao criar instância');
+            // Log full error for debugging
+            console.error('Evolution API error:', {
+              status: createResponse.status,
+              statusText: createResponse.statusText,
+              body: createResult
+            });
+            throw new Error(createResult.message || createResult.response?.message || `Erro da Evolution API: ${createResponse.status}`);
           }
         }
 
@@ -67,7 +83,7 @@ serve(async (req) => {
         const webhookUrl = `${supabaseUrl}/functions/v1/webhook-whatsapp`;
         console.log('Configuring webhook:', webhookUrl);
 
-        const webhookResponse = await fetch(`${evolutionUrl}/webhook/set/${finalInstanceName}`, {
+        const webhookResponse = await fetch(`${baseUrl}/webhook/set/${finalInstanceName}`, {
           method: 'POST',
           headers: {
             'apikey': evolutionKey,
@@ -98,7 +114,7 @@ serve(async (req) => {
         }
 
         // Get QR code
-        const qrResponse = await fetch(`${evolutionUrl}/instance/connect/${finalInstanceName}`, {
+        const qrResponse = await fetch(`${baseUrl}/instance/connect/${finalInstanceName}`, {
           method: 'GET',
           headers: {
             'apikey': evolutionKey,
@@ -122,7 +138,7 @@ serve(async (req) => {
       case 'status': {
         console.log('Checking status for:', finalInstanceName);
         
-        const statusResponse = await fetch(`${evolutionUrl}/instance/connectionState/${finalInstanceName}`, {
+        const statusResponse = await fetch(`${baseUrl}/instance/connectionState/${finalInstanceName}`, {
           method: 'GET',
           headers: {
             'apikey': evolutionKey,
@@ -145,7 +161,7 @@ serve(async (req) => {
       case 'qrcode': {
         console.log('Getting QR code for:', finalInstanceName);
         
-        const qrResponse = await fetch(`${evolutionUrl}/instance/connect/${finalInstanceName}`, {
+        const qrResponse = await fetch(`${baseUrl}/instance/connect/${finalInstanceName}`, {
           method: 'GET',
           headers: {
             'apikey': evolutionKey,
@@ -167,7 +183,7 @@ serve(async (req) => {
       case 'disconnect': {
         console.log('Disconnecting instance:', finalInstanceName);
         
-        const logoutResponse = await fetch(`${evolutionUrl}/instance/logout/${finalInstanceName}`, {
+        const logoutResponse = await fetch(`${baseUrl}/instance/logout/${finalInstanceName}`, {
           method: 'DELETE',
           headers: {
             'apikey': evolutionKey,
