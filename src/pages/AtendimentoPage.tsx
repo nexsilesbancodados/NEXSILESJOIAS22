@@ -11,16 +11,17 @@ import {
   Loader2, 
   MessageCircle, 
   Settings, 
-  History, 
   Trash2,
   Bot,
   User,
-  RefreshCw
+  RefreshCw,
+  LayoutDashboard
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIAgent } from '@/hooks/useAIAgent';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
 import { AgentConfigPanel } from '@/components/ai-agent/AgentConfigPanel';
+import { ConversasDashboard } from '@/components/ai-agent/ConversasDashboard';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -29,7 +30,7 @@ export default function AtendimentoPage() {
   const { messages, sendMessage, isLoading, clearMessages } = useAIAgent(organizationId || '');
   const { config, isLoading: configLoading } = useAgentConfig(organizationId || '');
   const [input, setInput] = useState('');
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -68,22 +69,30 @@ export default function AtendimentoPage() {
   return (
     <div className="p-6">
       <PageHeader
-        title="Atendimento Virtual"
-        subtitle="Converse com o agente de IA para atender clientes"
+        title="Central de Atendimento"
+        subtitle="Gerencie conversas, FAQs e atendimento virtual"
         icon={MessageCircle}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
+          <TabsTrigger value="dashboard" className="gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
           <TabsTrigger value="chat" className="gap-2">
             <MessageCircle className="h-4 w-4" />
-            Chat
+            Testar Chat
           </TabsTrigger>
           <TabsTrigger value="config" className="gap-2">
             <Settings className="h-4 w-4" />
             Configurações
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-0">
+          <ConversasDashboard />
+        </TabsContent>
 
         <TabsContent value="chat" className="space-y-0">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -101,7 +110,7 @@ export default function AtendimentoPage() {
                     </div>
                     <div>
                       <CardTitle className="text-lg">{nomeAgente}</CardTitle>
-                      <p className="text-sm text-muted-foreground">Pronto para ajudar</p>
+                      <p className="text-sm text-muted-foreground">Modo de teste</p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" onClick={handleNewConversation}>
@@ -261,6 +270,17 @@ export default function AtendimentoPage() {
                     }}
                   >
                     💳 Gerar PIX
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start"
+                    onClick={() => {
+                      setInput('Quero falar com um atendente humano');
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    👤 Falar com humano
                   </Button>
                 </CardContent>
               </Card>

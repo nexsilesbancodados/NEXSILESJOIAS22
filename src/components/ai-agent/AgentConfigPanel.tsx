@@ -24,7 +24,10 @@ const FERRAMENTAS_INFO = {
   enviar_whatsapp: { nome: 'Enviar WhatsApp', descricao: 'Enviar mensagens via WhatsApp', icon: '📱' },
   listar_catalogos: { nome: 'Listar Catálogos', descricao: 'Mostrar catálogos disponíveis', icon: '📚' },
   criar_pedido: { nome: 'Criar Pedido', descricao: 'Registrar novos pedidos de clientes', icon: '🛒' },
-  verificar_pedido: { nome: 'Verificar Pedido', descricao: 'Consultar status de pedidos', icon: '📋' }
+  verificar_pedido: { nome: 'Verificar Pedido', descricao: 'Consultar status de pedidos', icon: '📋' },
+  transferir_humano: { nome: 'Transferir para Humano', descricao: 'Encaminhar conversa para atendente humano', icon: '👤' },
+  buscar_faq: { nome: 'Buscar FAQ', descricao: 'Consultar respostas rápidas cadastradas', icon: '❓' },
+  enviar_nps: { nome: 'Pesquisa NPS', descricao: 'Enviar pesquisa de satisfação ao cliente', icon: '⭐' }
 };
 
 const TONS_RESPOSTA = [
