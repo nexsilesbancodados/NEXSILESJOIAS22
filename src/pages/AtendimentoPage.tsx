@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,16 +59,14 @@ export default function AtendimentoPage() {
 
   if (!organizationId) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <p className="text-muted-foreground">Carregando...</p>
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
     );
   }
 
   return (
-    <MainLayout>
+    <div className="p-6">
       <PageHeader
         title="Atendimento Virtual"
         subtitle="Converse com o agente de IA para atender clientes"
@@ -290,6 +287,6 @@ export default function AtendimentoPage() {
           <AgentConfigPanel organizationId={organizationId} />
         </TabsContent>
       </Tabs>
-    </MainLayout>
+    </div>
   );
 }
