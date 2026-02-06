@@ -196,7 +196,7 @@ export default function LandingPlanosPage() {
   const [selectedPlano, setSelectedPlano] = useState<'nexsiles' | 'nexsiles_max' | 'teste' | null>(null);
   const [email, setEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showTestButton, setShowTestButton] = useState(false);
+  const [showTestButton, setShowTestButton] = useState(true); // Temporarily visible for testing
   const { scrollYProgress } = useScroll();
   const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0.95]);
 
