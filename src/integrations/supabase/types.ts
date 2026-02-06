@@ -14,6 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
+      agente_conversas: {
+        Row: {
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          created_at: string
+          id: string
+          organization_id: string | null
+          session_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          session_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          session_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_conversas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_ia_config: {
+        Row: {
+          ativo: boolean | null
+          avatar_url: string | null
+          cor_primaria: string | null
+          created_at: string
+          id: string
+          mensagem_boas_vindas: string | null
+          nome_agente: string
+          organization_id: string | null
+          pix_chave: string | null
+          pix_nome: string | null
+          pix_tipo: string | null
+          prompt_sistema: string
+          updated_at: string
+          whatsapp_numero: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          avatar_url?: string | null
+          cor_primaria?: string | null
+          created_at?: string
+          id?: string
+          mensagem_boas_vindas?: string | null
+          nome_agente?: string
+          organization_id?: string | null
+          pix_chave?: string | null
+          pix_nome?: string | null
+          pix_tipo?: string | null
+          prompt_sistema?: string
+          updated_at?: string
+          whatsapp_numero?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          avatar_url?: string | null
+          cor_primaria?: string | null
+          created_at?: string
+          id?: string
+          mensagem_boas_vindas?: string | null
+          nome_agente?: string
+          organization_id?: string | null
+          pix_chave?: string | null
+          pix_nome?: string | null
+          pix_tipo?: string | null
+          prompt_sistema?: string
+          updated_at?: string
+          whatsapp_numero?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_ia_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_mensagens: {
+        Row: {
+          content: string
+          conversa_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+        }
+        Insert: {
+          content: string
+          conversa_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: string
+        }
+        Update: {
+          content?: string
+          conversa_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assinaturas: {
         Row: {
           created_at: string

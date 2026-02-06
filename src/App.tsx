@@ -39,6 +39,7 @@ const FuncionariosPage = lazy(() => import("./pages/FuncionariosPage"));
 const DesempenhoRevendedorasPage = lazy(() => import("./pages/DesempenhoRevendedorasPage"));
 const CampanhasPage = lazy(() => import("./pages/CampanhasPage"));
 const PlanosPage = lazy(() => import("./pages/PlanosPage"));
+const AtendimentoPage = lazy(() => import("./pages/AtendimentoPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -158,6 +159,7 @@ function AppRoutes() {
                       <Route path="/funcionarios" element={<FuncionariosPage />} />
                       <Route path="/campanhas" element={<CampanhasPage />} />
                       <Route path="/planos" element={<PlanosPage />} />
+                      <Route path="/atendimento" element={<AtendimentoPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

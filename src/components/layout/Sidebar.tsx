@@ -25,7 +25,8 @@ import {
   Pin,
   PinOff,
   UserCog,
-  TrendingUp
+  TrendingUp,
+  MessageCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRomaneios } from '@/hooks/useSupabaseData';
@@ -112,6 +113,7 @@ const menuItems = [
   { icon: FileText, label: 'Romaneios', path: '/romaneios', badge: true, color: 'from-orange-500 to-red-600' },
   { icon: BarChart3, label: 'Relatórios', path: '/relatorios', color: 'from-cyan-500 to-blue-600' },
   { icon: History, label: 'Histórico', path: '/historico', color: 'from-gray-500 to-slate-600' },
+  { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
 ];
