@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.agente-ia]
 verify_jwt = false
+
+[functions.webhook-whatsapp]
+verify_jwt = false
