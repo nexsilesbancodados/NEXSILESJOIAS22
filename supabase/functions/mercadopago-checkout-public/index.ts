@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface CheckoutRequest {
   email: string;
-  plano: "nexsiles" | "nexsiles_max";
+  plano: "nexsiles" | "nexsiles_max" | "teste";
   periodo: "mensal" | "anual";
 }
 
@@ -16,12 +16,17 @@ const PLANOS = {
   nexsiles: {
     nome: "Nexsiles",
     valor_mensal: 189.0,
-    valor_anual: 1890.0, // 10 meses (2 meses grátis)
+    valor_anual: 1890.0,
   },
   nexsiles_max: {
     nome: "Nexsiles Max",
     valor_mensal: 249.0,
-    valor_anual: 2490.0, // 10 meses (2 meses grátis)
+    valor_anual: 2490.0,
+  },
+  teste: {
+    nome: "Teste",
+    valor_mensal: 1.0,
+    valor_anual: 1.0,
   },
 };
 
