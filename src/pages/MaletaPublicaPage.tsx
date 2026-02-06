@@ -100,7 +100,7 @@ export default function MaletaPublicaPage() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [observacoes, setObservacoes] = useState('');
 
-  // Fetch maleta data first to get the real ID
+  // Fetch maleta data first to get the real ID (use secure public view)
   const { data: maleta, isLoading: loadingMaleta, error: maletaError } = useQuery({
     queryKey: ['maleta-publica', maletaId],
     queryFn: async () => {
@@ -108,12 +108,10 @@ export default function MaletaPublicaPage() {
       
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(maletaId);
       
+      // Use the secure public view for basic maleta info
       let query = supabase
-        .from('maletas')
-        .select(`
-          *,
-          revendedora:revendedoras(nome, telefone, whatsapp)
-        `);
+        .from('maletas_public' as 'maletas')
+        .select('*');
       
       if (isUUID) {
         query = query.eq('id', maletaId);
@@ -121,10 +119,16 @@ export default function MaletaPublicaPage() {
         query = query.eq('sharing_slug', maletaId);
       }
       
-      const { data, error } = await query.single();
+      const { data: maletaData, error: maletaError } = await query.single();
       
-      if (error) throw error;
-      return data as MaletaPublica;
+      if (maletaError) throw maletaError;
+      
+      // For public maletas, we don't expose revendedora details via public view
+      // The revendedora info will be fetched separately if needed for contact
+      return {
+        ...maletaData,
+        revendedora: null
+      } as MaletaPublica;
     },
     enabled: !!maletaId,
   });

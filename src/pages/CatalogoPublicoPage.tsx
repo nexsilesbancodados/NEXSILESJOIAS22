@@ -146,7 +146,8 @@ export default function CatalogoPublicoPage() {
       // Check if catalogoId is a valid UUID format
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(catalogoId);
       
-      let query = supabase.from('catalogos').select('*');
+      // Use the secure public view for anon access
+      let query = supabase.from('catalogos_public' as 'catalogos').select('*');
       
       if (isUUID) {
         // Search by ID if it's a UUID
