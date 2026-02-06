@@ -101,7 +101,7 @@ export function ConversasDashboard() {
               <Star className="h-8 w-8 text-yellow-500" />
               <div>
                 <p className="text-2xl font-bold">
-                  {stats?.npsScore !== null ? `${stats.npsScore.toFixed(0)}` : '-'}
+                  {stats?.npsScore != null ? `${stats.npsScore.toFixed(0)}` : '-'}
                 </p>
                 <p className="text-sm text-muted-foreground">NPS Score</p>
               </div>
