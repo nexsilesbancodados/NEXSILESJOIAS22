@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.verificar-assinaturas]
 verify_jwt = false
+
+[functions.verificar-senha-portal]
+verify_jwt = false
+
+[functions.agente-ia]
+verify_jwt = false
