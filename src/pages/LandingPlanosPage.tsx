@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Crown, 
   Check, 
@@ -31,14 +31,20 @@ import {
   Rocket,
   MousePointerClick,
   Layers,
-  CircleCheck
+  CircleCheck,
+  Loader2,
+  Mail,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const PLANOS = {
   nexsiles: {
@@ -183,10 +189,39 @@ const GradientOrbs = () => (
 );
 
 export default function LandingPlanosPage() {
+  const [searchParams] = useSearchParams();
   const [isAnual, setIsAnual] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [selectedPlano, setSelectedPlano] = useState<'nexsiles' | 'nexsiles_max' | null>(null);
+  const [email, setEmail] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const { scrollYProgress } = useScroll();
   const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0.95]);
+
+  // Handle payment status from URL
+  useEffect(() => {
+    const pagamento = searchParams.get('pagamento');
+    const emailParam = searchParams.get('email');
+    
+    if (pagamento === 'sucesso') {
+      toast.success('Pagamento confirmado!', {
+        description: emailParam 
+          ? `Um código de acesso será enviado para ${emailParam}` 
+          : 'Um código de acesso será enviado para seu email',
+        duration: 8000,
+      });
+    } else if (pagamento === 'erro') {
+      toast.error('Erro no pagamento', {
+        description: 'Por favor, tente novamente ou use outro método de pagamento.',
+      });
+    } else if (pagamento === 'pendente') {
+      toast.info('Pagamento pendente', {
+        description: 'Aguardando confirmação do pagamento. Você receberá o código por email assim que for confirmado.',
+        duration: 8000,
+      });
+    }
+  }, [searchParams]);
   
   const getPrecoComDesconto = (preco: number) => {
     if (isAnual) {
@@ -196,11 +231,152 @@ export default function LandingPlanosPage() {
   };
 
   const handleSelectPlan = (plano: 'nexsiles' | 'nexsiles_max') => {
-    window.location.href = `/auth?plano=${plano}&anual=${isAnual}`;
+    setSelectedPlano(plano);
+    setShowEmailModal(true);
+  };
+
+  const handleCheckout = async () => {
+    if (!email || !selectedPlano) return;
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Por favor, insira um email válido');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mercadopago-checkout-public', {
+        body: { 
+          email, 
+          plano: selectedPlano, 
+          periodo: isAnual ? 'anual' : 'mensal' 
+        },
+      });
+
+      if (error) {
+        console.error('Checkout error:', error);
+        toast.error('Erro ao iniciar pagamento');
+        return;
+      }
+
+      // Redirect to Mercado Pago checkout
+      if (data?.initPoint) {
+        window.location.href = data.initPoint;
+      } else {
+        toast.error('Erro ao obter link de pagamento');
+      }
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      toast.error('Erro ao processar pagamento');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => !isProcessing && setShowEmailModal(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative bg-card rounded-2xl shadow-2xl border border-border p-8 max-w-md w-full mx-4"
+          >
+            <button
+              onClick={() => !isProcessing && setShowEmailModal(false)}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+              disabled={isProcessing}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-warning/20 flex items-center justify-center">
+                <Crown className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-2">
+                {selectedPlano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
+              </h3>
+              <p className="text-muted-foreground">
+                Informe seu email para receber o código de acesso após o pagamento
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-12 text-base"
+                  disabled={isProcessing}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCheckout()}
+                />
+              </div>
+
+              <div className="p-4 rounded-xl bg-muted/50">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Plano</span>
+                  <span className="font-medium text-foreground">
+                    {selectedPlano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-muted-foreground">Período</span>
+                  <span className="font-medium text-foreground">
+                    {isAnual ? 'Anual' : 'Mensal'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-base pt-2 border-t border-border">
+                  <span className="font-medium text-foreground">Total</span>
+                  <span className="font-bold text-foreground">
+                    R$ {selectedPlano === 'nexsiles_max' 
+                      ? (isAnual ? '2.490,00' : '249,00')
+                      : (isAnual ? '1.890,00' : '189,00')
+                    }
+                  </span>
+                </div>
+              </div>
+
+              <Button 
+                size="lg"
+                className="w-full h-14 text-base bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/30"
+                onClick={handleCheckout}
+                disabled={isProcessing || !email}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    Pagar com Mercado Pago
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Pagamento seguro via Mercado Pago. PIX, boleto ou cartão.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Floating Header */}
       {/* Floating Header */}
       <motion.header
         style={{ opacity: headerOpacity }}
