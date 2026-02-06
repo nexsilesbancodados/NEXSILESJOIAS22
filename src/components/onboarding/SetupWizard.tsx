@@ -450,7 +450,14 @@ function StoreStep({ data, onChange }: StoreStepProps) {
   const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [isLoadingCnpj, setIsLoadingCnpj] = useState(false);
   const [documentoError, setDocumentoError] = useState<string | null>(null);
-  const isPessoaFisica = data.tipo_pessoa === 'pf';
+
+  // Detecta automaticamente se é CPF ou CNPJ pelo número de dígitos
+  const getDocumentoTipo = (value: string): 'cpf' | 'cnpj' | null => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) return 'cpf';
+    if (numbers.length <= 14) return 'cnpj';
+    return null;
+  };
 
   // Validação de CPF
   const validateCPF = (cpf: string): boolean => {
@@ -536,6 +543,15 @@ function StoreStep({ data, onChange }: StoreStepProps) {
       .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
   };
 
+  // Formata automaticamente CPF ou CNPJ
+  const formatDocumento = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return formatCPF(value);
+    }
+    return formatCNPJ(value);
+  };
+
   // Busca endereço pelo CEP usando ViaCEP
   const handleCepChange = async (value: string) => {
     const formatted = formatCEP(value);
@@ -563,24 +579,27 @@ function StoreStep({ data, onChange }: StoreStepProps) {
     }
   };
 
-  // Busca razão social pelo CNPJ usando ReceitaWS (com validação)
+  // Processa CPF ou CNPJ automaticamente
   const handleDocumentoChange = async (value: string) => {
-    const formatted = isPessoaFisica ? formatCPF(value) : formatCNPJ(value);
-    onChange({ ...data, cnpj_loja: formatted });
-    setDocumentoError(null);
-
+    const formatted = formatDocumento(value);
     const numbers = value.replace(/\D/g, '');
+    const tipo = getDocumentoTipo(value);
     
-    // Valida CPF
-    if (isPessoaFisica && numbers.length === 11) {
+    // Atualiza tipo_pessoa automaticamente baseado no tamanho
+    const newTipoPessoa = numbers.length > 11 ? 'pj' : 'pf';
+    onChange({ ...data, cnpj_loja: formatted, tipo_pessoa: newTipoPessoa });
+    setDocumentoError(null);
+    
+    // Valida CPF quando completo (11 dígitos)
+    if (tipo === 'cpf' && numbers.length === 11) {
       if (!validateCPF(numbers)) {
         setDocumentoError('CPF inválido');
         return;
       }
     }
     
-    // Valida e busca CNPJ
-    if (!isPessoaFisica && numbers.length === 14) {
+    // Valida e busca CNPJ quando completo (14 dígitos)
+    if (tipo === 'cnpj' && numbers.length === 14) {
       if (!validateCNPJ(numbers)) {
         setDocumentoError('CNPJ inválido');
         return;
@@ -596,6 +615,7 @@ function StoreStep({ data, onChange }: StoreStepProps) {
             onChange({ 
               ...data, 
               cnpj_loja: formatted,
+              tipo_pessoa: 'pj',
               nome_loja: result.fantasia || result.nome 
             });
           }
@@ -610,62 +630,37 @@ function StoreStep({ data, onChange }: StoreStepProps) {
     }
   };
 
+  const documentoTipo = getDocumentoTipo(data.cnpj_loja);
+
   return (
     <div className="space-y-4 max-w-sm mx-auto">
-      {/* Tipo de Pessoa Toggle - primeiro */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2">
-          Tipo de Pessoa
-        </Label>
-        <ToggleGroup 
-          type="single" 
-          value={data.tipo_pessoa}
-          onValueChange={(value) => {
-            if (value) {
-              onChange({ ...data, tipo_pessoa: value as 'pf' | 'pj', cnpj_loja: '' });
-            }
-          }}
-          className="w-full justify-stretch"
-        >
-          <ToggleGroupItem 
-            value="pf" 
-            className="flex-1 gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-          >
-            <User className="w-4 h-4" />
-            Pessoa Física
-          </ToggleGroupItem>
-          <ToggleGroupItem 
-            value="pj" 
-            className="flex-1 gap-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-          >
-            <Building2 className="w-4 h-4" />
-            Pessoa Jurídica
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-
-      {/* CPF/CNPJ */}
+      {/* CPF/CNPJ - Campo único que detecta automaticamente */}
       <div className="space-y-2">
         <Label htmlFor="store-documento" className="flex items-center gap-2">
-          {isPessoaFisica ? (
-            <>
-              <User className="w-4 h-4 text-primary" />
-              CPF
-            </>
-          ) : (
+          {documentoTipo === 'cnpj' && data.cnpj_loja.replace(/\D/g, '').length > 11 ? (
             <>
               <Building2 className="w-4 h-4 text-primary" />
               CNPJ {isLoadingCnpj && <span className="text-xs text-muted-foreground">(buscando...)</span>}
+            </>
+          ) : (
+            <>
+              <User className="w-4 h-4 text-primary" />
+              CPF / CNPJ
             </>
           )}
         </Label>
         <Input
           id="store-documento"
-          placeholder={isPessoaFisica ? "000.000.000-00" : "00.000.000/0000-00"}
+          placeholder="Digite CPF ou CNPJ"
           value={data.cnpj_loja}
           onChange={(e) => handleDocumentoChange(e.target.value)}
           className={cn("h-11", documentoError && "border-destructive focus-visible:ring-destructive")}
         />
+        <p className="text-xs text-muted-foreground">
+          {data.cnpj_loja.replace(/\D/g, '').length > 11 
+            ? 'Detectado: Pessoa Jurídica (CNPJ)' 
+            : 'Digite 11 dígitos para CPF ou 14 para CNPJ'}
+        </p>
         {documentoError && (
           <p className="text-xs text-destructive">{documentoError}</p>
         )}
