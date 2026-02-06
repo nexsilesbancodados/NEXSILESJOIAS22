@@ -6,6 +6,7 @@ interface SubscriptionContextType {
   isExpired: boolean;
   isExpiring: boolean;
   isActive: boolean;
+  hasSubscription: boolean;
   planName: string | null;
   daysRemaining: number | null;
   checkAccess: (action?: string) => boolean;
@@ -20,11 +21,15 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     isExpirando, 
     isAtivo, 
     diasRestantes,
-    planoInfo 
+    planoInfo,
+    isLoading
   } = useAssinatura();
 
-  // Read-only mode when expired
-  const isReadOnly = isExpirado;
+  // User has no subscription at all
+  const hasSubscription = !!assinatura;
+
+  // Read-only mode when expired OR when user has no subscription
+  const isReadOnly = !isLoading && (!hasSubscription || isExpirado);
 
   // Check if user can perform an action
   const checkAccess = (action?: string): boolean => {
@@ -41,6 +46,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         isExpired: isExpirado,
         isExpiring: isExpirando,
         isActive: isAtivo,
+        hasSubscription,
         planName: planoInfo?.nome || null,
         daysRemaining: diasRestantes,
         checkAccess,
@@ -67,6 +73,7 @@ export function useSubscriptionSafe() {
     isExpired: false,
     isExpiring: false,
     isActive: true,
+    hasSubscription: true,
     planName: null,
     daysRemaining: null,
     checkAccess: () => true,
