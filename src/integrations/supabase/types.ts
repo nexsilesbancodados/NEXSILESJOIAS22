@@ -14,8 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      agendamentos: {
+        Row: {
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          conversa_id: string | null
+          created_at: string | null
+          data_hora: string
+          descricao: string | null
+          duracao_minutos: number | null
+          google_event_id: string | null
+          id: string
+          lembrete_enviado: boolean | null
+          lembrete_horas_antes: number | null
+          metadata: Json | null
+          organization_id: string | null
+          status: string | null
+          titulo: string
+          updated_at: string | null
+        }
+        Insert: {
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          conversa_id?: string | null
+          created_at?: string | null
+          data_hora: string
+          descricao?: string | null
+          duracao_minutos?: number | null
+          google_event_id?: string | null
+          id?: string
+          lembrete_enviado?: boolean | null
+          lembrete_horas_antes?: number | null
+          metadata?: Json | null
+          organization_id?: string | null
+          status?: string | null
+          titulo: string
+          updated_at?: string | null
+        }
+        Update: {
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          conversa_id?: string | null
+          created_at?: string | null
+          data_hora?: string
+          descricao?: string | null
+          duracao_minutos?: number | null
+          google_event_id?: string | null
+          id?: string
+          lembrete_enviado?: boolean | null
+          lembrete_horas_antes?: number | null
+          metadata?: Json | null
+          organization_id?: string | null
+          status?: string | null
+          titulo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agendamentos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agendamentos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agente_conversas: {
         Row: {
+          agente_id: string | null
           assigned_to: string | null
           cliente_nome: string | null
           cliente_telefone: string | null
@@ -35,6 +111,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agente_id?: string | null
           assigned_to?: string | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
@@ -54,6 +131,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agente_id?: string | null
           assigned_to?: string | null
           cliente_nome?: string | null
           cliente_telefone?: string | null
@@ -73,6 +151,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agente_conversas_agente_id_fkey"
+            columns: ["agente_id"]
+            isOneToOne: false
+            referencedRelation: "agentes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agente_conversas_organization_id_fkey"
             columns: ["organization_id"]
@@ -185,14 +270,28 @@ export type Database = {
       }
       agente_ia_config: {
         Row: {
+          agendamento_antecedencia_min_horas: number | null
+          agendamento_ativo: boolean | null
+          agendamento_duracao_padrao: number | null
+          agendamento_horarios: Json | null
           ativo: boolean | null
+          audio_transcricao_ativo: boolean | null
+          audio_tts_ativo: boolean | null
+          audio_voz_preferida: string | null
           avatar_url: string | null
           cor_primaria: string | null
           created_at: string
+          email_ativo: boolean | null
+          email_follow_up_horas: number | null
+          email_nome_remetente: string | null
+          email_remetente: string | null
           ferramentas_ativas: Json | null
           horario_funcionamento: Json | null
           id: string
           idioma: string | null
+          instagram_access_token: string | null
+          instagram_ativo: boolean | null
+          instagram_page_id: string | null
           instrucoes_especiais: string | null
           limite_mensagens_sessao: number | null
           max_tokens: number | null
@@ -212,14 +311,28 @@ export type Database = {
           whatsapp_numero: string | null
         }
         Insert: {
+          agendamento_antecedencia_min_horas?: number | null
+          agendamento_ativo?: boolean | null
+          agendamento_duracao_padrao?: number | null
+          agendamento_horarios?: Json | null
           ativo?: boolean | null
+          audio_transcricao_ativo?: boolean | null
+          audio_tts_ativo?: boolean | null
+          audio_voz_preferida?: string | null
           avatar_url?: string | null
           cor_primaria?: string | null
           created_at?: string
+          email_ativo?: boolean | null
+          email_follow_up_horas?: number | null
+          email_nome_remetente?: string | null
+          email_remetente?: string | null
           ferramentas_ativas?: Json | null
           horario_funcionamento?: Json | null
           id?: string
           idioma?: string | null
+          instagram_access_token?: string | null
+          instagram_ativo?: boolean | null
+          instagram_page_id?: string | null
           instrucoes_especiais?: string | null
           limite_mensagens_sessao?: number | null
           max_tokens?: number | null
@@ -239,14 +352,28 @@ export type Database = {
           whatsapp_numero?: string | null
         }
         Update: {
+          agendamento_antecedencia_min_horas?: number | null
+          agendamento_ativo?: boolean | null
+          agendamento_duracao_padrao?: number | null
+          agendamento_horarios?: Json | null
           ativo?: boolean | null
+          audio_transcricao_ativo?: boolean | null
+          audio_tts_ativo?: boolean | null
+          audio_voz_preferida?: string | null
           avatar_url?: string | null
           cor_primaria?: string | null
           created_at?: string
+          email_ativo?: boolean | null
+          email_follow_up_horas?: number | null
+          email_nome_remetente?: string | null
+          email_remetente?: string | null
           ferramentas_ativas?: Json | null
           horario_funcionamento?: Json | null
           id?: string
           idioma?: string | null
+          instagram_access_token?: string | null
+          instagram_ativo?: boolean | null
+          instagram_page_id?: string | null
           instrucoes_especiais?: string | null
           limite_mensagens_sessao?: number | null
           max_tokens?: number | null
@@ -277,28 +404,37 @@ export type Database = {
       }
       agente_mensagens: {
         Row: {
+          audio_url: string | null
           content: string
           conversa_id: string | null
           created_at: string
+          duracao_segundos: number | null
           id: string
           metadata: Json | null
           role: string
+          transcricao: string | null
         }
         Insert: {
+          audio_url?: string | null
           content: string
           conversa_id?: string | null
           created_at?: string
+          duracao_segundos?: number | null
           id?: string
           metadata?: Json | null
           role: string
+          transcricao?: string | null
         }
         Update: {
+          audio_url?: string | null
           content?: string
           conversa_id?: string | null
           created_at?: string
+          duracao_segundos?: number | null
           id?: string
           metadata?: Json | null
           role?: string
+          transcricao?: string | null
         }
         Relationships: [
           {
@@ -306,6 +442,62 @@ export type Database = {
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agentes: {
+        Row: {
+          ativo: boolean | null
+          avatar_url: string | null
+          cor: string | null
+          created_at: string | null
+          departamento: string
+          ferramentas_ativas: Json | null
+          id: string
+          nome: string
+          ordem_prioridade: number | null
+          organization_id: string | null
+          palavras_chave: string[] | null
+          prompt_sistema: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          avatar_url?: string | null
+          cor?: string | null
+          created_at?: string | null
+          departamento: string
+          ferramentas_ativas?: Json | null
+          id?: string
+          nome: string
+          ordem_prioridade?: number | null
+          organization_id?: string | null
+          palavras_chave?: string[] | null
+          prompt_sistema: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          avatar_url?: string | null
+          cor?: string | null
+          created_at?: string | null
+          departamento?: string
+          ferramentas_ativas?: Json | null
+          id?: string
+          nome?: string
+          ordem_prioridade?: number | null
+          organization_id?: string | null
+          palavras_chave?: string[] | null
+          prompt_sistema?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agentes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -667,6 +859,65 @@ export type Database = {
           },
         ]
       }
+      cliente_preferencias: {
+        Row: {
+          categorias_favoritas: string[] | null
+          cliente_telefone: string
+          created_at: string | null
+          faixa_preco_max: number | null
+          faixa_preco_min: number | null
+          id: string
+          materiais_preferidos: string[] | null
+          organization_id: string | null
+          produtos_comprados: string[] | null
+          produtos_visualizados: string[] | null
+          total_compras: number | null
+          ultima_compra_at: string | null
+          updated_at: string | null
+          valor_total_compras: number | null
+        }
+        Insert: {
+          categorias_favoritas?: string[] | null
+          cliente_telefone: string
+          created_at?: string | null
+          faixa_preco_max?: number | null
+          faixa_preco_min?: number | null
+          id?: string
+          materiais_preferidos?: string[] | null
+          organization_id?: string | null
+          produtos_comprados?: string[] | null
+          produtos_visualizados?: string[] | null
+          total_compras?: number | null
+          ultima_compra_at?: string | null
+          updated_at?: string | null
+          valor_total_compras?: number | null
+        }
+        Update: {
+          categorias_favoritas?: string[] | null
+          cliente_telefone?: string
+          created_at?: string | null
+          faixa_preco_max?: number | null
+          faixa_preco_min?: number | null
+          id?: string
+          materiais_preferidos?: string[] | null
+          organization_id?: string | null
+          produtos_comprados?: string[] | null
+          produtos_visualizados?: string[] | null
+          total_compras?: number | null
+          ultima_compra_at?: string | null
+          updated_at?: string | null
+          valor_total_compras?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_preferencias_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           ativo: boolean | null
@@ -769,6 +1020,126 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "configuracoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_logs: {
+        Row: {
+          aberto_at: string | null
+          assunto: string
+          conversa_id: string | null
+          created_at: string | null
+          destinatario_email: string
+          destinatario_nome: string | null
+          enviado_at: string | null
+          erro_mensagem: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string | null
+          status: string | null
+          template_id: string | null
+        }
+        Insert: {
+          aberto_at?: string | null
+          assunto: string
+          conversa_id?: string | null
+          created_at?: string | null
+          destinatario_email: string
+          destinatario_nome?: string | null
+          enviado_at?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          aberto_at?: string | null
+          assunto?: string
+          conversa_id?: string | null
+          created_at?: string | null
+          destinatario_email?: string
+          destinatario_nome?: string | null
+          enviado_at?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string | null
+          status?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          assunto: string
+          ativo: boolean | null
+          corpo_html: string
+          corpo_texto: string | null
+          created_at: string | null
+          id: string
+          nome: string
+          organization_id: string | null
+          tipo: string
+          updated_at: string | null
+          variaveis: string[] | null
+        }
+        Insert: {
+          assunto: string
+          ativo?: boolean | null
+          corpo_html: string
+          corpo_texto?: string | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          organization_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+          variaveis?: string[] | null
+        }
+        Update: {
+          assunto?: string
+          ativo?: boolean | null
+          corpo_html?: string
+          corpo_texto?: string | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          organization_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+          variaveis?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1958,6 +2329,58 @@ export type Database = {
             columns: ["pedido_id"]
             isOneToOne: false
             referencedRelation: "pedidos_catalogo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_associacoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          organization_id: string | null
+          peca_associada_id: string | null
+          peca_origem_id: string | null
+          score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          peca_associada_id?: string | null
+          peca_origem_id?: string | null
+          score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          organization_id?: string | null
+          peca_associada_id?: string | null
+          peca_origem_id?: string | null
+          score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_associacoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_associacoes_peca_associada_id_fkey"
+            columns: ["peca_associada_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_associacoes_peca_origem_id_fkey"
+            columns: ["peca_origem_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
             referencedColumns: ["id"]
           },
         ]
