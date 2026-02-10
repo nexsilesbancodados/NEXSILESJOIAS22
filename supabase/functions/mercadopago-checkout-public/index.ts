@@ -12,6 +12,10 @@ interface CheckoutRequest {
   periodo: "mensal" | "anual";
 }
 
+// Chaves públicas do Mercado Pago
+const MERCADOPAGO_PUBLIC_KEY = "APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc";
+const MERCADOPAGO_CLIENT_ID = "6130575203030867";
+
 const PLANOS = {
   nexsiles: {
     nome: "Nexsiles",
