@@ -8,6 +8,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Chaves públicas do Mercado Pago
+const MERCADOPAGO_PUBLIC_KEY = "APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc";
+const MERCADOPAGO_CLIENT_ID = "6130575203030867";
+
 serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
