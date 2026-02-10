@@ -35,7 +35,32 @@ import logo from '@/assets/logo.png';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 
-// Prefetch functions for each route - with longer staleTime for performance
+// Prefetch page chunks (JS code) on hover so navigation is instant
+const routeImports: Record<string, () => Promise<unknown>> = {
+  '/': () => import('@/pages/DashboardPage'),
+  '/pecas': () => import('@/pages/PecasPage'),
+  '/etiquetas': () => import('@/pages/EtiquetasPage'),
+  '/banhos': () => import('@/pages/BanhosPage'),
+  '/pdv': () => import('@/pages/PDVPage'),
+  '/campanhas': () => import('@/pages/CampanhasPage'),
+  '/clientes': () => import('@/pages/ClientesPage'),
+  '/catalogos': () => import('@/pages/CatalogosPage'),
+  '/revendedoras': () => import('@/pages/RevendedorasPage'),
+  '/revendedoras/desempenho': () => import('@/pages/DesempenhoRevendedorasPage'),
+  '/fornecedores': () => import('@/pages/FornecedoresPage'),
+  '/romaneios': () => import('@/pages/RomaneiosPage'),
+  '/relatorios': () => import('@/pages/RelatoriosPage'),
+  '/historico': () => import('@/pages/HistoricoPage'),
+  '/atendimento': () => import('@/pages/AtendimentoPage'),
+  '/tutorial': () => import('@/pages/TutorialPage'),
+  '/funcionarios': () => import('@/pages/FuncionariosPage'),
+  '/configuracoes': () => import('@/pages/ConfiguracoesPage'),
+};
+
+// Track which routes have already been prefetched to avoid duplicate calls
+const prefetchedRoutes = new Set<string>();
+
+// Prefetch functions for data - with longer staleTime for performance
 const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQueryClient>) => void> = {
   '/pecas': async (queryClient) => {
     queryClient.prefetchQuery({
@@ -44,7 +69,7 @@ const prefetchFunctions: Record<string, (queryClient: ReturnType<typeof useQuery
         const { data } = await db.from('pecas').select('*').or('catalogo_only.is.null,catalogo_only.eq.false').order('nome');
         return data;
       },
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 1000 * 60 * 5,
     });
   },
   '/clientes': async (queryClient) => {
@@ -272,6 +297,15 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
   }, [navigate]);
 
   const handlePrefetch = useCallback((path: string) => {
+    // Prefetch JS chunk (only once per route)
+    if (!prefetchedRoutes.has(path)) {
+      const importFn = routeImports[path];
+      if (importFn) {
+        prefetchedRoutes.add(path);
+        importFn();
+      }
+    }
+    // Prefetch data
     const prefetchFn = prefetchFunctions[path];
     if (prefetchFn) {
       prefetchFn(queryClient);
