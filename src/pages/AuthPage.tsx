@@ -187,7 +187,7 @@ export default function AuthPage() {
         description: 'Você precisa de um código válido para criar uma conta. Adquira um plano primeiro.',
         action: {
           label: 'Ver Planos',
-          onClick: () => navigate('/landing'),
+          onClick: () => window.open('https://www.nexsiles.online', '_blank'),
         },
       });
       return;
@@ -568,7 +568,7 @@ export default function AuthPage() {
                             <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50">
                               <Crown className="h-4 w-4 text-amber-600" />
                               <AlertDescription className="text-xs text-amber-700 dark:text-amber-300">
-                                Não tem código? <button type="button" onClick={() => navigate('/landing')} className="font-semibold underline hover:no-underline">Adquira um plano</button> para receber seu código de acesso.
+                                Não tem código? <button type="button" onClick={() => window.open('https://www.nexsiles.online', '_blank')} className="font-semibold underline hover:no-underline">Adquira um plano</button> para receber seu código de acesso.
                               </AlertDescription>
                             </Alert>
                           )}
