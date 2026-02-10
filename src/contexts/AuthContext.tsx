@@ -44,6 +44,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Ignore SIGNED_OUT events that come from other tabs/devices
+        // Only clear state if we explicitly signed out (handled in signOut function)
+        if (event === 'SIGNED_OUT') {
+          // Try to recover session before clearing state
+          supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+            if (currentSession) {
+              // Session still valid - another tab/device signed out, not us
+              setSession(currentSession);
+              setUser(currentSession.user);
+            } else {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+            }
+          });
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -149,7 +167,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('menuMode');
     localStorage.removeItem('sidebarExpanded');
     localStorage.removeItem('sidebarPinned');
-    await supabase.auth.signOut();
+    // Use local scope so other devices/tabs stay logged in
+    await supabase.auth.signOut({ scope: 'local' });
     setUser(null);
     setSession(null);
     setProfile(null);
