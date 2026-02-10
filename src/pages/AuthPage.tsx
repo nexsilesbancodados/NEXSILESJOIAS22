@@ -95,16 +95,71 @@ export default function AuthPage() {
     return '';
   };
 
-  // Validate access code
+  // Validate access code - tries external API first, then local database
   const validarCodigo = async (codigo: string) => {
     if (codigo.length !== 12) return;
     
     setValidandoCodigo(true);
+    const codigoUpper = codigo.toUpperCase();
+    
     try {
+      // 1. Try external API validation (site nexsiles.sbs)
+      const externalFormatted = `${codigoUpper.slice(0, 4)}-${codigoUpper.slice(4, 8)}-${codigoUpper.slice(8, 12)}`;
+      
+      let externalValid = false;
+      try {
+        const externalRes = await fetch('https://cvtaeajlilkqlgfdpeeg.supabase.co/functions/v1/validate-access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_code: externalFormatted }),
+        });
+
+        if (externalRes.ok) {
+          const externalData = await externalRes.json();
+          if (externalData.valid) {
+            externalValid = true;
+            const plano = externalData.user?.plan || 'nexsiles';
+            const email = externalData.user?.email || '';
+
+            // Create local code record so activation flow works
+            const now = new Date();
+            const validoAte = new Date(now);
+            validoAte.setDate(validoAte.getDate() + 30);
+
+            try {
+              await supabase.from('codigos_acesso').upsert({
+                codigo: codigoUpper,
+                email: email,
+                plano: plano,
+                usado: false,
+                valido_ate: validoAte.toISOString(),
+                valor_pago: plano === 'nexsiles_max' ? 249 : 189,
+              }, { onConflict: 'codigo' });
+            } catch {
+              // Ignore if already exists
+            }
+
+            setCodigoValidado({ valido: true, plano, email });
+            if (email) setSignupEmail(email);
+            setSignupErrors(prev => ({ ...prev, codigo: '' }));
+            toast.success('Código validado!', { description: `Plano: ${plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}` });
+            return;
+          }
+        } else if (externalRes.status === 402) {
+          setCodigoValidado({ valido: false });
+          setSignupErrors(prev => ({ ...prev, codigo: 'Pagamento pendente. Aguarde a confirmação.' }));
+          return;
+        }
+        // 404 or other errors: fall through to local validation
+      } catch (extErr) {
+        console.warn('External API unavailable, falling back to local:', extErr);
+      }
+
+      // 2. Fallback: validate against local database
       const { data, error } = await supabase
         .from('codigos_acesso')
         .select('codigo, email, plano, usado, valido_ate')
-        .eq('codigo', codigo.toUpperCase())
+        .eq('codigo', codigoUpper)
         .maybeSingle();
 
       if (error) throw error;
@@ -128,7 +183,7 @@ export default function AuthPage() {
       }
 
       setCodigoValidado({ valido: true, plano: data.plano, email: data.email });
-      setSignupEmail(data.email); // Pre-fill email from code
+      setSignupEmail(data.email);
       setSignupErrors(prev => ({ ...prev, codigo: '' }));
       toast.success('Código validado!', { description: `Plano: ${data.plano}` });
     } catch (error) {
@@ -193,7 +248,7 @@ export default function AuthPage() {
           description: 'Você precisa de um código válido para criar uma conta. Adquira um plano primeiro.',
           action: {
             label: 'Ver Planos',
-            onClick: () => window.open('https://www.nexsiles.online', '_blank'),
+            onClick: () => window.open('https://nexsiles.sbs', '_blank'),
           },
         });
         return;
@@ -597,7 +652,7 @@ export default function AuthPage() {
                             <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50">
                               <Crown className="h-4 w-4 text-amber-600" />
                               <AlertDescription className="text-xs text-amber-700 dark:text-amber-300">
-                                Não tem código? <button type="button" onClick={() => window.open('https://www.nexsiles.online', '_blank')} className="font-semibold underline hover:no-underline">Adquira um plano</button> para receber seu código de acesso.
+                                Não tem código? <button type="button" onClick={() => window.open('https://nexsiles.sbs', '_blank')} className="font-semibold underline hover:no-underline">Adquira um plano</button> para receber seu código de acesso.
                               </AlertDescription>
                             </Alert>
                           )}
