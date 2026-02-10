@@ -15,6 +15,7 @@ import { QueryErrorHandler } from "@/components/QueryErrorHandler";
 import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
 import { OrganizationGuard } from "@/components/OrganizationGuard";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivateSubscription } from "@/hooks/useActivateSubscription";
 
 // Lazy load all pages for code-splitting
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
@@ -69,6 +70,11 @@ const PageLoader = () => (
 
 function RealtimeNotifications() {
   useRealtimeOrders();
+  return null;
+}
+
+function SubscriptionActivator() {
+  useActivateSubscription();
   return null;
 }
 
@@ -140,6 +146,7 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <OrganizationGuard>
+              <SubscriptionActivator />
                 <SubscriptionProvider>
                   <RealtimeNotifications />
                   <CriticalDataPrefetcher />
