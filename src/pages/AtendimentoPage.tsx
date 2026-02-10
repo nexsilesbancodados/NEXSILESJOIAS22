@@ -21,7 +21,10 @@ import {
   Calendar,
   Users,
   Instagram,
-  Mic
+  Mic,
+  SmilePlus,
+  FlaskConical,
+  FileDown
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIAgent } from '@/hooks/useAIAgent';
@@ -35,6 +38,9 @@ import { AgendamentosPanel } from '@/components/ai-agent/AgendamentosPanel';
 import { MultiAgentManager } from '@/components/ai-agent/MultiAgentManager';
 import { InstagramConfig } from '@/components/ai-agent/InstagramConfig';
 import { AudioConfig } from '@/components/ai-agent/AudioConfig';
+import { SentimentDashboard } from '@/components/ai-agent/SentimentDashboard';
+import { ABTestingPanel } from '@/components/ai-agent/ABTestingPanel';
+import { AgentReportExport } from '@/components/ai-agent/AgentReportExport';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -122,6 +128,18 @@ export default function AtendimentoPage() {
               <Mic className="h-4 w-4" />
               <span className="hidden sm:inline">Áudio</span>
             </TabsTrigger>
+            <TabsTrigger value="sentimento" className="gap-2">
+              <SmilePlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Sentimento</span>
+            </TabsTrigger>
+            <TabsTrigger value="ab-testing" className="gap-2">
+              <FlaskConical className="h-4 w-4" />
+              <span className="hidden sm:inline">A/B Test</span>
+            </TabsTrigger>
+            <TabsTrigger value="relatorios" className="gap-2">
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">Relatórios</span>
+            </TabsTrigger>
             <TabsTrigger value="chat" className="gap-2">
               <MessageCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Testar</span>
@@ -163,6 +181,18 @@ export default function AtendimentoPage() {
 
         <TabsContent value="audio" className="space-y-0">
           <AudioConfig />
+        </TabsContent>
+
+        <TabsContent value="sentimento" className="space-y-0">
+          <SentimentDashboard />
+        </TabsContent>
+
+        <TabsContent value="ab-testing" className="space-y-0">
+          <ABTestingPanel />
+        </TabsContent>
+
+        <TabsContent value="relatorios" className="space-y-0">
+          <AgentReportExport />
         </TabsContent>
 
         <TabsContent value="chat" className="space-y-0">

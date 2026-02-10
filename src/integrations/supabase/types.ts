@@ -14,6 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_testes: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          organization_id: string | null
+          updated_at: string | null
+          variante_a_conversas: number | null
+          variante_a_nps_total: number | null
+          variante_a_prompt: string
+          variante_a_resolucoes: number | null
+          variante_b_conversas: number | null
+          variante_b_nps_total: number | null
+          variante_b_prompt: string
+          variante_b_resolucoes: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          organization_id?: string | null
+          updated_at?: string | null
+          variante_a_conversas?: number | null
+          variante_a_nps_total?: number | null
+          variante_a_prompt: string
+          variante_a_resolucoes?: number | null
+          variante_b_conversas?: number | null
+          variante_b_nps_total?: number | null
+          variante_b_prompt: string
+          variante_b_resolucoes?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          organization_id?: string | null
+          updated_at?: string | null
+          variante_a_conversas?: number | null
+          variante_a_nps_total?: number | null
+          variante_a_prompt?: string
+          variante_a_resolucoes?: number | null
+          variante_b_conversas?: number | null
+          variante_b_nps_total?: number | null
+          variante_b_prompt?: string
+          variante_b_resolucoes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_testes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agendamentos: {
         Row: {
           cliente_email: string | null
@@ -91,6 +153,8 @@ export type Database = {
       }
       agente_conversas: {
         Row: {
+          ab_teste_id: string | null
+          ab_variante: string | null
           agente_id: string | null
           assigned_to: string | null
           cliente_nome: string | null
@@ -104,6 +168,8 @@ export type Database = {
           nps_rating: number | null
           organization_id: string | null
           origem: string | null
+          sentimento: string | null
+          sentimento_score: number | null
           session_id: string
           status: string | null
           tempo_primeira_resposta: number | null
@@ -111,6 +177,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ab_teste_id?: string | null
+          ab_variante?: string | null
           agente_id?: string | null
           assigned_to?: string | null
           cliente_nome?: string | null
@@ -124,6 +192,8 @@ export type Database = {
           nps_rating?: number | null
           organization_id?: string | null
           origem?: string | null
+          sentimento?: string | null
+          sentimento_score?: number | null
           session_id: string
           status?: string | null
           tempo_primeira_resposta?: number | null
@@ -131,6 +201,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ab_teste_id?: string | null
+          ab_variante?: string | null
           agente_id?: string | null
           assigned_to?: string | null
           cliente_nome?: string | null
@@ -144,6 +216,8 @@ export type Database = {
           nps_rating?: number | null
           organization_id?: string | null
           origem?: string | null
+          sentimento?: string | null
+          sentimento_score?: number | null
           session_id?: string
           status?: string | null
           tempo_primeira_resposta?: number | null
@@ -151,6 +225,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agente_conversas_ab_teste_id_fkey"
+            columns: ["ab_teste_id"]
+            isOneToOne: false
+            referencedRelation: "ab_testes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agente_conversas_agente_id_fkey"
             columns: ["agente_id"]
@@ -412,6 +493,7 @@ export type Database = {
           id: string
           metadata: Json | null
           role: string
+          sentimento: string | null
           transcricao: string | null
         }
         Insert: {
@@ -423,6 +505,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           role: string
+          sentimento?: string | null
           transcricao?: string | null
         }
         Update: {
@@ -434,6 +517,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           role?: string
+          sentimento?: string | null
           transcricao?: string | null
         }
         Relationships: [

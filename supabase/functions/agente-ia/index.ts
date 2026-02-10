@@ -839,8 +839,43 @@ serve(async (req) => {
     const instrucoesEspeciais = config?.instrucoes_especiais || '';
     const palavrasProibidas = (config?.palavras_proibidas as string[]) || [];
 
-    const basePrompt = config?.prompt_sistema || 
+    let basePrompt = config?.prompt_sistema || 
       `Você é um assistente virtual de uma joalheria. Ajude os clientes com informações sobre produtos, pedidos e pagamentos.`;
+
+    // Enrich with organization data (trained with own data)
+    try {
+      // Fetch FAQs for context
+      const { data: faqs } = await supabase
+        .from('agente_faqs')
+        .select('pergunta, resposta')
+        .eq('organization_id', organizationId)
+        .eq('ativo', true)
+        .limit(30);
+
+      // Fetch top products
+      const { data: topProducts } = await supabase
+        .from('pecas')
+        .select('nome, codigo, categoria, preco_venda, descricao')
+        .eq('organization_id', organizationId)
+        .eq('ativo', true)
+        .limit(20);
+
+      if (faqs && faqs.length > 0) {
+        basePrompt += `\n\n## Base de Conhecimento (FAQs)\nUse estas informações para responder:\n`;
+        faqs.forEach((f: any) => {
+          basePrompt += `\nP: ${f.pergunta}\nR: ${f.resposta}\n`;
+        });
+      }
+
+      if (topProducts && topProducts.length > 0) {
+        basePrompt += `\n\n## Catálogo de Produtos\nProdutos disponíveis:\n`;
+        topProducts.forEach((p: any) => {
+          basePrompt += `- ${p.nome} (${p.codigo || 'N/A'}) - R$ ${p.preco_venda?.toFixed(2) || 'Consultar'}${p.categoria ? ` [${p.categoria}]` : ''}${p.descricao ? ` - ${p.descricao}` : ''}\n`;
+        });
+      }
+    } catch (e) {
+      console.error('Error enriching prompt:', e);
+    }
 
     const systemPrompt = `${basePrompt}
 
@@ -955,6 +990,64 @@ Seja sempre educado e prestativo.`;
       assistantMessage = followUpData.choices?.[0]?.message;
     }
 
+    // Analyze sentiment of user message
+    const lastUserMessage = messages[messages.length - 1];
+    let sentimento: string | null = null;
+    try {
+      const sentimentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash-lite',
+          messages: [
+            { role: 'system', content: 'Classify the sentiment of the user message as exactly one word: positivo, neutro, or negativo. Reply with only that one word.' },
+            { role: 'user', content: lastUserMessage.content }
+          ],
+          max_tokens: 10,
+          temperature: 0
+        })
+      });
+      if (sentimentResponse.ok) {
+        const sentimentData = await sentimentResponse.json();
+        const raw = (sentimentData.choices?.[0]?.message?.content || '').trim().toLowerCase();
+        if (['positivo', 'neutro', 'negativo'].includes(raw)) {
+          sentimento = raw;
+        }
+      }
+    } catch (e) {
+      console.error('Sentiment analysis error:', e);
+    }
+
+    // Check for active A/B test and apply variant
+    let abTesteId: string | null = null;
+    let abVariante: string | null = null;
+    try {
+      const { data: abTest } = await supabase
+        .from('ab_testes')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (abTest) {
+        // Randomly assign variant (50/50)
+        abVariante = Math.random() < 0.5 ? 'A' : 'B';
+        abTesteId = abTest.id;
+        
+        // Increment conversation counter
+        const counterField = abVariante === 'A' ? 'variante_a_conversas' : 'variante_b_conversas';
+        await supabase
+          .from('ab_testes')
+          .update({ [counterField]: (abTest[counterField] || 0) + 1 })
+          .eq('id', abTest.id);
+      }
+    } catch (e) {
+      console.error('A/B test error:', e);
+    }
+
     // Save conversation to database if sessionId provided
     if (sessionId) {
       try {
@@ -971,18 +1064,28 @@ Seja sempre educado e prestativo.`;
             .from('agente_conversas')
             .insert({
               session_id: sessionId,
-              organization_id: organizationId
+              organization_id: organizationId,
+              sentimento,
+              ab_teste_id: abTesteId,
+              ab_variante: abVariante,
             })
             .select('id')
             .single();
           conversa = newConversa;
+        } else {
+          // Update sentiment on existing conversation
+          if (sentimento) {
+            await supabase
+              .from('agente_conversas')
+              .update({ sentimento, sentimento_score: sentimento === 'positivo' ? 1 : sentimento === 'negativo' ? -1 : 0 })
+              .eq('id', conversa.id);
+          }
         }
 
         if (conversa) {
           // Save the last user message and assistant response
-          const lastUserMessage = messages[messages.length - 1];
           await supabase.from('agente_mensagens').insert([
-            { conversa_id: conversa.id, role: 'user', content: lastUserMessage.content },
+            { conversa_id: conversa.id, role: 'user', content: lastUserMessage.content, sentimento },
             { conversa_id: conversa.id, role: 'assistant', content: assistantMessage?.content || '' }
           ]);
         }
