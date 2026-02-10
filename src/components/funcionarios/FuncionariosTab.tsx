@@ -65,6 +65,7 @@ export function FuncionariosTab() {
   // Form states
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
   const [telefone, setTelefone] = useState('');
   const [cargo, setCargo] = useState('vendedor');
 
@@ -103,22 +104,38 @@ export function FuncionariosTab() {
   // Create funcionário
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) {
+      toast.error('Email é obrigatório para criar acesso');
+      return;
+    }
+    if (!senha || senha.length < 6) {
+      toast.error('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await supabase.from('funcionarios').insert({
-        nome,
-        email: email || null,
-        telefone: telefone || null,
-        cargo,
-        organization_id: organizationId,
-      });
-      if (error) throw error;
-      toast.success('Funcionário cadastrado!');
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/criar-funcionario`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ nome, email, senha, telefone, cargo }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar funcionário');
+      }
+      toast.success('Funcionário criado com acesso ao sistema!');
       setDialogOpen(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ['funcionarios-config'] });
     } catch (err: any) {
-      toast.error('Erro ao cadastrar: ' + err.message);
+      toast.error(err.message || 'Erro ao cadastrar');
     } finally {
       setLoading(false);
     }
@@ -190,6 +207,7 @@ export function FuncionariosTab() {
   const resetForm = () => {
     setNome('');
     setEmail('');
+    setSenha('');
     setTelefone('');
     setCargo('vendedor');
   };
@@ -256,13 +274,27 @@ export function FuncionariosTab() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="func-email">Email</Label>
+                  <Label htmlFor="func-email">Email *</Label>
                   <Input
                     id="func-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@exemplo.com"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Este será o login do funcionário</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="func-senha">Senha *</Label>
+                  <Input
+                    id="func-senha"
+                    type="password"
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    minLength={6}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
