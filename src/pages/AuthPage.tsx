@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Lock, User, ArrowRight, Sparkles, Shield, Zap, ChevronLeft, KeyRound, Crown, AlertCircle } from 'lucide-react';
+import { Loader2, Mail, Lock, User, ArrowRight, Sparkles, Shield, Zap, ChevronLeft, KeyRound, Crown, AlertCircle, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import logo from '@/assets/logo.png';
@@ -20,9 +20,12 @@ const nomeSchema = z.string().min(2, 'Nome deve ter pelo menos 2 caracteres');
 const codigoSchema = z.string().length(12, 'Código deve ter 12 caracteres');
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn, signUp, resetPassword, user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('login');
+  
+  const isTrialMode = useMemo(() => searchParams.get('trial') === 'true', [searchParams]);
+  const [activeTab, setActiveTab] = useState(isTrialMode ? 'signup' : 'login');
   
   useEffect(() => {
     if (!authLoading && user) {
@@ -68,6 +71,7 @@ export default function AuthPage() {
   const validateSignupField = (field: string, value: string): string => {
     switch (field) {
       case 'codigo':
+        if (isTrialMode) break; // Skip code validation in trial mode
         if (!value.trim()) return 'Código de acesso é obrigatório';
         if (value.trim().length !== 12) return 'Código deve ter 12 caracteres';
         break;
@@ -181,20 +185,31 @@ export default function AuthPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate access code first
-    if (!codigoValidado?.valido) {
-      toast.error('Código de acesso inválido', {
-        description: 'Você precisa de um código válido para criar uma conta. Adquira um plano primeiro.',
-        action: {
-          label: 'Ver Planos',
-          onClick: () => window.open('https://www.nexsiles.online', '_blank'),
-        },
-      });
-      return;
+    // In trial mode, skip code validation
+    if (!isTrialMode) {
+      // Validate access code first
+      if (!codigoValidado?.valido) {
+        toast.error('Código de acesso inválido', {
+          description: 'Você precisa de um código válido para criar uma conta. Adquira um plano primeiro.',
+          action: {
+            label: 'Ver Planos',
+            onClick: () => window.open('https://www.nexsiles.online', '_blank'),
+          },
+        });
+        return;
+      }
+
+      try {
+        codigoSchema.parse(signupCodigo);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          toast.error(error.errors[0].message);
+          return;
+        }
+      }
     }
 
     try {
-      codigoSchema.parse(signupCodigo);
       nomeSchema.parse(signupNome);
       emailSchema.parse(signupEmail);
       passwordSchema.parse(signupPassword);
@@ -225,9 +240,12 @@ export default function AuthPage() {
         return;
       }
 
-      // Mark code as used (will be done by trigger after user confirms email)
-      // For now, we store the code in localStorage to mark it later
-      localStorage.setItem('pending_access_code', signupCodigo.toUpperCase());
+      // Store pending activation info
+      if (isTrialMode) {
+        localStorage.setItem('pending_trial', 'true');
+      } else {
+        localStorage.setItem('pending_access_code', signupCodigo.toUpperCase());
+      }
 
       toast.success('Conta criada! Verifique seu email para confirmar o cadastro.', {
         duration: 6000,
@@ -525,7 +543,18 @@ export default function AuthPage() {
 
                     <TabsContent value="signup" className="mt-0 space-y-5">
                       <form onSubmit={handleSignup} className="space-y-4">
-                        {/* Access Code Field - Required First */}
+                        {/* Trial Mode Banner */}
+                        {isTrialMode && (
+                          <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-700/50">
+                            <Gift className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-xs text-green-700 dark:text-green-300">
+                              🎉 <span className="font-semibold">Teste Grátis de 3 dias!</span> Crie sua conta e comece a usar agora mesmo.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        {/* Access Code Field - Only show when NOT in trial mode */}
+                        {!isTrialMode && (
                         <div className="space-y-2">
                           <div className="relative">
                             <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600/60" />
@@ -582,6 +611,7 @@ export default function AuthPage() {
                             </Alert>
                           )}
                         </div>
+                        )}
 
                         <div className="relative">
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600/60" />
@@ -599,7 +629,7 @@ export default function AuthPage() {
                             error={signupErrors.nome}
                             touched={signupTouched.nome}
                             required
-                            disabled={!codigoValidado?.valido}
+                            disabled={!isTrialMode && !codigoValidado?.valido}
                             className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
@@ -620,7 +650,7 @@ export default function AuthPage() {
                             error={signupErrors.email}
                             touched={signupTouched.email}
                             required
-                            disabled={!codigoValidado?.valido}
+                            disabled={!isTrialMode && !codigoValidado?.valido}
                             className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
@@ -641,7 +671,7 @@ export default function AuthPage() {
                             error={signupErrors.password}
                             touched={signupTouched.password}
                             required
-                            disabled={!codigoValidado?.valido}
+                            disabled={!isTrialMode && !codigoValidado?.valido}
                             className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
@@ -662,14 +692,14 @@ export default function AuthPage() {
                             error={signupErrors.confirmPassword}
                             touched={signupTouched.confirmPassword}
                             required
-                            disabled={!codigoValidado?.valido}
+                            disabled={!isTrialMode && !codigoValidado?.valido}
                             className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
                         <Button 
                           type="submit" 
                           className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium rounded-xl shadow-lg shadow-amber-500/30 transition-all mt-2" 
-                          disabled={loading || !codigoValidado?.valido}
+                          disabled={loading || (!isTrialMode && !codigoValidado?.valido)}
                         >
                           {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

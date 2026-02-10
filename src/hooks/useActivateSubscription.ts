@@ -17,17 +17,76 @@ export function useActivateSubscription() {
     if (!user || processedRef.current) return;
 
     const pendingCode = localStorage.getItem('pending_access_code');
-    if (!pendingCode) return;
+    const pendingTrial = localStorage.getItem('pending_trial');
+    
+    if (!pendingCode && !pendingTrial) return;
 
     processedRef.current = true;
 
-    const activate = async () => {
+    const activateTrial = async () => {
+      try {
+        // Check if user already has an active subscription
+        const { data: existingSub } = await supabase
+          .from('assinaturas')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'ativo')
+          .maybeSingle();
+
+        if (existingSub) {
+          console.log('User already has active subscription, skipping trial');
+          localStorage.removeItem('pending_trial');
+          return;
+        }
+
+        const now = new Date();
+        const trialEndDate = new Date(now);
+        trialEndDate.setDate(trialEndDate.getDate() + 3);
+
+        const { error } = await supabase
+          .from('assinaturas')
+          .upsert({
+            user_id: user.id,
+            plano: 'nexsiles',
+            status: 'ativo',
+            trial_ativo: true,
+            trial_iniciado_em: now.toISOString(),
+            trial_dias: 3,
+            data_inicio: now.toISOString(),
+            data_vencimento: trialEndDate.toISOString(),
+            valor_mensal: 0,
+          }, {
+            onConflict: 'user_id',
+          });
+
+        if (error) {
+          console.error('Error activating trial:', error);
+          processedRef.current = false;
+          return;
+        }
+
+        localStorage.removeItem('pending_trial');
+        queryClient.invalidateQueries({ queryKey: ['assinatura'] });
+        
+        toast.success('🎉 Teste grátis ativado!', {
+          description: 'Você tem 3 dias para explorar todas as funcionalidades do Nexsiles!',
+          duration: 6000,
+        });
+
+        console.log('Trial activated for user:', user.id);
+      } catch (error) {
+        console.error('Error activating trial:', error);
+        processedRef.current = false;
+      }
+    };
+
+    const activateCode = async () => {
       try {
         // 1. Fetch the access code details
         const { data: codeData, error: codeError } = await supabase
           .from('codigos_acesso')
           .select('*')
-          .eq('codigo', pendingCode)
+          .eq('codigo', pendingCode!)
           .eq('usado', false)
           .maybeSingle();
 
@@ -47,7 +106,6 @@ export function useActivateSubscription() {
 
         if (existingSub) {
           console.log('User already has active subscription');
-          // Still mark code as used
           await supabase
             .from('codigos_acesso')
             .update({ usado: true, usado_em: new Date().toISOString(), usado_por: user.id })
@@ -59,7 +117,7 @@ export function useActivateSubscription() {
         // 3. Determine subscription duration based on plan
         const now = new Date();
         const dataVencimento = new Date();
-        dataVencimento.setDate(dataVencimento.getDate() + 30); // 30 days
+        dataVencimento.setDate(dataVencimento.getDate() + 30);
 
         const planoValores: Record<string, number> = {
           nexsiles: 189,
@@ -118,6 +176,10 @@ export function useActivateSubscription() {
       }
     };
 
-    activate();
+    if (pendingTrial) {
+      activateTrial();
+    } else if (pendingCode) {
+      activateCode();
+    }
   }, [user, queryClient]);
 }
