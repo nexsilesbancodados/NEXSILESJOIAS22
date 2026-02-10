@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Plus, Users, Shield, Loader2 } from 'lucide-react';
+import { Plus, Users, Shield, Loader2, KeyRound } from 'lucide-react';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 const MODULOS = [
@@ -395,6 +395,28 @@ export function FuncionariosTab() {
                       >
                         <Shield className="h-4 w-4 mr-1" />
                         Permissões
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          if (!func.email) {
+                            toast.error('Funcionário sem email cadastrado');
+                            return;
+                          }
+                          try {
+                            const { error } = await supabase.auth.resetPasswordForEmail(func.email, {
+                              redirectTo: `${window.location.origin}/reset-password`,
+                            });
+                            if (error) throw error;
+                            toast.success(`Email de recuperação enviado para ${func.email}`);
+                          } catch (err: any) {
+                            toast.error(err.message || 'Erro ao enviar email');
+                          }
+                        }}
+                      >
+                        <KeyRound className="h-4 w-4 mr-1" />
+                        Resetar Senha
                       </Button>
                       <Button
                         variant="ghost"
