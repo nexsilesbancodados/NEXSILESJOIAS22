@@ -43,6 +43,7 @@ const PlanosPage = lazy(() => import("./pages/PlanosPage"));
 const LandingPlanosPage = lazy(() => import("./pages/LandingPlanosPage"));
 const AtendimentoPage = lazy(() => import("./pages/AtendimentoPage"));
 const TutorialPage = lazy(() => import("./pages/TutorialPage"));
+const SuperAdminPage = lazy(() => import("./pages/SuperAdminPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -173,6 +174,7 @@ function AppRoutes() {
                       <Route path="/planos" element={<PlanosPage />} />
                       <Route path="/atendimento" element={<AtendimentoPage />} />
                       <Route path="/tutorial" element={<TutorialPage />} />
+                      <Route path="/super-admin" element={<SuperAdminPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

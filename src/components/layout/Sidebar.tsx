@@ -27,7 +27,8 @@ import {
   UserCog,
   TrendingUp,
   MessageCircle,
-  GraduationCap
+  GraduationCap,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRomaneios } from '@/hooks/useSupabaseData';
@@ -144,6 +145,7 @@ const menuItems = [
   { icon: GraduationCap, label: 'Tutorial', path: '/tutorial', color: 'from-emerald-500 to-green-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
+  { icon: Shield, label: 'Super Admin', path: '/super-admin', color: 'from-red-500 to-orange-600', superAdminOnly: true },
 ];
 
 // Memoized menu item for collapsed sidebar
@@ -279,7 +281,7 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
   const { canAccessPath } = usePermissions();
   const { data: romaneios = [] } = useRomaneios();
   
@@ -288,13 +290,16 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
     [romaneios]
   );
 
+  const SUPER_ADMIN_EMAILS = ['beneloahsemijoias@gmail.com'];
+
   // Filter menu items based on admin status and permissions
   const filteredMenuItems = useMemo(() => 
     menuItems.filter((item) => {
-      if (item.adminOnly && !isAdmin) return false;
+      if ((item as any).superAdminOnly && !SUPER_ADMIN_EMAILS.includes(profile?.email || '')) return false;
+      if ((item as any).adminOnly && !isAdmin) return false;
       return canAccessPath(item.path);
     }),
-    [isAdmin, canAccessPath]
+    [isAdmin, canAccessPath, profile?.email]
   );
 
   const handleNavigation = useCallback((path: string) => {
