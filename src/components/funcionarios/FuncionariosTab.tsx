@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
+import { useOrganizationId } from '@/hooks/useOrganization';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -59,6 +60,7 @@ export function FuncionariosTab() {
   const [permissoesDialogOpen, setPermissoesDialogOpen] = useState(false);
   const [selectedFuncionario, setSelectedFuncionario] = useState<Funcionario | null>(null);
   const [loading, setLoading] = useState(false);
+  const { organizationId } = useOrganizationId();
 
   // Form states
   const [nome, setNome] = useState('');
@@ -108,6 +110,7 @@ export function FuncionariosTab() {
         email: email || null,
         telefone: telefone || null,
         cargo,
+        organization_id: organizationId,
       });
       if (error) throw error;
       toast.success('Funcionário cadastrado!');
