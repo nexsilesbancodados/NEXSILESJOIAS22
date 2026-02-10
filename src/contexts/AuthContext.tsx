@@ -39,24 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Ignore SIGNED_OUT events that come from other tabs/devices
-        // Only clear state if we explicitly signed out (handled in signOut function)
         if (event === 'SIGNED_OUT') {
-          // Try to recover session before clearing state
           supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
             if (currentSession) {
-              // Session still valid - another tab/device signed out, not us
               setSession(currentSession);
               setUser(currentSession.user);
             } else {
               setSession(null);
               setUser(null);
               setProfile(null);
+              setIsAdmin(false);
             }
           });
           return;
@@ -65,13 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer profile fetch with setTimeout to avoid deadlock
         if (session?.user) {
           setTimeout(() => {
-            fetchProfile(session.user.id);
+            fetchProfileAndRole(session.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setIsAdmin(false);
         }
       }
     );
@@ -81,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfileAndRole(session.user.id);
       } else {
         setLoading(false);
       }
@@ -90,27 +88,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfileAndRole = async (userId: string) => {
     try {
-      const { data, error } = await db
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Fetch profile and role in parallel
+      const [profileResult, roleResult] = await Promise.all([
+        db.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
+        db.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle(),
+      ]);
 
-      if (error) {
-        console.error('Error fetching profile:', error);
+      if (profileResult.error) {
+        console.error('Error fetching profile:', profileResult.error);
         setProfile(null);
-      } else if (data) {
-        setProfile(data as Profile);
+      } else if (profileResult.data) {
+        setProfile(profileResult.data as Profile);
       } else {
-        // Profile doesn't exist yet - may be created by trigger
         console.log('Profile not found, may be created by trigger');
         setProfile(null);
       }
+
+      setIsAdmin(!!roleResult.data);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
+      setIsAdmin(false);
     } finally {
       setLoading(false);
     }
@@ -174,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   }, [queryClient]);
 
-  const isAdmin = profile?.role === 'admin';
+  
 
   return (
     <AuthContext.Provider
