@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.mercadopago-checkout-public]
 verify_jwt = false
+
+[functions.criar-funcionario]
+verify_jwt = false
