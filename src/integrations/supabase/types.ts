@@ -1542,6 +1542,50 @@ export type Database = {
           },
         ]
       }
+      funcionario_permissoes: {
+        Row: {
+          created_at: string | null
+          funcionario_id: string
+          id: string
+          modulo: string
+          pode_criar: boolean
+          pode_editar: boolean
+          pode_excluir: boolean
+          pode_ver: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          funcionario_id: string
+          id?: string
+          modulo: string
+          pode_criar?: boolean
+          pode_editar?: boolean
+          pode_excluir?: boolean
+          pode_ver?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          funcionario_id?: string
+          id?: string
+          modulo?: string
+          pode_criar?: boolean
+          pode_editar?: boolean
+          pode_excluir?: boolean
+          pode_ver?: boolean
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_permissoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionarios: {
         Row: {
           ativo: boolean | null
