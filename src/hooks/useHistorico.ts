@@ -111,6 +111,23 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
       
       if (error) throw error;
       
+      // Fetch user names for all unique user_ids
+      const userIds = [...new Set((data || []).map((item: any) => item.user_id).filter(Boolean))];
+      let profileMap: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await db
+          .from('profiles')
+          .select('user_id, nome')
+          .in('user_id', userIds);
+        
+        if (profiles) {
+          profileMap = Object.fromEntries(
+            profiles.map((p: any) => [p.user_id, p.nome])
+          );
+        }
+      }
+      
       // Transform data to include backwards-compatible fields
       return (data || []).map((item: any) => ({
         ...item,
@@ -119,7 +136,7 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
         entidade_id: item.registro_id,
         descricao: generateDescricao(item.tabela, item.acao),
         usuario_id: item.user_id,
-        usuario_nome: null,
+        usuario_nome: item.user_id ? (profileMap[item.user_id] || null) : null,
         valor: null,
       })) as HistoricoAtividade[];
     },

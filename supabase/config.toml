@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.criar-funcionario]
 verify_jwt = false
+
+[functions.notificar-eventos]
+verify_jwt = false

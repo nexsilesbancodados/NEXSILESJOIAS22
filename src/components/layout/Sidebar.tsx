@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRomaneios } from '@/hooks/useSupabaseData';
+import { usePermissions } from '@/hooks/usePermissions';
 import logo from '@/assets/logo.png';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -279,6 +280,7 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
+  const { canAccessPath } = usePermissions();
   const { data: romaneios = [] } = useRomaneios();
   
   const pendingRomaneios = useMemo(() => 
@@ -286,10 +288,13 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
     [romaneios]
   );
 
-  // Filter menu items based on admin status
+  // Filter menu items based on admin status and permissions
   const filteredMenuItems = useMemo(() => 
-    menuItems.filter((item) => !item.adminOnly || isAdmin),
-    [isAdmin]
+    menuItems.filter((item) => {
+      if (item.adminOnly && !isAdmin) return false;
+      return canAccessPath(item.path);
+    }),
+    [isAdmin, canAccessPath]
   );
 
   const handleNavigation = useCallback((path: string) => {
