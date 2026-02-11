@@ -83,6 +83,10 @@ serve(async (req) => {
       });
     }
 
+    // Determine the role based on cargo
+    const isAdminCargo = cargo === "admin";
+    const userRole = isAdminCargo ? "admin" : "user";
+
     // 1. Create auth user (admin API - won't affect caller's session)
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -90,7 +94,7 @@ serve(async (req) => {
       email_confirm: true, // Auto-confirm so they can login immediately
       user_metadata: {
         nome,
-        role: "user", // Employee role, not admin
+        role: userRole,
       },
     });
 
@@ -106,21 +110,22 @@ serve(async (req) => {
 
     const newUserId = newUser.user.id;
 
-    // 2. Add user to the same organization as member (not owner)
+    // 2. Add user to the same organization
+    const membershipRole = isAdminCargo ? "admin" : "member";
     await supabaseAdmin
       .from("memberships")
       .insert({
         user_id: newUserId,
         organization_id: membership.organization_id,
-        role: "member",
+        role: membershipRole,
       });
 
-    // 3. Add 'user' role (not admin)
+    // 3. Add role in user_roles table
     await supabaseAdmin
       .from("user_roles")
       .upsert({
         user_id: newUserId,
-        role: "user",
+        role: userRole,
       }, { onConflict: "user_id,role" });
 
     // 4. Update/create the funcionario record with user_id
@@ -134,7 +139,7 @@ serve(async (req) => {
     if (existingFunc) {
       await supabaseAdmin
         .from("funcionarios")
-        .update({ user_id: newUserId })
+        .update({ user_id: newUserId, cargo: cargo || "vendedor" })
         .eq("id", existingFunc.id);
     } else {
       await supabaseAdmin
@@ -148,6 +153,43 @@ serve(async (req) => {
           organization_id: membership.organization_id,
           ativo: true,
         });
+    }
+
+    // 5. If admin cargo, set all permissions to true automatically
+    if (isAdminCargo) {
+      const { data: funcRecord } = await supabaseAdmin
+        .from("funcionarios")
+        .select("id")
+        .eq("user_id", newUserId)
+        .eq("organization_id", membership.organization_id)
+        .maybeSingle();
+
+      if (funcRecord) {
+        const allModules = [
+          'dashboard', 'pecas', 'clientes', 'vendas', 'revendedoras',
+          'romaneios', 'catalogos', 'fornecedores', 'banhos', 'relatorios',
+          'configuracoes', 'campanhas', 'atendimento', 'etiquetas', 'historico'
+        ];
+
+        const permissionsToInsert = allModules.map(modulo => ({
+          funcionario_id: funcRecord.id,
+          modulo,
+          pode_ver: true,
+          pode_criar: true,
+          pode_editar: true,
+          pode_excluir: true,
+        }));
+
+        // Delete existing permissions first, then insert all
+        await supabaseAdmin
+          .from("funcionario_permissoes")
+          .delete()
+          .eq("funcionario_id", funcRecord.id);
+
+        await supabaseAdmin
+          .from("funcionario_permissoes")
+          .insert(permissionsToInsert);
+      }
     }
 
     return new Response(
