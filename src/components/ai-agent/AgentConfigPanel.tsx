@@ -9,8 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Save, Bot, CreditCard, MessageSquare, Settings2, Wrench, Clock, Shield, Zap, Sparkles } from 'lucide-react';
-import { useAgentConfig, AgentConfig } from '@/hooks/useAgentConfig';
+import { Loader2, Save, Bot, CreditCard, MessageSquare, Settings2, Wrench, Clock, Shield, Zap, Sparkles, Crown, Bell, Phone, Mail } from 'lucide-react';
+import { useAgentConfig, AgentConfig, AlertasConfig } from '@/hooks/useAgentConfig';
 import { WhatsAppQRConnect } from './WhatsAppQRConnect';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
@@ -232,10 +232,14 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="geral" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="geral" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
             <span className="hidden sm:inline">Geral</span>
+          </TabsTrigger>
+          <TabsTrigger value="dono" className="flex items-center gap-2">
+            <Crown className="h-4 w-4" />
+            <span className="hidden sm:inline">Dono</span>
           </TabsTrigger>
           <TabsTrigger value="ferramentas" className="flex items-center gap-2">
             <Wrench className="h-4 w-4" />
@@ -447,6 +451,124 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
               <p className="text-xs text-muted-foreground mt-2">
                 Este texto define a personalidade e comportamento base do agente de IA.
               </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aba Dono */}
+        <TabsContent value="dono" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5" />
+                Dados do Proprietário
+              </CardTitle>
+              <CardDescription>
+                Receba alertas em tempo real sobre tudo que acontece no seu atendimento
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="dono_nome">Seu Nome</Label>
+                <Input
+                  id="dono_nome"
+                  value={(formData as any).dono_nome || ''}
+                  onChange={(e) => updateField('dono_nome' as any, e.target.value)}
+                  placeholder="Ex: Maria Silva"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="dono_whatsapp" className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5" />
+                    WhatsApp para Alertas
+                  </Label>
+                  <Input
+                    id="dono_whatsapp"
+                    value={(formData as any).dono_whatsapp || ''}
+                    onChange={(e) => updateField('dono_whatsapp' as any, e.target.value)}
+                    placeholder="11999999999"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Número com DDD, sem espaços
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dono_email" className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5" />
+                    E-mail para Alertas
+                  </Label>
+                  <Input
+                    id="dono_email"
+                    type="email"
+                    value={(formData as any).dono_email || ''}
+                    onChange={(e) => updateField('dono_email' as any, e.target.value)}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+              </div>
+
+              {(formData as any).dono_whatsapp || (formData as any).dono_email ? (
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-200 dark:border-green-800">
+                  <p className="text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    <span>Alertas serão enviados para: {[
+                      (formData as any).dono_whatsapp && `WhatsApp (${(formData as any).dono_whatsapp})`,
+                      (formData as any).dono_email && `E-mail (${(formData as any).dono_email})`
+                    ].filter(Boolean).join(' e ')}</span>
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-200 dark:border-amber-800">
+                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                    ⚠️ Preencha pelo menos um canal (WhatsApp ou E-mail) para receber alertas
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Alertas Ativos
+              </CardTitle>
+              <CardDescription>
+                Escolha quais eventos devem gerar notificação para você
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[
+                { key: 'nova_venda', label: '💰 Nova Venda Realizada', desc: 'Quando o agente fecha uma venda pelo WhatsApp' },
+                { key: 'novo_pedido', label: '🛒 Novo Pedido', desc: 'Quando um cliente faz um pedido via catálogo ou agente' },
+                { key: 'atendimento_humano', label: '👤 Solicitação de Atendimento Humano', desc: 'Quando o cliente pede para falar com uma pessoa' },
+                { key: 'nps_negativo', label: '⭐ Avaliação Negativa (NPS)', desc: 'Quando um cliente dá nota baixa no atendimento' },
+                { key: 'lead_quente', label: '🔥 Lead Quente Detectado', desc: 'Quando o agente identifica um lead com alta intenção de compra' },
+                { key: 'erro_agente', label: '🚨 Erro no Agente', desc: 'Quando o agente falha ao processar uma mensagem' },
+                { key: 'estoque_baixo', label: '📦 Estoque Baixo', desc: 'Quando um produto consultado está com estoque crítico' },
+                { key: 'conversa_encerrada', label: '✅ Conversa Encerrada', desc: 'Quando uma conversa é finalizada' },
+                { key: 'follow_up_pendente', label: '⏰ Follow-up Pendente', desc: 'Quando há follow-ups que precisam de atenção' },
+              ].map((alerta) => {
+                const alertasConfig = (formData as any).alertas_config || {};
+                return (
+                  <div key={alerta.key} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div className="flex-1 min-w-0 mr-4">
+                      <p className="text-sm font-medium">{alerta.label}</p>
+                      <p className="text-xs text-muted-foreground">{alerta.desc}</p>
+                    </div>
+                    <Switch
+                      checked={alertasConfig[alerta.key] ?? true}
+                      onCheckedChange={(checked) => {
+                        const current = (formData as any).alertas_config || {};
+                        updateField('alertas_config' as any, { ...current, [alerta.key]: checked });
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         </TabsContent>
