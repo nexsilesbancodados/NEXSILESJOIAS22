@@ -66,6 +66,46 @@ serve(async (req) => {
     let html = "";
 
     switch (tipo) {
+      case "boas_vindas": {
+        const planoNome = dados.plano_nome || "Nexsiles";
+        const diasValidade = dados.dias_validade || 30;
+        const isTrial = dados.is_trial || false;
+        subject = `🎉 Bem-vindo(a) ao Nexsiles!`;
+        html = `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #8B5CF6; margin: 0; font-size: 28px;">Nexsiles</h1>
+              <p style="color: #666; margin-top: 5px;">Sistema de Gestão de Joias</p>
+            </div>
+            <div style="background: #ffffff; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <h2 style="color: #333; margin-top: 0;">🎉 Bem-vindo(a), ${ownerProfile.nome || 'Cliente'}!</h2>
+              <p style="font-size: 16px; color: #555;">
+                ${isTrial 
+                  ? `Seu <strong>teste grátis de ${diasValidade} dias</strong> do plano <strong>${planoNome}</strong> foi ativado com sucesso!`
+                  : `Seu plano <strong>${planoNome}</strong> foi ativado com sucesso!`
+                }
+              </p>
+              <p style="font-size: 16px; color: #555;">Agora você tem acesso completo a todas as funcionalidades:</p>
+              <ul style="color: #555; line-height: 2;">
+                <li>📦 Gestão de peças e estoque</li>
+                <li>💰 Controle de vendas (PDV)</li>
+                <li>👜 Gestão de revendedoras e maletas</li>
+                <li>📋 Catálogos digitais</li>
+                <li>📊 Relatórios completos</li>
+                ${planoNome === 'Nexsiles Max' ? '<li>🤖 Atendente de IA integrado</li><li>💬 Chatbot WhatsApp automatizado</li>' : ''}
+              </ul>
+              <div style="text-align: center; margin-top: 25px;">
+                <a href="https://nexsiles2567.lovable.app" style="display: inline-block; background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                  Acessar o Sistema
+                </a>
+              </div>
+            </div>
+            <div style="text-align: center; margin-top: 30px; color: #9CA3AF; font-size: 12px;">
+              <p>Dúvidas? Responda este email ou acesse nosso suporte.</p>
+            </div>
+          </div>`;
+        break;
+      }
       case "venda_realizada": {
         const valor = Number(dados.valor || 0).toFixed(2);
         const itens = dados.itens || "N/A";

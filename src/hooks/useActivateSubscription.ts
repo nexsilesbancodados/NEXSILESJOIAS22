@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { enviarNotificacaoEmail } from '@/lib/email-notifications';
 
 /**
  * Processes pending access codes after user login/signup confirmation.
@@ -68,6 +69,13 @@ export function useActivateSubscription() {
         localStorage.removeItem('pending_trial');
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
         
+        // Send welcome email
+        enviarNotificacaoEmail('boas_vindas' as any, {
+          plano_nome: 'Nexsiles',
+          dias_validade: 3,
+          is_trial: true,
+        });
+
         toast.success('🎉 Teste grátis ativado!', {
           description: 'Você tem 3 dias para explorar todas as funcionalidades do Nexsiles!',
           duration: 6000,
@@ -164,6 +172,14 @@ export function useActivateSubscription() {
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
         
         const planoNome = codeData.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles';
+
+        // Send welcome email
+        enviarNotificacaoEmail('boas_vindas' as any, {
+          plano_nome: planoNome,
+          dias_validade: 30,
+          is_trial: false,
+        });
+
         toast.success(`🎉 Assinatura ${planoNome} ativada!`, {
           description: 'Seu plano está ativo por 30 dias.',
           duration: 6000,

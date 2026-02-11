@@ -23,9 +23,12 @@ interface Profile {
 }
 
 const PLANOS = {
-  nexsiles: { nome: "Nexsiles", valor: 49.90 },
-  nexsiles_max: { nome: "Nexsiles Max", valor: 99.90 },
+  nexsiles: { nome: "Nexsiles", valor: 189.00 },
+  nexsiles_max: { nome: "Nexsiles Max", valor: 249.00 },
 };
+
+const APP_URL = "https://nexsiles2567.lovable.app";
+const SITE_URL = "https://nexsiles.sbs";
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -137,7 +140,7 @@ function generateEmailHtml(
           
           <!-- CTA Button -->
           <div style="text-align: center;">
-            <a href="${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app")}/planos" style="${buttonStyles}">
+            <a href="${SITE_URL}" style="${buttonStyles}">
               Renovar Assinatura
             </a>
           </div>
