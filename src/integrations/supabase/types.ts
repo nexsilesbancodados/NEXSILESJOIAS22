@@ -386,6 +386,7 @@ export type Database = {
           agendamento_ativo: boolean | null
           agendamento_duracao_padrao: number | null
           agendamento_horarios: Json | null
+          alertas_config: Json | null
           ativo: boolean | null
           audio_transcricao_ativo: boolean | null
           audio_tts_ativo: boolean | null
@@ -393,6 +394,9 @@ export type Database = {
           avatar_url: string | null
           cor_primaria: string | null
           created_at: string
+          dono_email: string | null
+          dono_nome: string | null
+          dono_whatsapp: string | null
           email_ativo: boolean | null
           email_follow_up_horas: number | null
           email_nome_remetente: string | null
@@ -428,6 +432,7 @@ export type Database = {
           agendamento_ativo?: boolean | null
           agendamento_duracao_padrao?: number | null
           agendamento_horarios?: Json | null
+          alertas_config?: Json | null
           ativo?: boolean | null
           audio_transcricao_ativo?: boolean | null
           audio_tts_ativo?: boolean | null
@@ -435,6 +440,9 @@ export type Database = {
           avatar_url?: string | null
           cor_primaria?: string | null
           created_at?: string
+          dono_email?: string | null
+          dono_nome?: string | null
+          dono_whatsapp?: string | null
           email_ativo?: boolean | null
           email_follow_up_horas?: number | null
           email_nome_remetente?: string | null
@@ -470,6 +478,7 @@ export type Database = {
           agendamento_ativo?: boolean | null
           agendamento_duracao_padrao?: number | null
           agendamento_horarios?: Json | null
+          alertas_config?: Json | null
           ativo?: boolean | null
           audio_transcricao_ativo?: boolean | null
           audio_tts_ativo?: boolean | null
@@ -477,6 +486,9 @@ export type Database = {
           avatar_url?: string | null
           cor_primaria?: string | null
           created_at?: string
+          dono_email?: string | null
+          dono_nome?: string | null
+          dono_whatsapp?: string | null
           email_ativo?: boolean | null
           email_follow_up_horas?: number | null
           email_nome_remetente?: string | null
