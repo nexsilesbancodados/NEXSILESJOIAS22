@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,11 +23,14 @@ import {
   SmilePlus,
   FlaskConical,
   FileDown,
-  ShoppingCart
+  ShoppingCart,
+  CheckCircle2,
+  Smartphone
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIAgent } from '@/hooks/useAIAgent';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
+import { useAutoSetupAgent } from '@/hooks/useAutoSetupAgent';
 import { AgentConfigPanel } from '@/components/ai-agent/AgentConfigPanel';
 import { ConversasDashboard } from '@/components/ai-agent/ConversasDashboard';
 import { NPSDashboard } from '@/components/ai-agent/NPSDashboard';
@@ -39,6 +42,7 @@ import { SentimentDashboard } from '@/components/ai-agent/SentimentDashboard';
 import { ABTestingPanel } from '@/components/ai-agent/ABTestingPanel';
 import { AgentReportExport } from '@/components/ai-agent/AgentReportExport';
 import { VendasAgenteDashboard } from '@/components/ai-agent/VendasAgenteDashboard';
+import { WhatsAppQRConnect } from '@/components/ai-agent/WhatsAppQRConnect';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -46,6 +50,7 @@ export default function AtendimentoPage() {
   const { organizationId } = useOrganization();
   const { messages, sendMessage, isLoading, clearMessages } = useAIAgent(organizationId || '');
   const { config, isLoading: configLoading } = useAgentConfig(organizationId || '');
+  const { isReady: agentReady, isLoading: setupLoading } = useAutoSetupAgent(organizationId || '');
   const [input, setInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -83,6 +88,19 @@ export default function AtendimentoPage() {
     );
   }
 
+  const whatsappConnected = !!config?.whatsapp_instancia;
+
+  if (setupLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground">Preparando seu agente de vendas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <PageHeader
@@ -90,6 +108,39 @@ export default function AtendimentoPage() {
         subtitle="Gerencie conversas, FAQs e atendimento virtual"
         icon={MessageCircle}
       />
+
+      {/* Onboarding Banner - mostrar quando WhatsApp não está conectado */}
+      {agentReady && !whatsappConnected && !configLoading && (
+        <Card className="mb-6 border-2 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium text-green-600">Agente configurado automaticamente!</span>
+                </div>
+                <h3 className="text-lg font-bold">🚀 Último passo: Conectar o WhatsApp</h3>
+                <p className="text-sm text-muted-foreground">
+                  Seu agente já está pronto com 5 especialistas, 16 FAQs e modo de vendas ativo. 
+                  Só falta escanear o QR Code para começar a vender no automático!
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Badge variant="secondary">✅ 5 Agentes prontos</Badge>
+                  <Badge variant="secondary">✅ 16 FAQs carregadas</Badge>
+                  <Badge variant="secondary">✅ Modo vendas ativo</Badge>
+                  <Badge variant="secondary">✅ PIX automático</Badge>
+                </div>
+              </div>
+              <div className="flex-shrink-0">
+                <Button size="lg" className="gap-2" onClick={() => setActiveTab('config')}>
+                  <Smartphone className="h-5 w-5" />
+                  Conectar WhatsApp
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="overflow-x-auto">
