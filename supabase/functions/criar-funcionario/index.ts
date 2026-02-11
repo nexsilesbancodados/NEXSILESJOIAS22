@@ -207,41 +207,53 @@ serve(async (req) => {
         });
     }
 
-    // 5. If admin cargo, set all permissions to true automatically
-    if (isAdminCargo) {
-      const { data: funcRecord } = await supabaseAdmin
-        .from("funcionarios")
-        .select("id")
-        .eq("user_id", newUserId)
-        .eq("organization_id", membership.organization_id)
-        .maybeSingle();
+    // 5. Create default permissions based on cargo
+    const { data: funcRecord } = await supabaseAdmin
+      .from("funcionarios")
+      .select("id")
+      .eq("user_id", newUserId)
+      .eq("organization_id", membership.organization_id)
+      .maybeSingle();
 
-      if (funcRecord) {
-        const allModules = [
-          'dashboard', 'pecas', 'clientes', 'vendas', 'revendedoras',
-          'romaneios', 'catalogos', 'fornecedores', 'banhos', 'relatorios',
-          'configuracoes', 'campanhas', 'atendimento', 'etiquetas', 'historico'
-        ];
+    if (funcRecord) {
+      const allModules = [
+        'dashboard', 'pecas', 'clientes', 'vendas', 'revendedoras',
+        'romaneios', 'catalogos', 'fornecedores', 'banhos', 'relatorios',
+        'configuracoes', 'campanhas', 'atendimento', 'etiquetas', 'historico'
+      ];
 
-        const permissionsToInsert = allModules.map(modulo => ({
-          funcionario_id: funcRecord.id,
-          modulo,
-          pode_ver: true,
-          pode_criar: true,
-          pode_editar: true,
-          pode_excluir: true,
-        }));
-
-        // Delete existing permissions first, then insert all
-        await supabaseAdmin
-          .from("funcionario_permissoes")
-          .delete()
-          .eq("funcionario_id", funcRecord.id);
-
-        await supabaseAdmin
-          .from("funcionario_permissoes")
-          .insert(permissionsToInsert);
+      // Default permissions based on cargo
+      const fullAccess = isAdminCargo;
+      const defaultPerms: Record<string, { ver: boolean; criar: boolean; editar: boolean; excluir: boolean }> = {};
+      
+      if (fullAccess) {
+        // Admin gets everything
+        allModules.forEach(m => { defaultPerms[m] = { ver: true, criar: true, editar: true, excluir: true }; });
+      } else {
+        // Other cargos get view-only on all modules by default, admin can customize later
+        allModules.forEach(m => { defaultPerms[m] = { ver: true, criar: false, editar: false, excluir: false }; });
+        // Give create/edit on common modules for non-admin
+        ['vendas', 'clientes'].forEach(m => { defaultPerms[m] = { ver: true, criar: true, editar: true, excluir: false }; });
       }
+
+      const permissionsToInsert = allModules.map(modulo => ({
+        funcionario_id: funcRecord.id,
+        modulo,
+        pode_ver: defaultPerms[modulo].ver,
+        pode_criar: defaultPerms[modulo].criar,
+        pode_editar: defaultPerms[modulo].editar,
+        pode_excluir: defaultPerms[modulo].excluir,
+      }));
+
+      // Delete existing permissions first, then insert all
+      await supabaseAdmin
+        .from("funcionario_permissoes")
+        .delete()
+        .eq("funcionario_id", funcRecord.id);
+
+      await supabaseAdmin
+        .from("funcionario_permissoes")
+        .insert(permissionsToInsert);
     }
 
     return new Response(

@@ -2,6 +2,8 @@ import { ReactNode, useState, useEffect, memo, useCallback, useMemo, lazy, Suspe
 import { Sidebar } from './Sidebar';
 import { HeaderNav } from './HeaderNav';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase-db';
 import { Button } from '@/components/ui/button';
 import { LogOut, PanelLeft, LayoutGrid, Moon, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -46,6 +48,7 @@ const Header = memo(({
   onToggleMode, 
   user, 
   profile, 
+  cargo,
   onSignOut,
   sidebarWidth
 }: { 
@@ -53,6 +56,7 @@ const Header = memo(({
   onToggleMode: () => void;
   user: any;
   profile: any;
+  cargo: string | null;
   onSignOut: () => void;
   sidebarWidth: number;
 }) => {
@@ -133,8 +137,8 @@ const Header = memo(({
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold">{profile?.nome || 'Usuário'}</p>
-                <p className="text-xs text-muted-foreground">
-                  {profile?.role === 'admin' ? 'Administrador' : 'Usuário'}
+                <p className="text-xs text-muted-foreground capitalize">
+                  {cargo || (profile?.role === 'admin' ? 'Administrador' : 'Usuário')}
                 </p>
               </div>
               <UserAvatar 
@@ -170,6 +174,22 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { data: preferences, isLoading: prefsLoading } = useUserPreferences();
   const savePreference = useSaveUserPreference();
   const initializedRef = useRef(false);
+
+  // Fetch cargo from funcionarios table
+  const { data: funcionarioData } = useQuery({
+    queryKey: ['my-funcionario-cargo', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('funcionarios')
+        .select('cargo')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 10,
+  });
 
   // Initialize state from preferences or localStorage fallback
   const [menuMode, setMenuMode] = useState<MenuMode>('sidebar');
@@ -255,6 +275,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           onToggleMode={toggleMenuMode}
           user={user}
           profile={profile}
+          cargo={funcionarioData?.cargo || null}
           onSignOut={handleSignOut}
           sidebarWidth={sidebarWidth}
         />
