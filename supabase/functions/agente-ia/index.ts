@@ -244,6 +244,31 @@ const allTools = [
         }
       }
     }
+  },
+  {
+    id: 'enviar_email',
+    tool: {
+      type: "function",
+      function: {
+        name: "enviar_email_automatico",
+        description: "Envia um e-mail automático para o cliente usando um template pré-configurado. Use nas seguintes ocasiões: após criar um pedido (confirmação), após resolver um problema (follow-up), para enviar promoções, para dar boas-vindas, ou quando o cliente pedir algo por e-mail.",
+        parameters: {
+          type: "object",
+          properties: {
+            tipo_template: { 
+              type: "string", 
+              description: "Tipo do template: confirmacao_pedido, follow_up, resumo_conversa, marketing, geral",
+              enum: ["confirmacao_pedido", "follow_up", "resumo_conversa", "marketing", "geral"]
+            },
+            destinatario_email: { type: "string", description: "E-mail do destinatário" },
+            cliente_nome: { type: "string", description: "Nome do cliente" },
+            pedido_numero: { type: "string", description: "Número do pedido (quando aplicável)" },
+            pedido_valor: { type: "string", description: "Valor do pedido (quando aplicável)" }
+          },
+          required: ["tipo_template", "destinatario_email", "cliente_nome"]
+        }
+      }
+    }
   }
 ];
 // Get filtered tools based on config
@@ -258,7 +283,8 @@ function getActiveTools(config: Record<string, unknown> | null) {
     verificar_pedido: true,
     transferir_humano: true,
     buscar_faq: true,
-    enviar_nps: true
+    enviar_nps: true,
+    enviar_email: true
   };
 
   return allTools
@@ -825,6 +851,111 @@ Em uma escala de 0 a 10, quanto você recomendaria nosso atendimento para um ami
 Por favor, responda com um número de 0 a 10.`;
       }
 
+      case "enviar_email_automatico": {
+        const tipoTemplate = args.tipo_template as string;
+        const email = args.destinatario_email as string;
+        const clienteNome = args.cliente_nome as string;
+
+        if (!email) return "⚠️ E-mail do destinatário não informado.";
+
+        // Find template by type
+        const { data: template, error: tplError } = await supabase
+          .from('email_templates')
+          .select('id, nome, assunto')
+          .eq('organization_id', organizationId)
+          .eq('tipo', tipoTemplate)
+          .eq('ativo', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (tplError || !template) {
+          return `⚠️ Nenhum template de e-mail do tipo "${tipoTemplate}" encontrado. Os templates são criados automaticamente no primeiro acesso.`;
+        }
+
+        // Build variables
+        const variaveis: Record<string, string> = {
+          '{cliente_nome}': clienteNome,
+          '{cliente_email}': email,
+          '{data_hoje}': new Date().toLocaleDateString('pt-BR'),
+        };
+        if (args.pedido_numero) variaveis['{pedido_numero}'] = args.pedido_numero as string;
+        if (args.pedido_valor) variaveis['{pedido_valor}'] = args.pedido_valor as string;
+
+        // Get org name for empresa_nome
+        const { data: orgData } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', organizationId)
+          .maybeSingle();
+        variaveis['{empresa_nome}'] = orgData?.name || 'Nossa Loja';
+
+        // Replace variables in template
+        let assunto = template.assunto;
+        const { data: fullTemplate } = await supabase
+          .from('email_templates')
+          .select('corpo_html, corpo_texto')
+          .eq('id', template.id)
+          .single();
+
+        let corpoHtml = fullTemplate?.corpo_html || '';
+        let corpoTexto = fullTemplate?.corpo_texto || '';
+
+        for (const [key, value] of Object.entries(variaveis)) {
+          const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
+          assunto = assunto.replace(regex, value);
+          corpoHtml = corpoHtml.replace(regex, value);
+          corpoTexto = corpoTexto.replace(regex, value);
+        }
+
+        // Send via Resend
+        try {
+          const resendKey = Deno.env.get('RESEND_API_KEY');
+          if (!resendKey) return "⚠️ Serviço de e-mail não configurado (RESEND_API_KEY).";
+
+          const { Resend } = await import("npm:resend@2.0.0");
+          const resend = new Resend(resendKey);
+
+          const { data: emailResult, error: emailError } = await resend.emails.send({
+            from: `NexSiles <noreply@nexsales.online>`,
+            to: [email],
+            subject: assunto,
+            html: corpoHtml,
+            text: corpoTexto || undefined,
+          });
+
+          if (emailError) {
+            console.error('Email send error:', emailError);
+            // Log the error
+            await supabase.from('email_logs').insert({
+              organization_id: organizationId,
+              template_id: template.id,
+              destinatario_email: email,
+              destinatario_nome: clienteNome,
+              assunto,
+              status: 'erro',
+              erro_mensagem: emailError.message,
+            });
+            return `❌ Erro ao enviar e-mail: ${emailError.message}`;
+          }
+
+          // Log success
+          await supabase.from('email_logs').insert({
+            organization_id: organizationId,
+            template_id: template.id,
+            destinatario_email: email,
+            destinatario_nome: clienteNome,
+            assunto,
+            status: 'enviado',
+            enviado_at: new Date().toISOString(),
+          });
+
+          return `✅ **E-mail enviado com sucesso!**\n\n📧 Para: ${email}\n📋 Template: ${template.nome}\n📌 Assunto: ${assunto}`;
+        } catch (e) {
+          console.error('Email error:', e);
+          return `❌ Erro ao enviar e-mail: ${e instanceof Error ? e.message : 'Erro desconhecido'}`;
+        }
+      }
+
       default:
         return `Ferramenta '${toolName}' não reconhecida.`;
     }
@@ -1051,6 +1182,16 @@ Classifique mentalmente o cliente durante a conversa:
 - Não prometa prazos de entrega sem informação real
 - Se não souber algo, diga que vai verificar ou transfira para humano
 - Respeite o cliente se ele não quiser comprar
+
+### 📧 E-mails Automáticos (use \`enviar_email_automatico\`)
+Envie e-mails automaticamente nas seguintes ocasiões:
+- **confirmacao_pedido**: SEMPRE após criar um pedido com sucesso → pergunte o e-mail do cliente antes
+- **follow_up**: Após resolver um problema/dúvida complexa → "Posso enviar um resumo por e-mail?"
+- **marketing**: Quando o cliente demonstrar interesse mas não comprar → "Posso enviar nossas promoções por e-mail?"
+- **geral (boas-vindas)**: Para novos clientes que fornecem e-mail → envie boas-vindas automaticamente
+- **resumo_conversa**: Quando o cliente pedir explicitamente um resumo por e-mail
+
+IMPORTANTE: Sempre pergunte o e-mail do cliente antes de enviar. Se ele já forneceu, use-o diretamente.
 
 ## Tom de Comunicação
 ${toneInstructions}
