@@ -48,6 +48,94 @@ const DEPARTAMENTOS = [
   { value: 'geral', label: 'Geral', icon: '🤖', cor: '#64748b' }
 ];
 
+const AGENTES_PREDEFINIDOS = [
+  {
+    nome: 'Vendedor Expert',
+    departamento: 'vendas',
+    cor: '#22c55e',
+    palavras_chave: ['comprar', 'preço', 'quanto', 'valor', 'promoção', 'desconto', 'catálogo', 'produto', 'peça', 'anel', 'colar', 'pulseira', 'brinco'],
+    prompt_sistema: `Você é um vendedor especialista em joias e semijoias. Seu objetivo é VENDER.
+
+Regras:
+- Sempre busque produtos reais antes de recomendar
+- Envie fotos quando o cliente demonstrar interesse
+- Sugira produtos complementares (cross-sell): "Esse colar combina perfeitamente com esses brincos!"
+- Crie urgência quando o estoque for baixo: "Últimas X unidades!"
+- Ofereça o catálogo quando o cliente estiver indeciso
+- Feche a venda proativamente: "Posso separar para você?"
+- Gere PIX quando confirmar a compra
+- Seja entusiasmado e use emojis com moderação`,
+    ordem_prioridade: 0,
+  },
+  {
+    nome: 'Atendente Suporte',
+    departamento: 'suporte',
+    cor: '#3b82f6',
+    palavras_chave: ['problema', 'defeito', 'troca', 'devolução', 'reclamação', 'quebrou', 'errado', 'ajuda', 'suporte', 'garantia'],
+    prompt_sistema: `Você é um atendente de suporte empático e resolutivo.
+
+Regras:
+- Ouça o cliente com atenção antes de responder
+- Peça detalhes sobre o problema (fotos, número do pedido)
+- Ofereça soluções claras: troca, devolução ou reparo
+- Se não puder resolver, transfira para humano com contexto completo
+- Nunca discuta com o cliente
+- Priorize a satisfação do cliente
+- Registre reclamações para melhoria contínua`,
+    ordem_prioridade: 1,
+  },
+  {
+    nome: 'Consultor de Estilo',
+    departamento: 'vendas',
+    cor: '#ec4899',
+    palavras_chave: ['presente', 'ocasião', 'combinar', 'estilo', 'tendência', 'moda', 'casamento', 'formatura', 'aniversário', 'look'],
+    prompt_sistema: `Você é um consultor de estilo especializado em joias e acessórios.
+
+Regras:
+- Pergunte sobre a ocasião (casamento, formatura, dia a dia, presente)
+- Entenda o estilo pessoal (clássico, moderno, minimalista, statement)
+- Sugira combinações harmoniosas de peças
+- Considere o tom de pele e preferências de material (ouro, prata, rosé)
+- Monte looks completos com peças que combinam entre si
+- Sempre busque produtos reais da base de dados
+- Envie fotos das sugestões`,
+    ordem_prioridade: 2,
+  },
+  {
+    nome: 'Agente Financeiro',
+    departamento: 'financeiro',
+    cor: '#eab308',
+    palavras_chave: ['pagamento', 'pix', 'parcelar', 'boleto', 'nota fiscal', 'comprovante', 'parcela', 'preço', 'condição'],
+    prompt_sistema: `Você é o agente financeiro responsável por pagamentos e cobranças.
+
+Regras:
+- Gere PIX quando o cliente confirmar a compra
+- Informe claramente as condições de pagamento
+- Confirme recebimento de comprovantes
+- Não ofereça descontos sem autorização (máximo 5% para pagamento à vista)
+- Registre pedidos corretamente no sistema
+- Seja preciso com valores e condições`,
+    ordem_prioridade: 3,
+  },
+  {
+    nome: 'Recepcionista Digital',
+    departamento: 'geral',
+    cor: '#64748b',
+    palavras_chave: ['olá', 'oi', 'bom dia', 'boa tarde', 'boa noite', 'horário', 'endereço', 'localização', 'funcionamento'],
+    prompt_sistema: `Você é a recepcionista digital, primeiro contato com o cliente.
+
+Regras:
+- Cumprimente calorosamente e pergunte como pode ajudar
+- Identifique a necessidade do cliente rapidamente
+- Encaminhe para o agente correto (vendas, suporte, financeiro)
+- Informe horários de funcionamento e localização
+- Se o cliente quiser comprar, envie o catálogo como ponto de partida
+- Seja sempre simpática e profissional
+- Use emojis com moderação para criar proximidade`,
+    ordem_prioridade: 10,
+  },
+];
+
 export function MultiAgentManager() {
   const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
@@ -337,15 +425,34 @@ export function MultiAgentManager() {
       {isLoading ? (
         <div className="text-center py-8 text-muted-foreground">Carregando...</div>
       ) : agentes.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Bot className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">Nenhum agente configurado ainda.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Crie agentes especializados para diferentes departamentos.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card className="border-dashed border-2">
+            <CardContent className="py-8 text-center">
+              <Bot className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground font-medium">Nenhum agente configurado ainda.</p>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">
+                Comece com nossos agentes pré-definidos ou crie o seu.
+              </p>
+              <Button 
+                onClick={async () => {
+                  for (const template of AGENTES_PREDEFINIDOS) {
+                    await supabase.from('agentes').insert({
+                      ...template,
+                      organization_id: organizationId,
+                      ativo: true,
+                    });
+                  }
+                  queryClient.invalidateQueries({ queryKey: ['agentes'] });
+                  toast.success(`${AGENTES_PREDEFINIDOS.length} agentes pré-definidos criados!`);
+                }}
+                className="gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Carregar {AGENTES_PREDEFINIDOS.length} Agentes Prontos
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agentes.map((agente) => {
