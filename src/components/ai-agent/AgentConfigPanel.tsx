@@ -9,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Save, Bot, CreditCard, MessageSquare, Settings2, Wrench, Clock, Shield, Zap } from 'lucide-react';
+import { Loader2, Save, Bot, CreditCard, MessageSquare, Settings2, Wrench, Clock, Shield, Zap, Sparkles } from 'lucide-react';
 import { useAgentConfig, AgentConfig } from '@/hooks/useAgentConfig';
 import { WhatsAppQRConnect } from './WhatsAppQRConnect';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface AgentConfigPanelProps {
   organizationId: string;
@@ -48,10 +49,120 @@ const DIAS_SEMANA = [
   { value: 6, label: 'Sáb' }
 ];
 
+const AGENT_TEMPLATES: { id: string; nome: string; icon: string; descricao: string; config: Partial<AgentConfig> }[] = [
+  {
+    id: 'joalheria',
+    nome: 'Joalheria / Semijoias',
+    icon: '💎',
+    descricao: 'Especialista em joias, semijoias e acessórios. Conhece materiais, banhos e cuidados.',
+    config: {
+      nome_agente: 'Consultora de Joias',
+      prompt_sistema: `Você é uma consultora especializada em joias e semijoias. Seu papel é:
+- Ajudar clientes a escolher peças ideais para cada ocasião
+- Explicar sobre materiais (ouro, prata, banho de ouro, ródio, etc.)
+- Informar sobre cuidados e conservação das peças
+- Sugerir combinações e presentes
+- Auxiliar com pedidos, preços e formas de pagamento
+- Ser elegante, atenciosa e criar uma experiência premium de atendimento
+Sempre pergunte a ocasião e preferências do cliente para personalizar sugestões.`,
+      mensagem_boas_vindas: '✨ Olá! Sou sua consultora de joias. Posso ajudar você a encontrar a peça perfeita! Qual a ocasião especial?',
+      tom_resposta: 'amigavel',
+      temperatura: 0.7,
+      cor_primaria: '#D4AF37',
+    }
+  },
+  {
+    id: 'vendas',
+    nome: 'Vendas Agressivo',
+    icon: '🚀',
+    descricao: 'Focado em conversão e fechamento de vendas com técnicas persuasivas.',
+    config: {
+      nome_agente: 'Especialista em Vendas',
+      prompt_sistema: `Você é um especialista em vendas de alto desempenho. Seu objetivo é:
+- Identificar a necessidade do cliente rapidamente
+- Apresentar produtos relevantes com foco nos benefícios
+- Usar gatilhos de urgência e escassez quando apropriado
+- Oferecer condições especiais para fechar a venda
+- Sugerir upsell e cross-sell naturalmente
+- Nunca ser agressivo demais, mas sempre direcionar para o fechamento
+Use emojis moderadamente e seja direto nas respostas.`,
+      mensagem_boas_vindas: '🔥 Oi! Que bom ter você aqui! Temos novidades incríveis. O que você está procurando hoje?',
+      tom_resposta: 'entusiasmado',
+      temperatura: 0.8,
+      cor_primaria: '#ef4444',
+    }
+  },
+  {
+    id: 'suporte',
+    nome: 'Suporte Técnico',
+    icon: '🛠️',
+    descricao: 'Atendimento focado em resolver problemas e tirar dúvidas técnicas.',
+    config: {
+      nome_agente: 'Suporte ao Cliente',
+      prompt_sistema: `Você é um agente de suporte técnico dedicado. Suas diretrizes são:
+- Ouvir atentamente o problema do cliente
+- Fazer perguntas objetivas para diagnosticar a situação
+- Fornecer soluções passo a passo claras
+- Verificar status de pedidos e entregas quando solicitado
+- Escalar para atendimento humano quando necessário
+- Manter tom calmo, empático e profissional
+- Sempre confirmar se o problema foi resolvido antes de encerrar
+Priorize a resolução no primeiro contato.`,
+      mensagem_boas_vindas: '👋 Olá! Sou do suporte. Como posso ajudar você hoje? Descreva sua dúvida ou problema.',
+      tom_resposta: 'profissional',
+      temperatura: 0.5,
+      cor_primaria: '#3b82f6',
+    }
+  },
+  {
+    id: 'concierge',
+    nome: 'Concierge Premium',
+    icon: '🎩',
+    descricao: 'Atendimento VIP e personalizado para clientes de alto valor.',
+    config: {
+      nome_agente: 'Concierge Exclusivo',
+      prompt_sistema: `Você é um concierge exclusivo de atendimento premium. Seu papel é:
+- Tratar cada cliente como VIP, com máxima personalização
+- Conhecer profundamente o catálogo e fazer recomendações sofisticadas
+- Oferecer experiências exclusivas: pré-lançamentos, peças especiais, gravações
+- Lembrar preferências e histórico do cliente
+- Sugerir embalagens para presente e mensagens personalizadas
+- Usar linguagem elegante e refinada, sem ser artificial
+- Antecipar necessidades do cliente
+Cada interação deve ser memorável e criar fidelização.`,
+      mensagem_boas_vindas: '🌟 Bem-vindo(a)! É um prazer atendê-lo(a) pessoalmente. Em que posso tornar sua experiência especial hoje?',
+      tom_resposta: 'profissional',
+      temperatura: 0.6,
+      cor_primaria: '#1a1a2e',
+    }
+  },
+  {
+    id: 'minimalista',
+    nome: 'Rápido e Direto',
+    icon: '⚡',
+    descricao: 'Respostas curtas e objetivas, sem enrolação.',
+    config: {
+      nome_agente: 'Assistente Rápido',
+      prompt_sistema: `Você é um assistente ultra-eficiente. Regras:
+- Respostas curtas e diretas (máximo 2-3 frases)
+- Vá direto ao ponto sem rodeios
+- Use listas quando necessário
+- Confirme ações com uma frase
+- Só elabore se o cliente pedir
+- Sem emojis excessivos (máximo 1 por mensagem)`,
+      mensagem_boas_vindas: 'Oi! Como posso ajudar?',
+      tom_resposta: 'minimalista',
+      temperatura: 0.3,
+      max_tokens: 512,
+      cor_primaria: '#64748b',
+    }
+  }
+];
+
 export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
   const { config, isLoading, saveConfig, defaultConfig } = useAgentConfig(organizationId);
-  
   const [formData, setFormData] = useState<Partial<AgentConfig>>({});
+  const [showTemplates, setShowTemplates] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -63,6 +174,14 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
 
   const handleSave = () => {
     saveConfig.mutate(formData);
+  };
+
+  const applyTemplate = (template: typeof AGENT_TEMPLATES[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      ...template.config,
+    }));
+    setShowTemplates(false);
   };
 
   const updateField = <K extends keyof AgentConfig>(field: K, value: AgentConfig[K]) => {
@@ -138,6 +257,59 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
 
         {/* Aba Geral */}
         <TabsContent value="geral" className="space-y-6 mt-6">
+          {/* Template Selector */}
+          <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
+            <CardContent className="pt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <div>
+                    <h4 className="font-medium">Modelos Pré-definidos</h4>
+                    <p className="text-xs text-muted-foreground">Comece com um modelo pronto e personalize depois</p>
+                  </div>
+                </div>
+                <Dialog open={showTemplates} onOpenChange={setShowTemplates}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Usar Modelo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5" />
+                        Escolha um Modelo de Agente
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-3 mt-4">
+                      {AGENT_TEMPLATES.map((template) => (
+                        <div
+                          key={template.id}
+                          className="flex items-start gap-4 p-4 rounded-lg border hover:border-primary hover:bg-primary/5 cursor-pointer transition-all"
+                          onClick={() => applyTemplate(template)}
+                        >
+                          <span className="text-3xl">{template.icon}</span>
+                          <div className="flex-1">
+                            <h4 className="font-semibold">{template.nome}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">{template.descricao}</p>
+                            <div className="flex gap-2 mt-2">
+                              <Badge variant="secondary" className="text-xs">{template.config.tom_resposta}</Badge>
+                              <Badge variant="outline" className="text-xs">Temp: {template.config.temperatura}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      ⚠️ Aplicar um modelo substituirá o nome, prompt, tom e parâmetros atuais. Suas configurações de PIX, WhatsApp e horários serão mantidas.
+                    </p>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -582,8 +754,8 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
                 <Input
                   id="gemini_api_key"
                   type="password"
-                  value={(formData as any).gemini_api_key || ''}
-                  onChange={(e) => updateField('gemini_api_key' as any, e.target.value)}
+                  value={formData.gemini_api_key || ''}
+                  onChange={(e) => updateField('gemini_api_key', e.target.value)}
                   placeholder="AIzaSy..."
                 />
                 <p className="text-xs text-muted-foreground">
@@ -594,7 +766,7 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
                   Ela será usada para o agente processar mensagens do WhatsApp.
                 </p>
               </div>
-              {(formData as any).gemini_api_key && (
+              {formData.gemini_api_key && (
                 <div className="p-3 bg-primary/10 rounded-lg">
                   <p className="text-sm text-primary">
                     ✅ Chave Gemini configurada
