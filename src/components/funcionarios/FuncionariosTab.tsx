@@ -496,60 +496,140 @@ export function FuncionariosTab() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Módulo</TableHead>
-                  <TableHead className="text-center">Ver</TableHead>
-                  <TableHead className="text-center">Criar</TableHead>
-                  <TableHead className="text-center">Editar</TableHead>
-                  <TableHead className="text-center">Excluir</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {MODULOS.map((modulo) => {
-                  const perm = getPermissaoForModulo(modulo.id);
-                  return (
-                    <TableRow key={modulo.id}>
-                      <TableCell className="font-medium">{modulo.nome}</TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={perm.pode_ver}
-                          onCheckedChange={(checked) =>
-                            handlePermissaoChange(modulo.id, 'pode_ver', checked as boolean)
+          {/* Ações rápidas */}
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <span className="text-xs text-muted-foreground mr-auto">Ações rápidas:</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => {
+                if (!selectedFuncionario) return;
+                MODULOS.forEach((m) => {
+                  updatePermissao.mutate({
+                    funcionario_id: selectedFuncionario.id,
+                    modulo: m.id,
+                    pode_ver: true,
+                    pode_criar: true,
+                    pode_editar: true,
+                    pode_excluir: true,
+                  });
+                });
+              }}
+            >
+              ✅ Liberar tudo
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7"
+              onClick={() => {
+                if (!selectedFuncionario) return;
+                MODULOS.forEach((m) => {
+                  updatePermissao.mutate({
+                    funcionario_id: selectedFuncionario.id,
+                    modulo: m.id,
+                    pode_ver: true,
+                    pode_criar: false,
+                    pode_editar: false,
+                    pode_excluir: false,
+                  });
+                });
+              }}
+            >
+              👁️ Só visualizar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-7 text-destructive"
+              onClick={() => {
+                if (!selectedFuncionario) return;
+                MODULOS.forEach((m) => {
+                  updatePermissao.mutate({
+                    funcionario_id: selectedFuncionario.id,
+                    modulo: m.id,
+                    pode_ver: false,
+                    pode_criar: false,
+                    pode_editar: false,
+                    pode_excluir: false,
+                  });
+                });
+              }}
+            >
+              🚫 Bloquear tudo
+            </Button>
+          </div>
+
+          <div className="flex-1 overflow-auto space-y-2 py-2">
+            {MODULOS.map((modulo) => {
+              const perm = getPermissaoForModulo(modulo.id);
+              const allEnabled = perm.pode_ver && perm.pode_criar && perm.pode_editar && perm.pode_excluir;
+              const noneEnabled = !perm.pode_ver && !perm.pode_criar && !perm.pode_editar && !perm.pode_excluir;
+
+              return (
+                <div
+                  key={modulo.id}
+                  className={`rounded-lg border p-3 transition-colors ${
+                    noneEnabled
+                      ? 'bg-muted/30 border-border/50 opacity-60'
+                      : allEnabled
+                      ? 'bg-primary/5 border-primary/20'
+                      : 'bg-background border-border'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-sm">{modulo.nome}</span>
+                    <Switch
+                      checked={perm.pode_ver}
+                      onCheckedChange={(checked) => {
+                        if (!selectedFuncionario) return;
+                        if (!checked) {
+                          updatePermissao.mutate({
+                            funcionario_id: selectedFuncionario.id,
+                            modulo: modulo.id,
+                            pode_ver: false,
+                            pode_criar: false,
+                            pode_editar: false,
+                            pode_excluir: false,
+                          });
+                        } else {
+                          handlePermissaoChange(modulo.id, 'pode_ver', true);
+                        }
+                      }}
+                    />
+                  </div>
+                  {perm.pode_ver && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {[
+                        { key: 'pode_criar', label: 'Criar' },
+                        { key: 'pode_editar', label: 'Editar' },
+                        { key: 'pode_excluir', label: 'Excluir' },
+                      ].map((action) => (
+                        <button
+                          key={action.key}
+                          type="button"
+                          onClick={() =>
+                            handlePermissaoChange(
+                              modulo.id,
+                              action.key,
+                              !(perm as any)[action.key]
+                            )
                           }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={perm.pode_criar}
-                          onCheckedChange={(checked) =>
-                            handlePermissaoChange(modulo.id, 'pode_criar', checked as boolean)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={perm.pode_editar}
-                          onCheckedChange={(checked) =>
-                            handlePermissaoChange(modulo.id, 'pode_editar', checked as boolean)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Checkbox
-                          checked={perm.pode_excluir}
-                          onCheckedChange={(checked) =>
-                            handlePermissaoChange(modulo.id, 'pode_excluir', checked as boolean)
-                          }
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                          className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium border transition-colors cursor-pointer ${
+                            (perm as any)[action.key]
+                              ? 'bg-primary/10 border-primary/30 text-primary'
+                              : 'bg-muted/50 border-border text-muted-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {(perm as any)[action.key] ? '✓' : '○'} {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <DialogFooter>
