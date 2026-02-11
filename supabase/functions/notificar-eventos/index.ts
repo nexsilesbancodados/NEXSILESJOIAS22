@@ -181,7 +181,7 @@ serve(async (req) => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "Nexsiles <noreply@nexsiles.online>",
+      from: "Nexsiles <noreply@nexsales.online>",
       to: [ownerProfile.email],
       subject,
       html,
