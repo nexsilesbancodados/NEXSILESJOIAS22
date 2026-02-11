@@ -162,19 +162,27 @@ export type Database = {
           closed_at: string | null
           closed_by: string | null
           created_at: string
+          follow_up_at: string | null
+          follow_up_enviado: boolean | null
           id: string
+          lead_score: string | null
           nps_comentario: string | null
           nps_enviado_at: string | null
           nps_rating: number | null
           organization_id: string | null
           origem: string | null
+          produtos_interesse: string[] | null
           sentimento: string | null
           sentimento_score: number | null
           session_id: string
           status: string | null
           tempo_primeira_resposta: number | null
           total_mensagens: number | null
+          ultimo_contato_at: string | null
           updated_at: string
+          valor_venda: number | null
+          venda_id: string | null
+          venda_realizada: boolean | null
         }
         Insert: {
           ab_teste_id?: string | null
@@ -186,19 +194,27 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           created_at?: string
+          follow_up_at?: string | null
+          follow_up_enviado?: boolean | null
           id?: string
+          lead_score?: string | null
           nps_comentario?: string | null
           nps_enviado_at?: string | null
           nps_rating?: number | null
           organization_id?: string | null
           origem?: string | null
+          produtos_interesse?: string[] | null
           sentimento?: string | null
           sentimento_score?: number | null
           session_id: string
           status?: string | null
           tempo_primeira_resposta?: number | null
           total_mensagens?: number | null
+          ultimo_contato_at?: string | null
           updated_at?: string
+          valor_venda?: number | null
+          venda_id?: string | null
+          venda_realizada?: boolean | null
         }
         Update: {
           ab_teste_id?: string | null
@@ -210,19 +226,27 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           created_at?: string
+          follow_up_at?: string | null
+          follow_up_enviado?: boolean | null
           id?: string
+          lead_score?: string | null
           nps_comentario?: string | null
           nps_enviado_at?: string | null
           nps_rating?: number | null
           organization_id?: string | null
           origem?: string | null
+          produtos_interesse?: string[] | null
           sentimento?: string | null
           sentimento_score?: number | null
           session_id?: string
           status?: string | null
           tempo_primeira_resposta?: number | null
           total_mensagens?: number | null
+          ultimo_contato_at?: string | null
           updated_at?: string
+          valor_venda?: number | null
+          venda_id?: string | null
+          venda_realizada?: boolean | null
         }
         Relationships: [
           {
@@ -244,6 +268,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_conversas_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
             referencedColumns: ["id"]
           },
         ]
