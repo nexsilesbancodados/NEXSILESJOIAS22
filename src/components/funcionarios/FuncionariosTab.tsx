@@ -313,6 +313,7 @@ export function FuncionariosTab() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="admin">Administrador (Acesso Total)</SelectItem>
                       <SelectItem value="vendedor">Vendedor(a)</SelectItem>
                       <SelectItem value="gerente">Gerente</SelectItem>
                       <SelectItem value="caixa">Caixa</SelectItem>
@@ -321,6 +322,16 @@ export function FuncionariosTab() {
                       <SelectItem value="outro">Outro</SelectItem>
                     </SelectContent>
                   </Select>
+                  {cargo === 'admin' && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">
+                      ⚠️ Administradores terão acesso total a todas as funções do sistema
+                    </p>
+                  )}
+                  {cargo !== 'admin' && (
+                    <p className="text-xs text-muted-foreground">
+                      Após cadastrar, configure as permissões deste funcionário
+                    </p>
+                  )}
                 </div>
               </div>
 
