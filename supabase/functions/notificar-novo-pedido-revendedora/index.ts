@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
         }).join('');
 
         const { error: emailError } = await resend.emails.send({
-          from: 'Nexsiles <noreply@nexsiles.online>',
+          from: 'Nexsiles <noreply@nexsales.online>',
           to: [revendedoraEmail],
           subject: `🛒 Novo Pedido de ${interesse.cliente_nome}!`,
           html: `
