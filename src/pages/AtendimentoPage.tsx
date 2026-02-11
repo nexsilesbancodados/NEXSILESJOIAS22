@@ -16,10 +16,6 @@ import {
   RefreshCw,
   LayoutDashboard,
   Star,
-  Sparkles,
-  Mail,
-  Calendar,
-  Users,
   SmilePlus,
   FlaskConical,
   FileDown,
@@ -34,10 +30,6 @@ import { useAutoSetupAgent } from '@/hooks/useAutoSetupAgent';
 import { AgentConfigPanel } from '@/components/ai-agent/AgentConfigPanel';
 import { ConversasDashboard } from '@/components/ai-agent/ConversasDashboard';
 import { NPSDashboard } from '@/components/ai-agent/NPSDashboard';
-import { RecommendationsPanel } from '@/components/ai-agent/RecommendationsPanel';
-import { EmailManager } from '@/components/ai-agent/EmailManager';
-import { AgendamentosPanel } from '@/components/ai-agent/AgendamentosPanel';
-import { MultiAgentManager } from '@/components/ai-agent/MultiAgentManager';
 import { SentimentDashboard } from '@/components/ai-agent/SentimentDashboard';
 import { ABTestingPanel } from '@/components/ai-agent/ABTestingPanel';
 import { AgentReportExport } from '@/components/ai-agent/AgentReportExport';
@@ -153,22 +145,6 @@ export default function AtendimentoPage() {
               <Star className="h-4 w-4" />
               <span className="hidden sm:inline">NPS</span>
             </TabsTrigger>
-            <TabsTrigger value="recomendacoes" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Recomendações</span>
-            </TabsTrigger>
-            <TabsTrigger value="email" className="gap-2">
-              <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">E-mail</span>
-            </TabsTrigger>
-            <TabsTrigger value="agendamentos" className="gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Agenda</span>
-            </TabsTrigger>
-            <TabsTrigger value="multi-agentes" className="gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Agentes</span>
-            </TabsTrigger>
             <TabsTrigger value="sentimento" className="gap-2">
               <SmilePlus className="h-4 w-4" />
               <span className="hidden sm:inline">Sentimento</span>
@@ -203,23 +179,6 @@ export default function AtendimentoPage() {
         <TabsContent value="nps" className="space-y-0">
           <NPSDashboard />
         </TabsContent>
-
-        <TabsContent value="recomendacoes" className="space-y-0">
-          <RecommendationsPanel />
-        </TabsContent>
-
-        <TabsContent value="email" className="space-y-0">
-          <EmailManager />
-        </TabsContent>
-
-        <TabsContent value="agendamentos" className="space-y-0">
-          <AgendamentosPanel />
-        </TabsContent>
-
-        <TabsContent value="multi-agentes" className="space-y-0">
-          <MultiAgentManager />
-        </TabsContent>
-
 
         <TabsContent value="sentimento" className="space-y-0">
           <SentimentDashboard />
