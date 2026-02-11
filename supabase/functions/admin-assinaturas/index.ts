@@ -155,7 +155,9 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === 'PUT') {
-      const { id, user_id, updates } = await req.json();
+      const body = await req.json();
+      const { id, user_id, updates } = body;
+      console.log('PUT request:', JSON.stringify({ id, user_id, updates }));
       
       if (id) {
         // Update existing subscription
@@ -163,20 +165,33 @@ Deno.serve(async (req) => {
           .from('assinaturas')
           .update({ ...updates, updated_at: new Date().toISOString() })
           .eq('id', id);
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
       } else if (user_id) {
         // Create subscription for user without one
+        const now = new Date();
+        const defaultVencimento = new Date(now);
+        defaultVencimento.setMonth(defaultVencimento.getMonth() + 1);
+        
+        const insertData = {
+          user_id,
+          plano: updates.plano || 'nexsiles',
+          status: updates.status || 'ativo',
+          data_vencimento: updates.data_vencimento || defaultVencimento.toISOString(),
+          valor_mensal: updates.valor_mensal ?? 0,
+          data_inicio: now.toISOString(),
+        };
+        console.log('Inserting new subscription:', JSON.stringify(insertData));
+        
         const { error } = await adminClient
           .from('assinaturas')
-          .insert({
-            user_id,
-            plano: updates.plano || 'nexsiles',
-            status: updates.status || 'ativo',
-            data_vencimento: updates.data_vencimento,
-            valor_mensal: updates.valor_mensal || 0,
-            data_inicio: new Date().toISOString(),
-          });
-        if (error) throw error;
+          .insert(insertData);
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
       } else {
         return new Response(JSON.stringify({ error: 'ID ou user_id obrigatório' }), {
           status: 400,
