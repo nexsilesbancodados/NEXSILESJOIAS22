@@ -971,7 +971,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, organizationId, sessionId } = await req.json();
+    const { messages, organizationId, sessionId, clienteTelefone } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
       throw new Error("Messages array is required");
@@ -1130,9 +1130,150 @@ serve(async (req) => {
       console.error('Error enriching prompt:', e);
     }
 
+    // === MEMÓRIA DE LONGO PRAZO DO CLIENTE ===
+    let clientMemory = '';
+    try {
+      let telefoneCliente = clienteTelefone || null;
+      
+      // If no phone provided, try to find from current session
+      if (!telefoneCliente && sessionId) {
+        const { data: currentConv } = await supabase
+          .from('agente_conversas')
+          .select('cliente_telefone, cliente_nome')
+          .eq('session_id', sessionId)
+          .eq('organization_id', organizationId)
+          .maybeSingle();
+        if (currentConv?.cliente_telefone) {
+          telefoneCliente = currentConv.cliente_telefone;
+        }
+      }
+
+      if (telefoneCliente) {
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        
+        const { data: pastConversas } = await supabase
+          .from('agente_conversas')
+          .select('id, created_at, sentimento, lead_score, venda_realizada, valor_venda, produtos_interesse, cliente_nome')
+          .eq('organization_id', organizationId)
+          .eq('cliente_telefone', telefoneCliente)
+          .neq('session_id', sessionId || '__none__')
+          .gte('created_at', sixMonthsAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (pastConversas && pastConversas.length > 0) {
+          const clienteNome = pastConversas[0].cliente_nome || 'Cliente';
+          const totalConversas = pastConversas.length;
+          const vendasRealizadas = pastConversas.filter((c: any) => c.venda_realizada).length;
+          const valorTotalGasto = pastConversas.reduce((sum: number, c: any) => sum + (c.valor_venda || 0), 0);
+          const ultimoContato = new Date(pastConversas[0].created_at).toLocaleDateString('pt-BR');
+          const sentimentoRecente = pastConversas[0].sentimento;
+          
+          const todosInteresses = pastConversas
+            .flatMap((c: any) => c.produtos_interesse || [])
+            .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
+            .slice(0, 10);
+
+          // Fetch last messages from previous conversations
+          const conversaIds = pastConversas.slice(0, 3).map((c: any) => c.id);
+          const { data: pastMessages } = await supabase
+            .from('agente_mensagens')
+            .select('content, role, created_at, conversa_id')
+            .in('conversa_id', conversaIds)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+          let resumoConversas = '';
+          if (pastMessages && pastMessages.length > 0) {
+            const grouped: Record<string, any[]> = {};
+            for (const msg of pastMessages) {
+              if (!grouped[msg.conversa_id]) grouped[msg.conversa_id] = [];
+              grouped[msg.conversa_id].push(msg);
+            }
+            
+            let convIdx = 0;
+            for (const convId of conversaIds) {
+              if (convIdx >= 3) break;
+              const msgs = grouped[convId];
+              if (!msgs || msgs.length === 0) continue;
+              const conv = pastConversas.find((c: any) => c.id === convId);
+              const dataConv = new Date(conv?.created_at).toLocaleDateString('pt-BR');
+              
+              const lastMsgs = msgs.slice(0, 4).reverse();
+              resumoConversas += `\n### Conversa em ${dataConv}${conv?.venda_realizada ? ' (VENDA - R$' + (conv?.valor_venda || 0).toFixed(2) + ')' : ''}:\n`;
+              for (const m of lastMsgs) {
+                const prefix = m.role === 'user' ? '👤 Cliente' : '🤖 Agente';
+                const content = m.content.length > 150 ? m.content.substring(0, 150) + '...' : m.content;
+                resumoConversas += `${prefix}: ${content}\n`;
+              }
+              convIdx++;
+            }
+          }
+
+          // Fetch purchase history
+          let historicoCompras = '';
+          const { data: clienteData } = await supabase
+            .from('clientes')
+            .select('id, nome, pontos_fidelidade, data_nascimento')
+            .eq('organization_id', organizationId)
+            .or(`telefone.eq.${telefoneCliente},whatsapp.eq.${telefoneCliente}`)
+            .maybeSingle();
+
+          if (clienteData) {
+            const { data: compras } = await supabase
+              .from('vendas')
+              .select('id, numero, valor_total, status, data_venda, created_at')
+              .eq('organization_id', organizationId)
+              .eq('cliente_id', clienteData.id)
+              .order('created_at', { ascending: false })
+              .limit(5);
+
+            if (compras && compras.length > 0) {
+              historicoCompras = `\n### Compras Anteriores:\n`;
+              for (const c of compras) {
+                const dataCompra = new Date(c.data_venda || c.created_at).toLocaleDateString('pt-BR');
+                historicoCompras += `- Pedido #${c.numero || c.id.toString().slice(0, 8)} em ${dataCompra}: R$ ${(c.valor_total || 0).toFixed(2)} (${c.status})\n`;
+              }
+            }
+            if (clienteData.pontos_fidelidade) {
+              historicoCompras += `\n- Pontos de fidelidade: ${clienteData.pontos_fidelidade}\n`;
+            }
+            if (clienteData.data_nascimento) {
+              historicoCompras += `- Aniversário: ${new Date(clienteData.data_nascimento).toLocaleDateString('pt-BR')}\n`;
+            }
+          }
+
+          clientMemory = `
+
+## 🧠 MEMÓRIA DO CLIENTE (USE ESTAS INFORMAÇÕES!)
+
+**Cliente:** ${clienteNome}
+**Telefone:** ${telefoneCliente}
+**Conversas anteriores:** ${totalConversas}
+**Compras via agente:** ${vendasRealizadas} (R$ ${valorTotalGasto.toFixed(2)})
+**Último contato:** ${ultimoContato}
+**Sentimento recente:** ${sentimentoRecente || 'N/A'}
+${todosInteresses.length > 0 ? `**Interesses:** ${todosInteresses.join(', ')}` : ''}
+
+### INSTRUÇÕES DE MEMÓRIA:
+- NÃO trate como cliente novo. Use o nome naturalmente.
+- Referencie compras anteriores: "Da última vez você levou [produto], gostou?"
+- Retome interesses não finalizados: "Lembra daquela peça que te interessou?"
+- Clientes recorrentes = tratamento VIP.
+${historicoCompras}
+${resumoConversas}`;
+        }
+      }
+    } catch (e) {
+      console.error('Error building client memory:', e);
+    }
+
     const systemPrompt = `${basePrompt}
 
 ${knowledgeBase}
+
+${clientMemory}
 
 ## MODO: AUTONOMIA TOTAL DE VENDAS
 

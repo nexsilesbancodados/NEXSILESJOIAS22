@@ -164,6 +164,7 @@ serve(async (req) => {
         messages,
         organizationId,
         sessionId,
+        clienteTelefone: phoneNumber,
         source: 'whatsapp',
         autoSendWhatsApp: true,
         whatsappPhone: phoneNumber
