@@ -42,6 +42,39 @@ serve(async (req) => {
     const finalInstanceName = instanceName || `org_${organizationId.substring(0, 8)}`;
 
     switch (action) {
+      case 'reconfigure-webhook': {
+        // Force reconfigure webhook for existing instance
+        const rwUrl = `${supabaseUrl}/functions/v1/webhook-whatsapp`;
+        console.log('Reconfiguring webhook for:', finalInstanceName, 'URL:', rwUrl);
+
+        const rwResponse = await fetch(`${baseUrl}/webhook/set/${finalInstanceName}`, {
+          method: 'POST',
+          headers: {
+            'apikey': evolutionKey,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            webhook: {
+              enabled: true,
+              url: rwUrl,
+              webhookByEvents: false,
+              webhookBase64: false,
+              events: ['MESSAGES_UPSERT', 'CONNECTION_UPDATE']
+            }
+          })
+        });
+
+        const rwResult = await rwResponse.json();
+        console.log('Webhook reconfigure result:', JSON.stringify(rwResult));
+
+        return new Response(JSON.stringify({
+          success: true,
+          webhook: rwResult
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       case 'create': {
         console.log('Creating instance:', finalInstanceName);
         console.log('Request URL:', `${baseUrl}/instance/create`);
@@ -65,11 +98,9 @@ serve(async (req) => {
         console.log('Create result:', JSON.stringify(createResult));
 
         if (!createResponse.ok) {
-          // Instance might already exist, try to connect
           if (createResult.message?.includes('already') || createResult.error?.includes('already')) {
-            console.log('Instance already exists, getting connection status');
+            console.log('Instance already exists, reconfiguring webhook anyway');
           } else {
-            // Log full error for debugging
             console.error('Evolution API error:', {
               status: createResponse.status,
               statusText: createResponse.statusText,
@@ -90,13 +121,16 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            url: webhookUrl,
-            webhook_by_events: false,
-            webhook_base64: false,
-            events: [
-              'MESSAGES_UPSERT',
-              'CONNECTION_UPDATE'
-            ]
+            webhook: {
+              enabled: true,
+              url: webhookUrl,
+              webhookByEvents: false,
+              webhookBase64: false,
+              events: [
+                'MESSAGES_UPSERT',
+                'CONNECTION_UPDATE'
+              ]
+            }
           })
         });
 
