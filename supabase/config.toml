@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.criar-codigo-externo]
 verify_jwt = false
+
+[functions.admin-assinaturas]
+verify_jwt = false
+
+[functions.validate-access]
+verify_jwt = false

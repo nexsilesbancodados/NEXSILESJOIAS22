@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { db } from '@/lib/supabase-db';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,34 +54,18 @@ export default function SuperAdminPage() {
   const { data: assinaturas = [], isLoading, refetch } = useQuery({
     queryKey: ['super-admin-assinaturas'],
     queryFn: async () => {
-      const { data, error } = await db
-        .from('assinaturas')
-        .select('*, profiles!assinaturas_user_id_fkey(nome, email)')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        // Fallback: fetch without join
-        const { data: assData, error: assError } = await db
-          .from('assinaturas')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (assError) throw assError;
-
-        // Fetch profiles separately
-        const userIds = (assData || []).map((a: any) => a.user_id);
-        const { data: profiles } = await db
-          .from('profiles')
-          .select('user_id, nome, email')
-          .in('user_id', userIds);
-
-        return (assData || []).map((a: any) => ({
-          ...a,
-          profiles: (profiles || []).find((p: any) => p.user_id === a.user_id) || null,
-        }));
-      }
-
-      return data as AssinaturaRow[];
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL || 'https://ljofnwcvpzqlhagejgbk.supabase.co'}/functions/v1/admin-assinaturas`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (!res.ok) throw new Error('Erro ao buscar assinaturas');
+      return await res.json() as AssinaturaRow[];
     },
     enabled: !!isSuperAdmin,
   });
@@ -90,24 +74,38 @@ export default function SuperAdminPage() {
   const { data: allProfiles = [] } = useQuery({
     queryKey: ['super-admin-profiles'],
     queryFn: async () => {
-      const { data, error } = await db
-        .from('profiles')
-        .select('user_id, nome, email, created_at')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
+      // Profiles are already fetched via the edge function joined data
+      // Use assinaturas profiles as base, no separate query needed
+      return assinaturas.map((a: any) => ({
+        user_id: a.user_id,
+        nome: a.profiles?.nome,
+        email: a.profiles?.email,
+        created_at: a.created_at,
+      }));
     },
-    enabled: !!isSuperAdmin,
+    enabled: !!isSuperAdmin && assinaturas.length > 0,
   });
+
+  const edgeFnUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://ljofnwcvpzqlhagejgbk.supabase.co'}/functions/v1/admin-assinaturas`;
+
+  const getAuthHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return {
+      Authorization: `Bearer ${session?.access_token}`,
+      'Content-Type': 'application/json',
+    };
+  };
 
   // Update subscription mutation
   const updateAssinatura = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Record<string, any> }) => {
-      const { error } = await db
-        .from('assinaturas')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id);
-      if (error) throw error;
+      const headers = await getAuthHeaders();
+      const res = await fetch(edgeFnUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ id, updates }),
+      });
+      if (!res.ok) throw new Error('Erro ao atualizar');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-assinaturas'] });
@@ -122,8 +120,13 @@ export default function SuperAdminPage() {
   // Create subscription mutation
   const createAssinatura = useMutation({
     mutationFn: async (data: Record<string, any>) => {
-      const { error } = await db.from('assinaturas').insert(data);
-      if (error) throw error;
+      const headers = await getAuthHeaders();
+      const res = await fetch(edgeFnUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Erro ao criar');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-assinaturas'] });
