@@ -1413,7 +1413,20 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
         });
       }
 
+      // Small delay to avoid rate limiting on second call
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Clean assistant message for follow-up (remove undefined content)
+      const cleanAssistantMsg: Record<string, unknown> = {
+        role: 'assistant',
+        tool_calls: assistantMessage.tool_calls,
+      };
+      if (assistantMessage.content) {
+        cleanAssistantMsg.content = assistantMessage.content;
+      }
+
       // Second AI call with tool results
+      console.log('Making follow-up call with', toolResults.length, 'tool results');
       const followUpResponse = await fetch(aiBaseUrl, {
         method: 'POST',
         headers: aiHeaders,
@@ -1422,25 +1435,29 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages,
-            assistantMessage,
+            cleanAssistantMsg,
             ...toolResults
           ],
-          temperature: 0.7
+          temperature: 0.7,
+          max_tokens: config?.max_tokens || 1024
         })
       });
 
       if (!followUpResponse.ok) {
-        console.error('Follow-up AI error:', await followUpResponse.text());
+        const followUpError = await followUpResponse.text();
+        console.error('Follow-up AI error:', followUpResponse.status, followUpError);
         // Return tool results directly if follow-up fails
+        const fallbackContent = toolResults.map(r => r.content).join('\n\n');
         return new Response(JSON.stringify({
-          content: toolResults.map(r => r.content).join('\n\n'),
-          tool_results: toolResults
+          content: fallbackContent || 'Desculpe, houve um erro ao processar. Tente novamente.',
+          role: 'assistant'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       const followUpData = await followUpResponse.json();
+      console.log('Follow-up response received:', !!followUpData.choices?.[0]?.message?.content);
       assistantMessage = followUpData.choices?.[0]?.message;
     }
 
