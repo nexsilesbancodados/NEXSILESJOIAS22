@@ -45,6 +45,17 @@ REGRAS DE OURO:
   respostas_rapidas: [],
   palavras_proibidas: [],
   limite_mensagens_sessao: 50,
+  alertas_config: {
+    nova_venda: true,
+    novo_pedido: true,
+    atendimento_humano: true,
+    nps_negativo: true,
+    lead_quente: true,
+    conversa_encerrada: false,
+    erro_agente: true,
+    estoque_baixo: true,
+    follow_up_pendente: false,
+  },
 };
 
 const DEFAULT_AGENTS = [
@@ -196,6 +207,7 @@ export function useAutoSetupAgent(organizationId: string) {
               ferramentas_ativas: DEFAULT_CONFIG.ferramentas_ativas as any,
               horario_funcionamento: DEFAULT_CONFIG.horario_funcionamento as any,
               respostas_rapidas: DEFAULT_CONFIG.respostas_rapidas as any,
+              alertas_config: DEFAULT_CONFIG.alertas_config as any,
             } as any).select().then(r => r)
           );
         }
