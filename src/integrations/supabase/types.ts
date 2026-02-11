@@ -367,6 +367,7 @@ export type Database = {
           email_nome_remetente: string | null
           email_remetente: string | null
           ferramentas_ativas: Json | null
+          gemini_api_key: string | null
           horario_funcionamento: Json | null
           id: string
           idioma: string | null
@@ -408,6 +409,7 @@ export type Database = {
           email_nome_remetente?: string | null
           email_remetente?: string | null
           ferramentas_ativas?: Json | null
+          gemini_api_key?: string | null
           horario_funcionamento?: Json | null
           id?: string
           idioma?: string | null
@@ -449,6 +451,7 @@ export type Database = {
           email_nome_remetente?: string | null
           email_remetente?: string | null
           ferramentas_ativas?: Json | null
+          gemini_api_key?: string | null
           horario_funcionamento?: Json | null
           id?: string
           idioma?: string | null
