@@ -674,57 +674,96 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
                 </div>
                 <Switch
                   checked={formData.horario_funcionamento?.ativo ?? false}
-                  onCheckedChange={(checked) => updateHorario('ativo', checked)}
+                  onCheckedChange={(checked) => {
+                    updateHorario('ativo', checked);
+                    if (checked) {
+                      updateHorario('modo_24h', false);
+                    }
+                  }}
                 />
               </div>
 
+              {!formData.horario_funcionamento?.ativo && (
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-200 dark:border-green-800">
+                  <Zap className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    <span className="font-medium">Modo 24 horas ativo</span> — O agente responde a qualquer hora, todos os dias.
+                  </p>
+                </div>
+              )}
+
               {formData.horario_funcionamento?.ativo && (
                 <>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Início</Label>
-                      <Input
-                        type="time"
-                        value={formData.horario_funcionamento?.inicio || '09:00'}
-                        onChange={(e) => updateHorario('inicio', e.target.value)}
-                      />
+                  <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-primary" />
+                      <div>
+                        <Label className="cursor-pointer">Ligado 24 horas</Label>
+                        <p className="text-xs text-muted-foreground">Responder todos os dias, sem restrição de horário</p>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Fim</Label>
-                      <Input
-                        type="time"
-                        value={formData.horario_funcionamento?.fim || '18:00'}
-                        onChange={(e) => updateHorario('fim', e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Dias de Funcionamento</Label>
-                    <div className="flex gap-2 flex-wrap">
-                      {DIAS_SEMANA.map((dia) => (
-                        <Button
-                          key={dia.value}
-                          type="button"
-                          variant={formData.horario_funcionamento?.dias?.includes(dia.value) ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => toggleDia(dia.value)}
-                        >
-                          {dia.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Mensagem Fora do Horário</Label>
-                    <Textarea
-                      value={formData.horario_funcionamento?.mensagem_fora || ''}
-                      onChange={(e) => updateHorario('mensagem_fora', e.target.value)}
-                      placeholder="Nosso atendimento funciona de segunda a sexta, das 9h às 18h."
-                      rows={3}
+                    <Switch
+                      checked={formData.horario_funcionamento?.modo_24h ?? false}
+                      onCheckedChange={(checked) => {
+                        updateHorario('modo_24h', checked);
+                        if (checked) {
+                          updateHorario('dias', [0, 1, 2, 3, 4, 5, 6]);
+                          updateHorario('inicio', '00:00');
+                          updateHorario('fim', '23:59');
+                        }
+                      }}
                     />
                   </div>
+
+                  {!formData.horario_funcionamento?.modo_24h && (
+                    <>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Início</Label>
+                          <Input
+                            type="time"
+                            value={formData.horario_funcionamento?.inicio || '09:00'}
+                            onChange={(e) => updateHorario('inicio', e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Fim</Label>
+                          <Input
+                            type="time"
+                            value={formData.horario_funcionamento?.fim || '18:00'}
+                            onChange={(e) => updateHorario('fim', e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Dias de Funcionamento</Label>
+                        <div className="flex gap-2 flex-wrap">
+                          {DIAS_SEMANA.map((dia) => (
+                            <Button
+                              key={dia.value}
+                              type="button"
+                              variant={formData.horario_funcionamento?.dias?.includes(dia.value) ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => toggleDia(dia.value)}
+                            >
+                              {dia.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Mensagem Fora do Horário</Label>
+                        <Textarea
+                          value={formData.horario_funcionamento?.mensagem_fora || ''}
+                          onChange={(e) => updateHorario('mensagem_fora', e.target.value)}
+                          placeholder="Nosso atendimento funciona de segunda a sexta, das 9h às 18h."
+                          rows={3}
+                        />
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </CardContent>
