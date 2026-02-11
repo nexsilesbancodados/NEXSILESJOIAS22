@@ -95,7 +95,7 @@ export default function AuthPage() {
     return '';
   };
 
-  // Validate access code - tries external API first, then local database
+  // Validate access code against local database only
   const validarCodigo = async (codigo: string) => {
     if (codigo.length !== 12) return;
     
@@ -103,59 +103,6 @@ export default function AuthPage() {
     const codigoUpper = codigo.toUpperCase();
     
     try {
-      // 1. Try external API validation (site nexsiles.sbs)
-      const externalFormatted = `${codigoUpper.slice(0, 4)}-${codigoUpper.slice(4, 8)}-${codigoUpper.slice(8, 12)}`;
-      
-      let externalValid = false;
-      try {
-        const externalRes = await fetch('https://cvtaeajlilkqlgfdpeeg.supabase.co/functions/v1/validate-access', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_code: externalFormatted }),
-        });
-
-        if (externalRes.ok) {
-          const externalData = await externalRes.json();
-          if (externalData.valid) {
-            externalValid = true;
-            const plano = externalData.user?.plan || 'nexsiles';
-            const email = externalData.user?.email || '';
-
-            // Create local code record so activation flow works
-            const now = new Date();
-            const validoAte = new Date(now);
-            validoAte.setDate(validoAte.getDate() + 30);
-
-            try {
-              await supabase.from('codigos_acesso').upsert({
-                codigo: codigoUpper,
-                email: email,
-                plano: plano,
-                usado: false,
-                valido_ate: validoAte.toISOString(),
-                valor_pago: plano === 'nexsiles_max' ? 249 : 189,
-              }, { onConflict: 'codigo' });
-            } catch {
-              // Ignore if already exists
-            }
-
-            setCodigoValidado({ valido: true, plano, email });
-            if (email) setSignupEmail(email);
-            setSignupErrors(prev => ({ ...prev, codigo: '' }));
-            toast.success('Código validado!', { description: `Plano: ${plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}` });
-            return;
-          }
-        } else if (externalRes.status === 402) {
-          setCodigoValidado({ valido: false });
-          setSignupErrors(prev => ({ ...prev, codigo: 'Pagamento pendente. Aguarde a confirmação.' }));
-          return;
-        }
-        // 404 or other errors: fall through to local validation
-      } catch (extErr) {
-        console.warn('External API unavailable, falling back to local:', extErr);
-      }
-
-      // 2. Fallback: validate against local database
       const { data, error } = await supabase
         .from('codigos_acesso')
         .select('codigo, email, plano, usado, valido_ate')
@@ -185,7 +132,7 @@ export default function AuthPage() {
       setCodigoValidado({ valido: true, plano: data.plano, email: data.email });
       setSignupEmail(data.email);
       setSignupErrors(prev => ({ ...prev, codigo: '' }));
-      toast.success('Código validado!', { description: `Plano: ${data.plano}` });
+      toast.success('Código validado!', { description: `Plano: ${data.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}` });
     } catch (error) {
       console.error('Error validating code:', error);
       setCodigoValidado({ valido: false });

@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.notificar-eventos]
 verify_jwt = false
+
+[functions.criar-codigo-externo]
+verify_jwt = false
