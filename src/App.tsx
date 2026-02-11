@@ -143,6 +143,23 @@ function AppRoutes() {
         <Route path="/portal/login" element={<PortalRevendedoraPage />} />
         <Route path="/portal/:revendedoraId" element={<PortalRevendedoraPage />} />
         
+        {/* Atendimento IA - Standalone app (no MainLayout) */}
+        <Route
+          path="/atendimento"
+          element={
+            <ProtectedRoute>
+              <OrganizationGuard>
+                <SubscriptionActivator />
+                <SubscriptionProvider>
+                  <Suspense fallback={<PageLoader />}>
+                    <AtendimentoPage />
+                  </Suspense>
+                </SubscriptionProvider>
+              </OrganizationGuard>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin pages with MainLayout - Protected */}
         <Route
           path="/*"
@@ -174,7 +191,6 @@ function AppRoutes() {
                       <Route path="/funcionarios" element={<FuncionariosPage />} />
                       <Route path="/campanhas" element={<CampanhasPage />} />
                       <Route path="/planos" element={<PlanosPage />} />
-                      <Route path="/atendimento" element={<AtendimentoPage />} />
                       <Route path="/tutorial" element={<TutorialPage />} />
                       <Route path="/super-admin" element={<SuperAdminPage />} />
                       <Route path="*" element={<NotFound />} />
