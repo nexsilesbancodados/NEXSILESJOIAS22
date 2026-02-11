@@ -842,6 +842,39 @@ serve(async (req) => {
     let basePrompt = config?.prompt_sistema || 
       `Você é um assistente virtual de uma joalheria. Ajude os clientes com informações sobre produtos, pedidos e pagamentos.`;
 
+    // Check for active A/B test and use variant prompt
+    let abTesteId: string | null = null;
+    let abVariante: string | null = null;
+    try {
+      const { data: abTest } = await supabase
+        .from('ab_testes')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (abTest) {
+        // Randomly assign variant (50/50)
+        abVariante = Math.random() < 0.5 ? 'A' : 'B';
+        abTesteId = abTest.id;
+        
+        // Override base prompt with variant prompt
+        const variantPrompt = abVariante === 'A' ? abTest.variante_a_prompt : abTest.variante_b_prompt;
+        if (variantPrompt) {
+          basePrompt = variantPrompt;
+        }
+        
+        // Increment conversation counter
+        const counterField = abVariante === 'A' ? 'variante_a_conversas' : 'variante_b_conversas';
+        await supabase
+          .from('ab_testes')
+          .update({ [counterField]: (abTest[counterField] || 0) + 1 })
+          .eq('id', abTest.id);
+      }
+    } catch (e) {
+      console.error('A/B test error:', e);
+    }
+
     // Enrich with organization data (trained with own data)
     try {
       // Fetch FAQs for context
@@ -1022,31 +1055,10 @@ Seja sempre educado e prestativo.`;
     }
 
     // Check for active A/B test and apply variant
+    // NOTE: A/B test is checked BEFORE the AI call to use the variant prompt
+    // This block was moved earlier in the flow but we keep tracking here for conversation saving
     let abTesteId: string | null = null;
     let abVariante: string | null = null;
-    try {
-      const { data: abTest } = await supabase
-        .from('ab_testes')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('ativo', true)
-        .maybeSingle();
-
-      if (abTest) {
-        // Randomly assign variant (50/50)
-        abVariante = Math.random() < 0.5 ? 'A' : 'B';
-        abTesteId = abTest.id;
-        
-        // Increment conversation counter
-        const counterField = abVariante === 'A' ? 'variante_a_conversas' : 'variante_b_conversas';
-        await supabase
-          .from('ab_testes')
-          .update({ [counterField]: (abTest[counterField] || 0) + 1 })
-          .eq('id', abTest.id);
-      }
-    } catch (e) {
-      console.error('A/B test error:', e);
-    }
 
     // Save conversation to database if sessionId provided
     if (sessionId) {

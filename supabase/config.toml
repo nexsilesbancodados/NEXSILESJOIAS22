@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.validate-access]
 verify_jwt = false
+
+[functions.verificar-lembretes]
+verify_jwt = false
