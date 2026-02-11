@@ -284,7 +284,7 @@ export default function PlanosPage() {
                     <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
                       {isExpirando && (
                         <Button
-                          onClick={() => window.open('https://nexsiles.com.br', '_blank')}
+onClick={() => window.open('https://www.nexsiles.com.br/', '_blank')}
                           className="gap-2 bg-gradient-to-r from-warning to-warning/80 hover:from-warning/90 hover:to-warning/70"
                         >
                           <Sparkles className="w-4 h-4" />
@@ -294,7 +294,7 @@ export default function PlanosPage() {
                       {planoAtual === 'nexsiles' && (
                         <Button
                           variant={isExpirando ? "outline" : "default"}
-                          onClick={() => window.open('https://nexsiles.com.br', '_blank')}
+onClick={() => window.open('https://www.nexsiles.com.br/', '_blank')}
                           className="gap-2"
                         >
                           <ArrowRight className="w-4 h-4" />
@@ -356,7 +356,7 @@ export default function PlanosPage() {
                     </div>
                   </div>
                   <Button 
-                    onClick={() => window.open('https://nexsiles.com.br', '_blank')}
+                    onClick={() => window.open('https://www.nexsiles.com.br/', '_blank')}
                     className="gap-2 bg-gradient-to-r from-primary to-primary/80"
                   >
                     <Sparkles className="w-4 h-4" />
