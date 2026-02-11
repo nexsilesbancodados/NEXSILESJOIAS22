@@ -793,11 +793,6 @@ serve(async (req) => {
       throw new Error("Organization ID is required");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -808,6 +803,25 @@ serve(async (req) => {
       .select('*')
       .eq('organization_id', organizationId)
       .maybeSingle();
+
+    // Determine which AI provider to use
+    const geminiApiKey = config?.gemini_api_key as string | null;
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    const useGemini = !!geminiApiKey;
+    const aiBaseUrl = useGemini 
+      ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
+    const aiHeaders: Record<string, string> = useGemini
+      ? { 'Authorization': `Bearer ${geminiApiKey}`, 'Content-Type': 'application/json' }
+      : { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' };
+    const aiModel = useGemini ? 'gemini-2.5-flash' : 'google/gemini-3-flash-preview';
+
+    if (!useGemini && !LOVABLE_API_KEY) {
+      throw new Error("Nenhuma chave de IA configurada. Configure a chave Gemini nas configurações do agente.");
+    }
+
+    console.log('Using AI provider:', useGemini ? 'Gemini Direct' : 'Lovable AI Gateway');
 
     // Check if agent is active
     if (config?.ativo === false) {
@@ -928,14 +942,11 @@ Você tem acesso a ferramentas para ajudar os clientes. Use-as quando necessári
 Seja sempre educado e prestativo.`;
 
     // First AI call with filtered tools
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch(aiBaseUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
+      headers: aiHeaders,
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: aiModel,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -990,14 +1001,11 @@ Seja sempre educado e prestativo.`;
       }
 
       // Second AI call with tool results
-      const followUpResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const followUpResponse = await fetch(aiBaseUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
+        headers: aiHeaders,
         body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
+          model: aiModel,
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages,
@@ -1027,14 +1035,11 @@ Seja sempre educado e prestativo.`;
     const lastUserMessage = messages[messages.length - 1];
     let sentimento: string | null = null;
     try {
-      const sentimentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const sentimentResponse = await fetch(aiBaseUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
+        headers: aiHeaders,
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-lite',
+          model: useGemini ? 'gemini-2.5-flash-lite' : 'google/gemini-2.5-flash-lite',
           messages: [
             { role: 'system', content: 'Classify the sentiment of the user message as exactly one word: positivo, neutro, or negativo. Reply with only that one word.' },
             { role: 'user', content: lastUserMessage.content }
