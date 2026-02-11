@@ -22,7 +22,8 @@ import {
   Users,
   SmilePlus,
   FlaskConical,
-  FileDown
+  FileDown,
+  ShoppingCart
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAIAgent } from '@/hooks/useAIAgent';
@@ -37,6 +38,7 @@ import { MultiAgentManager } from '@/components/ai-agent/MultiAgentManager';
 import { SentimentDashboard } from '@/components/ai-agent/SentimentDashboard';
 import { ABTestingPanel } from '@/components/ai-agent/ABTestingPanel';
 import { AgentReportExport } from '@/components/ai-agent/AgentReportExport';
+import { VendasAgenteDashboard } from '@/components/ai-agent/VendasAgenteDashboard';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 
@@ -124,6 +126,10 @@ export default function AtendimentoPage() {
               <FlaskConical className="h-4 w-4" />
               <span className="hidden sm:inline">A/B Test</span>
             </TabsTrigger>
+            <TabsTrigger value="vendas-agente" className="gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Vendas</span>
+            </TabsTrigger>
             <TabsTrigger value="relatorios" className="gap-2">
               <FileDown className="h-4 w-4" />
               <span className="hidden sm:inline">Relatórios</span>
@@ -170,6 +176,10 @@ export default function AtendimentoPage() {
 
         <TabsContent value="ab-testing" className="space-y-0">
           <ABTestingPanel />
+        </TabsContent>
+
+        <TabsContent value="vendas-agente" className="space-y-0">
+          <VendasAgenteDashboard />
         </TabsContent>
 
         <TabsContent value="relatorios" className="space-y-0">

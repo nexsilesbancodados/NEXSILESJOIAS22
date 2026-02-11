@@ -1030,6 +1030,17 @@ Seu objetivo é VENDER. Cada conversa é uma oportunidade. Seja proativo, sugira
 - Nunca invente produtos ou preços - sempre consulte a base de dados
 - Informe sobre estoque: "Últimas X unidades!" para criar urgência quando apropriado
 
+### 🔥 Qualificação de Leads (IMPORTANTE)
+Classifique mentalmente o cliente durante a conversa:
+- **QUENTE**: Perguntou preço, pediu foto, mencionou compra, respondeu rápido → tente fechar a venda
+- **MORNO**: Navegando, perguntando sobre produtos, indeciso → envie catálogo, sugira opções
+- **FRIO**: Apenas curiosidade, sem intenção clara → seja gentil, envie catálogo, deixe porta aberta
+
+### 🔄 Reengajamento
+- Se o cliente parar de responder após mostrar interesse: "Oi! Ainda estou aqui caso queira finalizar 😊"
+- Se pediu foto/preço mas não avançou: "Essa peça está saindo rápido! Quer que eu reserve para você?"
+- Após venda: "Obrigado pela compra! Se precisar de algo mais, estou aqui!"
+
 ### 💬 Compartilhamento de Catálogos
 - Sempre que fizer sentido, envie o link do catálogo ao cliente
 - Diga "Preparei nosso catálogo completo para você" e envie o link
@@ -1169,16 +1180,36 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
       console.error('Sentiment analysis error:', e);
     }
 
-    // Check for active A/B test and apply variant
-    // NOTE: A/B test is checked BEFORE the AI call to use the variant prompt
-    // This block was moved earlier in the flow but we keep tracking here for conversation saving
-    let abTesteId: string | null = null;
-    let abVariante: string | null = null;
+    // Determine lead score based on conversation content
+    let leadScore = 'frio';
+    const allContent = messages.map((m: any) => m.content).join(' ').toLowerCase();
+    const hotKeywords = ['comprar', 'preço', 'quanto custa', 'pix', 'pedido', 'quero', 'reservar', 'separar', 'fechar', 'pagar'];
+    const warmKeywords = ['catálogo', 'foto', 'ver', 'opções', 'disponível', 'tem', 'modelo', 'material'];
+    
+    const hotMatches = hotKeywords.filter(k => allContent.includes(k)).length;
+    const warmMatches = warmKeywords.filter(k => allContent.includes(k)).length;
+    
+    if (hotMatches >= 2) leadScore = 'quente';
+    else if (hotMatches >= 1 || warmMatches >= 2) leadScore = 'morno';
 
+    // Detect if a sale was made (check if criar_pedido was called)
+    const vendaRealizada = assistantMessage?.content?.includes('Pedido criado com sucesso') || false;
+    let valorVenda = 0;
+    if (vendaRealizada) {
+      const match = assistantMessage?.content?.match(/R\$\s*([\d.,]+)/);
+      if (match) {
+        valorVenda = parseFloat(match[1].replace('.', '').replace(',', '.'));
+      }
+    }
+
+    // Extract products of interest
+    const produtosInteresse: string[] = [];
+    const prodMatch = allContent.match(/interesse.*?(?:em|por)\s+(.+?)(?:\.|!|\?|$)/gi);
+    // Simple: extract product names mentioned in tool results
+    
     // Save conversation to database if sessionId provided
     if (sessionId) {
       try {
-        // Get or create conversation
         let { data: conversa } = await supabase
           .from('agente_conversas')
           .select('id')
@@ -1195,22 +1226,33 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
               sentimento,
               ab_teste_id: abTesteId,
               ab_variante: abVariante,
+              lead_score: leadScore,
+              venda_realizada: vendaRealizada,
+              valor_venda: valorVenda,
+              ultimo_contato_at: new Date().toISOString(),
+              produtos_interesse: produtosInteresse.length > 0 ? produtosInteresse : null,
             })
             .select('id')
             .single();
           conversa = newConversa;
         } else {
-          // Update sentiment on existing conversation
-          if (sentimento) {
-            await supabase
-              .from('agente_conversas')
-              .update({ sentimento, sentimento_score: sentimento === 'positivo' ? 1 : sentimento === 'negativo' ? -1 : 0 })
-              .eq('id', conversa.id);
+          const updateData: Record<string, any> = {
+            sentimento,
+            sentimento_score: sentimento === 'positivo' ? 1 : sentimento === 'negativo' ? -1 : 0,
+            lead_score: leadScore,
+            ultimo_contato_at: new Date().toISOString(),
+          };
+          if (vendaRealizada) {
+            updateData.venda_realizada = true;
+            updateData.valor_venda = valorVenda;
           }
+          await supabase
+            .from('agente_conversas')
+            .update(updateData)
+            .eq('id', conversa.id);
         }
 
         if (conversa) {
-          // Save the last user message and assistant response
           await supabase.from('agente_mensagens').insert([
             { conversa_id: conversa.id, role: 'user', content: lastUserMessage.content, sentimento },
             { conversa_id: conversa.id, role: 'assistant', content: assistantMessage?.content || '' }

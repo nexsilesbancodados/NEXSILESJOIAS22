@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.verificar-lembretes]
 verify_jwt = false
+
+[functions.follow-up-agente]
+verify_jwt = false
+
+[functions.enviar-email-template]
+verify_jwt = false
