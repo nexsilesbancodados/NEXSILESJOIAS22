@@ -83,6 +83,58 @@ serve(async (req) => {
       });
     }
 
+    // Check subscription plan limits
+    const PLAN_LIMITS: Record<string, number> = {
+      nexsiles: 5,
+      nexsiles_max: 25,
+    };
+
+    // Get owner's subscription (the organization owner)
+    const { data: org } = await supabaseAdmin
+      .from("organizations")
+      .select("owner_id")
+      .eq("id", membership.organization_id)
+      .single();
+
+    let maxFuncionarios = 0;
+    if (org) {
+      const { data: assinatura } = await supabaseAdmin
+        .from("assinaturas")
+        .select("plano, status")
+        .eq("user_id", org.owner_id)
+        .eq("status", "ativo")
+        .maybeSingle();
+
+      if (assinatura) {
+        maxFuncionarios = PLAN_LIMITS[assinatura.plano] || 0;
+      }
+    }
+
+    if (maxFuncionarios === 0) {
+      return new Response(JSON.stringify({ error: "Assinatura ativa não encontrada. Renove seu plano para adicionar funcionários." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Count current active employees
+    const { count: currentCount } = await supabaseAdmin
+      .from("funcionarios")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", membership.organization_id)
+      .eq("ativo", true);
+
+    if ((currentCount || 0) >= maxFuncionarios) {
+      return new Response(JSON.stringify({ 
+        error: `Limite de funcionários atingido (${maxFuncionarios}). Faça upgrade do seu plano para adicionar mais.`,
+        limit: maxFuncionarios,
+        current: currentCount,
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Determine the role based on cargo
     const isAdminCargo = cargo === "admin";
     const userRole = isAdminCargo ? "admin" : "user";

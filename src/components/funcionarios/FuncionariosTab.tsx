@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { useOrganizationId } from '@/hooks/useOrganization';
+import { useAssinatura } from '@/hooks/useAssinatura';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,8 +14,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { Plus, Users, Shield, Loader2, KeyRound } from 'lucide-react';
+import { Plus, Users, Shield, Loader2, KeyRound, AlertTriangle } from 'lucide-react';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
+
+const PLAN_LIMITS: Record<string, number> = {
+  nexsiles: 5,
+  nexsiles_max: 25,
+};
 
 const MODULOS = [
   { id: 'dashboard', nome: 'Dashboard' },
@@ -61,6 +67,10 @@ export function FuncionariosTab() {
   const [selectedFuncionario, setSelectedFuncionario] = useState<Funcionario | null>(null);
   const [loading, setLoading] = useState(false);
   const { organizationId } = useOrganizationId();
+  const { assinatura } = useAssinatura();
+
+  const maxFuncionarios = assinatura?.plano ? (PLAN_LIMITS[assinatura.plano] || 0) : 0;
+  const planoNome = assinatura?.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles';
 
   // Form states
   const [nome, setNome] = useState('');
@@ -232,6 +242,26 @@ export function FuncionariosTab() {
 
   return (
     <div className="space-y-6">
+      {/* Limite de funcionários */}
+      {maxFuncionarios > 0 && (
+        <div className={`flex items-center gap-2 p-3 rounded-lg border ${
+          funcionarios.filter(f => f.ativo !== false).length >= maxFuncionarios 
+            ? 'bg-destructive/10 border-destructive/30' 
+            : 'bg-muted/50 border-border'
+        }`}>
+          <Users className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">
+            <strong>{funcionarios.filter(f => f.ativo !== false).length}</strong> de <strong>{maxFuncionarios}</strong> funcionários ({planoNome})
+          </span>
+          {funcionarios.filter(f => f.ativo !== false).length >= maxFuncionarios && (
+            <Badge variant="destructive" className="ml-auto gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Limite atingido
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* Header com botão de adicionar */}
       <div className="flex items-center justify-between">
         <div>
@@ -247,7 +277,10 @@ export function FuncionariosTab() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <ReadOnlyGuard>
             <DialogTrigger asChild>
-              <Button className="btn-gold">
+              <Button 
+                className="btn-gold" 
+                disabled={maxFuncionarios > 0 && funcionarios.filter(f => f.ativo !== false).length >= maxFuncionarios}
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Funcionário
               </Button>
