@@ -25,17 +25,19 @@ const SUPER_ADMIN_EMAILS = [
 ];
 
 interface AssinaturaRow {
-  id: string;
+  id: string | null;
   user_id: string;
-  plano: string;
+  plano: string | null;
   status: string;
-  data_inicio: string;
-  data_vencimento: string;
+  data_inicio: string | null;
+  data_vencimento: string | null;
   valor_mensal: number;
   trial_ativo: boolean;
   metodo_pagamento: string | null;
   created_at: string;
-  profiles?: { nome: string; email: string } | null;
+  has_subscription: boolean;
+  auth_created_at: string;
+  profiles?: { nome: string | null; email: string | null } | null;
 }
 
 export default function SuperAdminPage() {
@@ -56,7 +58,7 @@ export default function SuperAdminPage() {
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || 'https://ljofnwcvpzqlhagejgbk.supabase.co'}/functions/v1/admin-assinaturas`,
+        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas`,
         {
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
@@ -70,23 +72,7 @@ export default function SuperAdminPage() {
     enabled: !!isSuperAdmin,
   });
 
-  // Fetch all profiles (users without subscription)
-  const { data: allProfiles = [] } = useQuery({
-    queryKey: ['super-admin-profiles'],
-    queryFn: async () => {
-      // Profiles are already fetched via the edge function joined data
-      // Use assinaturas profiles as base, no separate query needed
-      return assinaturas.map((a: any) => ({
-        user_id: a.user_id,
-        nome: a.profiles?.nome,
-        email: a.profiles?.email,
-        created_at: a.created_at,
-      }));
-    },
-    enabled: !!isSuperAdmin && assinaturas.length > 0,
-  });
-
-  const edgeFnUrl = `${import.meta.env.VITE_SUPABASE_URL || 'https://ljofnwcvpzqlhagejgbk.supabase.co'}/functions/v1/admin-assinaturas`;
+  const edgeFnUrl = `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas`;
 
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -139,25 +125,24 @@ export default function SuperAdminPage() {
 
   // Calculated stats
   const stats = useMemo(() => {
+    const withSub = assinaturas.filter((a: any) => a.has_subscription);
     const ativos = assinaturas.filter((a: any) => a.status === 'ativo');
     const expirados = assinaturas.filter((a: any) => a.status === 'expirado');
     const bloqueados = assinaturas.filter((a: any) => a.status === 'cancelado');
     const receitaMensal = ativos.reduce((sum: number, a: any) => sum + (a.valor_mensal || 0), 0);
     const trials = assinaturas.filter((a: any) => a.trial_ativo);
-    const totalUsers = allProfiles.length;
-    const usersWithSub = assinaturas.length;
-    const usersWithoutSub = totalUsers - usersWithSub;
+    const semPlano = assinaturas.filter((a: any) => !a.has_subscription);
 
     return {
-      totalUsers,
+      totalUsers: assinaturas.length,
       ativos: ativos.length,
       expirados: expirados.length,
       bloqueados: bloqueados.length,
       trials: trials.length,
       receitaMensal,
-      usersWithoutSub,
+      usersWithoutSub: semPlano.length,
     };
-  }, [assinaturas, allProfiles]);
+  }, [assinaturas]);
 
   // Filtered list
   const filtered = useMemo(() => {
@@ -166,14 +151,14 @@ export default function SuperAdminPage() {
         a.profiles?.nome?.toLowerCase().includes(search.toLowerCase()) ||
         a.profiles?.email?.toLowerCase().includes(search.toLowerCase()) ||
         a.user_id.includes(search);
-      const matchStatus = statusFilter === 'todos' || a.status === statusFilter;
+      const matchStatus = statusFilter === 'todos' || a.status === statusFilter || (statusFilter === 'sem_plano' && !a.has_subscription);
       return matchSearch && matchStatus;
     });
   }, [assinaturas, search, statusFilter]);
 
   const openEdit = (a: AssinaturaRow) => {
     setEditForm({
-      plano: a.plano,
+      plano: a.plano || 'nexsiles',
       status: a.status,
       data_vencimento: a.data_vencimento?.split('T')[0] || '',
       valor_mensal: String(a.valor_mensal || 0),
@@ -212,6 +197,7 @@ export default function SuperAdminPage() {
       case 'expirado': return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Expirado</Badge>;
       case 'cancelado': return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Bloqueado</Badge>;
       case 'pendente': return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Pendente</Badge>;
+      case 'sem_plano': return <Badge variant="outline" className="text-muted-foreground">Sem Plano</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -316,6 +302,7 @@ export default function SuperAdminPage() {
                 <SelectItem value="expirado">Expirados</SelectItem>
                 <SelectItem value="cancelado">Bloqueados</SelectItem>
                 <SelectItem value="pendente">Pendentes</SelectItem>
+                <SelectItem value="sem_plano">Sem Plano</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -364,9 +351,13 @@ export default function SuperAdminPage() {
                         </div>
                       </td>
                       <td className="py-3 px-2">
-                        <Badge variant="outline" className="capitalize">
-                          {a.plano === 'nexsiles_max' ? 'Max' : 'Nexsiles'}
-                        </Badge>
+                        {a.plano ? (
+                          <Badge variant="outline" className="capitalize">
+                            {a.plano === 'nexsiles_max' ? 'Max' : 'Nexsiles'}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </td>
                       <td className="py-3 px-2">{getStatusBadge(a.status)}</td>
                       <td className="py-3 px-2">
