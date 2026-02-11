@@ -31,7 +31,7 @@ export function ReadOnlyBanner() {
             </div>
           </div>
           <Button 
-            onClick={() => window.open('https://nexsiles.sbs', '_blank')}
+            onClick={() => window.open('https://nexsiles.com.br', '_blank')}
             className="gap-2 bg-gradient-to-r from-primary to-primary/80"
           >
             <Sparkles className="w-4 h-4" />
@@ -60,7 +60,7 @@ export function ReadOnlyBanner() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('https://nexsiles.sbs', '_blank')}
+            onClick={() => window.open('https://nexsiles.com.br', '_blank')}
             className="gap-2 border-warning text-warning hover:bg-warning hover:text-warning-foreground"
           >
             <Crown className="w-4 h-4" />
