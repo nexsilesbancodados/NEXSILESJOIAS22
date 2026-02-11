@@ -188,6 +188,129 @@ export default function PlanosPage() {
   };
 
   const planoAtual = assinatura?.plano;
+  const { diasRestantes, isExpirando, isExpirado } = useAssinatura();
+
+  // If user has an active subscription, show simplified status view
+  if (assinatura && isAtivo) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen">
+          <PageHeader
+            icon={Crown}
+            title="Meu Plano"
+            subtitle="Gerencie sua assinatura"
+          />
+
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Plan Status Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className={cn(
+                "border-2 overflow-hidden",
+                isExpirando ? "border-warning/50" : "border-success/30"
+              )}>
+                <div className={cn(
+                  "h-2 w-full",
+                  isExpirando 
+                    ? "bg-gradient-to-r from-warning to-warning/60" 
+                    : "bg-gradient-to-r from-success to-success/60"
+                )} />
+                <CardContent className="pt-8 pb-8">
+                  <div className="text-center space-y-6">
+                    <div className={cn(
+                      "mx-auto w-16 h-16 rounded-2xl flex items-center justify-center",
+                      isExpirando ? "bg-warning/10" : "bg-success/10"
+                    )}>
+                      <Crown className={cn(
+                        "w-8 h-8",
+                        isExpirando ? "text-warning" : "text-success"
+                      )} />
+                    </div>
+
+                    <div>
+                      <h2 className="text-2xl font-bold text-foreground">
+                        Plano {planoInfo?.nome}
+                        {assinatura.trial_ativo && (
+                          <Badge variant="secondary" className="ml-2 text-xs">Trial</Badge>
+                        )}
+                      </h2>
+                      <p className="text-muted-foreground mt-1">
+                        R$ {planoInfo?.valor.toFixed(2).replace('.', ',')}/mês
+                      </p>
+                    </div>
+
+                    {/* Days remaining */}
+                    <div className={cn(
+                      "inline-flex items-center gap-3 px-6 py-4 rounded-2xl",
+                      isExpirando 
+                        ? "bg-warning/10 border border-warning/20" 
+                        : "bg-success/10 border border-success/20"
+                    )}>
+                      <div className="text-center">
+                        <p className={cn(
+                          "text-4xl font-bold",
+                          isExpirando ? "text-warning" : "text-success"
+                        )}>
+                          {diasRestantes}
+                        </p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                          {diasRestantes === 1 ? 'dia restante' : 'dias restantes'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground">
+                      {assinatura.trial_ativo 
+                        ? `Trial ativo até ${dataVencimentoFormatada}`
+                        : `Válido até ${dataVencimentoFormatada}`}
+                    </p>
+
+                    {/* Features list */}
+                    <div className="text-left max-w-sm mx-auto">
+                      <p className="text-sm font-medium text-muted-foreground mb-3">Recursos inclusos:</p>
+                      <ul className="space-y-2">
+                        {planoInfo?.recursos.map((recurso, i) => (
+                          <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Check className="w-4 h-4 text-success flex-shrink-0" />
+                            {recurso}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                      {isExpirando && (
+                        <Button
+                          onClick={() => window.open('https://nexsiles.sbs', '_blank')}
+                          className="gap-2 bg-gradient-to-r from-warning to-warning/80 hover:from-warning/90 hover:to-warning/70"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Renovar Agora
+                        </Button>
+                      )}
+                      {planoAtual === 'nexsiles' && (
+                        <Button
+                          variant={isExpirando ? "outline" : "default"}
+                          onClick={() => window.open('https://nexsiles.sbs', '_blank')}
+                          className="gap-2"
+                        >
+                          <ArrowRight className="w-4 h-4" />
+                          Fazer Upgrade para Max
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -209,56 +332,35 @@ export default function PlanosPage() {
           </motion.div>
         )}
 
-        {/* Status da Assinatura Atual */}
-        {assinatura && (
+        {/* Expired subscription banner */}
+        {assinatura && !isAtivo && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             className="max-w-5xl mx-auto mb-8"
           >
-            <Card className={cn(
-              "border-2",
-              isAtivo ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"
-            )}>
+            <Card className="border-2 border-destructive/30 bg-destructive/5">
               <CardContent className="py-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "p-3 rounded-xl",
-                      isAtivo ? "bg-success/10" : "bg-destructive/10"
-                    )}>
-                      <CreditCard className={cn(
-                        "w-6 h-6",
-                        isAtivo ? "text-success" : "text-destructive"
-                      )} />
+                    <div className="p-3 rounded-xl bg-destructive/10">
+                      <CreditCard className="w-6 h-6 text-destructive" />
                     </div>
                     <div>
-                      <p className="font-semibold text-foreground">
-                        Plano {planoInfo?.nome || 'Não definido'}
-                        {assinatura.trial_ativo && ' (Trial)'}
+                      <p className="font-semibold text-destructive">
+                        Plano {planoInfo?.nome || ''} Expirado
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {isAtivo 
-                          ? assinatura.trial_ativo 
-                            ? `Trial ativo até ${dataVencimentoFormatada}` 
-                            : `Ativo até ${dataVencimentoFormatada}` 
-                          : 'Assinatura expirada'}
+                        Renove seu plano para continuar usando todas as funcionalidades.
                       </p>
                     </div>
                   </div>
                   <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleManageSubscription}
-                    disabled={loadingPlan === 'portal'}
-                    className="gap-2"
+                    onClick={() => window.open('https://nexsiles.sbs', '_blank')}
+                    className="gap-2 bg-gradient-to-r from-primary to-primary/80"
                   >
-                    {loadingPlan === 'portal' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Settings className="w-4 h-4" />
-                    )}
-                    Gerenciar Assinatura
+                    <Sparkles className="w-4 h-4" />
+                    Renovar Agora
                   </Button>
                 </div>
               </CardContent>
