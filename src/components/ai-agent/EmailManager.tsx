@@ -12,7 +12,8 @@ import {
   XCircle,
   Eye,
   Copy,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,17 @@ export function EmailManager() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [sendingTemplateId, setSendingTemplateId] = useState<string | null>(null);
+  const [sendForm, setSendForm] = useState({
+    destinatario_email: '',
+    destinatario_nome: '',
+    cliente_nome: '',
+    empresa_nome: '',
+    pedido_numero: '',
+    pedido_valor: '',
+    link_catalogo: '',
+  });
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -172,6 +184,65 @@ export function EmailManager() {
     }
   });
 
+  // Send email mutation
+  const sendEmailMutation = useMutation({
+    mutationFn: async () => {
+      if (!sendingTemplateId) throw new Error('Template não selecionado');
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      const variaveis: Record<string, string> = {};
+      if (sendForm.cliente_nome) variaveis['{cliente_nome}'] = sendForm.cliente_nome;
+      if (sendForm.empresa_nome) variaveis['{empresa_nome}'] = sendForm.empresa_nome;
+      if (sendForm.pedido_numero) variaveis['{pedido_numero}'] = sendForm.pedido_numero;
+      if (sendForm.pedido_valor) variaveis['{pedido_valor}'] = sendForm.pedido_valor;
+      if (sendForm.link_catalogo) variaveis['{link_catalogo}'] = sendForm.link_catalogo;
+      if (sendForm.destinatario_email) variaveis['{cliente_email}'] = sendForm.destinatario_email;
+
+      const response = await fetch(
+        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/enviar-email-template`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            template_id: sendingTemplateId,
+            destinatario_email: sendForm.destinatario_email,
+            destinatario_nome: sendForm.destinatario_nome || sendForm.cliente_nome,
+            variaveis,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao enviar e-mail');
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast.success('E-mail enviado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['email-logs'] });
+      setSendDialogOpen(false);
+      setSendingTemplateId(null);
+      setSendForm({
+        destinatario_email: '',
+        destinatario_nome: '',
+        cliente_nome: '',
+        empresa_nome: '',
+        pedido_numero: '',
+        pedido_valor: '',
+        link_catalogo: '',
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao enviar e-mail');
+    }
+  });
+
   // Seed default templates
   const seedMutation = useMutation({
     mutationFn: async () => {
@@ -216,16 +287,21 @@ export function EmailManager() {
     });
   };
 
+  const openSendDialog = (templateId: string) => {
+    setSendingTemplateId(templateId);
+    setSendDialogOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'enviado':
-        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Enviado</Badge>;
+        return <Badge className="bg-green-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Enviado</Badge>;
       case 'erro':
         return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Erro</Badge>;
       case 'pendente':
         return <Badge variant="secondary">Pendente</Badge>;
       case 'aberto':
-        return <Badge className="bg-blue-500"><Eye className="h-3 w-3 mr-1" />Aberto</Badge>;
+        return <Badge className="bg-blue-600 text-white"><Eye className="h-3 w-3 mr-1" />Aberto</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -237,6 +313,8 @@ export function EmailManager() {
       corpo_html: prev.corpo_html + variable
     }));
   };
+
+  const selectedTemplate = templates.find(t => t.id === sendingTemplateId);
 
   return (
     <div className="space-y-6">
@@ -419,10 +497,20 @@ export function EmailManager() {
                             </div>
                           ) : null}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Enviar e-mail"
+                            onClick={() => openSendDialog(template.id)}
+                            disabled={!template.ativo}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Preview"
                             onClick={() => setPreviewHtml(template.corpo_html)}
                           >
                             <Eye className="h-4 w-4" />
@@ -430,6 +518,7 @@ export function EmailManager() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Editar"
                             onClick={() => openEditDialog(template)}
                           >
                             <Edit2 className="h-4 w-4" />
@@ -437,6 +526,7 @@ export function EmailManager() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            title="Excluir"
                             onClick={() => {
                               if (confirm('Excluir este template?')) {
                                 deleteMutation.mutate(template.id);
@@ -464,6 +554,128 @@ export function EmailManager() {
                 className="p-4 bg-white rounded-lg border min-h-[300px]"
                 dangerouslySetInnerHTML={{ __html: previewHtml || '' }}
               />
+            </DialogContent>
+          </Dialog>
+
+          {/* Send Email Dialog */}
+          <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Send className="h-5 w-5 text-primary" />
+                  Enviar E-mail
+                </DialogTitle>
+              </DialogHeader>
+              {selectedTemplate && (
+                <div className="space-y-4">
+                  <div className="p-3 rounded-lg bg-muted/50 border">
+                    <p className="text-sm font-medium">Template: {selectedTemplate.nome}</p>
+                    <p className="text-xs text-muted-foreground">{selectedTemplate.assunto}</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="send-email">E-mail do destinatário *</Label>
+                      <Input
+                        id="send-email"
+                        type="email"
+                        value={sendForm.destinatario_email}
+                        onChange={(e) => setSendForm(prev => ({ ...prev, destinatario_email: e.target.value }))}
+                        placeholder="cliente@email.com"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="send-nome">Nome do destinatário</Label>
+                      <Input
+                        id="send-nome"
+                        value={sendForm.destinatario_nome}
+                        onChange={(e) => setSendForm(prev => ({ ...prev, destinatario_nome: e.target.value }))}
+                        placeholder="Nome do cliente"
+                      />
+                    </div>
+
+                    {selectedTemplate.variaveis?.length ? (
+                      <>
+                        <p className="text-sm font-medium text-muted-foreground pt-2 border-t">
+                          Variáveis do template
+                        </p>
+                        {selectedTemplate.variaveis.includes('{cliente_nome}') && (
+                          <div>
+                            <Label>Nome do cliente</Label>
+                            <Input
+                              value={sendForm.cliente_nome}
+                              onChange={(e) => setSendForm(prev => ({ ...prev, cliente_nome: e.target.value }))}
+                              placeholder="Nome"
+                            />
+                          </div>
+                        )}
+                        {selectedTemplate.variaveis.includes('{empresa_nome}') && (
+                          <div>
+                            <Label>Nome da empresa</Label>
+                            <Input
+                              value={sendForm.empresa_nome}
+                              onChange={(e) => setSendForm(prev => ({ ...prev, empresa_nome: e.target.value }))}
+                              placeholder="Sua empresa"
+                            />
+                          </div>
+                        )}
+                        {selectedTemplate.variaveis.includes('{pedido_numero}') && (
+                          <div>
+                            <Label>Número do pedido</Label>
+                            <Input
+                              value={sendForm.pedido_numero}
+                              onChange={(e) => setSendForm(prev => ({ ...prev, pedido_numero: e.target.value }))}
+                              placeholder="12345"
+                            />
+                          </div>
+                        )}
+                        {selectedTemplate.variaveis.includes('{pedido_valor}') && (
+                          <div>
+                            <Label>Valor do pedido</Label>
+                            <Input
+                              value={sendForm.pedido_valor}
+                              onChange={(e) => setSendForm(prev => ({ ...prev, pedido_valor: e.target.value }))}
+                              placeholder="150,00"
+                            />
+                          </div>
+                        )}
+                        {selectedTemplate.variaveis.includes('{link_catalogo}') && (
+                          <div>
+                            <Label>Link do catálogo</Label>
+                            <Input
+                              value={sendForm.link_catalogo}
+                              onChange={(e) => setSendForm(prev => ({ ...prev, link_catalogo: e.target.value }))}
+                              placeholder="https://..."
+                            />
+                          </div>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSendDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => sendEmailMutation.mutate()}
+                  disabled={sendEmailMutation.isPending || !sendForm.destinatario_email}
+                >
+                  {sendEmailMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Enviar E-mail
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </TabsContent>
@@ -501,7 +713,7 @@ export function EmailManager() {
                             {log.assunto}
                           </p>
                           {log.erro_mensagem && (
-                            <p className="text-xs text-red-500 mt-1">{log.erro_mensagem}</p>
+                            <p className="text-xs text-destructive mt-1">{log.erro_mensagem}</p>
                           )}
                         </div>
                         <div className="text-right text-xs text-muted-foreground">
