@@ -61,17 +61,47 @@ Deno.serve(async (req) => {
 
       if (error) throw error;
 
-      // Fetch all profiles
-      const userIds = (assinaturas || []).map((a: any) => a.user_id);
-      const { data: profiles } = await adminClient
+      // Fetch ALL profiles (not just those with subscriptions)
+      const { data: allProfiles } = await adminClient
         .from('profiles')
         .select('user_id, nome, email')
-        .in('user_id', userIds);
+        .order('created_at', { ascending: false });
 
-      const result = (assinaturas || []).map((a: any) => ({
-        ...a,
-        profiles: (profiles || []).find((p: any) => p.user_id === a.user_id) || null,
-      }));
+      // Also list all auth users to catch those without profiles
+      const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+
+      // Build a map of subscriptions by user_id
+      const subMap = new Map((assinaturas || []).map((a: any) => [a.user_id, a]));
+      const profileMap = new Map((allProfiles || []).map((p: any) => [p.user_id, p]));
+
+      // Merge: all auth users, with their subscription (if any) and profile
+      const result = (authUsers || []).map((authUser: any) => {
+        const sub = subMap.get(authUser.id);
+        const prof = profileMap.get(authUser.id);
+        return {
+          // Subscription fields (or defaults for users without subscription)
+          id: sub?.id || null,
+          user_id: authUser.id,
+          plano: sub?.plano || null,
+          status: sub?.status || 'sem_plano',
+          data_inicio: sub?.data_inicio || null,
+          data_vencimento: sub?.data_vencimento || null,
+          valor_mensal: sub?.valor_mensal || 0,
+          trial_ativo: sub?.trial_ativo || false,
+          metodo_pagamento: sub?.metodo_pagamento || null,
+          created_at: sub?.created_at || authUser.created_at,
+          stripe_customer_id: sub?.stripe_customer_id || null,
+          stripe_subscription_id: sub?.stripe_subscription_id || null,
+          mercadopago_preference_id: sub?.mercadopago_preference_id || null,
+          mercadopago_payment_id: sub?.mercadopago_payment_id || null,
+          notificacao_3dias_enviada: sub?.notificacao_3dias_enviada || false,
+          notificacao_vencimento_enviada: sub?.notificacao_vencimento_enviada || false,
+          pagamento_recorrente: sub?.pagamento_recorrente || false,
+          has_subscription: !!sub,
+          profiles: prof || { nome: null, email: authUser.email },
+          auth_created_at: authUser.created_at,
+        };
+      });
 
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
