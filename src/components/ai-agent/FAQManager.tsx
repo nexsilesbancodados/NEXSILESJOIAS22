@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, MessageSquare, TrendingUp, Tag } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useOrganization } from '@/hooks/useOrganization';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,8 +31,38 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useFAQs, useCreateFAQ, useUpdateFAQ, useDeleteFAQ, FAQ } from '@/hooks/useFAQs';
+import { Zap } from 'lucide-react';
+import { toast } from 'sonner';
+
+const FAQS_PREDEFINIDAS = [
+  // Entrega & Frete
+  { pergunta: 'Qual o prazo de entrega?', resposta: 'O prazo de entrega varia de 3 a 7 dias úteis após a confirmação do pagamento, dependendo da sua região. Enviamos pelos Correios com rastreio.', categoria: 'Entrega', palavras_chave: ['prazo', 'entrega', 'demora', 'chegar', 'dias'] },
+  { pergunta: 'Vocês fazem entrega para todo o Brasil?', resposta: 'Sim! Enviamos para todo o Brasil pelos Correios (PAC e SEDEX). O valor do frete é calculado de acordo com o CEP de destino.', categoria: 'Entrega', palavras_chave: ['entrega', 'brasil', 'frete', 'envio'] },
+  { pergunta: 'Como rastrear meu pedido?', resposta: 'Assim que seu pedido for postado, enviaremos o código de rastreio por WhatsApp e e-mail. Você pode acompanhar no site dos Correios.', categoria: 'Entrega', palavras_chave: ['rastrear', 'rastreio', 'rastreamento', 'código', 'correios'] },
+  // Pagamento
+  { pergunta: 'Quais formas de pagamento vocês aceitam?', resposta: 'Aceitamos PIX (desconto à vista), cartão de crédito, cartão de débito e boleto bancário. Para pagamentos via PIX, o desconto é aplicado automaticamente!', categoria: 'Pagamento', palavras_chave: ['pagamento', 'pagar', 'pix', 'cartão', 'boleto', 'forma'] },
+  { pergunta: 'Vocês parcelam?', resposta: 'Sim! Parcelamos em até 12x no cartão de crédito. Para compras acima de R$ 200, o parcelamento é sem juros em até 3x.', categoria: 'Pagamento', palavras_chave: ['parcelar', 'parcela', 'vezes', 'dividir', 'crédito'] },
+  { pergunta: 'Como funciona o pagamento por PIX?', resposta: 'Após confirmar seu pedido, geramos uma chave PIX para pagamento. Basta copiar e colar no app do seu banco. O pagamento é confirmado instantaneamente!', categoria: 'Pagamento', palavras_chave: ['pix', 'chave', 'qrcode', 'transferência'] },
+  // Produtos
+  { pergunta: 'As peças são banhadas ou folheadas?', resposta: 'Trabalhamos com diversas opções: peças banhadas a ouro 18k, folheadas, prata 925 e aço inoxidável. Cada produto tem a especificação detalhada no catálogo.', categoria: 'Produtos', palavras_chave: ['banhada', 'folheada', 'ouro', 'prata', 'aço', 'material', 'qualidade'] },
+  { pergunta: 'As peças escurecem?', resposta: 'Nossas peças banhadas a ouro têm alta durabilidade! Para manter o brilho, evite contato com perfumes, cremes e produtos químicos. Guarde em saquinhos individuais.', categoria: 'Produtos', palavras_chave: ['escurecer', 'manchar', 'durabilidade', 'cuidado', 'conservar'] },
+  { pergunta: 'Vocês têm garantia?', resposta: 'Sim! Todas as nossas peças possuem garantia de 90 dias contra defeitos de fabricação. Caso identifique algum problema, entre em contato que resolvemos.', categoria: 'Produtos', palavras_chave: ['garantia', 'defeito', 'qualidade', 'problema'] },
+  { pergunta: 'Posso ver fotos reais das peças?', resposta: 'Claro! Posso enviar fotos reais de qualquer peça que te interessar. Me diz qual produto gostaria de ver que envio na hora! 📸', categoria: 'Produtos', palavras_chave: ['foto', 'imagem', 'real', 'ver', 'mostrar'] },
+  // Trocas & Devoluções
+  { pergunta: 'Como faço para trocar uma peça?', resposta: 'Você tem até 7 dias após o recebimento para solicitar troca. A peça deve estar sem uso e na embalagem original. O frete de retorno fica por nossa conta!', categoria: 'Trocas', palavras_chave: ['trocar', 'troca', 'devolver', 'devolução', 'errado', 'tamanho'] },
+  { pergunta: 'E se a peça chegar com defeito?', resposta: 'Se a peça chegou com defeito, envie fotos por WhatsApp e faremos a troca imediata sem custo adicional. Sua satisfação é nossa prioridade!', categoria: 'Trocas', palavras_chave: ['defeito', 'quebrada', 'danificada', 'problema', 'reclamação'] },
+  // Revendedoras
+  { pergunta: 'Como funciona para ser revendedora?', resposta: 'Para ser revendedora, basta entrar em contato! Oferecemos maletas com peças selecionadas, preços especiais de revenda e suporte completo. Sem taxa de adesão!', categoria: 'Revenda', palavras_chave: ['revendedora', 'revender', 'revenda', 'maleta', 'atacado', 'parceira'] },
+  { pergunta: 'Qual a comissão das revendedoras?', resposta: 'Nossas revendedoras trabalham com margem de lucro de 30% a 50% sobre o preço de revenda. Quanto mais vender, maior seu lucro! Não há mensalidade.', categoria: 'Revenda', palavras_chave: ['comissão', 'lucro', 'margem', 'ganho', 'porcentagem'] },
+  // Geral
+  { pergunta: 'Qual o horário de atendimento?', resposta: 'Nosso atendimento funciona de segunda a sexta, das 9h às 18h, e aos sábados das 9h às 13h. Fora desse horário, deixe sua mensagem que respondemos assim que possível!', categoria: 'Geral', palavras_chave: ['horário', 'atendimento', 'funcionar', 'aberto', 'fechado'] },
+  { pergunta: 'Vocês têm loja física?', resposta: 'Trabalhamos principalmente pelo WhatsApp e catálogo online para oferecer os melhores preços! Assim conseguimos repassar a economia do ponto comercial para você.', categoria: 'Geral', palavras_chave: ['loja', 'física', 'endereço', 'visitar', 'ir'] },
+  { pergunta: 'Como entro em contato?', resposta: 'Você pode falar comigo aqui mesmo! Também atendemos pelo WhatsApp e e-mail. Estou à disposição para ajudar com qualquer dúvida! 😊', categoria: 'Geral', palavras_chave: ['contato', 'falar', 'telefone', 'whatsapp', 'email'] },
+];
 
 export function FAQManager() {
+  const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
@@ -331,6 +364,38 @@ export function FAQManager() {
               </p>
             </div>
           </div>
+
+          {faqs.length === 0 && (
+            <div className="p-4 border-2 border-dashed rounded-lg text-center">
+              <Zap className="h-8 w-8 mx-auto mb-2 text-primary" />
+              <p className="text-sm font-medium mb-1">Comece Rápido!</p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Carregue {FAQS_PREDEFINIDAS.length} FAQs prontas para uso
+              </p>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (!organizationId) return;
+                  const faqsToInsert = FAQS_PREDEFINIDAS.map(f => ({
+                    ...f,
+                    organization_id: organizationId,
+                    ativo: true,
+                  }));
+                  const { error } = await supabase.from('agente_faqs').insert(faqsToInsert);
+                  if (error) {
+                    toast.error('Erro ao carregar FAQs');
+                  } else {
+                    toast.success(`${FAQS_PREDEFINIDAS.length} FAQs carregadas!`);
+                    queryClient.invalidateQueries({ queryKey: ['faqs'] });
+                  }
+                }}
+                className="gap-1.5"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Carregar FAQs Prontas
+              </Button>
+            </div>
+          )}
 
           <div className="pt-4 border-t">
             <p className="text-sm font-medium mb-2">Estatísticas</p>
