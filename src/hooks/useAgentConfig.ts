@@ -49,6 +49,7 @@ export interface AgentConfig {
   respostas_rapidas: RespostaRapida[];
   palavras_proibidas: string[];
   limite_mensagens_sessao: number;
+  gemini_api_key: string | null;
 }
 
 const defaultConfig: Partial<AgentConfig> = {
@@ -80,7 +81,8 @@ const defaultConfig: Partial<AgentConfig> = {
   },
   respostas_rapidas: [],
   palavras_proibidas: [],
-  limite_mensagens_sessao: 50
+  limite_mensagens_sessao: 50,
+  gemini_api_key: null
 };
 
 export function useAgentConfig(organizationId: string) {
@@ -121,7 +123,8 @@ export function useAgentConfig(organizationId: string) {
           ...(horario || {})
         },
         respostas_rapidas: respostas || [],
-        palavras_proibidas: data.palavras_proibidas || []
+        palavras_proibidas: data.palavras_proibidas || [],
+        gemini_api_key: data.gemini_api_key || null
       } as AgentConfig;
     },
     enabled: !!organizationId
