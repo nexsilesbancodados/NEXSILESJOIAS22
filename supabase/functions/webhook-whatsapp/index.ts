@@ -175,7 +175,6 @@ serve(async (req) => {
 
     if (agentResult.error) {
       console.error('Agent error:', agentResult.error);
-      // Send error message via WhatsApp
       await sendWhatsAppMessage(phoneNumber, 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.', instanceName);
     } else if (agentResult.content) {
       // Save assistant message
@@ -188,8 +187,41 @@ serve(async (req) => {
           metadata: { source: 'whatsapp' }
         });
 
-      // Send response via WhatsApp
-      await sendWhatsAppMessage(phoneNumber, agentResult.content, instanceName);
+      // Extract image URLs from content and send as media separately
+      const content = agentResult.content as string;
+      const imageUrlRegex = /(?:IMAGEM_URL:\s*|!\[.*?\]\()(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|webp|gif)[^\s\)]*)/gi;
+      const imageMatches = [...content.matchAll(imageUrlRegex)];
+      
+      // Also check for Supabase storage URLs
+      const storageUrlRegex = /(https?:\/\/[^\s]+\/storage\/v1\/object\/public\/[^\s]+)/gi;
+      const storageMatches = [...content.matchAll(storageUrlRegex)];
+      
+      const allImageUrls = new Set<string>();
+      for (const match of imageMatches) allImageUrls.add(match[1]);
+      for (const match of storageMatches) allImageUrls.add(match[1]);
+      
+      // Clean the text content (remove image URLs and IMAGEM_URL markers for text message)
+      let textContent = content
+        .replace(/IMAGEM_URL:\s*https?:\/\/[^\s]+/gi, '')
+        .replace(/!\[.*?\]\(https?:\/\/[^\s\)]+\)/gi, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      // Send images first with product details as captions
+      for (const imageUrl of allImageUrls) {
+        // Try to extract a caption from nearby text (product name + price)
+        const captionMatch = content.match(/(?:\*\*|✨)\s*([^\n*]+)[\s\S]*?(?:R\$\s*[\d.,]+)/);
+        const caption = captionMatch ? captionMatch[0].replace(/IMAGEM_URL:[^\n]*/g, '').trim() : '';
+        
+        await sendWhatsAppMedia(phoneNumber, imageUrl, caption, instanceName);
+        // Small delay between media messages
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      // Send text message (without image URLs)
+      if (textContent) {
+        await sendWhatsAppMessage(phoneNumber, textContent, instanceName);
+      }
     }
 
     return new Response(JSON.stringify({ status: 'success' }), {
@@ -215,7 +247,60 @@ async function sendWhatsAppMessage(phone: string, message: string, instanceName:
   if (!evolutionUrl || !evolutionKey) {
     console.error('Evolution API not configured');
     return false;
+}
+
+async function sendWhatsAppMedia(phone: string, mediaUrl: string, caption: string, instanceName: string): Promise<boolean> {
+  const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
+  const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
+
+  if (!evolutionUrl || !evolutionKey) {
+    console.error('Evolution API not configured for media');
+    return false;
   }
+
+  try {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+
+    // Normalize Supabase storage URLs
+    let normalizedUrl = mediaUrl;
+    if (normalizedUrl.includes('/storage/v1/object/public/')) {
+      // Ensure it's a full public URL
+      if (!normalizedUrl.startsWith('http')) {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        normalizedUrl = `${supabaseUrl}${normalizedUrl}`;
+      }
+    }
+
+    console.log(`Sending media to ${fullPhone}: ${normalizedUrl}`);
+
+    const response = await fetch(`${evolutionUrl}/message/sendMedia/${instanceName}`, {
+      method: 'POST',
+      headers: {
+        'apikey': evolutionKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        number: fullPhone,
+        mediatype: 'image',
+        media: normalizedUrl,
+        caption: caption || ''
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Evolution API media error:', errorText);
+      return false;
+    }
+
+    console.log('Media sent successfully to:', fullPhone);
+    return true;
+  } catch (error) {
+    console.error('Error sending WhatsApp media:', error);
+    return false;
+  }
+}
 
   try {
     // Clean phone number
