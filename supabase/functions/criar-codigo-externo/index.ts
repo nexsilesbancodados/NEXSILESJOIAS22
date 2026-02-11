@@ -6,6 +6,15 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-cross-secret",
 };
 
+function gerarCodigo(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,21 +32,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { codigo, email, plano, valor_pago, valido_ate } = await req.json();
+    const { email, plano, valor_pago, valido_ate } = await req.json();
 
     // Validate required fields
-    if (!codigo || !email || !plano) {
+    if (!email || !plano) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: codigo, email, plano" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate codigo format (12 chars alphanumeric)
-    const codigoClean = String(codigo).replace(/[^A-Z0-9]/gi, "").toUpperCase();
-    if (codigoClean.length !== 12) {
-      return new Response(
-        JSON.stringify({ error: "Invalid codigo format. Must be 12 alphanumeric characters." }),
+        JSON.stringify({ error: "Missing required fields: email, plano" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -64,36 +64,50 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Auto-generate unique code
+    let codigo = "";
+    let attempts = 0;
+    while (attempts < 10) {
+      codigo = gerarCodigo();
+      const { data: existing } = await supabase
+        .from("codigos_acesso")
+        .select("id")
+        .eq("codigo", codigo)
+        .maybeSingle();
+      if (!existing) break;
+      attempts++;
+    }
+
     const now = new Date();
     const defaultValidoAte = new Date(now);
     defaultValidoAte.setDate(defaultValidoAte.getDate() + 30);
 
     const { data, error } = await supabase
       .from("codigos_acesso")
-      .upsert(
-        {
-          codigo: codigoClean,
-          email: String(email).trim().toLowerCase(),
-          plano,
-          usado: false,
-          valido_ate: valido_ate || defaultValidoAte.toISOString(),
-          valor_pago: valor_pago ?? (plano === "nexsiles_max" ? 249 : 189),
-        },
-        { onConflict: "codigo" }
-      )
+      .insert({
+        codigo,
+        email: String(email).trim().toLowerCase(),
+        plano,
+        usado: false,
+        valido_ate: valido_ate || defaultValidoAte.toISOString(),
+        valor_pago: valor_pago ?? (plano === "nexsiles_max" ? 249 : 189),
+      })
       .select()
       .single();
 
     if (error) {
-      console.error("Error upserting codigo:", error);
+      console.error("Error inserting codigo:", error);
       return new Response(
         JSON.stringify({ error: "Failed to create access code", details: error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Format code for display: XXXX-XXXX-XXXX
+    const codigoFormatado = `${codigo.slice(0, 4)}-${codigo.slice(4, 8)}-${codigo.slice(8, 12)}`;
+
     return new Response(
-      JSON.stringify({ success: true, codigo: codigoClean }),
+      JSON.stringify({ success: true, codigo, codigo_formatado: codigoFormatado }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
