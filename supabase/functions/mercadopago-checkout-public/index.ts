@@ -63,7 +63,7 @@ serve(async (req: Request) => {
     const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
     const descricao = `${planoInfo.nome} - ${periodo === "anual" ? "Anual" : "Mensal"}`;
     
-    const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
+    const origin = req.headers.get("origin") || "https://nexsiles.com.br";
 
     // Create Mercado Pago preference
     const preferenceData = {
