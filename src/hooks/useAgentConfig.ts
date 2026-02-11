@@ -18,6 +18,7 @@ interface HorarioFuncionamento {
   fim: string;
   dias: number[];
   mensagem_fora: string;
+  modo_24h?: boolean;
 }
 
 interface RespostaRapida {
