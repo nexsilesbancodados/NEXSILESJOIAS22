@@ -159,16 +159,18 @@ export function useAutoSetupAgent(organizationId: string) {
     queryFn: async () => {
       if (!organizationId) return null;
 
-      const [configRes, agentsRes, faqsRes] = await Promise.all([
+      const [configRes, agentsRes, faqsRes, templatesRes] = await Promise.all([
         supabase.from('agente_ia_config').select('id').eq('organization_id', organizationId).maybeSingle(),
         supabase.from('agentes').select('id').eq('organization_id', organizationId).limit(1),
         supabase.from('agente_faqs').select('id').eq('organization_id', organizationId).limit(1),
+        supabase.from('email_templates').select('id').eq('organization_id', organizationId).limit(1),
       ]);
 
       return {
         hasConfig: !!configRes.data,
         hasAgents: (agentsRes.data?.length || 0) > 0,
         hasFaqs: (faqsRes.data?.length || 0) > 0,
+        hasTemplates: (templatesRes.data?.length || 0) > 0,
       };
     },
     enabled: !!organizationId,
@@ -177,7 +179,7 @@ export function useAutoSetupAgent(organizationId: string) {
   useEffect(() => {
     if (!organizationId || !setupStatus || setupRan.current || isLoading) return;
     
-    const needsSetup = !setupStatus.hasConfig || !setupStatus.hasAgents || !setupStatus.hasFaqs;
+    const needsSetup = !setupStatus.hasConfig || !setupStatus.hasAgents || !setupStatus.hasFaqs || !setupStatus.hasTemplates;
     if (!needsSetup) return;
 
     setupRan.current = true;
@@ -215,11 +217,19 @@ export function useAutoSetupAgent(organizationId: string) {
           promises.push(supabase.from('agente_faqs').insert(faqsToInsert).select().then(r => r));
         }
 
+        if (!setupStatus.hasTemplates) {
+          // Use the existing RPC to seed email templates
+          promises.push(
+            supabase.rpc('seed_default_email_templates', { p_organization_id: organizationId }).then(r => r)
+          );
+        }
+
         await Promise.all(promises);
 
         queryClient.invalidateQueries({ queryKey: ['agent-config'] });
         queryClient.invalidateQueries({ queryKey: ['agentes'] });
         queryClient.invalidateQueries({ queryKey: ['faqs'] });
+        queryClient.invalidateQueries({ queryKey: ['email-templates'] });
         queryClient.invalidateQueries({ queryKey: ['agent-setup-status'] });
 
         toast.success('🚀 Agente configurado automaticamente! Só falta conectar o WhatsApp.');
@@ -232,7 +242,7 @@ export function useAutoSetupAgent(organizationId: string) {
   }, [organizationId, setupStatus, isLoading, queryClient]);
 
   return {
-    isReady: setupStatus ? setupStatus.hasConfig && setupStatus.hasAgents && setupStatus.hasFaqs : false,
+    isReady: setupStatus ? setupStatus.hasConfig && setupStatus.hasAgents && setupStatus.hasFaqs && setupStatus.hasTemplates : false,
     isLoading,
   };
 }

@@ -127,8 +127,8 @@ export default function AtendimentoPage() {
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Badge variant="secondary">✅ 5 Agentes prontos</Badge>
                   <Badge variant="secondary">✅ 16 FAQs carregadas</Badge>
+                  <Badge variant="secondary">✅ E-mails automáticos</Badge>
                   <Badge variant="secondary">✅ Modo vendas ativo</Badge>
-                  <Badge variant="secondary">✅ PIX automático</Badge>
                 </div>
               </div>
               <div className="flex-shrink-0">
