@@ -66,12 +66,21 @@ export default function AtendimentoPage() {
   const [input, setInput] = useState('');
   const [activeSection, setActiveSection] = useState<Section>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const initialSetDone = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const nomeAgente = config?.nome_agente || 'Assistente Virtual';
   const corPrimaria = config?.cor_primaria || '#9b87f5';
   const mensagemBoasVindas = config?.mensagem_boas_vindas || 'Olá! 👋 Como posso ajudar você hoje?';
+
+  // Auto-navigate to config/WhatsApp tab if agent is ready but WhatsApp not connected
+  useEffect(() => {
+    if (!initialSetDone.current && agentReady && !setupLoading && !configLoading && config && !config.whatsapp_instancia) {
+      initialSetDone.current = true;
+      setActiveSection('config');
+    }
+  }, [agentReady, setupLoading, configLoading, config]);
 
   useEffect(() => {
     if (scrollRef.current) {
