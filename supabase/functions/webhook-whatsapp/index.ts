@@ -201,6 +201,16 @@ serve(async (req) => {
     // Session ID based on phone number (persists across conversations)
     const sessionId = `whatsapp_${phoneNumber}`;
 
+    // Close stale conversations (older than 6 hours) to avoid polluted context
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+    await supabase
+      .from('agente_conversas')
+      .update({ status: 'finalizada', closed_at: new Date().toISOString() })
+      .eq('session_id', sessionId)
+      .eq('organization_id', organizationId)
+      .eq('status', 'ativa')
+      .lt('ultimo_contato_at', sixHoursAgo);
+
     // Check for existing active conversation or create new one
     let { data: conversa } = await supabase
       .from('agente_conversas')
@@ -250,13 +260,16 @@ serve(async (req) => {
         metadata: { source: 'whatsapp', phoneNumber, senderName }
       });
 
-    // Get conversation history (last 20 messages for context)
+    // Get conversation history (last 10 messages for cleaner context)
     const { data: mensagens } = await supabase
       .from('agente_mensagens')
       .select('role, content')
       .eq('conversa_id', conversa!.id)
-      .order('created_at', { ascending: true })
-      .limit(20);
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    // Reverse to get chronological order
+    mensagens?.reverse();
 
     const messages = mensagens?.map(m => ({
       role: m.role as 'user' | 'assistant',
