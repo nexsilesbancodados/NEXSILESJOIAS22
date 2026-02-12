@@ -119,7 +119,7 @@ const allTools = [
       type: "function",
       function: {
         name: "criar_pedido",
-        description: "Cria um novo pedido no sistema. Use quando o cliente confirmar a compra de um ou mais produtos. Pergunte o nome e telefone do cliente antes de criar.",
+        description: "Cria um novo pedido no sistema com TODOS os itens do carrinho. Use quando o cliente confirmar a compra. Pergunte o nome e telefone do cliente antes de criar.",
         parameters: {
           type: "object",
           properties: {
@@ -269,8 +269,51 @@ const allTools = [
         }
       }
     }
+  },
+  // === NEW TOOLS ===
+  {
+    id: 'buscar_pecas',
+    tool: {
+      type: "function",
+      function: {
+        name: "gerenciar_carrinho",
+        description: "Gerencia o carrinho de compras do cliente. Use para adicionar, remover itens ou mostrar o resumo do carrinho. O cliente pode ir adicionando peças e fechar tudo junto no final.",
+        parameters: {
+          type: "object",
+          properties: {
+            acao: { 
+              type: "string", 
+              description: "Ação: adicionar, remover, ver, limpar",
+              enum: ["adicionar", "remover", "ver", "limpar"]
+            },
+            peca_id: { type: "string", description: "ID da peça (para adicionar/remover)" },
+            quantidade: { type: "number", description: "Quantidade (padrão 1)" }
+          },
+          required: ["acao"]
+        }
+      }
+    }
+  },
+  {
+    id: 'buscar_pecas',
+    tool: {
+      type: "function",
+      function: {
+        name: "sugerir_complementos",
+        description: "Sugere peças complementares baseado no que o cliente está vendo/comprando. Use para fazer upsell/cross-sell inteligente após o cliente demonstrar interesse em um produto.",
+        parameters: {
+          type: "object",
+          properties: {
+            peca_id: { type: "string", description: "ID da peça que o cliente está vendo" },
+            categoria_atual: { type: "string", description: "Categoria da peça atual (anel, brinco, colar, pulseira)" }
+          },
+          required: ["categoria_atual"]
+        }
+      }
+    }
   }
 ];
+
 // Get filtered tools based on config
 function getActiveTools(config: Record<string, unknown> | null) {
   const ferramentasAtivas = config?.ferramentas_ativas as Record<string, boolean> || {
@@ -335,13 +378,30 @@ function getToneInstructions(tom: string): string {
   return tones[tom] || tones.profissional;
 }
 
+// Complementary categories for upsell
+const complementaryCategories: Record<string, string[]> = {
+  'anel': ['pulseira', 'brinco', 'aliança'],
+  'brinco': ['colar', 'anel', 'conjunto'],
+  'colar': ['brinco', 'pulseira', 'pingente'],
+  'pulseira': ['anel', 'colar', 'bracelete'],
+  'pingente': ['corrente', 'colar', 'brinco'],
+  'corrente': ['pingente', 'pulseira', 'anel'],
+  'conjunto': ['brinco', 'anel', 'pulseira'],
+  'aliança': ['anel', 'pulseira', 'brinco'],
+  'tornozeleira': ['pulseira', 'anel', 'brinco'],
+};
+
+// In-memory cart storage (per session, cleared on restart)
+const sessionCarts: Map<string, Array<{ peca_id: string; nome: string; preco: number; quantidade: number }>> = new Map();
+
 // Tool execution functions
 async function executarTool(
   toolName: string, 
   args: Record<string, unknown>, 
   supabase: ReturnType<typeof createClient>,
   organizationId: string,
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
+  sessionId?: string
 ): Promise<string> {
   console.log(`Executing tool: ${toolName}`, args);
   
@@ -527,11 +587,23 @@ Por favor, após efetuar o pagamento, envie o comprovante para confirmarmos seu 
         const itens = args.itens as Array<{ peca_id: string; quantidade: number }>;
         
         if (!itens || itens.length === 0) {
-          return "É necessário informar pelo menos um item para criar o pedido.";
+          // Check if there's a cart for this session
+          const cartKey = sessionId || '__no_session__';
+          const cart = sessionCarts.get(cartKey);
+          if (cart && cart.length > 0) {
+            // Use cart items
+            const cartItens = cart.map(item => ({ peca_id: item.peca_id, quantidade: item.quantidade }));
+            args.itens = cartItens;
+            // Continue with cart items below
+          } else {
+            return "É necessário informar pelo menos um item para criar o pedido. Use o carrinho para adicionar itens primeiro!";
+          }
         }
 
+        const finalItens = (args.itens || itens) as Array<{ peca_id: string; quantidade: number }>;
+
         // Get pieces info
-        const pecaIds = itens.map(i => i.peca_id);
+        const pecaIds = finalItens.map(i => i.peca_id);
         const { data: pecas, error: pecasError } = await supabase
           .from('pecas')
           .select('id, nome, preco_venda')
@@ -546,7 +618,7 @@ Por favor, após efetuar o pagamento, envie o comprovante para confirmarmos seu 
         let subtotal = 0;
         const pecasMap = new Map(pecas.map((p: Record<string, unknown>) => [p.id, p]));
         
-        for (const item of itens) {
+        for (const item of finalItens) {
           const peca = pecasMap.get(item.peca_id) as Record<string, unknown> | undefined;
           if (peca) {
             subtotal += (peca.preco_venda as number || 0) * item.quantidade;
@@ -602,7 +674,7 @@ Por favor, após efetuar o pagamento, envie o comprovante para confirmarmos seu 
         }
 
         // Create sale items
-        const vendaItens = itens.map(item => {
+        const vendaItens = finalItens.map(item => {
           const peca = pecasMap.get(item.peca_id) as Record<string, unknown> | undefined;
           return {
             venda_id: venda.id,
@@ -615,10 +687,65 @@ Por favor, após efetuar o pagamento, envie o comprovante para confirmarmos seu 
 
         await supabase.from('vendas_pecas').insert(vendaItens);
 
+        // Clear cart after successful order
+        if (sessionId) {
+          sessionCarts.delete(sessionId);
+        }
+
+        // Update client preferences
+        if (clienteId) {
+          try {
+            const telefoneCliente = args.cliente_telefone as string;
+            if (telefoneCliente) {
+              const categoriasCompradas = pecas.map((p: any) => p.categoria).filter(Boolean);
+              const produtosIds = pecas.map((p: any) => p.id);
+              
+              const { data: existingPrefs } = await supabase
+                .from('cliente_preferencias')
+                .select('*')
+                .eq('organization_id', organizationId)
+                .eq('cliente_telefone', telefoneCliente.replace(/\D/g, ''))
+                .maybeSingle();
+
+              if (existingPrefs) {
+                const currentCats = (existingPrefs.categorias_favoritas as string[]) || [];
+                const currentProds = (existingPrefs.produtos_comprados as string[]) || [];
+                await supabase.from('cliente_preferencias').update({
+                  categorias_favoritas: [...new Set([...currentCats, ...categoriasCompradas])],
+                  produtos_comprados: [...new Set([...currentProds, ...produtosIds])],
+                  total_compras: (existingPrefs.total_compras || 0) + 1,
+                  valor_total_compras: (existingPrefs.valor_total_compras || 0) + subtotal,
+                  ultima_compra_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }).eq('id', existingPrefs.id);
+              } else {
+                await supabase.from('cliente_preferencias').insert({
+                  organization_id: organizationId,
+                  cliente_telefone: telefoneCliente.replace(/\D/g, ''),
+                  categorias_favoritas: categoriasCompradas,
+                  produtos_comprados: produtosIds,
+                  total_compras: 1,
+                  valor_total_compras: subtotal,
+                  ultima_compra_at: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (e) {
+            console.error('Error updating client preferences:', e);
+          }
+        }
+
+        const itensDesc = finalItens.map(item => {
+          const peca = pecasMap.get(item.peca_id) as Record<string, unknown> | undefined;
+          return `  - ${peca?.nome || 'Item'} x${item.quantidade} = R$ ${(((peca?.preco_venda as number) || 0) * item.quantidade).toFixed(2)}`;
+        }).join('\n');
+
         return `✅ **Pedido criado com sucesso!**
 
 **Número do pedido:** #${venda.numero || venda.id.toString().slice(0, 8)}
 **Cliente:** ${args.cliente_nome}
+**Itens:**
+${itensDesc}
 **Valor total:** R$ ${subtotal.toFixed(2)}
 **Status:** Pendente
 
@@ -630,7 +757,6 @@ O pedido foi registrado e será processado em breve!`;
         const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
         
         if (!evolutionUrl || !evolutionKey) {
-          // Fallback to WhatsApp link if Evolution API not configured
           const telefone = (args.telefone as string).replace(/\D/g, '');
           const mensagem = encodeURIComponent(args.mensagem as string);
           const link = `https://wa.me/55${telefone}?text=${mensagem}`;
@@ -638,13 +764,11 @@ O pedido foi registrado e será processado em breve!`;
         }
         
         let telefone = (args.telefone as string).replace(/\D/g, '');
-        // Ensure phone has country code
         if (!telefone.startsWith('55')) {
           telefone = '55' + telefone;
         }
         
         try {
-          // Get the default instance name (usually the first one or from config)
           const instanceName = config?.whatsapp_instancia || 'default';
           
           const response = await fetch(`${evolutionUrl}/message/sendText/${instanceName}`, {
@@ -671,7 +795,6 @@ O pedido foi registrado e será processado em breve!`;
           return `✅ **Mensagem enviada com sucesso!**\n\nDestinatário: ${telefone}\nStatus: Entregue ao WhatsApp`;
         } catch (error) {
           console.error('Error sending WhatsApp:', error);
-          // Fallback to link
           const mensagem = encodeURIComponent(args.mensagem as string);
           const link = `https://wa.me/${telefone}?text=${mensagem}`;
           return `⚠️ Não foi possível enviar automaticamente. Use este link:\n${link}`;
@@ -744,7 +867,6 @@ O pedido foi registrado e será processado em breve!`;
       }
 
       case "transferir_para_humano": {
-        // Get the current conversation
         const { data: conversas } = await supabase
           .from('agente_conversas')
           .select('id')
@@ -756,13 +878,11 @@ O pedido foi registrado e será processado em breve!`;
         const conversaId = conversas?.[0]?.id;
 
         if (conversaId) {
-          // Update conversation status
           await supabase
             .from('agente_conversas')
             .update({ status: 'aguardando_humano' })
             .eq('id', conversaId);
 
-          // Add to human queue
           await supabase
             .from('agente_fila_humana')
             .insert({
@@ -786,7 +906,6 @@ Por favor, aguarde. Você será notificado quando um atendente estiver disponív
       case "buscar_faq": {
         const pergunta = (args.pergunta as string).toLowerCase();
         
-        // Search FAQs by question similarity and keywords
         const { data: faqs, error } = await supabase
           .from('agente_faqs')
           .select('id, pergunta, resposta, palavras_chave')
@@ -799,7 +918,6 @@ Por favor, aguarde. Você será notificado quando um atendente estiver disponív
           return "FAQ_NOT_FOUND";
         }
 
-        // Simple matching - check if any words match
         const palavrasBusca = pergunta.split(/\s+/).filter(p => p.length > 2);
         
         let melhorMatch: { faq: Record<string, unknown>; score: number } | null = null;
@@ -809,12 +927,10 @@ Por favor, aguarde. Você será notificado quando um atendente estiver disponív
           const perguntaFaq = (faq.pergunta as string).toLowerCase();
           const palavrasChave = (faq.palavras_chave as string[]) || [];
           
-          // Check direct match
           if (perguntaFaq.includes(pergunta) || pergunta.includes(perguntaFaq)) {
             score += 10;
           }
           
-          // Check word matches
           for (const palavra of palavrasBusca) {
             if (perguntaFaq.includes(palavra)) score += 2;
             if (palavrasChave.some(k => k.toLowerCase().includes(palavra))) score += 3;
@@ -826,7 +942,6 @@ Por favor, aguarde. Você será notificado quando um atendente estiver disponív
         }
 
         if (melhorMatch && melhorMatch.score >= 2) {
-          // Increment usage count
           await supabase
             .from('agente_faqs')
             .update({ uso_count: (melhorMatch.faq.uso_count as number || 0) + 1 })
@@ -859,7 +974,6 @@ Por favor, responda com um número de 0 a 10.`;
 
         if (!email) return "⚠️ E-mail do destinatário não informado.";
 
-        // Find template by type
         const { data: template, error: tplError } = await supabase
           .from('email_templates')
           .select('id, nome, assunto')
@@ -873,7 +987,6 @@ Por favor, responda com um número de 0 a 10.`;
           return `⚠️ Nenhum template de e-mail do tipo "${tipoTemplate}" encontrado. Os templates são criados automaticamente no primeiro acesso.`;
         }
 
-        // Build variables
         const variaveis: Record<string, string> = {
           '{cliente_nome}': clienteNome,
           '{cliente_email}': email,
@@ -882,7 +995,6 @@ Por favor, responda com um número de 0 a 10.`;
         if (args.pedido_numero) variaveis['{pedido_numero}'] = args.pedido_numero as string;
         if (args.pedido_valor) variaveis['{pedido_valor}'] = args.pedido_valor as string;
 
-        // Get org name for empresa_nome
         const { data: orgData } = await supabase
           .from('organizations')
           .select('name')
@@ -890,7 +1002,6 @@ Por favor, responda com um número de 0 a 10.`;
           .maybeSingle();
         variaveis['{empresa_nome}'] = orgData?.name || 'Nossa Loja';
 
-        // Replace variables in template
         let assunto = template.assunto;
         const { data: fullTemplate } = await supabase
           .from('email_templates')
@@ -908,7 +1019,6 @@ Por favor, responda com um número de 0 a 10.`;
           corpoTexto = corpoTexto.replace(regex, value);
         }
 
-        // Send via Resend
         try {
           const resendKey = Deno.env.get('RESEND_API_KEY');
           if (!resendKey) return "⚠️ Serviço de e-mail não configurado (RESEND_API_KEY).";
@@ -926,7 +1036,6 @@ Por favor, responda com um número de 0 a 10.`;
 
           if (emailError) {
             console.error('Email send error:', emailError);
-            // Log the error
             await supabase.from('email_logs').insert({
               organization_id: organizationId,
               template_id: template.id,
@@ -939,7 +1048,6 @@ Por favor, responda com um número de 0 a 10.`;
             return `❌ Erro ao enviar e-mail: ${emailError.message}`;
           }
 
-          // Log success
           await supabase.from('email_logs').insert({
             organization_id: organizationId,
             template_id: template.id,
@@ -955,6 +1063,112 @@ Por favor, responda com um número de 0 a 10.`;
           console.error('Email error:', e);
           return `❌ Erro ao enviar e-mail: ${e instanceof Error ? e.message : 'Erro desconhecido'}`;
         }
+      }
+
+      // === NEW TOOLS ===
+
+      case "gerenciar_carrinho": {
+        const cartKey = sessionId || '__no_session__';
+        const acao = args.acao as string;
+
+        if (acao === 'ver' || acao === 'limpar') {
+          if (acao === 'limpar') {
+            sessionCarts.delete(cartKey);
+            return "🗑️ Carrinho limpo com sucesso!";
+          }
+          const cart = sessionCarts.get(cartKey);
+          if (!cart || cart.length === 0) {
+            return "🛒 Seu carrinho está vazio. Que tal adicionar algumas peças? Posso te mostrar nossos destaques!";
+          }
+          const total = cart.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+          const itensStr = cart.map((item, i) => 
+            `${i + 1}. ${item.nome} x${item.quantidade} = R$ ${(item.preco * item.quantidade).toFixed(2)}`
+          ).join('\n');
+          return `🛒 **Seu Carrinho:**\n\n${itensStr}\n\n**Total: R$ ${total.toFixed(2)}**\n\n${cart.length} item(ns). Deseja adicionar mais peças ou finalizar o pedido?`;
+        }
+
+        if (acao === 'adicionar') {
+          if (!args.peca_id) return "Preciso do ID da peça para adicionar ao carrinho.";
+          
+          const { data: peca } = await supabase
+            .from('pecas')
+            .select('id, nome, preco_venda, estoque')
+            .eq('id', args.peca_id)
+            .eq('organization_id', organizationId)
+            .single();
+
+          if (!peca) return "Peça não encontrada.";
+          if ((peca.estoque || 0) <= 0) return `❌ "${peca.nome}" está sem estoque no momento.`;
+
+          const cart = sessionCarts.get(cartKey) || [];
+          const existingIdx = cart.findIndex(item => item.peca_id === peca.id);
+          const qty = (args.quantidade as number) || 1;
+
+          if (existingIdx >= 0) {
+            cart[existingIdx].quantidade += qty;
+          } else {
+            cart.push({ peca_id: peca.id, nome: peca.nome, preco: peca.preco_venda || 0, quantidade: qty });
+          }
+          sessionCarts.set(cartKey, cart);
+
+          const total = cart.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+          return `✅ **"${peca.nome}" adicionado ao carrinho!**\n\n🛒 Carrinho: ${cart.length} item(ns) | Total: R$ ${total.toFixed(2)}\n\nDeseja adicionar mais peças ou finalizar o pedido?`;
+        }
+
+        if (acao === 'remover') {
+          if (!args.peca_id) return "Preciso do ID da peça para remover do carrinho.";
+          const cart = sessionCarts.get(cartKey) || [];
+          const idx = cart.findIndex(item => item.peca_id === args.peca_id);
+          if (idx < 0) return "Esta peça não está no carrinho.";
+          const removed = cart.splice(idx, 1)[0];
+          sessionCarts.set(cartKey, cart);
+          return `🗑️ **"${removed.nome}" removido do carrinho.**\n\n🛒 ${cart.length} item(ns) restante(s).`;
+        }
+
+        return "Ação não reconhecida. Use: adicionar, remover, ver ou limpar.";
+      }
+
+      case "sugerir_complementos": {
+        const categoriaAtual = (args.categoria_atual as string || '').toLowerCase();
+        const complementares = complementaryCategories[categoriaAtual] || ['brinco', 'colar', 'pulseira'];
+        
+        // Fetch complementary products
+        const { data: sugestoes, error } = await supabase
+          .from('pecas')
+          .select('id, nome, codigo, categoria, preco_venda, imagem_url, descricao, material')
+          .eq('organization_id', organizationId)
+          .eq('ativo', true)
+          .gt('estoque', 0)
+          .in('categoria', complementares.map(c => c.charAt(0).toUpperCase() + c.slice(1)))
+          .limit(6);
+
+        if (error) throw error;
+
+        if (!sugestoes || sugestoes.length === 0) {
+          // Fallback: get any products from different category
+          const { data: fallback } = await supabase
+            .from('pecas')
+            .select('id, nome, codigo, categoria, preco_venda, imagem_url, descricao')
+            .eq('organization_id', organizationId)
+            .eq('ativo', true)
+            .gt('estoque', 0)
+            .not('categoria', 'ilike', `%${categoriaAtual}%`)
+            .limit(4);
+          
+          if (!fallback || fallback.length === 0) {
+            return "Não encontrei sugestões complementares no momento.";
+          }
+
+          return `✨ **Sugestões que combinam:**\n\n` + fallback.map((p: any) => {
+            const imgUrl = p.imagem_url ? String(p.imagem_url).replace(/#$/, '') : '';
+            return `• [ID: ${p.id}] ${p.nome} - R$ ${p.preco_venda?.toFixed(2) || '?'} (${p.categoria || 'Acessório'})${imgUrl ? `\n  IMAGEM_URL: ${imgUrl}` : ''}`;
+          }).join('\n');
+        }
+
+        return `✨ **Combina perfeitamente com ${categoriaAtual}:**\n\n` + sugestoes.map((p: any) => {
+          const imgUrl = p.imagem_url ? String(p.imagem_url).replace(/#$/, '') : '';
+          return `• [ID: ${p.id}] ${p.nome} - R$ ${p.preco_venda?.toFixed(2) || '?'} (${p.categoria})${p.material ? ` | ${p.material}` : ''}${imgUrl ? `\n  IMAGEM_URL: ${imgUrl}` : ''}`;
+        }).join('\n') + `\n\nQuer ver alguma dessas peças mais de perto? 💎`;
       }
 
       default:
@@ -1070,17 +1284,14 @@ serve(async (req) => {
         .maybeSingle();
 
       if (abTest) {
-        // Randomly assign variant (50/50)
         abVariante = Math.random() < 0.5 ? 'A' : 'B';
         abTesteId = abTest.id;
         
-        // Override base prompt with variant prompt
         const variantPrompt = abVariante === 'A' ? abTest.variante_a_prompt : abTest.variante_b_prompt;
         if (variantPrompt) {
           basePrompt = variantPrompt;
         }
         
-        // Increment conversation counter
         const counterField = abVariante === 'A' ? 'variante_a_conversas' : 'variante_b_conversas';
         await supabase
           .from('ab_testes')
@@ -1091,10 +1302,9 @@ serve(async (req) => {
       console.error('A/B test error:', e);
     }
 
-    // Enrich with organization data (trained with own data)
+    // Enrich with organization data
     let knowledgeBase = '';
     try {
-      // Fetch FAQs for context
       const { data: faqs } = await supabase
         .from('agente_faqs')
         .select('pergunta, resposta')
@@ -1102,7 +1312,6 @@ serve(async (req) => {
         .eq('ativo', true)
         .limit(30);
 
-      // Fetch top products with images
       const { data: topProducts } = await supabase
         .from('pecas')
         .select('id, nome, codigo, categoria, preco_venda, descricao, imagem_url, material, estoque')
@@ -1111,7 +1320,6 @@ serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(30);
 
-      // Fetch active catalogs
       const { data: catalogos } = await supabase
         .from('catalogos')
         .select('id, nome, slug, descricao')
@@ -1144,12 +1352,11 @@ serve(async (req) => {
       console.error('Error enriching prompt:', e);
     }
 
-    // === MEMÓRIA DE LONGO PRAZO DO CLIENTE ===
+    // === CLIENT LONG-TERM MEMORY + PREFERENCES ===
     let clientMemory = '';
     try {
       let telefoneCliente = clienteTelefone || null;
       
-      // If no phone provided, try to find from current session
       if (!telefoneCliente && sessionId) {
         const { data: currentConv } = await supabase
           .from('agente_conversas')
@@ -1163,9 +1370,18 @@ serve(async (req) => {
       }
 
       if (telefoneCliente) {
+        const cleanPhone = telefoneCliente.replace(/\D/g, '');
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         
+        // Fetch client preferences
+        const { data: prefs } = await supabase
+          .from('cliente_preferencias')
+          .select('*')
+          .eq('organization_id', organizationId)
+          .eq('cliente_telefone', cleanPhone)
+          .maybeSingle();
+
         const { data: pastConversas } = await supabase
           .from('agente_conversas')
           .select('id, created_at, sentimento, lead_score, venda_realizada, valor_venda, produtos_interesse, cliente_nome')
@@ -1258,6 +1474,24 @@ serve(async (req) => {
             }
           }
 
+          // Build preferences section
+          let prefsSection = '';
+          if (prefs) {
+            prefsSection = `\n### Preferências Conhecidas:`;
+            if (prefs.categorias_favoritas && (prefs.categorias_favoritas as string[]).length > 0) {
+              prefsSection += `\n- Categorias favoritas: ${(prefs.categorias_favoritas as string[]).join(', ')}`;
+            }
+            if (prefs.materiais_preferidos && (prefs.materiais_preferidos as string[]).length > 0) {
+              prefsSection += `\n- Materiais preferidos: ${(prefs.materiais_preferidos as string[]).join(', ')}`;
+            }
+            if (prefs.faixa_preco_min || prefs.faixa_preco_max) {
+              prefsSection += `\n- Faixa de preço: R$ ${prefs.faixa_preco_min || 0} - R$ ${prefs.faixa_preco_max || '∞'}`;
+            }
+            if (prefs.total_compras) {
+              prefsSection += `\n- Total de compras registradas: ${prefs.total_compras} (R$ ${(prefs.valor_total_compras || 0).toFixed(2)})`;
+            }
+          }
+
           clientMemory = `
 
 ## 🧠 MEMÓRIA DO CLIENTE (USE ESTAS INFORMAÇÕES!)
@@ -1269,18 +1503,45 @@ serve(async (req) => {
 **Último contato:** ${ultimoContato}
 **Sentimento recente:** ${sentimentoRecente || 'N/A'}
 ${todosInteresses.length > 0 ? `**Interesses:** ${todosInteresses.join(', ')}` : ''}
+${prefsSection}
 
 ### INSTRUÇÕES DE MEMÓRIA:
 - NÃO trate como cliente novo. Use o nome naturalmente.
 - Referencie compras anteriores: "Da última vez você levou [produto], gostou?"
 - Retome interesses não finalizados: "Lembra daquela peça que te interessou?"
 - Clientes recorrentes = tratamento VIP.
+- USE as preferências conhecidas para sugerir produtos na faixa de preço e categorias que o cliente gosta.
 ${historicoCompras}
 ${resumoConversas}`;
+        } else if (prefs) {
+          // First conversation but we have preferences from other channels
+          clientMemory = `
+
+## 🧠 PERFIL DO CLIENTE (dados do sistema)
+**Telefone:** ${telefoneCliente}
+${prefs.categorias_favoritas ? `**Categorias que gosta:** ${(prefs.categorias_favoritas as string[]).join(', ')}` : ''}
+${prefs.total_compras ? `**Compras anteriores:** ${prefs.total_compras} (R$ ${(prefs.valor_total_compras || 0).toFixed(2)})` : ''}
+${prefs.ultima_compra_at ? `**Última compra:** ${new Date(prefs.ultima_compra_at as string).toLocaleDateString('pt-BR')}` : ''}
+
+Use essas informações para personalizar o atendimento.`;
         }
       }
     } catch (e) {
       console.error('Error building client memory:', e);
+    }
+
+    // Check current cart for the session
+    let cartContext = '';
+    if (sessionId) {
+      const cart = sessionCarts.get(sessionId);
+      if (cart && cart.length > 0) {
+        const total = cart.reduce((sum, item) => sum + (item.preco * item.quantidade), 0);
+        cartContext = `\n\n## 🛒 CARRINHO ATUAL DO CLIENTE
+${cart.map((item, i) => `${i+1}. ${item.nome} x${item.quantidade} = R$ ${(item.preco * item.quantidade).toFixed(2)}`).join('\n')}
+**Total: R$ ${total.toFixed(2)}**
+
+O cliente já tem itens no carrinho. Quando ele quiser finalizar, use \`criar_pedido\` com todos os itens do carrinho.`;
+      }
     }
 
     const systemPrompt = `${basePrompt}
@@ -1288,6 +1549,8 @@ ${resumoConversas}`;
 ${knowledgeBase}
 
 ${clientMemory}
+
+${cartContext}
 
 ## MODO: AUTONOMIA TOTAL DE VENDAS
 
@@ -1307,19 +1570,38 @@ Seu objetivo é VENDER. Cada conversa é uma oportunidade. Seja proativo, sugira
 1. **Saudação** → Cumprimente UMA VEZ APENAS e pergunte o que o cliente procura
 2. **Descoberta** → Entenda a necessidade (presente? uso pessoal? ocasião?)
 3. **Apresentação** → Use \`buscar_produtos\` para encontrar peças relevantes. SEMPRE envie a foto junto com descrição e preço usando \`enviar_foto_produto\`
-4. **Catálogo** → Quando apropriado, envie o link do catálogo com \`gerar_link_catalogo\`
-5. **Objeções** → Responda dúvidas sobre material, qualidade, preço
-6. **Fechamento** → Pergunte "Posso separar essa peça para você?" ou "Quer finalizar o pedido?"
-7. **Pagamento** → Use \`gerar_pix\` quando confirmar a compra
-8. **Pedido** → Use \`criar_pedido\` para registrar no sistema
+4. **Carrinho** → Quando o cliente gostar de uma peça, use \`gerenciar_carrinho\` para adicionar. Permita que ele monte o pedido completo.
+5. **Upsell** → Após o cliente demonstrar interesse, use \`sugerir_complementos\` para oferecer peças que combinam!
+6. **Catálogo** → Quando apropriado, envie o link do catálogo com \`gerar_link_catalogo\`
+7. **Objeções** → Responda dúvidas sobre material, qualidade, preço
+8. **Fechamento** → Quando o cliente tiver itens no carrinho, pergunte "Posso finalizar seu pedido?"
+9. **Pagamento** → Use \`gerar_pix\` quando confirmar a compra
+10. **Pedido** → Use \`criar_pedido\` para registrar no sistema (inclua TODOS os itens do carrinho)
+
+### 🛒 CARRINHO INTELIGENTE
+- Quando o cliente gostar de uma peça, ADICIONE ao carrinho automaticamente com \`gerenciar_carrinho\`
+- Permita que o cliente continue navegando e adicionando mais itens
+- Mostre o resumo do carrinho quando ele perguntar ou antes de fechar
+- Quando o cliente disser "quero fechar", "finalizar", "é isso" → mostre o carrinho e confirme o pedido
+- Se o cliente remover um item, confirme e sugira outra peça no lugar
+
+### 💡 UPSELL INTELIGENTE (OBRIGATÓRIO)
+- Após CADA produto que o cliente demonstrar interesse, use \`sugerir_complementos\` para recomendar peças que combinam
+- Frases de upsell: "Essa peça fica LINDA com..." / "Muitas clientes levam junto..." / "Que tal completar o look?"
+- Se o cliente comprou/gostou de um anel → sugira pulseira ou brinco
+- Se o cliente comprou/gostou de um colar → sugira brinco ou pingente
+- SEMPRE apresente 2-3 sugestões complementares com foto
 
 ### 🔧 QUANDO USAR FERRAMENTAS (OBRIGATÓRIO)
 Você DEVE chamar ferramentas nestas situações - NUNCA responda sem usá-las:
-- Cliente menciona QUALQUER tipo de produto (anel, brinco, colar, pulseira, conjunto, etc.) → \`buscar_produtos\`
+- Cliente menciona QUALQUER tipo de produto → \`buscar_produtos\`
 - Cliente pede foto, imagem, "me mostra" → \`buscar_produtos\` + inclua IMAGEM_URL na resposta
 - Cliente pergunta preço → \`buscar_produtos\`
-- Cliente quer comprar → \`criar_pedido\`
+- Cliente gosta de uma peça / diz "quero", "gostei", "adiciona" → \`gerenciar_carrinho\` (adicionar)
+- Cliente pergunta "meu carrinho", "o que tenho" → \`gerenciar_carrinho\` (ver)
+- Cliente quer comprar / finalizar → \`criar_pedido\`
 - Cliente quer pagar → \`gerar_pix\`
+- Após mostrar um produto → \`sugerir_complementos\` para upsell
 
 ### 📸 REGRA CRÍTICA DE ENVIO DE PRODUTOS (WhatsApp)
 Quando o atendimento for via WhatsApp e você apresentar qualquer produto:
@@ -1333,7 +1615,7 @@ Quando o atendimento for via WhatsApp e você apresentar qualquer produto:
 ### 🧠 Comportamento Inteligente
 - SEMPRE busque produtos reais antes de recomendar (use \`buscar_produtos\`)
 - SEMPRE inclua IMAGEM_URL dos produtos na resposta para envio via WhatsApp
-- Sugira produtos complementares (upsell/cross-sell): "Essa pulseira combina perfeitamente com este colar!"
+- Sugira produtos complementares (upsell/cross-sell) AUTOMATICAMENTE após cada interesse
 - Se o cliente perguntar algo genérico ("o que vocês têm?"), mostre destaques com fotos e envie o catálogo
 - Use os IDs reais dos produtos nas ferramentas
 - Nunca invente produtos ou preços - sempre consulte a base de dados
@@ -1443,7 +1725,7 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
         const toolName = toolCall.function.name;
         const toolArgs = JSON.parse(toolCall.function.arguments || '{}');
         
-        const result = await executarTool(toolName, toolArgs, supabase, organizationId, config || {});
+        const result = await executarTool(toolName, toolArgs, supabase, organizationId, config || {}, sessionId);
         
         toolResults.push({
           role: 'tool',
@@ -1455,7 +1737,7 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
       // Small delay to avoid rate limiting on second call
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Clean assistant message for follow-up (remove undefined content)
+      // Clean assistant message for follow-up
       const cleanAssistantMsg: Record<string, unknown> = {
         role: 'assistant',
         tool_calls: assistantMessage.tool_calls,
@@ -1485,7 +1767,6 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
       if (!followUpResponse.ok) {
         const followUpError = await followUpResponse.text();
         console.error('Follow-up AI error:', followUpResponse.status, followUpError);
-        // Return tool results directly if follow-up fails
         const fallbackContent = toolResults.map(r => r.content).join('\n\n');
         return new Response(JSON.stringify({
           content: fallbackContent || 'Desculpe, houve um erro ao processar. Tente novamente.',
@@ -1531,8 +1812,8 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
     // Determine lead score based on conversation content
     let leadScore = 'frio';
     const allContent = messages.map((m: any) => m.content).join(' ').toLowerCase();
-    const hotKeywords = ['comprar', 'preço', 'quanto custa', 'pix', 'pedido', 'quero', 'reservar', 'separar', 'fechar', 'pagar'];
-    const warmKeywords = ['catálogo', 'foto', 'ver', 'opções', 'disponível', 'tem', 'modelo', 'material'];
+    const hotKeywords = ['comprar', 'preço', 'quanto custa', 'pix', 'pedido', 'quero', 'reservar', 'separar', 'fechar', 'pagar', 'carrinho', 'finalizar'];
+    const warmKeywords = ['catálogo', 'foto', 'ver', 'opções', 'disponível', 'tem', 'modelo', 'material', 'gostei', 'bonito'];
     
     const hotMatches = hotKeywords.filter(k => allContent.includes(k)).length;
     const warmMatches = warmKeywords.filter(k => allContent.includes(k)).length;
@@ -1540,7 +1821,7 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
     if (hotMatches >= 2) leadScore = 'quente';
     else if (hotMatches >= 1 || warmMatches >= 2) leadScore = 'morno';
 
-    // Detect if a sale was made (check if criar_pedido was called)
+    // Detect if a sale was made
     const vendaRealizada = assistantMessage?.content?.includes('Pedido criado com sucesso') || false;
     let valorVenda = 0;
     if (vendaRealizada) {
@@ -1552,8 +1833,6 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
 
     // Extract products of interest
     const produtosInteresse: string[] = [];
-    const prodMatch = allContent.match(/interesse.*?(?:em|por)\s+(.+?)(?:\.|!|\?|$)/gi);
-    // Simple: extract product names mentioned in tool results
     
     // Save conversation to database if sessionId provided
     if (sessionId) {
