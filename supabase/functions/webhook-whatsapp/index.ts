@@ -214,11 +214,42 @@ serve(async (req) => {
     // Check for existing active conversation or create new one
     let { data: conversa } = await supabase
       .from('agente_conversas')
-      .select('id')
+      .select('id, assigned_to, status, venda_realizada')
       .eq('session_id', sessionId)
       .eq('organization_id', organizationId)
-      .eq('status', 'ativa')
+      .in('status', ['ativa', 'humano'])
       .maybeSingle();
+
+    // Check if conversation is handled by a human or already sold
+    let skipAI = false;
+
+    if (conversa) {
+      // If assigned to a human or status is 'humano', don't send AI response
+      if (conversa.assigned_to || conversa.status === 'humano') {
+        console.log(`Conversation ${conversa.id} is handled by human, skipping AI response`);
+        skipAI = true;
+      }
+      // If sale was already completed, don't send AI response
+      if (conversa.venda_realizada) {
+        console.log(`Conversation ${conversa.id} already has a completed sale, skipping AI response`);
+        skipAI = true;
+      }
+    }
+
+    // Also check if there's a human queue entry for this conversation
+    if (conversa && !skipAI) {
+      const { data: filaEntry } = await supabase
+        .from('agente_fila_humana')
+        .select('id')
+        .eq('conversa_id', conversa.id)
+        .in('status', ['aguardando', 'em_atendimento'])
+        .maybeSingle();
+
+      if (filaEntry) {
+        console.log(`Conversation ${conversa.id} is in human queue, skipping AI response`);
+        skipAI = true;
+      }
+    }
 
     if (!conversa) {
       const { data: newConversa, error: convError } = await supabase
@@ -261,6 +292,14 @@ serve(async (req) => {
         content: messageText,
         metadata: { source: 'whatsapp', phoneNumber, senderName }
       });
+
+    // If handled by human, skip AI response
+    if (skipAI) {
+      console.log('Skipping AI response - conversation handled by human or sale completed');
+      return new Response(JSON.stringify({ status: 'skipped', reason: 'human_handling' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Get conversation history (last 10 messages for cleaner context)
     const { data: mensagens } = await supabase
