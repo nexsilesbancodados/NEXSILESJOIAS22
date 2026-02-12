@@ -93,7 +93,7 @@ export function useAssinatura() {
       
       if (ownSub) return ownSub as Assinatura;
 
-      // If no own subscription, find org owner's subscription
+      // If no own subscription, find org owner's subscription via organizations table
       const { data: membership } = await db
         .from('memberships')
         .select('organization_id')
@@ -102,21 +102,20 @@ export function useAssinatura() {
 
       if (!membership) return null;
 
-      // Find the org owner
-      const { data: ownerMembership } = await db
-        .from('memberships')
-        .select('user_id')
-        .eq('organization_id', membership.organization_id)
-        .eq('role', 'owner')
+      // Get owner directly from organizations table (not memberships, which has restrictive RLS)
+      const { data: org } = await db
+        .from('organizations')
+        .select('owner_id')
+        .eq('id', membership.organization_id)
         .maybeSingle();
 
-      if (!ownerMembership) return null;
+      if (!org) return null;
 
       // Get the owner's subscription
       const { data: ownerSub, error: ownerError } = await db
         .from('assinaturas')
         .select('*')
-        .eq('user_id', ownerMembership.user_id)
+        .eq('user_id', org.owner_id)
         .maybeSingle();
 
       if (ownerError) {
