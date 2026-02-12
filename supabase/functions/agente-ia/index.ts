@@ -375,9 +375,10 @@ async function executarTool(
           return "Nenhum produto encontrado com os critérios informados. Tente buscar com termos diferentes.";
         }
 
-        return `Encontrei ${data.length} produto(s):\n` + data.map((p: Record<string, unknown>) => 
-          `• [ID: ${p.id}] ${p.nome} (Cód: ${p.codigo || 'N/A'}) - R$ ${(p.preco_venda as number)?.toFixed(2) || 'Consultar'} - Estoque: ${p.estoque || 0}${p.categoria ? ` - Cat: ${p.categoria}` : ''}${p.material ? ` - Material: ${p.material}` : ''}${p.descricao ? ` - ${p.descricao}` : ''}${p.imagem_url ? ` [TEM FOTO]` : ''}`
-        ).join('\n');
+        return `Encontrei ${data.length} produto(s):\n` + data.map((p: Record<string, unknown>) => {
+          const imgUrl = p.imagem_url ? String(p.imagem_url).replace(/#$/, '') : '';
+          return `• [ID: ${p.id}] ${p.nome} (Cód: ${p.codigo || 'N/A'}) - R$ ${(p.preco_venda as number)?.toFixed(2) || 'Consultar'} - Estoque: ${p.estoque || 0}${p.categoria ? ` - Cat: ${p.categoria}` : ''}${p.material ? ` - Material: ${p.material}` : ''}${p.descricao ? ` - ${p.descricao}` : ''}${imgUrl ? `\n  IMAGEM_URL: ${imgUrl}` : ' (sem foto)'}`;
+        }).join('\n');
       }
 
       case "enviar_foto_produto": {
@@ -414,7 +415,7 @@ Estoque: ${peca.estoque || 0} unidades
 ${peca.categoria ? `Categoria: ${peca.categoria}` : ''}
 ${peca.material ? `Material: ${peca.material}` : ''}
 ${peca.descricao ? `Descrição: ${peca.descricao}` : ''}
-${peca.imagem_url ? `IMAGEM_URL: ${peca.imagem_url}` : 'Sem foto disponível'}
+${peca.imagem_url ? `IMAGEM_URL: ${String(peca.imagem_url).replace(/#$/, '')}` : 'Sem foto disponível'}
 ID: ${peca.id}`;
 
         return info;

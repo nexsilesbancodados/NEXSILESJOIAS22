@@ -312,19 +312,23 @@ serve(async (req) => {
 
       const content = agentResult.content as string;
       
-      // Extract image URLs
-      const imageUrlRegex = /(?:IMAGEM_URL:\s*|!\[.*?\]\()(https?:\/\/[^\s\)]+\.(?:jpg|jpeg|png|webp|gif)[^\s\)]*)/gi;
+      // Extract image URLs - look for IMAGEM_URL: pattern first (most reliable)
+      const imagemUrlRegex = /IMAGEM_URL:\s*(https?:\/\/[^\s\n]+)/gi;
+      const imagemMatches = [...content.matchAll(imagemUrlRegex)];
+      // Also check markdown image syntax and storage URLs
+      const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s\)]+)\)/gi;
       const imageMatches = [...content.matchAll(imageUrlRegex)];
       const storageUrlRegex = /(https?:\/\/[^\s]+\/storage\/v1\/object\/public\/[^\s]+)/gi;
       const storageMatches = [...content.matchAll(storageUrlRegex)];
       
       const allImageUrls = new Set<string>();
-      for (const match of imageMatches) allImageUrls.add(match[1]);
-      for (const match of storageMatches) allImageUrls.add(match[1]);
+      for (const match of imagemMatches) allImageUrls.add(match[1].replace(/#$/, '').trim());
+      for (const match of imageMatches) allImageUrls.add(match[1].replace(/#$/, '').trim());
+      for (const match of storageMatches) allImageUrls.add(match[1].replace(/#$/, '').trim());
       
-      // Clean text content
+      // Clean text content - remove IMAGEM_URL lines and markdown images
       let textContent = content
-        .replace(/IMAGEM_URL:\s*https?:\/\/[^\s]+/gi, '')
+        .replace(/IMAGEM_URL:\s*https?:\/\/[^\s\n]+/gi, '')
         .replace(/!\[.*?\]\(https?:\/\/[^\s\)]+\)/gi, '')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
