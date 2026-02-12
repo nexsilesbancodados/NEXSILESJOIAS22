@@ -37,7 +37,6 @@ export function OrganizationGuard({ children }: OrganizationGuardProps) {
 
         if (membershipError) {
           console.error('Error checking membership:', membershipError);
-          // Don't block the app, just continue
           setIsReady(true);
           setIsChecking(false);
           return;
@@ -50,7 +49,23 @@ export function OrganizationGuard({ children }: OrganizationGuardProps) {
           return;
         }
 
-        // User doesn't have a membership - create organization and membership
+        // Check if user is an employee (funcionario) - they should NOT create a new org
+        // Their membership should have been created by the criar-funcionario edge function
+        const { data: funcionario } = await supabase
+          .from('funcionarios')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (funcionario) {
+          // Employee without membership - this is an edge case, don't create a new org
+          console.warn('Employee without membership found, skipping org creation');
+          setIsReady(true);
+          setIsChecking(false);
+          return;
+        }
+
+        // Only create org for new standalone users (owners)
         console.log('Creating organization for user:', user.id);
         
         // Create organization
