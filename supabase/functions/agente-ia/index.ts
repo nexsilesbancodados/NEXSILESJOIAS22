@@ -1872,6 +1872,8 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
           if (vendaRealizada) {
             updateData.venda_realizada = true;
             updateData.valor_venda = valorVenda;
+            updateData.status = 'finalizada';
+            updateData.closed_at = new Date().toISOString();
           }
           await supabase
             .from('agente_conversas')

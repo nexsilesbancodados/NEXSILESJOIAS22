@@ -240,12 +240,14 @@ serve(async (req) => {
       }
       conversa = newConversa;
     } else {
-      // Update last contact
+      // Update last contact and reset follow-up flags (client replied)
       await supabase
         .from('agente_conversas')
         .update({ 
           ultimo_contato_at: new Date().toISOString(),
-          cliente_nome: senderName 
+          cliente_nome: senderName,
+          follow_up_enviado: false,
+          follow_up_at: null,
         })
         .eq('id', conversa.id);
     }
