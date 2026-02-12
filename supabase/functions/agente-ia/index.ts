@@ -376,7 +376,7 @@ async function executarTool(
         }
 
         return `Encontrei ${data.length} produto(s):\n` + data.map((p: Record<string, unknown>) => 
-          `• [ID: ${p.id}] ${p.nome} (Cód: ${p.codigo || 'N/A'}) - R$ ${(p.preco_venda as number)?.toFixed(2) || 'Consultar'} - Estoque: ${p.estoque || 0}${p.categoria ? ` - Cat: ${p.categoria}` : ''}${p.material ? ` - Material: ${p.material}` : ''}${p.descricao ? ` - ${p.descricao}` : ''}${p.imagem_url ? ` [TEM FOTO]` : ''}`
+          `• [ID: ${p.id}] ${p.nome} (Cód: ${p.codigo || 'N/A'}) - R$ ${(p.preco_venda as number)?.toFixed(2) || 'Consultar'} - Estoque: ${p.estoque || 0}${p.categoria ? ` - Cat: ${p.categoria}` : ''}${p.material ? ` - Material: ${p.material}` : ''}${p.descricao ? ` - ${p.descricao}` : ''}${p.imagem_url ? ` IMAGEM_URL: ${p.imagem_url}` : ''}`
         ).join('\n');
       }
 
@@ -1115,7 +1115,7 @@ serve(async (req) => {
       if (topProducts && topProducts.length > 0) {
         knowledgeBase += `\n\n## Catálogo de Produtos (${topProducts.length} peças)\n`;
         topProducts.forEach((p: any) => {
-          knowledgeBase += `- [ID:${p.id}] ${p.nome} (${p.codigo || 'N/A'}) R$${p.preco_venda?.toFixed(2) || '?'} | Estoque: ${p.estoque || 0}${p.categoria ? ` | ${p.categoria}` : ''}${p.material ? ` | ${p.material}` : ''}${p.imagem_url ? ' | TEM FOTO' : ''}${p.descricao ? ` | ${p.descricao}` : ''}\n`;
+          knowledgeBase += `- [ID:${p.id}] ${p.nome} (${p.codigo || 'N/A'}) R$${p.preco_venda?.toFixed(2) || '?'} | Estoque: ${p.estoque || 0}${p.categoria ? ` | ${p.categoria}` : ''}${p.material ? ` | ${p.material}` : ''}${p.imagem_url ? ` | IMAGEM_URL: ${p.imagem_url}` : ' | SEM FOTO'}${p.descricao ? ` | ${p.descricao}` : ''}\n`;
         });
       }
 
@@ -1292,22 +1292,29 @@ Seu objetivo é VENDER. Cada conversa é uma oportunidade. Seja proativo, sugira
 7. **Pagamento** → Use \`gerar_pix\` quando confirmar a compra
 8. **Pedido** → Use \`criar_pedido\` para registrar no sistema
 
-### 📸 REGRA CRÍTICA DE ENVIO DE PRODUTOS (WhatsApp)
-Quando o atendimento for via WhatsApp e você apresentar qualquer produto:
-1. SEMPRE use \`enviar_foto_produto\` para buscar os detalhes completos da peça
-2. Na sua resposta, INCLUA a foto como mídia enviando via \`enviar_whatsapp_midia\` com a URL da imagem e uma legenda com nome, descrição e preço
-3. O formato da legenda deve ser: "✨ NOME DA PEÇA\n📝 Descrição\n💰 R$ PREÇO\n📦 Estoque: X unidades"
-4. Se houver múltiplos produtos, envie uma foto para CADA produto
-5. NUNCA apresente um produto sem enviar a foto (se disponível)
-6. Se o produto não tem foto, informe: "Esta peça não possui foto no momento, mas posso descrever..."
+### 📸 REGRA CRÍTICA DE ENVIO DE FOTOS DE PRODUTOS
+Quando apresentar qualquer produto que tenha IMAGEM_URL nos dados:
+1. INCLUA a marcação "IMAGEM_URL: <url>" na sua resposta de texto para CADA produto com foto
+2. O sistema detecta automaticamente essas marcações e envia as fotos no WhatsApp
+3. Formato ideal: apresente o produto com nome, preço, descrição e em seguida coloque "IMAGEM_URL: <url da foto>"
+4. Se houver múltiplos produtos, coloque a IMAGEM_URL de cada um
+5. NUNCA omita a IMAGEM_URL quando ela estiver disponível nos dados do produto
+6. Se o produto não tem foto, diga "esta peça não possui foto no momento"
+7. SEMPRE inclua a URL completa exatamente como recebida - não modifique nem encurte
+
+Exemplo de resposta correta:
+"✨ **Anel Solitário** - R$ 189,90
+📦 Estoque: 5 unidades
+Material: Ouro 18k
+IMAGEM_URL: https://exemplo.com/foto.jpg"
 
 ### 🧠 Comportamento Inteligente
 - SEMPRE busque produtos reais antes de recomendar (use \`buscar_produtos\`)
-- SEMPRE envie a foto do produto junto com preço e descrição via WhatsApp - não apenas descreva
-- Ao mostrar produtos, use \`enviar_foto_produto\` E depois \`enviar_whatsapp_midia\` com a IMAGEM_URL retornada
+- Ao mostrar produtos, SEMPRE inclua a marcação IMAGEM_URL na resposta para cada produto com foto
+- A marcação IMAGEM_URL será automaticamente convertida em foto enviada no WhatsApp
+- O telefone do cliente já é conhecido pelo sistema - NÃO peça o número de telefone
 - Sugira produtos complementares (upsell/cross-sell): "Essa pulseira combina perfeitamente com este colar!"
 - Se o cliente perguntar algo genérico ("o que vocês têm?"), mostre destaques com fotos e envie o catálogo
-- Quando souber o telefone do cliente, envie fotos/mensagens via WhatsApp proativamente
 - Use os IDs reais dos produtos nas ferramentas
 - Nunca invente produtos ou preços - sempre consulte a base de dados
 - Informe sobre estoque: "Últimas X unidades!" para criar urgência quando apropriado
