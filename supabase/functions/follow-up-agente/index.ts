@@ -113,6 +113,16 @@ serve(async (req) => {
         continue;
       }
 
+      // Skip if client replied AFTER our last follow-up (they're engaged, wait for agent response)
+      if (conversa.follow_up_at && conversa.ultimo_contato_at) {
+        const lastContactTime = new Date(conversa.ultimo_contato_at).getTime();
+        const lastFollowUpTime = new Date(conversa.follow_up_at).getTime();
+        if (lastContactTime > lastFollowUpTime) {
+          skipped++;
+          continue;
+        }
+      }
+
       // Get agent config for this organization
       const { data: config } = await supabase
         .from('agente_ia_config')
