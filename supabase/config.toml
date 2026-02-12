@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.enviar-email-template]
 verify_jwt = false
+
+[functions.broadcast-whatsapp]
+verify_jwt = false
