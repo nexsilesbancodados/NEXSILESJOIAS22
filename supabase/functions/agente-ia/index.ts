@@ -997,14 +997,27 @@ serve(async (req) => {
     const geminiApiKey = config?.gemini_api_key as string | null;
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    const useGemini = !!geminiApiKey;
-    const aiBaseUrl = useGemini 
+    let useGemini = !!geminiApiKey;
+    let aiBaseUrl = useGemini 
       ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
       : 'https://ai.gateway.lovable.dev/v1/chat/completions';
-    const aiHeaders: Record<string, string> = useGemini
+    let aiHeaders: Record<string, string> = useGemini
       ? { 'Authorization': `Bearer ${geminiApiKey}`, 'Content-Type': 'application/json' }
       : { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' };
-    const aiModel = useGemini ? 'gemini-2.5-flash' : 'google/gemini-3-flash-preview';
+    let aiModel = useGemini ? 'gemini-2.5-flash' : 'google/gemini-3-flash-preview';
+
+    // Helper to fallback to Lovable AI Gateway
+    const fallbackToLovable = () => {
+      if (LOVABLE_API_KEY) {
+        console.log('Falling back to Lovable AI Gateway');
+        useGemini = false;
+        aiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+        aiHeaders = { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' };
+        aiModel = 'google/gemini-3-flash-preview';
+        return true;
+      }
+      return false;
+    };
 
     if (!useGemini && !LOVABLE_API_KEY) {
       throw new Error("Nenhuma chave de IA configurada. Configure a chave Gemini nas configurações do agente.");
@@ -1368,27 +1381,38 @@ ${instrucoesEspeciais ? `## Instruções Especiais\n${instrucoesEspeciais}\n` : 
 
 ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras ou termos: ${palavrasProibidas.join(', ')}\n` : ''}`;
 
-    // First AI call with filtered tools
-    const aiResponse = await fetch(aiBaseUrl, {
-      method: 'POST',
-      headers: aiHeaders,
-      body: JSON.stringify({
-        model: aiModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
-        tools: activeTools.length > 0 ? activeTools : undefined,
-        tool_choice: activeTools.length > 0 ? 'auto' : undefined,
-        temperature: config?.temperatura || 0.7,
-        max_tokens: config?.max_tokens || 1024
-      })
-    });
+    const makeAiCall = async () => {
+      return await fetch(aiBaseUrl, {
+        method: 'POST',
+        headers: aiHeaders,
+        body: JSON.stringify({
+          model: aiModel,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages
+          ],
+          tools: activeTools.length > 0 ? activeTools : undefined,
+          tool_choice: activeTools.length > 0 ? 'auto' : undefined,
+          temperature: config?.temperatura || 0.7,
+          max_tokens: config?.max_tokens || 1024
+        })
+      });
+    };
+
+    let aiResponse = await makeAiCall();
+
+    // If Gemini Direct fails with 429/500, fallback to Lovable AI Gateway
+    if (!aiResponse.ok && useGemini && (aiResponse.status === 429 || aiResponse.status >= 500)) {
+      console.warn(`Gemini Direct failed with ${aiResponse.status}, attempting fallback...`);
+      if (fallbackToLovable()) {
+        aiResponse = await makeAiCall();
+      }
+    }
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', status, errorText);
+      console.error('AI error:', status, errorText);
       
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Muitas requisições. Por favor, aguarde um momento." }), {
@@ -1402,7 +1426,7 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-      throw new Error(`AI Gateway error: ${status}`);
+      throw new Error(`AI error: ${status}`);
     }
 
     const aiData = await aiResponse.json();
