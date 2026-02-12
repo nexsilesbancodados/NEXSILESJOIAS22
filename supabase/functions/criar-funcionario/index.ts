@@ -135,9 +135,19 @@ serve(async (req) => {
       });
     }
 
-    // Determine the role based on cargo
+    // Determine the role based on cargo - must match app_role enum: admin, gerente, vendedor, revendedora
+    const CARGO_TO_ROLE: Record<string, string> = {
+      admin: "admin",
+      gerente: "gerente",
+      vendedor: "vendedor",
+      caixa: "vendedor",
+      estoquista: "vendedor",
+      atendente: "vendedor",
+      outro: "vendedor",
+    };
+    const userRole = CARGO_TO_ROLE[cargo] || "vendedor";
     const isAdminCargo = cargo === "admin";
-    const userRole = isAdminCargo ? "admin" : "user";
+    const isGerenteCargo = cargo === "gerente";
 
     // 1. Create auth user (admin API - won't affect caller's session)
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -163,7 +173,7 @@ serve(async (req) => {
     const newUserId = newUser.user.id;
 
     // 2. Add user to the same organization
-    const membershipRole = isAdminCargo ? "admin" : "member";
+    const membershipRole = (isAdminCargo || isGerenteCargo) ? "admin" : "member";
     await supabaseAdmin
       .from("memberships")
       .insert({
@@ -223,7 +233,7 @@ serve(async (req) => {
       ];
 
       // Default permissions based on cargo
-      const fullAccess = isAdminCargo;
+      const fullAccess = isAdminCargo || isGerenteCargo;
       const defaultPerms: Record<string, { ver: boolean; criar: boolean; editar: boolean; excluir: boolean }> = {};
       
       if (fullAccess) {
