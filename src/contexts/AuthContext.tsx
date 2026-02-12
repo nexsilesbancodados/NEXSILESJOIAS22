@@ -91,9 +91,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfileAndRole = async (userId: string) => {
     try {
       // Fetch profile and role in parallel
-      const [profileResult, roleResult] = await Promise.all([
+      // Check for admin OR gerente role - both get full access
+      const [profileResult, adminResult, gerenteResult] = await Promise.all([
         db.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
         db.from('user_roles').select('role').eq('user_id', userId).eq('role', 'admin').maybeSingle(),
+        db.from('user_roles').select('role').eq('user_id', userId).eq('role', 'gerente').maybeSingle(),
       ]);
 
       if (profileResult.error) {
@@ -106,7 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
       }
 
-      setIsAdmin(!!roleResult.data);
+      // Gerentes have the same rights as admins/owners
+      setIsAdmin(!!adminResult.data || !!gerenteResult.data);
     } catch (error) {
       console.error('Error fetching profile:', error);
       setProfile(null);
