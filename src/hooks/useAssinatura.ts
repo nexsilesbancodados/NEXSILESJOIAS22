@@ -79,18 +79,52 @@ export function useAssinatura() {
     queryFn: async () => {
       if (!user?.id) return null;
       
-      const { data, error } = await db
+      // First try the user's own subscription
+      const { data: ownSub, error: ownError } = await db
         .from('assinaturas')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching assinatura:', error);
-        throw error;
+      if (ownError) {
+        console.error('Error fetching own assinatura:', ownError);
+        throw ownError;
       }
       
-      return data as Assinatura | null;
+      if (ownSub) return ownSub as Assinatura;
+
+      // If no own subscription, find org owner's subscription
+      const { data: membership } = await db
+        .from('memberships')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!membership) return null;
+
+      // Find the org owner
+      const { data: ownerMembership } = await db
+        .from('memberships')
+        .select('user_id')
+        .eq('organization_id', membership.organization_id)
+        .eq('role', 'owner')
+        .maybeSingle();
+
+      if (!ownerMembership) return null;
+
+      // Get the owner's subscription
+      const { data: ownerSub, error: ownerError } = await db
+        .from('assinaturas')
+        .select('*')
+        .eq('user_id', ownerMembership.user_id)
+        .maybeSingle();
+
+      if (ownerError) {
+        console.error('Error fetching owner assinatura:', ownerError);
+        throw ownerError;
+      }
+
+      return ownerSub as Assinatura | null;
     },
     enabled: !!user?.id,
   });
