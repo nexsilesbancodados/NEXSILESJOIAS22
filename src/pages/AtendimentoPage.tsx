@@ -41,17 +41,19 @@ import { ABTestingPanel } from '@/components/ai-agent/ABTestingPanel';
 import { AgentReportExport } from '@/components/ai-agent/AgentReportExport';
 import { VendasAgenteDashboard } from '@/components/ai-agent/VendasAgenteDashboard';
 import { ConversaoDashboard } from '@/components/ai-agent/ConversaoDashboard';
+import { BroadcastPanel } from '@/components/ai-agent/BroadcastPanel';
 import { WhatsAppQRConnect } from '@/components/ai-agent/WhatsAppQRConnect';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import { TrendingDown } from 'lucide-react';
+import { TrendingDown, Megaphone } from 'lucide-react';
 
-type Section = 'dashboard' | 'vendas' | 'conversao' | 'nps' | 'sentimento' | 'ab-testing' | 'relatorios' | 'chat' | 'config';
+type Section = 'dashboard' | 'vendas' | 'conversao' | 'broadcast' | 'nps' | 'sentimento' | 'ab-testing' | 'relatorios' | 'chat' | 'config';
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; description: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Conversas e visão geral' },
   { id: 'vendas', label: 'Vendas', icon: ShoppingCart, description: 'Performance comercial' },
   { id: 'conversao', label: 'Conversão', icon: BarChart3, description: 'Funil e métricas detalhadas' },
+  { id: 'broadcast', label: 'Broadcast', icon: Megaphone, description: 'Envio em massa' },
   { id: 'nps', label: 'NPS', icon: Star, description: 'Avaliações de atendimento' },
   { id: 'sentimento', label: 'Sentimento', icon: SmilePlus, description: 'Análise emocional' },
   { id: 'ab-testing', label: 'A/B Test', icon: FlaskConical, description: 'Testes de prompt' },
@@ -285,6 +287,7 @@ export default function AtendimentoPage() {
             {activeSection === 'dashboard' && <ConversasDashboard />}
             {activeSection === 'vendas' && <VendasAgenteDashboard />}
             {activeSection === 'conversao' && <ConversaoDashboard />}
+            {activeSection === 'broadcast' && <BroadcastPanel />}
             {activeSection === 'nps' && <NPSDashboard />}
             {activeSection === 'sentimento' && <SentimentDashboard />}
             {activeSection === 'ab-testing' && <ABTestingPanel />}
