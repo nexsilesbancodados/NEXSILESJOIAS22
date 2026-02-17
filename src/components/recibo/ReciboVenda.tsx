@@ -90,17 +90,23 @@ export const ReciboVenda = forwardRef<HTMLDivElement, ReciboVendaProps>(
         {/* Items */}
         <div className="border-b border-dashed border-gray-400 pb-4 mb-4">
           <p className="text-xs font-bold mb-2">ITENS</p>
+          <div className="mb-1">
+            <div className="flex justify-between text-xs font-bold border-b border-gray-300 pb-1 mb-1">
+              <span className="w-[120px]">Descrição</span>
+              <span className="w-[30px] text-center">Qtd</span>
+              <span className="text-right">Valor</span>
+            </div>
+          </div>
           <div className="space-y-2">
             {venda.itens.map((item, index) => (
               <div key={index} className="text-xs">
-                <div className="flex justify-between">
-                  <span className="truncate max-w-[180px]">
-                    {item.quantidade}x {item.peca.nome}
-                  </span>
+                <div className="flex justify-between items-start">
+                  <span className="truncate w-[120px]">{item.peca.nome}</span>
+                  <span className="w-[30px] text-center font-bold">{item.quantidade}</span>
+                  <span className="text-right">{formatCurrency(item.peca.preco_venda * item.quantidade)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
-                  <span className="pl-4">{item.peca.codigo}</span>
-                  <span>{formatCurrency(item.peca.preco_venda * item.quantidade)}</span>
+                <div className="text-gray-600 text-[10px]">
+                  <span className="pl-1">{item.peca.codigo}</span>
                 </div>
               </div>
             ))}
