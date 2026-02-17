@@ -794,11 +794,12 @@ export default function RevendedorasPage() {
     // Table
     autoTable(doc, {
       startY: 60,
-      head: [['Código', 'Nome', 'Preço', 'Status']],
+      head: [['Código', 'Nome', 'Qtd', 'Preço', 'Status']],
       body: maletaItems.map(item => [
         item.peca?.codigo || '-',
         item.peca?.nome || '-',
-        formatCurrency(item.peca?.preco_venda || 0),
+        String(item.quantidade || 1),
+        formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1)),
         item.status === 'vendido' ? 'Vendido' : 
         item.status === 'devolvido' ? 'Devolvido' : 'Pendente'
       ]),
@@ -866,6 +867,7 @@ export default function RevendedorasPage() {
             <tr>
               <th>Código</th>
               <th>Nome</th>
+              <th>Qtd</th>
               <th>Preço</th>
               <th>Status</th>
             </tr>
@@ -875,7 +877,8 @@ export default function RevendedorasPage() {
               <tr>
                 <td>${item.peca?.codigo || '-'}</td>
                 <td>${item.peca?.nome || '-'}</td>
-                <td>${formatCurrency(item.peca?.preco_venda || 0)}</td>
+                <td style="text-align:center">${item.quantidade || 1}</td>
+                <td>${formatCurrency((item.peca?.preco_venda || 0) * (item.quantidade || 1))}</td>
                 <td class="${item.status === 'vendido' ? 'status-vendido' : item.status === 'devolvido' ? 'status-devolvido' : 'status-pendente'}">
                   ${item.status === 'vendido' ? 'Vendido' : item.status === 'devolvido' ? 'Devolvido' : 'Pendente'}
                 </td>
