@@ -28,7 +28,8 @@ import {
   TrendingUp,
   MessageCircle,
   GraduationCap,
-  Shield
+  Shield,
+  HandCoins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRomaneios } from '@/hooks/useSupabaseData';
@@ -132,6 +133,7 @@ const menuItems = [
   { icon: Tag, label: 'Etiquetas', path: '/etiquetas', color: 'from-teal-500 to-emerald-600' },
   { icon: Droplets, label: 'Banhos', path: '/banhos', color: 'from-blue-500 to-cyan-600' },
   { icon: ShoppingCart, label: 'Caixa / PDV', path: '/pdv', color: 'from-green-500 to-emerald-600' },
+  { icon: HandCoins, label: 'Fiado', path: '/fiado', color: 'from-orange-500 to-amber-600' },
   { icon: Sparkles, label: 'Campanhas', path: '/campanhas', color: 'from-purple-500 to-pink-600' },
   { icon: UserCircle, label: 'Clientes', path: '/clientes', color: 'from-pink-500 to-rose-600' },
   { icon: Link2, label: 'Catálogos', path: '/catalogos', color: 'from-indigo-500 to-blue-600' },
