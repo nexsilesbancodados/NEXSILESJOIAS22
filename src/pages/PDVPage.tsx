@@ -51,7 +51,8 @@ import {
   Maximize,
   Minimize,
   Package,
-  AlertTriangle
+  AlertTriangle,
+  HandCoins
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReciboVenda } from '@/components/recibo/ReciboVenda';
@@ -72,6 +73,7 @@ import { FechamentoCaixaReport } from '@/components/pdv/FechamentoCaixaReport';
 import { toast } from 'sonner';
 import { CupomInput } from '@/components/pdv/CupomInput';
 import { useUsarCupom, type ValidacaoCupom } from '@/hooks/useCampanhas';
+import { useAddFiado } from '@/hooks/useFiado';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase-db';
@@ -97,7 +99,7 @@ interface CarrinhoItem {
 }
 
 interface PagamentoLocal {
-  metodo: 'dinheiro' | 'pix' | 'credito' | 'debito';
+  metodo: 'dinheiro' | 'pix' | 'credito' | 'debito' | 'fiado';
   valor: number;
 }
 
@@ -125,6 +127,7 @@ export default function PDVPage() {
   const addVenda = useAddVenda();
   const addMovimento = useAddMovimento();
   const addCliente = useAddCliente();
+  const addFiado = useAddFiado();
   const { isFullscreen, isSupported: fullscreenSupported, toggleFullscreen } = useFullscreen();
 
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
@@ -159,6 +162,8 @@ export default function PDVPage() {
   const [movimentoDescricao, setMovimentoDescricao] = useState('');
   const [ultimaVenda, setUltimaVenda] = useState<VendaLocal | null>(null);
   const [clienteNome, setClienteNome] = useState('');
+  const [fiadoVencimento, setFiadoVencimento] = useState('');
+  const [isFiadoMode, setIsFiadoMode] = useState(false);
   const usarCupom = useUsarCupom();
 
   const reciboRef = useRef<HTMLDivElement>(null);
@@ -353,6 +358,20 @@ export default function PDVPage() {
   const handleConfirmarPagamento = async () => {
     if (!caixaAtual) return;
 
+    const isFiado = isFiadoMode || pagamentos.some(p => p.metodo === 'fiado');
+
+    // Validações fiado
+    if (isFiado) {
+      if (!clienteSelecionado) {
+        toast.error('Selecione um cliente para venda no fiado');
+        return;
+      }
+      if (!fiadoVencimento) {
+        toast.error('Informe a data de vencimento do fiado');
+        return;
+      }
+    }
+
     const vendaId = crypto.randomUUID();
     
     // Increment coupon usage if applied
@@ -369,8 +388,8 @@ export default function PDVPage() {
         cliente_id: clienteSelecionado?.id || null,
         revendedora_id: null,
         status: 'finalizada',
-        observacoes: cupomAplicado ? `Cupom: ${cupomAplicado.nome}` : null,
-        forma_pagamento: pagamentos[0]?.metodo || 'dinheiro',
+        observacoes: isFiado ? `Fiado - Vence: ${fiadoVencimento}${cupomAplicado ? ` | Cupom: ${cupomAplicado.nome}` : ''}` : (cupomAplicado ? `Cupom: ${cupomAplicado.nome}` : null),
+        forma_pagamento: isFiado ? 'fiado' : (pagamentos[0]?.metodo || 'dinheiro'),
         parcelas: 1,
       },
       items: carrinho.map(item => ({
@@ -382,10 +401,21 @@ export default function PDVPage() {
       caixaSessaoId: caixaAtual.id,
     });
 
+    // Registrar fiado se for pagamento a prazo
+    if (isFiado && clienteSelecionado) {
+      await addFiado.mutateAsync({
+        cliente_id: clienteSelecionado.id,
+        venda_id: vendaData?.id || null,
+        valor_total: totalCarrinho,
+        data_vencimento: fiadoVencimento,
+        observacoes: `Venda PDV - ${new Date().toLocaleDateString('pt-BR')}`,
+      });
+    }
+
     const vendaLocal: VendaLocal = {
       id: vendaId,
       itens: [...carrinho],
-      pagamentos: [...pagamentos],
+      pagamentos: isFiado ? [{ metodo: 'fiado', valor: totalCarrinho }] : [...pagamentos],
       total: totalCarrinho,
       data: new Date(),
       tipo: 'pdv',
@@ -395,6 +425,8 @@ export default function PDVPage() {
     setCarrinho([]);
     setPagamentos([]);
     setClienteNome('');
+    setFiadoVencimento('');
+    setIsFiadoMode(false);
     setCupomAplicado(null);
     setDescontoAplicado(null);
     setIsPagamentoOpen(false);
@@ -436,6 +468,7 @@ export default function PDVPage() {
     pix: Smartphone,
     credito: CreditCard,
     debito: CreditCard,
+    fiado: HandCoins,
   };
 
   const metodoLabels = {
@@ -443,6 +476,7 @@ export default function PDVPage() {
     pix: 'PIX',
     credito: 'Crédito',
     debito: 'Débito',
+    fiado: 'Fiado',
   };
 
   if (loadingPecas || loadingCaixa) {
@@ -924,158 +958,245 @@ export default function PDVPage() {
 
       {/* Modal de Pagamento */}
       <Dialog open={isPagamentoOpen} onOpenChange={setIsPagamentoOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl">Pagamento</DialogTitle>
             <DialogDescription>
               Total da venda: <span className="font-semibold text-foreground">{formatCurrency(totalCarrinho)}</span>
               {totalDesconto > 0 && (
-                <span className="ml-2 text-green-600">(economia de {formatCurrency(totalDesconto)})</span>
+                <span className="ml-2 text-success">(economia de {formatCurrency(totalDesconto)})</span>
               )}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* Cliente */}
-            <div className="space-y-2">
-              <Label>Nome do Cliente (opcional)</Label>
-              <Input
-                value={clienteNome}
-                onChange={(e) => setClienteNome(e.target.value)}
-                placeholder="Nome do cliente..."
-              />
-            </div>
-
-            {/* Add Payment */}
-            <div className="space-y-2">
-              <Label>Adicionar Pagamento</Label>
-              <div className="flex gap-2">
-                <Select
-                  value={novoPagamentoMetodo}
-                  onValueChange={(v) => setNovoPagamentoMetodo(v as PagamentoLocal['metodo'])}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="credito">Crédito</SelectItem>
-                    <SelectItem value="debito">Débito</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="Valor"
-                  value={novoPagamentoValor}
-                  onChange={(e) => setNovoPagamentoValor(e.target.value)}
-                  className="flex-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddPagamento()}
-                />
-                <Button onClick={handleAddPagamento} variant="outline">
-                  <Plus className="w-4 h-4" />
-                </Button>
+            {/* Modo Fiado Toggle */}
+            <div className="flex items-center gap-3 p-3 bg-warning/10 border border-warning/30 rounded-lg">
+              <HandCoins className="w-5 h-5 text-warning shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Pagamento Fiado (a prazo)</p>
+                <p className="text-xs text-muted-foreground">Cliente paga depois</p>
               </div>
-            </div>
-
-            {/* Quick Payment Buttons */}
-            <div className="flex gap-2">
               <Button
-                variant="outline"
                 size="sm"
+                variant={isFiadoMode ? 'default' : 'outline'}
+                className={isFiadoMode ? 'btn-gold' : ''}
                 onClick={() => {
-                  setPagamentos([{ metodo: 'dinheiro', valor: totalCarrinho }]);
+                  setIsFiadoMode(!isFiadoMode);
+                  if (!isFiadoMode) setPagamentos([]);
                 }}
               >
-                <Banknote className="w-4 h-4 mr-1" />
-                Dinheiro
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setPagamentos([{ metodo: 'pix', valor: totalCarrinho }]);
-                }}
-              >
-                <Smartphone className="w-4 h-4 mr-1" />
-                PIX
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setPagamentos([{ metodo: 'credito', valor: totalCarrinho }]);
-                }}
-              >
-                <CreditCard className="w-4 h-4 mr-1" />
-                Crédito
+                {isFiadoMode ? 'Fiado ✓' : 'Usar Fiado'}
               </Button>
             </div>
 
-            {/* Payment List */}
-            {pagamentos.length > 0 && (
-              <div className="space-y-2">
-                {pagamentos.map((pag, index) => {
-                  const Icon = metodoIcons[pag.metodo];
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-scale-in"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-muted-foreground" />
-                        <span>{metodoLabels[pag.metodo]}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{formatCurrency(pag.valor)}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => handleRemovePagamento(index)}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Fiado: Selecionar cliente e vencimento */}
+            {isFiadoMode && (
+              <div className="space-y-3 p-3 bg-secondary/50 rounded-lg border border-border animate-fade-in">
+                <div className="space-y-2">
+                  <Label>Cliente <span className="text-destructive">*</span></Label>
+                  <Select
+                    value={clienteSelecionado?.id || ''}
+                    onValueChange={(id) => {
+                      const c = clientes.find(c => c.id === id);
+                      setClienteSelecionado(c || null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} {c.telefone ? `— ${c.telefone}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Data de Vencimento <span className="text-destructive">*</span></Label>
+                  <Input
+                    type="date"
+                    value={fiadoVencimento}
+                    onChange={(e) => setFiadoVencimento(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Totals */}
-            <div className="border-t border-border pt-4 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Pago</span>
-                <span className="font-medium">{formatCurrency(totalPago)}</span>
+            {/* Pagamentos normais (só mostra se não for fiado) */}
+            {!isFiadoMode && (
+              <>
+                {/* Cliente selecionado */}
+                <div className="space-y-2">
+                  <Label>Cliente (opcional)</Label>
+                  <Select
+                    value={clienteSelecionado?.id || ''}
+                    onValueChange={(id) => {
+                      const c = clientes.find(c => c.id === id);
+                      setClienteSelecionado(c || null);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sem cliente</SelectItem>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Add Payment */}
+                <div className="space-y-2">
+                  <Label>Adicionar Pagamento</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={novoPagamentoMetodo}
+                      onValueChange={(v) => setNovoPagamentoMetodo(v as PagamentoLocal['metodo'])}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="credito">Crédito</SelectItem>
+                        <SelectItem value="debito">Débito</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Valor"
+                      value={novoPagamentoValor}
+                      onChange={(e) => setNovoPagamentoValor(e.target.value)}
+                      className="flex-1"
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddPagamento()}
+                    />
+                    <Button onClick={handleAddPagamento} variant="outline">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Quick Payment Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPagamentos([{ metodo: 'dinheiro', valor: totalCarrinho }])}
+                  >
+                    <Banknote className="w-4 h-4 mr-1" />
+                    Dinheiro
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPagamentos([{ metodo: 'pix', valor: totalCarrinho }])}
+                  >
+                    <Smartphone className="w-4 h-4 mr-1" />
+                    PIX
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPagamentos([{ metodo: 'credito', valor: totalCarrinho }])}
+                  >
+                    <CreditCard className="w-4 h-4 mr-1" />
+                    Crédito
+                  </Button>
+                </div>
+
+                {/* Payment List */}
+                {pagamentos.length > 0 && (
+                  <div className="space-y-2">
+                    {pagamentos.map((pag, index) => {
+                      const Icon = metodoIcons[pag.metodo] || Banknote;
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg animate-scale-in"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Icon className="w-4 h-4 text-muted-foreground" />
+                            <span>{metodoLabels[pag.metodo]}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{formatCurrency(pag.valor)}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleRemovePagamento(index)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Totals */}
+                <div className="border-t border-border pt-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Pago</span>
+                    <span className="font-medium">{formatCurrency(totalPago)}</span>
+                  </div>
+                  {totalPago >= totalCarrinho && (
+                    <div className="flex justify-between text-success">
+                      <span>Troco</span>
+                      <span className="font-semibold">{formatCurrency(troco)}</span>
+                    </div>
+                  )}
+                  {totalPago < totalCarrinho && totalPago > 0 && (
+                    <div className="flex justify-between text-destructive">
+                      <span>Falta</span>
+                      <span className="font-semibold">{formatCurrency(totalCarrinho - totalPago)}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Fiado summary */}
+            {isFiadoMode && (
+              <div className="border-t border-border pt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Total Fiado</span>
+                  <span className="text-xl font-bold text-warning">{formatCurrency(totalCarrinho)}</span>
+                </div>
+                {clienteSelecionado && fiadoVencimento && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {clienteSelecionado.nome} — vence em {new Date(fiadoVencimento + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  </p>
+                )}
               </div>
-              {totalPago >= totalCarrinho && (
-                <div className="flex justify-between text-success">
-                  <span>Troco</span>
-                  <span className="font-semibold">{formatCurrency(troco)}</span>
-                </div>
-              )}
-              {totalPago < totalCarrinho && (
-                <div className="flex justify-between text-destructive">
-                  <span>Falta</span>
-                  <span className="font-semibold">{formatCurrency(totalCarrinho - totalPago)}</span>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPagamentoOpen(false)}>
+            <Button variant="outline" onClick={() => { setIsPagamentoOpen(false); setIsFiadoMode(false); }}>
               Cancelar
             </Button>
             <Button
               onClick={handleConfirmarPagamento}
               className="btn-gold"
-              disabled={totalPago < totalCarrinho || addVenda.isPending}
+              disabled={
+                addVenda.isPending || addFiado.isPending ||
+                (isFiadoMode ? (!clienteSelecionado || !fiadoVencimento) : totalPago < totalCarrinho)
+              }
             >
-              {addVenda.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirmar Pagamento
+              {(addVenda.isPending || addFiado.isPending) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isFiadoMode ? 'Registrar Fiado' : 'Confirmar Pagamento'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1568,6 +1568,76 @@ export type Database = {
           },
         ]
       }
+      fiado: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          data_vencimento: string
+          id: string
+          notificacao_enviada: boolean | null
+          notificacao_enviada_at: string | null
+          observacoes: string | null
+          organization_id: string | null
+          status: string
+          updated_at: string
+          valor_pago: number
+          valor_total: number
+          venda_id: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          data_vencimento: string
+          id?: string
+          notificacao_enviada?: boolean | null
+          notificacao_enviada_at?: string | null
+          observacoes?: string | null
+          organization_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_pago?: number
+          valor_total?: number
+          venda_id?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          data_vencimento?: string
+          id?: string
+          notificacao_enviada?: boolean | null
+          notificacao_enviada_at?: string | null
+          observacoes?: string | null
+          organization_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_pago?: number
+          valor_total?: number
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiado_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiado_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fiado_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fidelidade_transacoes: {
         Row: {
           cliente_id: string

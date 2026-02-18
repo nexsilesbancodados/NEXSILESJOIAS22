@@ -8,7 +8,7 @@ interface CarrinhoItem {
 }
 
 interface PagamentoLocal {
-  metodo: 'dinheiro' | 'pix' | 'credito' | 'debito';
+  metodo: 'dinheiro' | 'pix' | 'credito' | 'debito' | 'fiado';
   valor: number;
 }
 
