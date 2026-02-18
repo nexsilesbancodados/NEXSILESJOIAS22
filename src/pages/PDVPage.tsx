@@ -1033,8 +1033,12 @@ export default function PDVPage() {
                 <div className="space-y-2">
                   <Label>Cliente (opcional)</Label>
                   <Select
-                    value={clienteSelecionado?.id || ''}
+                    value={clienteSelecionado?.id || 'none'}
                     onValueChange={(id) => {
+                      if (id === 'none') {
+                        setClienteSelecionado(null);
+                        return;
+                      }
                       const c = clientes.find(c => c.id === id);
                       setClienteSelecionado(c || null);
                     }}
@@ -1043,7 +1047,7 @@ export default function PDVPage() {
                       <SelectValue placeholder="Selecione o cliente..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sem cliente</SelectItem>
+                      <SelectItem value="none">Sem cliente</SelectItem>
                       {clientes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.nome}
