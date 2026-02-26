@@ -24,12 +24,26 @@ serve(async (req) => {
     // - status is 'agendado' or 'confirmado'
     // - lembrete_enviado is false or null
     // - data_hora is in the future but within lembrete_horas_antes hours
+    // First get agendamentos
     const { data: agendamentos, error } = await supabase
       .from('agendamentos')
-      .select('*, agente_ia_config:organization_id(whatsapp_instancia)')
+      .select('*')
       .in('status', ['agendado', 'confirmado'])
       .or('lembrete_enviado.is.null,lembrete_enviado.eq.false')
       .gt('data_hora', now.toISOString());
+
+    // Build a map of org_id -> whatsapp_instancia
+    const orgIds = [...new Set((agendamentos || []).map((a: any) => a.organization_id).filter(Boolean))];
+    const configMap: Record<string, string> = {};
+    if (orgIds.length > 0) {
+      const { data: configs } = await supabase
+        .from('agente_ia_config')
+        .select('organization_id, whatsapp_instancia')
+        .in('organization_id', orgIds);
+      for (const c of configs || []) {
+        if (c.whatsapp_instancia) configMap[c.organization_id] = c.whatsapp_instancia;
+      }
+    }
 
     if (error) {
       console.error('Error fetching agendamentos:', error);
@@ -82,8 +96,7 @@ serve(async (req) => {
           let tel = telefone.replace(/\D/g, '');
           if (!tel.startsWith('55')) tel = '55' + tel;
 
-          const config = agendamento.agente_ia_config as any;
-          const instanceName = config?.whatsapp_instancia || 'default';
+          const instanceName = configMap[agendamento.organization_id] || 'default';
 
           const response = await fetch(`${evolutionUrl}/message/sendText/${instanceName}`, {
             method: 'POST',
