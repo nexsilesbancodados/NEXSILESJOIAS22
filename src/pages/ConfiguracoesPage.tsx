@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, Target, Database, MessageCircle, User, Crown, RotateCcw, Users } from 'lucide-react';
+import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, Target, Database, MessageCircle, User, Crown, RotateCcw, Users, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfiguracoes, useSaveConfiguracoes } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,7 @@ import { useSetupWizard } from '@/components/onboarding/SetupWizard';
 import { DataExportManager } from '@/components/export/DataExportManager';
 import { SmartAlertsManager } from '@/components/alerts/SmartAlertsManager';
 import { FuncionariosTab } from '@/components/funcionarios/FuncionariosTab';
+import { EcommerceConfigTab } from '@/components/ecommerce/EcommerceConfigTab';
 
 export default function ConfiguracoesPage() {
   const navigate = useNavigate();
@@ -118,6 +119,10 @@ export default function ConfiguracoesPage() {
           <TabsTrigger value="funcionarios" className="gap-1">
             <Users className="w-3 h-3" />
             Funcionários
+          </TabsTrigger>
+          <TabsTrigger value="ecommerce" className="gap-1">
+            <ShoppingBag className="w-3 h-3" />
+            Loja Virtual
           </TabsTrigger>
         </TabsList>
 
@@ -462,6 +467,10 @@ export default function ConfiguracoesPage() {
           )}
         </Button>
       </div>
+
+        <TabsContent value="ecommerce" className="space-y-6">
+          <EcommerceConfigTab />
+        </TabsContent>
     </div>
   );
 }
