@@ -151,14 +151,13 @@ export default function PortalRevendedoraPage() {
 
     setLoginLoading(true);
     try {
-      // Step 1: Use secure public view to find user by email (no password exposed)
-      const { data: publicData, error: publicError } = await supabase
-        .from('revendedoras_portal_public' as 'revendedoras')
-        .select('id, nome, email')
-        .eq('email', loginEmail.trim().toLowerCase())
-        .maybeSingle();
+      // Step 1: Use secure RPC function to find user by email (bypasses RLS safely)
+      const { data: lookupData, error: lookupError } = await supabase
+        .rpc('portal_login_lookup', { p_email: loginEmail.trim().toLowerCase() });
 
-      if (publicError || !publicData) {
+      const publicData = Array.isArray(lookupData) ? lookupData[0] : lookupData;
+
+      if (lookupError || !publicData) {
         toast.error('E-mail não encontrado');
         setLoginLoading(false);
         return;
