@@ -32,6 +32,7 @@ import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { TrialActivation } from '@/components/subscription/TrialActivation';
+import { MercadoPagoCheckout } from '@/components/checkout/MercadoPagoCheckout';
 
 const FEATURES = [
   { 
@@ -106,6 +107,8 @@ export default function PlanosPage() {
   const [isAnual, setIsAnual] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'nexsiles' | 'nexsiles_max'>('nexsiles');
 
   // Handle success/cancel from Stripe
   useEffect(() => {
@@ -129,62 +132,14 @@ export default function PlanosPage() {
     return preco;
   };
 
-  const handleSelectPlan = async (plano: 'nexsiles' | 'nexsiles_max') => {
-    setLoadingPlan(plano);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-        body: {
-          action: 'create-checkout',
-          plano,
-          successUrl: `${window.location.origin}/planos?success=true`,
-          cancelUrl: `${window.location.origin}/planos?canceled=true`,
-        },
-      });
-
-      if (error) throw error;
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('Não foi possível criar a sessão de pagamento');
-      }
-    } catch (error) {
-      console.error('Error creating checkout:', error);
-      toast.error('Erro ao processar pagamento', {
-        description: 'Por favor, tente novamente ou entre em contato com o suporte.'
-      });
-    } finally {
-      setLoadingPlan(null);
-    }
+  const handleSelectPlan = (plano: 'nexsiles' | 'nexsiles_max') => {
+    setSelectedPlan(plano);
+    setCheckoutOpen(true);
   };
 
-  const handleManageSubscription = async () => {
-    setLoadingPlan('portal');
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-        body: {
-          action: 'create-portal',
-          successUrl: `${window.location.origin}/planos`,
-        },
-      });
-
-      if (error) throw error;
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('Não foi possível acessar o portal de assinatura');
-      }
-    } catch (error) {
-      console.error('Error accessing portal:', error);
-      toast.error('Erro ao acessar portal', {
-        description: 'Por favor, tente novamente ou entre em contato com o suporte.'
-      });
-    } finally {
-      setLoadingPlan(null);
-    }
+  const handleManageSubscription = () => {
+    // Redirect to external site for subscription management
+    window.open('https://www.nexsiles.com.br/', '_blank');
   };
 
   const planoAtual = assinatura?.plano;
@@ -674,6 +629,19 @@ onClick={() => window.open('https://www.nexsiles.com.br/', '_blank')}
             Falar com Suporte
           </Button>
         </div>
+
+        {/* Checkout Transparente MP */}
+        <MercadoPagoCheckout
+          open={checkoutOpen}
+          onOpenChange={setCheckoutOpen}
+          plano={selectedPlan}
+          periodo={isAnual ? 'anual' : 'mensal'}
+          valor={isAnual 
+            ? (selectedPlan === 'nexsiles_max' ? 2490 : 1890) 
+            : (selectedPlan === 'nexsiles_max' ? 249 : 189)
+          }
+          planoNome={selectedPlan === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
+        />
       </div>
     </MainLayout>
   );
