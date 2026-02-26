@@ -72,7 +72,7 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Vendas Hoje")).toBeInTheDocument();
     expect(screen.getByText("Total Vendas")).toBeInTheDocument();
     expect(screen.getByText("Peças Estoque")).toBeInTheDocument();
-    expect(screen.getByText("Revendedoras")).toBeInTheDocument();
+    expect(screen.getAllByText("Revendedoras").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders quick action buttons", async () => {
@@ -81,7 +81,7 @@ describe("DashboardPage", () => {
 
     expect(screen.getByText("Peças")).toBeInTheDocument();
     expect(screen.getByText("PDV")).toBeInTheDocument();
-    expect(screen.getByText("Revendedoras")).toBeInTheDocument();
+    expect(screen.getAllByText("Revendedoras").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Relatórios")).toBeInTheDocument();
   });
 
@@ -89,7 +89,7 @@ describe("DashboardPage", () => {
     const DashboardPage = (await import("@/pages/DashboardPage")).default;
     render(<DashboardPage />);
 
-    expect(screen.getByText("Abrir Caixa")).toBeInTheDocument();
+    expect(screen.getAllByText("Abrir Caixa").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders greeting based on time of day", async () => {

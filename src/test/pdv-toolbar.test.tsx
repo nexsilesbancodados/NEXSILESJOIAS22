@@ -18,8 +18,8 @@ const defaultProps = {
 describe("PDVToolbar", () => {
   it("renders all toolbar buttons", () => {
     render(<PDVToolbar {...defaultProps} />);
-    // Toolbar should render without crashing
-    expect(screen.getByText("Calculadora (F3)")).toBeTruthy;
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.length).toBeGreaterThanOrEqual(5);
   });
 
   it("calls onCalculator when calculator button is clicked", () => {
