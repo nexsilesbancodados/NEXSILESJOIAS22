@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronRight } from 'lucide-react';
+import { ClienteAuthArea } from '@/components/ecommerce/ClienteAuthArea';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MP_PUBLIC_KEY = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
@@ -320,7 +321,15 @@ export default function LojaPublicaPage() {
           </div>
 
           {/* Cart */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ClienteAuthArea
+              organizationId={config.organization_id}
+              roseGold={roseGold}
+              roseGoldLight={roseGoldLight}
+              textDark={textDark}
+              textMuted={textMuted}
+              warmWhite={warmWhite}
+            />
             <Sheet open={cartOpen} onOpenChange={setCartOpen}>
               <SheetTrigger asChild>
                 <button className="relative p-2 transition-opacity hover:opacity-70">
