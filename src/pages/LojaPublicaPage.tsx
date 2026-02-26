@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Filter, X } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MP_PUBLIC_KEY = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
@@ -66,46 +66,34 @@ export default function LojaPublicaPage() {
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('dados');
   const [processing, setProcessing] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
+  const [selectedPeca, setSelectedPeca] = useState<Peca | null>(null);
 
-  // Client data
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
 
-  // Load store config and products
   useEffect(() => {
     if (!slug) return;
     loadStore();
   }, [slug]);
 
-  // Check payment result from URL params
   useEffect(() => {
     const pagamento = searchParams.get('pagamento');
-    if (pagamento === 'sucesso') {
-      toast.success('Pagamento aprovado! 🎉');
-    } else if (pagamento === 'erro') {
-      toast.error('Pagamento não aprovado. Tente novamente.');
-    } else if (pagamento === 'pendente') {
-      toast.info('Pagamento pendente de confirmação.');
-    }
+    if (pagamento === 'sucesso') toast.success('Pagamento aprovado! 🎉');
+    else if (pagamento === 'erro') toast.error('Pagamento não aprovado. Tente novamente.');
+    else if (pagamento === 'pendente') toast.info('Pagamento pendente de confirmação.');
   }, [searchParams]);
 
   const loadStore = async () => {
     try {
-      // Load config via public view (anon access)
       const { data: configData, error: configError } = await supabase
         .from('ecommerce_config_public' as any)
         .select('*')
         .eq('slug', slug)
         .maybeSingle();
 
-      if (configError || !configData) {
-        setLoading(false);
-        return;
-      }
-
+      if (configError || !configData) { setLoading(false); return; }
       setConfig(configData as any);
 
-      // Load products via public view (no cost price exposed)
       const { data: pecasData } = await supabase
         .from('pecas_loja_public' as any)
         .select('*')
@@ -143,27 +131,22 @@ export default function LojaPublicaPage() {
     setCart(prev => {
       const existing = prev.find(i => i.id === peca.id);
       if (existing) {
-        if (existing.quantidade >= peca.estoque) {
-          toast.error('Estoque insuficiente');
-          return prev;
-        }
+        if (existing.quantidade >= peca.estoque) { toast.error('Estoque insuficiente'); return prev; }
         return prev.map(i => i.id === peca.id ? { ...i, quantidade: i.quantidade + 1 } : i);
       }
       return [...prev, { ...peca, quantidade: 1 }];
     });
-    toast.success('Adicionado ao carrinho');
+    toast.success('Adicionado ao carrinho ✨');
   }, []);
 
   const updateQuantity = useCallback((pecaId: string, delta: number) => {
-    setCart(prev => {
-      return prev.map(item => {
-        if (item.id !== pecaId) return item;
-        const newQty = item.quantidade + delta;
-        if (newQty <= 0) return item;
-        if (newQty > item.estoque) { toast.error('Estoque insuficiente'); return item; }
-        return { ...item, quantidade: newQty };
-      });
-    });
+    setCart(prev => prev.map(item => {
+      if (item.id !== pecaId) return item;
+      const newQty = item.quantidade + delta;
+      if (newQty <= 0) return item;
+      if (newQty > item.estoque) { toast.error('Estoque insuficiente'); return item; }
+      return { ...item, quantidade: newQty };
+    }));
   }, []);
 
   const removeFromCart = useCallback((pecaId: string) => {
@@ -182,27 +165,18 @@ export default function LojaPublicaPage() {
   const handleCheckout = async () => {
     if (!cliente.nome.trim()) { toast.error('Informe seu nome'); return; }
     if (!config) return;
-
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('ecommerce-checkout', {
         body: {
           items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
-          organization_id: config.organization_id,
-          cliente,
+          organization_id: config.organization_id, cliente,
           endereco: endereco.cep ? endereco : undefined,
           valor_frete: valorFrete,
         },
       });
-
-      if (error || !data?.preferenceId) {
-        toast.error(data?.error || 'Erro ao iniciar pagamento');
-        setProcessing(false);
-        return;
-      }
-
+      if (error || !data?.preferenceId) { toast.error(data?.error || 'Erro ao iniciar pagamento'); setProcessing(false); return; }
       setCheckoutStep('pagamento');
-      // Initialize MP brick
       setTimeout(() => initPaymentBrick(data.preferenceId), 300);
     } catch (err) {
       toast.error('Erro ao processar checkout');
@@ -212,17 +186,14 @@ export default function LojaPublicaPage() {
 
   const initPaymentBrick = async (preferenceId: string) => {
     try {
-      // Load SDK
       if (!(window as any).MercadoPago) {
         const script = document.createElement('script');
         script.src = 'https://sdk.mercadopago.com/js/v2';
         script.async = true;
         await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
       }
-
       const mp = new (window as any).MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
       const bricksBuilder = mp.bricks();
-
       await bricksBuilder.create('payment', 'ecommerce-brick-container', {
         initialization: { amount: total, preferenceId },
         customization: {
@@ -240,13 +211,10 @@ export default function LojaPublicaPage() {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc' },
                   body: JSON.stringify({
-                    formData,
-                    organization_id: config!.organization_id,
+                    formData, organization_id: config!.organization_id,
                     items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
-                    cliente,
-                    endereco: endereco.cep ? endereco : undefined,
-                    valor_subtotal: subtotal,
-                    valor_frete: valorFrete,
+                    cliente, endereco: endereco.cep ? endereco : undefined,
+                    valor_subtotal: subtotal, valor_frete: valorFrete,
                   }),
                 }
               );
@@ -277,179 +245,506 @@ export default function LojaPublicaPage() {
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FFF9F5' }}>
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#B76E79' }} />
+        <p className="text-sm" style={{ color: '#B76E79' }}>Carregando...</p>
+      </div>
     </div>
   );
 
   if (!config) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-      <Store className="w-16 h-16 text-muted-foreground" />
-      <h1 className="text-2xl font-bold text-foreground">Loja não encontrada</h1>
-      <p className="text-muted-foreground">Verifique o endereço e tente novamente.</p>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ backgroundColor: '#FFF9F5' }}>
+      <Store className="w-16 h-16" style={{ color: '#B76E79' }} />
+      <h1 className="text-2xl font-bold" style={{ color: '#2D2D2D' }}>Loja não encontrada</h1>
+      <p style={{ color: '#8B8B8B' }}>Verifique o endereço e tente novamente.</p>
     </div>
   );
 
+  const roseGold = '#B76E79';
+  const roseGoldLight = '#D4A0A7';
+  const roseGoldDark = '#8B4F57';
+  const cream = '#FFF9F5';
+  const warmWhite = '#FFFDFB';
+  const textDark = '#2D2D2D';
+  const textMuted = '#7A7A7A';
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {config.logo_url ? (
-              <img src={config.logo_url} alt={config.nome_loja} className="w-10 h-10 rounded-lg object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: config.cor_primaria }}>
-                <Store className="w-5 h-5 text-white" />
-              </div>
+    <div className="min-h-screen" style={{ backgroundColor: cream, fontFamily: "'Cormorant Garamond', 'Georgia', serif" }}>
+      {/* Top Bar */}
+      <div style={{ backgroundColor: textDark }} className="hidden sm:block">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {config.whatsapp && (
+              <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="flex items-center gap-1.5 text-xs transition-opacity hover:opacity-80" style={{ color: roseGoldLight }}>
+                <Phone className="w-3 h-3" /> {config.whatsapp}
+              </a>
             )}
-            <div>
-              <h1 className="font-bold text-foreground text-lg">{config.nome_loja}</h1>
-              {config.descricao && <p className="text-xs text-muted-foreground line-clamp-1">{config.descricao}</p>}
-            </div>
           </div>
-
-          <Sheet open={cartOpen} onOpenChange={setCartOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-md">
-              <SheetHeader>
-                <SheetTitle className="flex items-center gap-2">
-                  <ShoppingCart className="w-5 h-5" /> Carrinho ({cartCount})
-                </SheetTitle>
-              </SheetHeader>
-              <div className="mt-4 flex flex-col h-[calc(100vh-200px)]">
-                <div className="flex-1 overflow-y-auto space-y-3">
-                  {cart.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">Carrinho vazio</p>
-                  ) : (
-                    cart.map(item => (
-                      <div key={item.id} className="flex gap-3 p-3 rounded-lg border border-border">
-                        {item.imagem_url ? (
-                          <img src={item.imagem_url} alt={item.nome} className="w-16 h-16 rounded-md object-cover" />
-                        ) : (
-                          <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center">
-                            <Package className="w-6 h-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate text-foreground">{item.nome}</p>
-                          <p className="text-sm font-bold" style={{ color: config.cor_primaria }}>{formatCurrency(item.preco_venda)}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateQuantity(item.id, -1)}>
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                            <span className="text-sm font-medium w-6 text-center">{item.quantidade}</span>
-                            <Button variant="outline" size="icon" className="w-7 h-7" onClick={() => updateQuantity(item.id, 1)}>
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="w-7 h-7 ml-auto text-destructive" onClick={() => removeFromCart(item.id)}>
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                {cart.length > 0 && (
-                  <div className="border-t border-border pt-4 space-y-2">
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">{formatCurrency(subtotal)}</span></div>
-                    <div className="flex justify-between text-sm"><span className="text-muted-foreground">Frete</span><span className="text-foreground">{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span></div>
-                    {config.frete_gratis_acima && subtotal < config.frete_gratis_acima && (
-                      <p className="text-xs text-muted-foreground">Frete grátis acima de {formatCurrency(config.frete_gratis_acima)}</p>
-                    )}
-                    <Separator />
-                    <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{formatCurrency(total)}</span></div>
-                    <Button className="w-full mt-2" size="lg" onClick={() => { setCartOpen(false); setCheckoutStep('dados'); setCheckoutOpen(true); }} style={{ backgroundColor: config.cor_primaria }}>
-                      Finalizar Compra
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-      </header>
-
-      {/* Filters */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar produtos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <div className="flex items-center gap-4">
+            {config.instagram && (
+              <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-80" style={{ color: roseGoldLight }}>
+                <Instagram className="w-4 h-4" />
+              </a>
+            )}
+            <span className="text-xs" style={{ color: roseGoldLight }}>SIGA-NOS</span>
           </div>
-          <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-            <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas categorias</SelectItem>
-              {categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={materialFilter} onValueChange={setMaterialFilter}>
-            <SelectTrigger className="w-full sm:w-48"><SelectValue placeholder="Material" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos materiais</SelectItem>
-              {materiais.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">{filteredPecas.length} produto{filteredPecas.length !== 1 ? 's' : ''}</p>
       </div>
 
-      {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 pb-8">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filteredPecas.map(peca => (
-            <motion.div key={peca.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="group">
-              <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-border">
-                <div className="aspect-square relative overflow-hidden bg-muted">
-                  {peca.imagem_url ? (
-                    <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-10 h-10 text-muted-foreground" />
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ backgroundColor: `${warmWhite}F2`, borderColor: '#F0E6E0' }}>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          {/* Search */}
+          <div className="relative hidden sm:block w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: textMuted }} />
+            <input
+              type="text"
+              placeholder="Buscar produtos..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-none border-b bg-transparent outline-none transition-colors focus:border-current"
+              style={{ borderColor: '#E0D5CF', color: textDark, fontFamily: "'Inter', sans-serif" }}
+            />
+          </div>
+
+          {/* Logo */}
+          <div className="flex flex-col items-center flex-1 sm:flex-none">
+            {config.logo_url ? (
+              <img src={config.logo_url} alt={config.nome_loja} className="h-12 sm:h-14 object-contain" />
+            ) : (
+              <h1 className="text-2xl sm:text-3xl font-light tracking-[0.2em] uppercase" style={{ color: textDark }}>
+                {config.nome_loja}
+              </h1>
+            )}
+          </div>
+
+          {/* Cart */}
+          <div className="flex items-center gap-3">
+            <Sheet open={cartOpen} onOpenChange={setCartOpen}>
+              <SheetTrigger asChild>
+                <button className="relative p-2 transition-opacity hover:opacity-70">
+                  <ShoppingCart className="w-5 h-5" style={{ color: textDark }} />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-[10px] rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: roseGold }}>
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-md border-l" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2 text-lg tracking-wide uppercase" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>
+                    <ShoppingCart className="w-5 h-5" /> Sacola ({cartCount})
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="mt-4 flex flex-col h-[calc(100vh-200px)]">
+                  <div className="flex-1 overflow-y-auto space-y-3">
+                    {cart.length === 0 ? (
+                      <div className="text-center py-12">
+                        <ShoppingCart className="w-10 h-10 mx-auto mb-3" style={{ color: roseGoldLight }} />
+                        <p className="text-sm" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Sua sacola está vazia</p>
+                      </div>
+                    ) : (
+                      cart.map(item => (
+                        <div key={item.id} className="flex gap-3 p-3 border-b" style={{ borderColor: '#F0E6E0' }}>
+                          {item.imagem_url ? (
+                            <img src={item.imagem_url} alt={item.nome} className="w-20 h-20 object-cover" />
+                          ) : (
+                            <div className="w-20 h-20 flex items-center justify-center" style={{ backgroundColor: '#F5EEEA' }}>
+                              <Package className="w-6 h-6" style={{ color: roseGoldLight }} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{item.nome}</p>
+                            <p className="text-sm font-semibold mt-0.5" style={{ color: roseGold }}>{formatCurrency(item.preco_venda)}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 border flex items-center justify-center transition-colors hover:bg-gray-50" style={{ borderColor: '#E0D5CF' }}>
+                                <Minus className="w-3 h-3" style={{ color: textDark }} />
+                              </button>
+                              <span className="text-sm w-6 text-center" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{item.quantidade}</span>
+                              <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 border flex items-center justify-center transition-colors hover:bg-gray-50" style={{ borderColor: '#E0D5CF' }}>
+                                <Plus className="w-3 h-3" style={{ color: textDark }} />
+                              </button>
+                              <button onClick={() => removeFromCart(item.id)} className="ml-auto transition-opacity hover:opacity-70">
+                                <Trash2 className="w-4 h-4" style={{ color: textMuted }} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {cart.length > 0 && (
+                    <div className="border-t pt-4 space-y-2" style={{ borderColor: '#F0E6E0' }}>
+                      <div className="flex justify-between text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <span style={{ color: textMuted }}>Subtotal</span><span style={{ color: textDark }}>{formatCurrency(subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>
+                        <span style={{ color: textMuted }}>Frete</span><span style={{ color: textDark }}>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span>
+                      </div>
+                      {config.frete_gratis_acima && subtotal < config.frete_gratis_acima && (
+                        <p className="text-xs" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                          Frete grátis acima de {formatCurrency(config.frete_gratis_acima)}
+                        </p>
+                      )}
+                      <div className="border-t pt-2 mt-2" style={{ borderColor: '#F0E6E0' }}>
+                        <div className="flex justify-between font-semibold text-lg">
+                          <span style={{ color: textDark }}>Total</span>
+                          <span style={{ color: roseGold }}>{formatCurrency(total)}</span>
+                        </div>
+                      </div>
+                      <button
+                        className="w-full py-3 mt-2 text-white text-sm uppercase tracking-[0.15em] transition-all hover:opacity-90"
+                        style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                        onClick={() => { setCartOpen(false); setCheckoutStep('dados'); setCheckoutOpen(true); }}
+                      >
+                        Finalizar Compra
+                      </button>
                     </div>
                   )}
-                  {peca.estoque <= 3 && (
-                    <Badge className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-[10px]">
-                      Últimas unidades
-                    </Badge>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+
+        {/* Category Navigation */}
+        <nav className="max-w-7xl mx-auto px-4 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-6 sm:gap-8 justify-center py-3 min-w-max">
+            <button
+              onClick={() => setCategoriaFilter('todas')}
+              className="text-xs sm:text-sm uppercase tracking-[0.15em] pb-1 border-b-2 transition-all whitespace-nowrap"
+              style={{
+                color: categoriaFilter === 'todas' ? roseGold : textMuted,
+                borderColor: categoriaFilter === 'todas' ? roseGold : 'transparent',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: categoriaFilter === 'todas' ? 600 : 400,
+              }}
+            >
+              Todos
+            </button>
+            {categorias.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoriaFilter(cat)}
+                className="text-xs sm:text-sm uppercase tracking-[0.15em] pb-1 border-b-2 transition-all whitespace-nowrap"
+                style={{
+                  color: categoriaFilter === cat ? roseGold : textMuted,
+                  borderColor: categoriaFilter === cat ? roseGold : 'transparent',
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: categoriaFilter === cat ? 600 : 400,
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </nav>
+      </header>
+
+      {/* Mobile Search */}
+      <div className="sm:hidden px-4 pt-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: textMuted }} />
+          <input
+            type="text"
+            placeholder="Buscar produtos..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm border bg-transparent outline-none"
+            style={{ borderColor: '#E0D5CF', color: textDark, fontFamily: "'Inter', sans-serif" }}
+          />
+        </div>
+      </div>
+
+      {/* Hero Banner */}
+      <section className="relative overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
+        <div className="max-w-7xl mx-auto px-4 py-12 sm:py-20 flex flex-col items-center text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <p className="text-xs sm:text-sm uppercase tracking-[0.3em] mb-4" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+              ✦ Coleção Exclusiva ✦
+            </p>
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight" style={{ color: textDark }}>
+              Joias que contam
+            </h2>
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl italic mt-1" style={{ color: roseGold, fontFamily: "'Cormorant Garamond', serif" }}>
+              a sua história
+            </h2>
+            <p className="mt-6 text-sm sm:text-base max-w-md mx-auto" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+              {config.descricao || 'Peças únicas feitas com amor e dedicação para você brilhar em cada momento.'}
+            </p>
+            <button
+              className="mt-8 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90"
+              style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+              onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Explorar Coleção
+            </button>
+          </motion.div>
+          {/* Decorative elements */}
+          <div className="absolute top-4 left-4 w-20 h-20 border opacity-20" style={{ borderColor: roseGold }} />
+          <div className="absolute bottom-4 right-4 w-20 h-20 border opacity-20" style={{ borderColor: roseGold }} />
+        </div>
+      </section>
+
+      {/* Benefits Bar */}
+      <section className="border-y" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+        <div className="max-w-7xl mx-auto px-4 py-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+            <div className="flex items-center gap-3 justify-center">
+              <CreditCard className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Parcele</p>
+                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>em até 12x sem juros</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-center">
+              <Truck className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Frete Grátis</p>
+                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  {config.frete_gratis_acima ? `acima de ${formatCurrency(config.frete_gratis_acima)}` : 'consulte condições'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-center">
+              <RefreshCw className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Troca Grátis</p>
+                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>primeira troca por nossa conta</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 justify-center">
+              <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Qualidade</p>
+                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>garantia em todas as peças</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Products Section */}
+      <section id="produtos" className="max-w-7xl mx-auto px-4 py-10 sm:py-14">
+        {/* Section Header */}
+        <div className="text-center mb-8">
+          <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+            Nossa Coleção
+          </p>
+          <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>
+            {categoriaFilter !== 'todas' ? categoriaFilter : 'Todas as Peças'}
+          </h3>
+          <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
+        </div>
+
+        {/* Material Filter Pills */}
+        {materiais.length > 1 && (
+          <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
+            <button
+              onClick={() => setMaterialFilter('todos')}
+              className="px-4 py-1.5 text-[11px] uppercase tracking-wider border transition-all"
+              style={{
+                borderColor: materialFilter === 'todos' ? roseGold : '#E0D5CF',
+                backgroundColor: materialFilter === 'todos' ? roseGold : 'transparent',
+                color: materialFilter === 'todos' ? 'white' : textMuted,
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              Todos
+            </button>
+            {materiais.map(m => (
+              <button
+                key={m}
+                onClick={() => setMaterialFilter(m)}
+                className="px-4 py-1.5 text-[11px] uppercase tracking-wider border transition-all"
+                style={{
+                  borderColor: materialFilter === m ? roseGold : '#E0D5CF',
+                  backgroundColor: materialFilter === m ? roseGold : 'transparent',
+                  color: materialFilter === m ? 'white' : textMuted,
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Count */}
+        <p className="text-xs mb-6 text-center" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+          {filteredPecas.length} produto{filteredPecas.length !== 1 ? 's' : ''}
+        </p>
+
+        {/* Product Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          {filteredPecas.map((peca, index) => (
+            <motion.div
+              key={peca.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+              className="group cursor-pointer"
+              onClick={() => setSelectedPeca(peca)}
+            >
+              <div className="relative overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
+                <div className="aspect-square overflow-hidden">
+                  {peca.imagem_url ? (
+                    <img
+                      src={peca.imagem_url}
+                      alt={peca.nome}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-10 h-10" style={{ color: roseGoldLight }} />
+                    </div>
                   )}
                 </div>
-                <CardContent className="p-3">
-                  <p className="font-medium text-sm truncate text-foreground">{peca.nome}</p>
-                  {peca.categoria && <p className="text-xs text-muted-foreground">{peca.categoria}</p>}
-                  <p className="font-bold mt-1" style={{ color: config.cor_primaria }}>{formatCurrency(peca.preco_venda)}</p>
-                  <Button size="sm" className="w-full mt-2 text-xs" onClick={() => addToCart(peca)} style={{ backgroundColor: config.cor_primaria }}>
-                    <Plus className="w-3 h-3 mr-1" /> Adicionar
-                  </Button>
-                </CardContent>
-              </Card>
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100">
+                  <button
+                    className="px-5 py-2 text-[10px] uppercase tracking-[0.15em] text-white transition-transform translate-y-2 group-hover:translate-y-0"
+                    style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                    onClick={(e) => { e.stopPropagation(); addToCart(peca); }}
+                  >
+                    Adicionar à Sacola
+                  </button>
+                </div>
+                {/* Badges */}
+                {peca.estoque <= 3 && peca.estoque > 0 && (
+                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>
+                    Últimas peças
+                  </span>
+                )}
+                {peca.estoque === 0 && (
+                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                    Esgotado
+                  </span>
+                )}
+              </div>
+              <div className="pt-3 pb-1 text-center">
+                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  {peca.categoria || peca.material || ''}
+                </p>
+                <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>
+                  {peca.nome}
+                </h4>
+                <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                  {formatCurrency(peca.preco_venda)}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  ou 6x de {formatCurrency(peca.preco_venda / 6)}
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>
+
         {filteredPecas.length === 0 && (
-          <div className="text-center py-12">
-            <Package className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">Nenhum produto encontrado</p>
+          <div className="text-center py-16">
+            <Sparkles className="w-10 h-10 mx-auto mb-3" style={{ color: roseGoldLight }} />
+            <p style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Nenhum produto encontrado</p>
           </div>
         )}
-      </div>
+      </section>
+
+      {/* Product Detail Modal */}
+      <Dialog open={!!selectedPeca} onOpenChange={() => setSelectedPeca(null)}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+          {selectedPeca && (
+            <div className="flex flex-col sm:flex-row">
+              <div className="sm:w-1/2 aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
+                {selectedPeca.imagem_url ? (
+                  <img src={selectedPeca.imagem_url} alt={selectedPeca.nome} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-16 h-16" style={{ color: roseGoldLight }} />
+                  </div>
+                )}
+              </div>
+              <div className="sm:w-1/2 p-6 flex flex-col justify-center">
+                <p className="text-xs uppercase tracking-[0.2em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                  {selectedPeca.categoria || selectedPeca.material || 'Peça'}
+                </p>
+                <h3 className="text-xl sm:text-2xl font-light leading-snug" style={{ color: textDark }}>
+                  {selectedPeca.nome}
+                </h3>
+                {selectedPeca.codigo && (
+                  <p className="text-[10px] mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                    Cód: {selectedPeca.codigo}
+                  </p>
+                )}
+                <p className="text-2xl font-semibold mt-4" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                  {formatCurrency(selectedPeca.preco_venda)}
+                </p>
+                <p className="text-xs mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  ou 12x de {formatCurrency(selectedPeca.preco_venda / 12)} sem juros
+                </p>
+                {selectedPeca.descricao && (
+                  <p className="text-sm mt-4 leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                    {selectedPeca.descricao}
+                  </p>
+                )}
+                <div className="mt-4 flex items-center gap-2 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  {selectedPeca.estoque > 0 ? (
+                    <span style={{ color: '#4CAF50' }}>● Em estoque</span>
+                  ) : (
+                    <span style={{ color: textMuted }}>● Esgotado</span>
+                  )}
+                </div>
+                <button
+                  className="w-full mt-6 py-3 text-white text-xs uppercase tracking-[0.15em] transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                  disabled={selectedPeca.estoque === 0}
+                  onClick={() => { addToCart(selectedPeca); setSelectedPeca(null); }}
+                >
+                  {selectedPeca.estoque === 0 ? 'Produto Esgotado' : 'Adicionar à Sacola'}
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Footer */}
+      <footer className="border-t" style={{ borderColor: '#F0E6E0', backgroundColor: textDark }}>
+        <div className="max-w-7xl mx-auto px-4 py-10 text-center">
+          <h4 className="text-lg tracking-[0.2em] uppercase mb-3" style={{ color: roseGoldLight }}>
+            {config.nome_loja}
+          </h4>
+          <p className="text-xs mb-6" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>
+            {config.descricao || 'Joias exclusivas com a qualidade que você merece.'}
+          </p>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            {config.whatsapp && (
+              <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="transition-opacity hover:opacity-80" style={{ color: roseGoldLight }}>
+                <Phone className="w-5 h-5" />
+              </a>
+            )}
+            {config.instagram && (
+              <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-80" style={{ color: roseGoldLight }}>
+                <Instagram className="w-5 h-5" />
+              </a>
+            )}
+          </div>
+          <p className="text-[10px]" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>
+            © {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.
+          </p>
+        </div>
+      </footer>
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg tracking-wide uppercase" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>
               {checkoutStep === 'dados' && 'Dados para Entrega'}
               {checkoutStep === 'pagamento' && 'Pagamento'}
               {checkoutStep === 'confirmacao' && 'Pedido Confirmado!'}
@@ -457,81 +752,87 @@ export default function LojaPublicaPage() {
           </DialogHeader>
 
           {checkoutStep === 'dados' && (
-            <div className="space-y-4">
+            <div className="space-y-4" style={{ fontFamily: "'Inter', sans-serif" }}>
               <div className="space-y-2">
-                <Label>Nome completo *</Label>
-                <Input value={cliente.nome} onChange={e => setCliente(p => ({ ...p, nome: e.target.value }))} placeholder="Seu nome" />
+                <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Nome completo *</Label>
+                <Input value={cliente.nome} onChange={e => setCliente(p => ({ ...p, nome: e.target.value }))} placeholder="Seu nome" className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>E-mail</Label>
-                  <Input type="email" value={cliente.email} onChange={e => setCliente(p => ({ ...p, email: e.target.value }))} placeholder="email@exemplo.com" />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>E-mail</Label>
+                  <Input type="email" value={cliente.email} onChange={e => setCliente(p => ({ ...p, email: e.target.value }))} placeholder="email@exemplo.com" className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input value={cliente.telefone} onChange={e => setCliente(p => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Telefone</Label>
+                  <Input value={cliente.telefone} onChange={e => setCliente(p => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>CPF</Label>
-                <Input value={cliente.cpf} onChange={e => setCliente(p => ({ ...p, cpf: e.target.value }))} placeholder="000.000.000-00" />
+                <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>CPF</Label>
+                <Input value={cliente.cpf} onChange={e => setCliente(p => ({ ...p, cpf: e.target.value }))} placeholder="000.000.000-00" className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
               </div>
-              <Separator />
-              <h4 className="font-medium text-foreground">Endereço de Entrega</h4>
+              <div className="border-t pt-4" style={{ borderColor: '#F0E6E0' }}>
+                <h4 className="text-sm uppercase tracking-wider mb-3" style={{ color: textDark }}>Endereço de Entrega</h4>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label>CEP</Label>
-                  <Input value={endereco.cep} onChange={e => setEndereco(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" onBlur={async () => {
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>CEP</Label>
+                  <Input value={endereco.cep} onChange={e => setEndereco(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" className="rounded-none border" style={{ borderColor: '#E0D5CF' }} onBlur={async () => {
                     const cep = endereco.cep.replace(/\D/g, '');
                     if (cep.length === 8) {
                       try {
                         const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                         const data = await resp.json();
-                        if (!data.erro) {
-                          setEndereco(p => ({ ...p, rua: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }));
-                        }
+                        if (!data.erro) setEndereco(p => ({ ...p, rua: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }));
                       } catch {}
                     }
                   }} />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label>Rua</Label>
-                  <Input value={endereco.rua} onChange={e => setEndereco(p => ({ ...p, rua: e.target.value }))} />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Rua</Label>
+                  <Input value={endereco.rua} onChange={e => setEndereco(p => ({ ...p, rua: e.target.value }))} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label>Número</Label>
-                  <Input value={endereco.numero} onChange={e => setEndereco(p => ({ ...p, numero: e.target.value }))} />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Número</Label>
+                  <Input value={endereco.numero} onChange={e => setEndereco(p => ({ ...p, numero: e.target.value }))} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label>Complemento</Label>
-                  <Input value={endereco.complemento} onChange={e => setEndereco(p => ({ ...p, complemento: e.target.value }))} />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Complemento</Label>
+                  <Input value={endereco.complemento} onChange={e => setEndereco(p => ({ ...p, complemento: e.target.value }))} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
-                  <Label>Bairro</Label>
-                  <Input value={endereco.bairro} onChange={e => setEndereco(p => ({ ...p, bairro: e.target.value }))} />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Bairro</Label>
+                  <Input value={endereco.bairro} onChange={e => setEndereco(p => ({ ...p, bairro: e.target.value }))} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cidade</Label>
-                  <Input value={endereco.cidade} onChange={e => setEndereco(p => ({ ...p, cidade: e.target.value }))} />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Cidade</Label>
+                  <Input value={endereco.cidade} onChange={e => setEndereco(p => ({ ...p, cidade: e.target.value }))} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
                 <div className="space-y-2">
-                  <Label>UF</Label>
-                  <Input value={endereco.estado} onChange={e => setEndereco(p => ({ ...p, estado: e.target.value }))} maxLength={2} />
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>UF</Label>
+                  <Input value={endereco.estado} onChange={e => setEndereco(p => ({ ...p, estado: e.target.value }))} maxLength={2} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
               </div>
-              <Separator />
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Frete</span><span>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span></div>
-                <div className="flex justify-between font-bold text-lg"><span>Total</span><span>{formatCurrency(total)}</span></div>
+              <div className="border-t pt-3 space-y-1" style={{ borderColor: '#F0E6E0' }}>
+                <div className="flex justify-between text-sm"><span style={{ color: textMuted }}>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+                <div className="flex justify-between text-sm"><span style={{ color: textMuted }}>Frete</span><span>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span></div>
+                <div className="flex justify-between font-semibold text-lg pt-2 border-t" style={{ borderColor: '#F0E6E0' }}>
+                  <span style={{ color: textDark }}>Total</span>
+                  <span style={{ color: roseGold }}>{formatCurrency(total)}</span>
+                </div>
               </div>
-              <Button className="w-full" size="lg" onClick={handleCheckout} disabled={processing} style={{ backgroundColor: config?.cor_primaria }}>
-                {processing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processando...</> : 'Ir para Pagamento'}
-              </Button>
+              <button
+                className="w-full py-3 text-white text-xs uppercase tracking-[0.15em] transition-all hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: roseGold }}
+                onClick={handleCheckout}
+                disabled={processing}
+              >
+                {processing ? 'Processando...' : 'Ir para Pagamento'}
+              </button>
             </div>
           )}
 
@@ -539,7 +840,7 @@ export default function LojaPublicaPage() {
             <div>
               {processing && (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: roseGold }} />
                 </div>
               )}
               <div id="ecommerce-brick-container" className="min-h-[200px]" />
@@ -548,29 +849,54 @@ export default function LojaPublicaPage() {
 
           {checkoutStep === 'confirmacao' && (
             <div className="flex flex-col items-center gap-4 py-8">
-              <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-success" />
+              <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5EEEA' }}>
+                <CheckCircle className="w-10 h-10" style={{ color: roseGold }} />
               </div>
-              <h3 className="text-xl font-bold text-foreground">Pedido #{numeroPedido}</h3>
-              <p className="text-muted-foreground text-center">
+              <h3 className="text-2xl font-light" style={{ color: textDark }}>
+                Pedido #{numeroPedido}
+              </h3>
+              <p className="text-sm text-center max-w-xs" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
                 Seu pedido foi realizado com sucesso! Você receberá atualizações por e-mail.
               </p>
-              <Button onClick={() => { setCheckoutOpen(false); setCheckoutStep('dados'); }}>
+              <button
+                className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] border transition-all hover:opacity-80"
+                style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
+                onClick={() => { setCheckoutOpen(false); setCheckoutStep('dados'); }}
+              >
                 Continuar Comprando
-              </Button>
+              </button>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Floating Cart Button (mobile) */}
+      {/* Floating Cart (mobile) */}
       {cartCount > 0 && (
         <div className="fixed bottom-4 right-4 sm:hidden z-50">
-          <Button size="lg" className="rounded-full shadow-lg gap-2" onClick={() => setCartOpen(true)} style={{ backgroundColor: config.cor_primaria }}>
+          <button
+            className="flex items-center gap-2 px-5 py-3 text-white text-sm shadow-lg"
+            style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+            onClick={() => setCartOpen(true)}
+          >
             <ShoppingCart className="w-5 h-5" />
             {cartCount} · {formatCurrency(total)}
-          </Button>
+          </button>
         </div>
+      )}
+
+      {/* WhatsApp Float */}
+      {config.whatsapp && (
+        <a
+          href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-4 left-4 z-50 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
+          style={{ backgroundColor: '#25D366' }}
+        >
+          <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+          </svg>
+        </a>
       )}
     </div>
   );
