@@ -3544,6 +3544,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      portal_login_lookup: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          id: string
+          nome: string
+        }[]
+      }
       seed_default_email_templates: {
         Args: { p_organization_id: string }
         Returns: undefined
