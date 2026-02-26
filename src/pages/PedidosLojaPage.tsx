@@ -5,7 +5,7 @@ export default function PedidosLojaPage() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    navigate('/configuracoes?tab=ecommerce', { replace: true });
+    navigate('/loja-virtual', { replace: true });
   }, [navigate]);
 
   return null;
