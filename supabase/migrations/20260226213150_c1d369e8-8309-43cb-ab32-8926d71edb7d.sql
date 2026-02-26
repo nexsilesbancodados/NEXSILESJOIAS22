@@ -1,0 +1,1 @@
+UPDATE public.ecommerce_config SET slug = 'beneloahsemijoias' WHERE id = 'b4f41421-c5ac-4ef7-a4f2-e2cfd0af9945';
