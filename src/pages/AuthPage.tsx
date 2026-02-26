@@ -358,7 +358,7 @@ export default function AuthPage() {
         transition={{ duration: 0.6, delay: 0.8 }}
         className="absolute bottom-6 right-6 z-20 text-sm text-white/60 hidden lg:block"
       >
-        © 2024 Nexsiles. Todos os direitos reservados.
+        © {new Date().getFullYear()} Nexsiles. Todos os direitos reservados.
       </motion.p>
 
       {/* Auth Form - Rectangular Card Design */}
@@ -724,7 +724,7 @@ export default function AuthPage() {
 
       {/* Mobile Footer */}
       <p className="absolute bottom-4 left-1/2 -translate-x-1/2 lg:hidden text-center text-xs text-white/60 z-20">
-        © 2024 Nexsiles
+        © {new Date().getFullYear()} Nexsiles
       </p>
     </div>
   );
