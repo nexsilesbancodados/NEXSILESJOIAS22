@@ -1098,6 +1098,7 @@ export type Database = {
           observacoes: string | null
           organization_id: string | null
           pontos_fidelidade: number | null
+          senha: string | null
           telefone: string | null
           updated_at: string | null
           whatsapp: string | null
@@ -1117,6 +1118,7 @@ export type Database = {
           observacoes?: string | null
           organization_id?: string | null
           pontos_fidelidade?: number | null
+          senha?: string | null
           telefone?: string | null
           updated_at?: string | null
           whatsapp?: string | null
@@ -1136,6 +1138,7 @@ export type Database = {
           observacoes?: string | null
           organization_id?: string | null
           pontos_fidelidade?: number | null
+          senha?: string | null
           telefone?: string | null
           updated_at?: string | null
           whatsapp?: string | null
@@ -3896,6 +3899,29 @@ export type Database = {
     }
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
+      fetch_cliente_pedido_itens: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          id: string
+          peca_codigo: string
+          peca_imagem_url: string
+          peca_nome: string
+          preco_unitario: number
+          quantidade: number
+        }[]
+      }
+      fetch_cliente_pedidos: {
+        Args: { p_cliente_email: string; p_organization_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          metodo_pagamento: string
+          numero_pedido: number
+          status: string
+          valor_frete: number
+          valor_total: number
+        }[]
+      }
       gerar_codigo_acesso: { Args: never; Returns: string }
       get_user_organization_id: { Args: never; Returns: string }
       get_user_organization_ids: { Args: never; Returns: string[] }
@@ -3986,12 +4012,36 @@ export type Database = {
         }
         Returns: boolean
       }
+      registrar_cliente_loja: {
+        Args: {
+          p_email: string
+          p_nome: string
+          p_organization_id: string
+          p_senha: string
+          p_telefone: string
+        }
+        Returns: string
+      }
       seed_default_email_templates: {
         Args: { p_organization_id: string }
         Returns: undefined
       }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }
+      verify_cliente_login: {
+        Args: { p_email: string; p_organization_id: string; p_password: string }
+        Returns: {
+          cliente_id: string
+          cliente_nome: string
+        }[]
+      }
+      verify_cliente_password: {
+        Args: { p_email: string; p_organization_id: string }
+        Returns: {
+          cliente_id: string
+          cliente_nome: string
+        }[]
+      }
       verify_portal_password: {
         Args: { p_email: string; p_password: string }
         Returns: {
