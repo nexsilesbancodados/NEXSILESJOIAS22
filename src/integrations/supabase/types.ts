@@ -3940,46 +3940,91 @@ export type Database = {
       }
       ecommerce_config_public: {
         Row: {
+          apenas_com_foto: boolean | null
           ativo: boolean | null
+          avaliacoes_ativas: boolean | null
+          banner_ativo: boolean | null
+          banner_cor: string | null
+          banner_texto: string | null
           cor_primaria: string | null
           cor_secundaria: string | null
           descricao: string | null
+          email_contato: string | null
+          facebook: string | null
           frete_gratis_acima: number | null
+          horario_funcionamento: Json | null
           id: string | null
           instagram: string | null
           logo_url: string | null
+          metodos_pagamento: string[] | null
+          mostrar_estoque: boolean | null
+          mostrar_preco_original: boolean | null
           nome_loja: string | null
           organization_id: string | null
+          pedido_minimo: number | null
+          politica_privacidade: string | null
+          politica_troca: string | null
+          produtos_por_pagina: number | null
           slug: string | null
           taxa_entrega: number | null
           whatsapp: string | null
         }
         Insert: {
+          apenas_com_foto?: boolean | null
           ativo?: boolean | null
+          avaliacoes_ativas?: boolean | null
+          banner_ativo?: boolean | null
+          banner_cor?: string | null
+          banner_texto?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           descricao?: string | null
+          email_contato?: string | null
+          facebook?: string | null
           frete_gratis_acima?: number | null
+          horario_funcionamento?: Json | null
           id?: string | null
           instagram?: string | null
           logo_url?: string | null
+          metodos_pagamento?: string[] | null
+          mostrar_estoque?: boolean | null
+          mostrar_preco_original?: boolean | null
           nome_loja?: string | null
           organization_id?: string | null
+          pedido_minimo?: number | null
+          politica_privacidade?: string | null
+          politica_troca?: string | null
+          produtos_por_pagina?: number | null
           slug?: string | null
           taxa_entrega?: number | null
           whatsapp?: string | null
         }
         Update: {
+          apenas_com_foto?: boolean | null
           ativo?: boolean | null
+          avaliacoes_ativas?: boolean | null
+          banner_ativo?: boolean | null
+          banner_cor?: string | null
+          banner_texto?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           descricao?: string | null
+          email_contato?: string | null
+          facebook?: string | null
           frete_gratis_acima?: number | null
+          horario_funcionamento?: Json | null
           id?: string | null
           instagram?: string | null
           logo_url?: string | null
+          metodos_pagamento?: string[] | null
+          mostrar_estoque?: boolean | null
+          mostrar_preco_original?: boolean | null
           nome_loja?: string | null
           organization_id?: string | null
+          pedido_minimo?: number | null
+          politica_privacidade?: string | null
+          politica_troca?: string | null
+          produtos_por_pagina?: number | null
           slug?: string | null
           taxa_entrega?: number | null
           whatsapp?: string | null
