@@ -54,7 +54,7 @@ const PedidosLojaPage = lazy(() => import("./pages/PedidosLojaPage"));
 const LojaVirtualPage = lazy(() => import("./pages/LojaVirtualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Redireciona /:slug para /loja/:slug quando acessado pelo subdomínio loja.*
+// Detecta subdomínio loja.* e serve a loja pública
 function LojaSubdomainRedirect() {
   const { slug } = useParams();
   const isLojaSubdomain = typeof window !== 'undefined' && window.location.hostname.startsWith('loja.');
@@ -62,6 +62,15 @@ function LojaSubdomainRedirect() {
     return <Navigate to={`/loja/${slug}`} replace />;
   }
   return <Navigate to="/" replace />;
+}
+
+// Wrapper que detecta subdomínio loja.* na raiz e redireciona
+function LojaRootRedirect() {
+  const isLojaSubdomain = typeof window !== 'undefined' && window.location.hostname.startsWith('loja.');
+  if (isLojaSubdomain) {
+    return <Navigate to="/loja/beneloahsemijoias" replace />;
+  }
+  return null;
 }
 
 const queryClient = new QueryClient({
@@ -139,6 +148,21 @@ function CriticalDataPrefetcher() {
 }
 
 function AppRoutes() {
+  // Se estiver no subdomínio loja.*, redireciona tudo para a loja
+  const isLojaSubdomain = typeof window !== 'undefined' && window.location.hostname.startsWith('loja.');
+  
+  if (isLojaSubdomain) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/loja/:slug" element={<LojaPublicaPage />} />
+          <Route path="/:slug" element={<LojaSubdomainRedirect />} />
+          <Route path="*" element={<Navigate to="/loja/beneloahsemijoias" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
