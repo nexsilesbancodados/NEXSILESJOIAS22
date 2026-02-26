@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,9 @@ import { toast } from 'sonner';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronRight, ChevronDown } from 'lucide-react';
 import { ClienteAuthArea } from '@/components/ecommerce/ClienteAuthArea';
 import { motion, AnimatePresence } from 'framer-motion';
-
+import heroSlide1 from '@/assets/hero-slide-1.jpg';
+import heroSlide2 from '@/assets/hero-slide-2.jpg';
+import heroSlide3 from '@/assets/hero-slide-3.jpg';
 const MP_PUBLIC_KEY = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
 
 interface StoreConfig {
@@ -78,6 +80,19 @@ export default function LojaPublicaPage() {
 
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
+
+  // Hero carousel
+  const heroSlides = [
+    { image: heroSlide1, title: 'Joias que contam', subtitle: 'a sua história', cta: 'Explorar Coleção' },
+    { image: heroSlide2, title: 'Brincos exclusivos', subtitle: 'para cada momento', cta: 'Ver Brincos' },
+    { image: heroSlide3, title: 'Pulseiras artesanais', subtitle: 'feitas com amor', cta: 'Conferir' },
+  ];
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setHeroIndex(i => (i + 1) % heroSlides.length), 5000);
+    return () => clearInterval(timer);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     if (!slug) return;
@@ -539,37 +554,74 @@ export default function LojaPublicaPage() {
         </div>
       </div>
 
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
-        <div className="max-w-7xl mx-auto px-4 py-12 sm:py-20 flex flex-col items-center text-center">
+      {/* Hero Carousel */}
+      <section className="relative overflow-hidden" style={{ height: '420px' }}>
+        <AnimatePresence mode="wait">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            key={heroIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
+            className="absolute inset-0"
           >
-            <p className="text-xs sm:text-sm uppercase tracking-[0.3em] mb-4" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-              ✦ Coleção Exclusiva ✦
-            </p>
-            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight" style={{ color: textDark }}>
-              Joias que contam
-            </h2>
-            <h2 className="text-3xl sm:text-5xl lg:text-6xl italic mt-1" style={{ color: roseGold, fontFamily: "'Cormorant Garamond', serif" }}>
-              a sua história
-            </h2>
-            <p className="mt-6 text-sm sm:text-base max-w-md mx-auto" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-              {config.descricao || 'Peças únicas feitas com amor e dedicação para você brilhar em cada momento.'}
-            </p>
-            <button
-              className="mt-8 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90"
-              style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
-              onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Explorar Coleção
-            </button>
+            <img
+              src={heroSlides[heroIndex].image}
+              alt={heroSlides[heroIndex].title}
+              className="w-full h-full object-cover"
+            />
+            {/* Overlay */}
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)' }} />
           </motion.div>
-          {/* Decorative elements */}
-          <div className="absolute top-4 left-4 w-20 h-20 border opacity-20" style={{ borderColor: roseGold }} />
-          <div className="absolute bottom-4 right-4 w-20 h-20 border opacity-20" style={{ borderColor: roseGold }} />
+        </AnimatePresence>
+
+        {/* Content overlay */}
+        <div className="relative z-10 h-full max-w-7xl mx-auto px-6 flex flex-col justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={heroIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.6 }}
+              className="max-w-lg"
+            >
+              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] mb-3 text-white/70" style={{ fontFamily: "'Inter', sans-serif" }}>
+                ✦ Coleção Exclusiva ✦
+              </p>
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight text-white">
+                {heroSlides[heroIndex].title}
+              </h2>
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl italic mt-1" style={{ color: roseGoldLight, fontFamily: "'Cormorant Garamond', serif" }}>
+                {heroSlides[heroIndex].subtitle}
+              </h2>
+              <p className="mt-4 text-sm sm:text-base text-white/70 max-w-md" style={{ fontFamily: "'Inter', sans-serif" }}>
+                {config.descricao || 'Peças únicas feitas com amor e dedicação para você brilhar em cada momento.'}
+              </p>
+              <button
+                className="mt-6 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90"
+                style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                {heroSlides[heroIndex].cta}
+              </button>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Dots */}
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex gap-2.5">
+          {heroSlides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setHeroIndex(i)}
+              className="w-2.5 h-2.5 rounded-full transition-all duration-300"
+              style={{
+                backgroundColor: i === heroIndex ? roseGold : 'rgba(255,255,255,0.5)',
+                transform: i === heroIndex ? 'scale(1.3)' : 'scale(1)',
+              }}
+            />
+          ))}
         </div>
       </section>
 
