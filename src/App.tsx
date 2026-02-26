@@ -51,6 +51,7 @@ const FidelidadePage = lazy(() => import("./pages/FidelidadePage"));
 const HistoricoPrecosPage = lazy(() => import("./pages/HistoricoPrecosPage"));
 const LojaPublicaPage = lazy(() => import("./pages/LojaPublicaPage"));
 const PedidosLojaPage = lazy(() => import("./pages/PedidosLojaPage"));
+const LojaVirtualPage = lazy(() => import("./pages/LojaVirtualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -208,6 +209,7 @@ function AppRoutes() {
                       <Route path="/fidelidade" element={<FidelidadePage />} />
                       <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                       <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
+                      <Route path="/loja-virtual" element={<LojaVirtualPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

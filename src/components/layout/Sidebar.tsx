@@ -155,7 +155,7 @@ const menuItems = [
   { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600' },
   { icon: GraduationCap, label: 'Tutorial', path: '/tutorial', color: 'from-emerald-500 to-green-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
-  { icon: ShoppingBag, label: 'Loja Virtual', path: '/configuracoes?tab=ecommerce', color: 'from-rose-500 to-pink-600', superAdminOnly: true },
+  { icon: ShoppingBag, label: 'Loja Virtual', path: '/loja-virtual', color: 'from-rose-500 to-pink-600', superAdminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
   { icon: Shield, label: 'Super Admin', path: '/super-admin', color: 'from-red-500 to-orange-600', superAdminOnly: true },
 ];
