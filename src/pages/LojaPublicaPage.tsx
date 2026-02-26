@@ -187,9 +187,11 @@ export default function LojaPublicaPage() {
   }, [pecas, categoriaFilter, categoryTree]);
 
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [showWishlistOnly, setShowWishlistOnly] = useState(false);
 
   const filteredPecas = useMemo(() => {
     let result = pecas.filter(p => {
+      if (showWishlistOnly && !wishlist.has(p.id)) return false;
       const matchSearch = !search || p.nome.toLowerCase().includes(search.toLowerCase()) || p.codigo?.toLowerCase().includes(search.toLowerCase());
       const matchCategoria = categoriaFilter === 'todas' || p.categoria === categoriaFilter;
       const matchMaterial = materialFilter === 'todos' || p.material === materialFilter;
@@ -205,7 +207,7 @@ export default function LojaPublicaPage() {
       default: result.sort((a, b) => a.nome.localeCompare(b.nome));
     }
     return result;
-  }, [pecas, search, categoriaFilter, materialFilter, priceRange, sortBy]);
+  }, [pecas, search, categoriaFilter, materialFilter, priceRange, sortBy, showWishlistOnly, wishlist]);
 
   const toggleWishlist = useCallback((pecaId: string) => {
     setWishlist(prev => {
@@ -469,12 +471,11 @@ export default function LojaPublicaPage() {
             <button
               className="relative p-2 transition-opacity hover:opacity-70"
               onClick={() => {
-                if (wishlist.size === 0) { toast.info('Sua lista de desejos está vazia'); return; }
-                setCategoriaFilter('todas'); setMaterialFilter('todos');
-                setSearch('');
-                // filter to show wishlist items only - handled below
+                if (!showWishlistOnly && wishlist.size === 0) { toast.info('Sua lista de desejos está vazia'); return; }
+                setShowWishlistOnly(prev => !prev);
+                if (!showWishlistOnly) { setCategoriaFilter('todas'); setMaterialFilter('todos'); setSearch(''); }
               }}
-              title="Favoritos"
+              title={showWishlistOnly ? 'Ver todos os produtos' : 'Ver favoritos'}
             >
               <Heart className="w-5 h-5" style={{ color: wishlist.size > 0 ? roseGold : textDark }} fill={wishlist.size > 0 ? roseGold : 'none'} />
               {wishlist.size > 0 && (
