@@ -54,12 +54,12 @@ const PedidosLojaPage = lazy(() => import("./pages/PedidosLojaPage"));
 const LojaVirtualPage = lazy(() => import("./pages/LojaVirtualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Componente que redireciona /:slug para /loja/:slug quando acessado pelo subdomínio loja.*
+// Redireciona /:slug para /loja/:slug quando acessado pelo subdomínio loja.*
 function LojaSubdomainRedirect() {
   const { slug } = useParams();
-  const isLojaSubdomain = window.location.hostname.startsWith('loja.');
+  const isLojaSubdomain = typeof window !== 'undefined' && window.location.hostname.startsWith('loja.');
   if (isLojaSubdomain && slug) {
-    return <Suspense fallback={<div />}><LojaPublicaPage /></Suspense>;
+    return <Navigate to={`/loja/${slug}`} replace />;
   }
   return <Navigate to="/" replace />;
 }
