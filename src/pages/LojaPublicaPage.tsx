@@ -392,11 +392,33 @@ export default function LojaPublicaPage() {
     </div>
   );
 
-  const roseGold = '#B76E79';
-  const roseGoldLight = '#D4A0A7';
-  const roseGoldDark = '#8B4F57';
-  const cream = '#FFF9F5';
-  const warmWhite = '#FFFDFB';
+  // Dynamic colors from config
+  const hexToRgb = (hex: string) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return { r, g, b };
+  };
+  const lighten = (hex: string, amount: number) => {
+    const { r, g, b } = hexToRgb(hex);
+    const lr = Math.min(255, r + Math.round((255 - r) * amount));
+    const lg = Math.min(255, g + Math.round((255 - g) * amount));
+    const lb = Math.min(255, b + Math.round((255 - b) * amount));
+    return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`;
+  };
+  const darken = (hex: string, amount: number) => {
+    const { r, g, b } = hexToRgb(hex);
+    const dr = Math.max(0, Math.round(r * (1 - amount)));
+    const dg = Math.max(0, Math.round(g * (1 - amount)));
+    const db = Math.max(0, Math.round(b * (1 - amount)));
+    return `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`;
+  };
+
+  const roseGold = config.cor_primaria || '#B76E79';
+  const roseGoldLight = lighten(roseGold, 0.4);
+  const roseGoldDark = config.cor_secundaria || darken(roseGold, 0.3);
+  const cream = lighten(roseGold, 0.92);
+  const warmWhite = lighten(roseGold, 0.96);
   const textDark = '#2D2D2D';
   const textMuted = '#7A7A7A';
 
