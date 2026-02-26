@@ -195,7 +195,7 @@ export default function AuthPage() {
           description: 'Você precisa de um código válido para criar uma conta. Adquira um plano primeiro.',
           action: {
             label: 'Ver Planos',
-            onClick: () => window.open('https://www.nexsiles.com.br/', '_blank'),
+            onClick: () => window.open('https://www.nexsiles.com.br/', '_top'),
           },
         });
         return;
