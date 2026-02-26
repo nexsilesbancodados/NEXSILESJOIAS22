@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingBag, Settings, Package, LayoutGrid } from 'lucide-react';
+import { ShoppingBag, Settings, Package, LayoutGrid, Tag } from 'lucide-react';
 import { EcommerceConfigTab } from '@/components/ecommerce/EcommerceConfigTab';
 import { EcommercePedidosTab } from '@/components/ecommerce/EcommercePedidosTab';
 import { EcommerceProdutosTab } from '@/components/ecommerce/EcommerceProdutosTab';
+import { CuponsManager } from '@/components/ecommerce/CuponsManager';
 
 export default function LojaVirtualPage() {
   return (
@@ -14,7 +15,7 @@ export default function LojaVirtualPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Loja Virtual</h1>
-            <p className="text-sm text-muted-foreground">Gerencie sua loja online, produtos e pedidos</p>
+            <p className="text-sm text-muted-foreground">Gerencie sua loja online, produtos, cupons e pedidos</p>
           </div>
         </div>
       </div>
@@ -25,24 +26,31 @@ export default function LojaVirtualPage() {
             <LayoutGrid className="w-4 h-4" />
             Produtos
           </TabsTrigger>
-          <TabsTrigger value="config" className="gap-1.5">
-            <Settings className="w-4 h-4" />
-            Configurações
+          <TabsTrigger value="cupons" className="gap-1.5">
+            <Tag className="w-4 h-4" />
+            Cupons
           </TabsTrigger>
           <TabsTrigger value="pedidos" className="gap-1.5">
             <Package className="w-4 h-4" />
             Pedidos
+          </TabsTrigger>
+          <TabsTrigger value="config" className="gap-1.5">
+            <Settings className="w-4 h-4" />
+            Configurações
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="produtos">
           <EcommerceProdutosTab />
         </TabsContent>
-        <TabsContent value="config">
-          <EcommerceConfigTab />
+        <TabsContent value="cupons">
+          <CuponsManager />
         </TabsContent>
         <TabsContent value="pedidos">
           <EcommercePedidosTab />
+        </TabsContent>
+        <TabsContent value="config">
+          <EcommerceConfigTab />
         </TabsContent>
       </Tabs>
     </div>

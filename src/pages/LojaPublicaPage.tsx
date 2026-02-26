@@ -69,6 +69,13 @@ export default function LojaPublicaPage() {
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
   const [selectedPeca, setSelectedPeca] = useState<Peca | null>(null);
 
+  // Cupom state
+  const [cupomCode, setCupomCode] = useState('');
+  const [cupomDesconto, setCupomDesconto] = useState(0);
+  const [cupomId, setCupomId] = useState<string | null>(null);
+  const [cupomLoading, setCupomLoading] = useState(false);
+  const [cupomApplied, setCupomApplied] = useState('');
+
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
 
@@ -157,10 +164,45 @@ export default function LojaPublicaPage() {
   const subtotal = useMemo(() => cart.reduce((sum, i) => sum + i.preco_venda * i.quantidade, 0), [cart]);
   const valorFrete = useMemo(() => {
     if (!config) return 0;
-    if (config.frete_gratis_acima && subtotal >= config.frete_gratis_acima) return 0;
+    const subtotalComDesconto = subtotal - cupomDesconto;
+    if (config.frete_gratis_acima && subtotalComDesconto >= config.frete_gratis_acima) return 0;
     return config.taxa_entrega || 0;
-  }, [config, subtotal]);
-  const total = subtotal + valorFrete;
+  }, [config, subtotal, cupomDesconto]);
+  const total = subtotal - cupomDesconto + valorFrete;
+
+  const aplicarCupom = async () => {
+    if (!cupomCode.trim() || !config) return;
+    setCupomLoading(true);
+    try {
+      const { data, error } = await (supabase as any).rpc('validar_cupom', {
+        p_codigo: cupomCode,
+        p_organization_id: config.organization_id,
+        p_valor_pedido: subtotal,
+      });
+      if (error) throw error;
+      if (data && Array.isArray(data) && data.length > 0) {
+        setCupomDesconto(data[0].desconto);
+        setCupomId(data[0].cupom_id);
+        setCupomApplied(cupomCode.toUpperCase());
+        toast.success(`Cupom aplicado! Desconto: ${formatCurrency(data[0].desconto)}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Cupom inválido');
+      setCupomDesconto(0);
+      setCupomId(null);
+      setCupomApplied('');
+    } finally {
+      setCupomLoading(false);
+    }
+  };
+
+  const removerCupom = () => {
+    setCupomCode('');
+    setCupomDesconto(0);
+    setCupomId(null);
+    setCupomApplied('');
+    toast.success('Cupom removido');
+  };
   const cartCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantidade, 0), [cart]);
 
   const handleCheckout = async () => {
@@ -211,12 +253,13 @@ export default function LojaPublicaPage() {
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc' },
-                  body: JSON.stringify({
-                    formData, organization_id: config!.organization_id,
-                    items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
-                    cliente, endereco: endereco.cep ? endereco : undefined,
-                    valor_subtotal: subtotal, valor_frete: valorFrete,
-                  }),
+                    body: JSON.stringify({
+                      formData, organization_id: config!.organization_id,
+                      items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
+                      cliente, endereco: endereco.cep ? endereco : undefined,
+                      valor_subtotal: subtotal, valor_frete: valorFrete,
+                      cupom_id: cupomId, valor_desconto: cupomDesconto,
+                    }),
                 }
               );
               const result = await response.json();
@@ -826,8 +869,41 @@ export default function LojaPublicaPage() {
                   <Input value={endereco.estado} onChange={e => setEndereco(p => ({ ...p, estado: e.target.value }))} maxLength={2} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
               </div>
+              {/* Cupom */}
+              <div className="border-t pt-3" style={{ borderColor: '#F0E6E0' }}>
+                <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Cupom de desconto</Label>
+                {cupomApplied ? (
+                  <div className="flex items-center justify-between mt-2 px-3 py-2 border" style={{ borderColor: roseGold, backgroundColor: '#FFF5F5' }}>
+                    <span className="text-xs font-semibold" style={{ color: roseGold }}>{cupomApplied} (-{formatCurrency(cupomDesconto)})</span>
+                    <button onClick={removerCupom} className="text-xs underline" style={{ color: textMuted }}>Remover</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      value={cupomCode}
+                      onChange={e => setCupomCode(e.target.value.toUpperCase())}
+                      placeholder="CÓDIGO"
+                      className="rounded-none border flex-1 text-xs uppercase"
+                      style={{ borderColor: '#E0D5CF' }}
+                      onKeyDown={e => e.key === 'Enter' && aplicarCupom()}
+                    />
+                    <button
+                      onClick={aplicarCupom}
+                      disabled={cupomLoading || !cupomCode.trim()}
+                      className="px-4 py-2 text-xs uppercase tracking-wider text-white transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                    >
+                      {cupomLoading ? '...' : 'Aplicar'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t pt-3 space-y-1" style={{ borderColor: '#F0E6E0' }}>
                 <div className="flex justify-between text-sm"><span style={{ color: textMuted }}>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
+                {cupomDesconto > 0 && (
+                  <div className="flex justify-between text-sm"><span style={{ color: roseGold }}>Desconto</span><span style={{ color: roseGold }}>-{formatCurrency(cupomDesconto)}</span></div>
+                )}
                 <div className="flex justify-between text-sm"><span style={{ color: textMuted }}>Frete</span><span>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span></div>
                 <div className="flex justify-between font-semibold text-lg pt-2 border-t" style={{ borderColor: '#F0E6E0' }}>
                   <span style={{ color: textDark }}>Total</span>

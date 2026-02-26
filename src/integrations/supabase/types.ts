@@ -3913,11 +3913,14 @@ export type Database = {
       fetch_cliente_pedidos: {
         Args: { p_cliente_email: string; p_organization_id: string }
         Returns: {
+          codigo_rastreio: string
           created_at: string
           id: string
           metodo_pagamento: string
           numero_pedido: number
           status: string
+          transportadora: string
+          valor_desconto: number
           valor_frete: number
           valor_total: number
         }[]
