@@ -352,6 +352,19 @@ export default function LojaPublicaPage() {
         </div>
       </div>
 
+      {/* Announcement Bar */}
+      <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: roseGold }}>
+        <motion.div
+          animate={{ x: ['100%', '-100%'] }}
+          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+          className="whitespace-nowrap"
+        >
+          <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+            ✦ Frete grátis {config.frete_gratis_acima ? `acima de R$ ${config.frete_gratis_acima.toFixed(0)}` : 'em compras selecionadas'} ✦ Parcele em até 12x sem juros ✦ Troca grátis na primeira compra ✦ Novidades toda semana ✦
+          </span>
+        </motion.div>
+      </div>
+
       {/* Header */}
       <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ backgroundColor: `${warmWhite}F2`, borderColor: '#F0E6E0' }}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
