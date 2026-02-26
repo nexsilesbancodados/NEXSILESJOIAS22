@@ -3230,7 +3230,6 @@ export type Database = {
           logo_url: string | null
           mensagem_boas_vindas: string | null
           nome: string | null
-          pedido_minimo_pecas: number | null
           slug: string | null
           titulo: string | null
         }
@@ -3247,7 +3246,6 @@ export type Database = {
           logo_url?: string | null
           mensagem_boas_vindas?: string | null
           nome?: string | null
-          pedido_minimo_pecas?: number | null
           slug?: string | null
           titulo?: string | null
         }
@@ -3264,7 +3262,6 @@ export type Database = {
           logo_url?: string | null
           mensagem_boas_vindas?: string | null
           nome?: string | null
-          pedido_minimo_pecas?: number | null
           slug?: string | null
           titulo?: string | null
         }
