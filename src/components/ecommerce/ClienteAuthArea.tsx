@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { User, LogOut, Loader2, Package, ChevronDown, ChevronRight, Eye } from 'lucide-react';
+import { User, LogOut, Loader2, Package, ChevronDown, ChevronRight, Eye, Truck, MapPin } from 'lucide-react';
 
 interface ClienteSession {
   id: string;
@@ -21,8 +21,11 @@ interface Pedido {
   status: string;
   valor_total: number;
   valor_frete: number;
+  valor_desconto: number;
   created_at: string;
   metodo_pagamento: string | null;
+  codigo_rastreio: string | null;
+  transportadora: string | null;
 }
 
 interface PedidoItem {
@@ -379,6 +382,33 @@ export function ClienteAuthArea({ organizationId, roseGold, roseGoldLight, textD
                               </div>
                             ))}
                             <Separator style={{ backgroundColor: '#F0E6E0' }} />
+                            {/* Tracking info */}
+                            {pedido.codigo_rastreio && (
+                              <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: '#EFF6FF' }}>
+                                <Truck className="w-4 h-4 flex-shrink-0" style={{ color: '#1565C0' }} />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] uppercase tracking-wider font-medium" style={{ color: '#1565C0' }}>
+                                    {pedido.transportadora || 'Rastreamento'}
+                                  </p>
+                                  <p className="text-xs font-mono font-semibold" style={{ color: '#0D47A1' }}>{pedido.codigo_rastreio}</p>
+                                </div>
+                                <a
+                                  href={`https://www.google.com/search?q=rastrear+${pedido.codigo_rastreio}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] underline"
+                                  style={{ color: '#1565C0' }}
+                                >
+                                  Rastrear
+                                </a>
+                              </div>
+                            )}
+                            {pedido.valor_desconto > 0 && (
+                              <div className="flex justify-between text-xs">
+                                <span style={{ color: roseGold }}>Desconto</span>
+                                <span style={{ color: roseGold }}>-{formatCurrency(pedido.valor_desconto)}</span>
+                              </div>
+                            )}
                             <div className="flex justify-between text-xs">
                               <span style={{ color: textMuted }}>Frete</span>
                               <span style={{ color: textDark }}>{pedido.valor_frete === 0 ? 'Grátis' : formatCurrency(pedido.valor_frete)}</span>

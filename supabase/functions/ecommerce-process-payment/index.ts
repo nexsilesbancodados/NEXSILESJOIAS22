@@ -21,7 +21,7 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { formData, organization_id, items, cliente, endereco, valor_subtotal, valor_frete } = body;
+    const { formData, organization_id, items, cliente, endereco, valor_subtotal, valor_frete, cupom_id, valor_desconto } = body;
 
     if (!formData) throw new Error("formData obrigatório");
 
@@ -46,7 +46,8 @@ serve(async (req: Request) => {
 
     if (paymentResult.status === "approved") {
       // Create order
-      const valor_total = (valor_subtotal || 0) + (valor_frete || 0);
+      const desconto = valor_desconto || 0;
+      const valor_total = (valor_subtotal || 0) - desconto + (valor_frete || 0);
       
       const { data: pedido, error: pedidoError } = await supabase
         .from("ecommerce_pedidos")
@@ -59,6 +60,8 @@ serve(async (req: Request) => {
           endereco: endereco || null,
           valor_subtotal: valor_subtotal || 0,
           valor_frete: valor_frete || 0,
+          valor_desconto: desconto,
+          cupom_id: cupom_id || null,
           valor_total,
           status: "pago",
           mercadopago_payment_id: String(paymentResult.id),
@@ -110,6 +113,20 @@ serve(async (req: Request) => {
             }
           }
         }
+      }
+
+      // Increment coupon usage if applied
+      if (cupom_id) {
+        await supabase.rpc("usar_cupom", { p_cupom_id: cupom_id });
+      }
+
+      // Send confirmation email (fire and forget)
+      if (cliente.email) {
+        fetch(`${supabaseUrl}/functions/v1/enviar-confirmacao-pedido`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({ pedido_id: pedido.id }),
+        }).catch(err => console.error("Email error:", err));
       }
 
       return new Response(
