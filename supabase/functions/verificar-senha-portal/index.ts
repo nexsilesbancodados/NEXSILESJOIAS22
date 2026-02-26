@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,13 +21,12 @@ serve(async (req) => {
       );
     }
 
-    // Create Supabase client with service role to bypass RLS
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch the password hash securely (never exposed to client)
+    // Fetch the password securely (never exposed to client)
     const { data, error } = await supabaseAdmin
       .from("revendedoras")
       .select("senha_portal")
@@ -42,8 +40,13 @@ serve(async (req) => {
       );
     }
 
-    // Simple password comparison (for now - should use bcrypt in production)
-    // Note: In a real production environment, you'd want to hash passwords with bcrypt
+    if (!data.senha_portal) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Acesso ao portal não configurado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const isValid = data.senha_portal === senha;
 
     if (!isValid) {
