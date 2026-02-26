@@ -141,6 +141,7 @@ function AppRoutes() {
         <Route path="/maleta/:maletaId" element={<MaletaPublicaPage />} />
         
         {/* Portal da Revendedora - Public page without MainLayout */}
+        <Route path="/portal" element={<PortalRevendedoraPage />} />
         <Route path="/portal/login" element={<PortalRevendedoraPage />} />
         <Route path="/portal/:revendedoraId" element={<PortalRevendedoraPage />} />
         
@@ -209,23 +210,25 @@ function AppRoutes() {
   );
 }
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <QueryErrorHandler />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AuthProvider>
-              <AppRoutes />
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <TooltipProvider>
+            <QueryErrorHandler />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AuthProvider>
+                <AppRoutes />
+              </AuthProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
 
 export default App;
