@@ -64,7 +64,7 @@ export function RevendedoraFormDialog({
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
         comissao: (revendedora.comissao_percentual || 30).toString(),
-        senha_portal: (revendedora as any).senha_portal || '',
+        senha_portal: '', // Never show hashed password back
       });
     } else {
       setFormData({

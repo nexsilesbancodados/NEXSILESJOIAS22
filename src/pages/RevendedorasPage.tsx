@@ -343,7 +343,7 @@ export default function RevendedorasPage() {
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
         comissao: (revendedora.comissao_percentual || 30).toString(),
-        senha_portal: (revendedora as any).senha_portal || '',
+        senha_portal: '', // Never show hashed password back
       });
     } else {
       setSelectedRevendedora(null);
@@ -364,13 +364,16 @@ export default function RevendedorasPage() {
       return;
     }
 
-    const revendedoraData = {
+    const revendedoraData: Record<string, any> = {
       nome: formData.nome,
       telefone: formData.telefone || null,
       email: formData.email || null,
       comissao_percentual: parseFloat(formData.comissao) || 30,
-      senha_portal: formData.senha_portal || null,
     };
+    // Only include senha_portal if user typed a new password
+    if (formData.senha_portal?.trim()) {
+      revendedoraData.senha_portal = formData.senha_portal.trim();
+    }
 
     try {
       if (selectedRevendedora) {

@@ -3340,6 +3340,17 @@ export type Database = {
       }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }
+      verify_portal_password: {
+        Args: { p_email: string; p_password: string }
+        Returns: {
+          revendedora_id: string
+          revendedora_nome: string
+        }[]
+      }
+      verify_portal_password_by_id: {
+        Args: { p_password: string; p_revendedora_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "gerente" | "vendedor" | "revendedora"
