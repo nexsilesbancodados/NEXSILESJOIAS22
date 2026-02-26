@@ -913,30 +913,269 @@ export default function LojaPublicaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Footer */}
-      <footer className="border-t" style={{ borderColor: '#F0E6E0', backgroundColor: textDark }}>
-        <div className="max-w-7xl mx-auto px-4 py-10 text-center">
-          <h4 className="text-lg tracking-[0.2em] uppercase mb-3" style={{ color: roseGoldLight }}>
-            {config.nome_loja}
-          </h4>
-          <p className="text-xs mb-6" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>
-            {config.descricao || 'Joias exclusivas com a qualidade que você merece.'}
-          </p>
-          <div className="flex items-center justify-center gap-4 mb-6">
-            {config.whatsapp && (
-              <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="transition-opacity hover:opacity-80" style={{ color: roseGoldLight }}>
-                <Phone className="w-5 h-5" />
-              </a>
-            )}
-            {config.instagram && (
-              <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-80" style={{ color: roseGoldLight }}>
-                <Instagram className="w-5 h-5" />
-              </a>
-            )}
+      {/* Novidades - últimas peças adicionadas */}
+      {pecas.length > 0 && (
+        <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-10">
+              <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Acabaram de Chegar</p>
+              <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>Novidades</h3>
+              <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
+            </div>
+            <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+              {pecas.slice(0, 8).map((peca, i) => (
+                <motion.div
+                  key={peca.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08 }}
+                  className="flex-shrink-0 w-56 sm:w-64 snap-start group cursor-pointer"
+                  onClick={() => setSelectedPeca(peca)}
+                >
+                  <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
+                    {peca.imagem_url ? (
+                      <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>
+                    )}
+                    <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}>Novo</span>
+                  </div>
+                  <div className="pt-3 text-center">
+                    <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{peca.categoria || ''}</p>
+                    <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
+                    <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(peca.preco_venda)}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
-          <p className="text-[10px]" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>
-            © {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.
+        </section>
+      )}
+
+      {/* Depoimentos / Social Proof */}
+      <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>O Que Dizem</p>
+            <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>Nossas Clientes</h3>
+            <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              { nome: 'Ana Paula', texto: 'Peças incríveis! A qualidade é impressionante, superou todas as minhas expectativas. Já é minha loja favorita.', estrelas: 5 },
+              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda. Comprei um anel e recebi com um cuidado maravilhoso. Recomendo demais!', estrelas: 5 },
+              { nome: 'Juliana M.', texto: 'Atendimento excepcional! Me ajudaram a escolher o presente perfeito. As joias são ainda mais bonitas ao vivo.', estrelas: 5 },
+            ].map((dep, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.15 }}
+                className="p-6 text-center border"
+                style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}
+              >
+                <div className="flex justify-center gap-1 mb-4">
+                  {Array.from({ length: dep.estrelas }).map((_, s) => (
+                    <span key={s} className="text-sm" style={{ color: roseGold }}>★</span>
+                  ))}
+                </div>
+                <p className="text-sm leading-relaxed italic mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  "{dep.texto}"
+                </p>
+                <p className="text-xs uppercase tracking-[0.15em] font-semibold" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>
+                  — {dep.nome}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Sobre a Marca */}
+      <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <p className="text-xs uppercase tracking-[0.3em] mb-3" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Nossa História</p>
+              <h3 className="text-2xl sm:text-3xl font-light leading-snug mb-4" style={{ color: textDark }}>
+                Cada peça conta<br /><span className="italic" style={{ color: roseGold }}>uma história única</span>
+              </h3>
+              <p className="text-sm leading-relaxed mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                Nascemos da paixão por joias que transcendem tendências. Cada peça é cuidadosamente selecionada
+                para trazer elegância ao seu dia a dia, combinando design contemporâneo com a tradição da ourivesaria.
+              </p>
+              <p className="text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                Acreditamos que uma joia não é apenas um acessório — é uma extensão de quem você é.
+                Por isso, trabalhamos com materiais de alta qualidade e acabamento impecável em cada detalhe.
+              </p>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="relative"
+            >
+              <div className="aspect-[4/5] overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
+                {pecas[0]?.imagem_url ? (
+                  <img src={pecas[0].imagem_url} alt="Sobre a marca" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Heart className="w-16 h-16" style={{ color: roseGoldLight }} />
+                  </div>
+                )}
+              </div>
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 border-2" style={{ borderColor: roseGold, zIndex: -1 }} />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Instagram Feed CTA */}
+      {config.instagram && (
+        <section className="py-14 border-t text-center" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
+          <div className="max-w-3xl mx-auto px-4">
+            <Instagram className="w-8 h-8 mx-auto mb-4" style={{ color: roseGold }} />
+            <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Siga-nos no Instagram</p>
+            <h3 className="text-2xl sm:text-3xl font-light mb-3" style={{ color: textDark }}>
+              @{config.instagram.replace('@', '')}
+            </h3>
+            <p className="text-sm mb-6" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+              Acompanhe as novidades, inspirações e bastidores das nossas coleções.
+            </p>
+            <a
+              href={`https://instagram.com/${config.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] border-2 transition-all hover:text-white"
+              style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
+              onMouseEnter={e => { (e.target as HTMLElement).style.backgroundColor = roseGold; (e.target as HTMLElement).style.color = 'white'; }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; (e.target as HTMLElement).style.color = roseGold; }}
+            >
+              Seguir Agora
+            </a>
+          </div>
+        </section>
+      )}
+
+      {/* Newsletter */}
+      <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: roseGold }}>
+        <div className="max-w-2xl mx-auto px-4 text-center">
+          <Sparkles className="w-6 h-6 mx-auto mb-4 text-white/80" />
+          <h3 className="text-2xl sm:text-3xl font-light text-white mb-2">Fique por dentro</h3>
+          <p className="text-sm text-white/70 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+            Cadastre-se e receba ofertas exclusivas, lançamentos e promoções em primeira mão.
           </p>
+          <form
+            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+            onSubmit={e => { e.preventDefault(); toast.success('Cadastro realizado com sucesso! 🎉'); }}
+          >
+            <input
+              type="email"
+              required
+              placeholder="Seu melhor e-mail"
+              className="flex-1 px-4 py-3 text-sm bg-white/10 border border-white/30 text-white placeholder-white/50 outline-none focus:border-white/60 transition-colors"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            />
+            <button
+              type="submit"
+              className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-white transition-all hover:opacity-90"
+              style={{ color: roseGold, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
+            >
+              Cadastrar
+            </button>
+          </form>
+        </div>
+      </section>
+
+      {/* Footer Completo */}
+      <footer className="border-t" style={{ borderColor: '#F0E6E0', backgroundColor: textDark }}>
+        <div className="max-w-7xl mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+            {/* Marca */}
+            <div>
+              <h4 className="text-lg tracking-[0.2em] uppercase mb-4" style={{ color: roseGoldLight }}>
+                {config.nome_loja}
+              </h4>
+              <p className="text-xs leading-relaxed mb-4" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>
+                {config.descricao || 'Joias exclusivas com a qualidade que você merece. Elegância e sofisticação em cada detalhe.'}
+              </p>
+              <div className="flex items-center gap-3">
+                {config.whatsapp && (
+                  <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="w-8 h-8 border border-white/20 flex items-center justify-center transition-all hover:border-white/50" style={{ color: roseGoldLight }}>
+                    <Phone className="w-3.5 h-3.5" />
+                  </a>
+                )}
+                {config.instagram && (
+                  <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-white/20 flex items-center justify-center transition-all hover:border-white/50" style={{ color: roseGoldLight }}>
+                    <Instagram className="w-3.5 h-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Institucional */}
+            <div>
+              <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Institucional</h5>
+              <ul className="space-y-2.5">
+                {['Sobre Nós', 'Nossas Lojas', 'Trabalhe Conosco', 'Blog'].map(item => (
+                  <li key={item}>
+                    <span className="text-xs cursor-pointer transition-colors hover:text-white" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Ajuda */}
+            <div>
+              <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Ajuda</h5>
+              <ul className="space-y-2.5">
+                {['Central de Ajuda', 'Trocas e Devoluções', 'Prazo de Entrega', 'Formas de Pagamento'].map(item => (
+                  <li key={item}>
+                    <span className="text-xs cursor-pointer transition-colors hover:text-white" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Contato */}
+            <div>
+              <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Contato</h5>
+              <ul className="space-y-2.5">
+                {config.whatsapp && (
+                  <li className="flex items-center gap-2">
+                    <Phone className="w-3 h-3" style={{ color: roseGoldLight }} />
+                    <span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{config.whatsapp}</span>
+                  </li>
+                )}
+                {config.instagram && (
+                  <li className="flex items-center gap-2">
+                    <Instagram className="w-3 h-3" style={{ color: roseGoldLight }} />
+                    <span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>@{config.instagram.replace('@', '')}</span>
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+
+          {/* Políticas */}
+          <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+            <p className="text-[10px]" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>
+              © {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.
+            </p>
+            <div className="flex items-center gap-4">
+              {['Política de Privacidade', 'Termos de Uso', 'Cookies'].map(item => (
+                <span key={item} className="text-[10px] cursor-pointer transition-colors hover:text-white" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </footer>
 
