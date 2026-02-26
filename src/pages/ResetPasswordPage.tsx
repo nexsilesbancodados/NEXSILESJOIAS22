@@ -235,7 +235,7 @@ export default function ResetPasswordPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          © 2024 Nexsiles. Todos os direitos reservados.
+          © {new Date().getFullYear()} Nexsiles. Todos os direitos reservados.
         </p>
       </div>
     </div>
