@@ -1239,6 +1239,59 @@ export type Database = {
           },
         ]
       }
+      cupons: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          id: string
+          organization_id: string
+          tipo: string
+          updated_at: string
+          uso_atual: number
+          uso_maximo: number | null
+          valido_ate: string | null
+          valor: number
+          valor_minimo_pedido: number
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          tipo?: string
+          updated_at?: string
+          uso_atual?: number
+          uso_maximo?: number | null
+          valido_ate?: string | null
+          valor?: number
+          valor_minimo_pedido?: number
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          tipo?: string
+          updated_at?: string
+          uso_atual?: number
+          uso_maximo?: number | null
+          valido_ate?: string | null
+          valor?: number
+          valor_minimo_pedido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cupons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ecommerce_avaliacoes: {
         Row: {
           aprovada: boolean | null
@@ -1462,7 +1515,9 @@ export type Database = {
           cliente_email: string | null
           cliente_nome: string
           cliente_telefone: string | null
+          codigo_rastreio: string | null
           created_at: string
+          cupom_id: string | null
           endereco: Json | null
           id: string
           mercadopago_payment_id: string | null
@@ -1470,7 +1525,9 @@ export type Database = {
           numero_pedido: number
           organization_id: string
           status: string
+          transportadora: string | null
           updated_at: string
+          valor_desconto: number | null
           valor_frete: number
           valor_subtotal: number
           valor_total: number
@@ -1480,7 +1537,9 @@ export type Database = {
           cliente_email?: string | null
           cliente_nome: string
           cliente_telefone?: string | null
+          codigo_rastreio?: string | null
           created_at?: string
+          cupom_id?: string | null
           endereco?: Json | null
           id?: string
           mercadopago_payment_id?: string | null
@@ -1488,7 +1547,9 @@ export type Database = {
           numero_pedido?: number
           organization_id: string
           status?: string
+          transportadora?: string | null
           updated_at?: string
+          valor_desconto?: number | null
           valor_frete?: number
           valor_subtotal?: number
           valor_total?: number
@@ -1498,7 +1559,9 @@ export type Database = {
           cliente_email?: string | null
           cliente_nome?: string
           cliente_telefone?: string | null
+          codigo_rastreio?: string | null
           created_at?: string
+          cupom_id?: string | null
           endereco?: Json | null
           id?: string
           mercadopago_payment_id?: string | null
@@ -1506,7 +1569,9 @@ export type Database = {
           numero_pedido?: number
           organization_id?: string
           status?: string
+          transportadora?: string | null
           updated_at?: string
+          valor_desconto?: number | null
           valor_frete?: number
           valor_subtotal?: number
           valor_total?: number
@@ -4256,6 +4321,10 @@ export type Database = {
     }
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
+      debitar_estoque_ecommerce: {
+        Args: { p_peca_id: string; p_quantidade: number }
+        Returns: undefined
+      }
       fetch_avaliacoes_media: {
         Args: { p_organization_id: string }
         Returns: {
@@ -4415,8 +4484,20 @@ export type Database = {
         }
         Returns: string
       }
+      usar_cupom: { Args: { p_cupom_id: string }; Returns: undefined }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }
+      validar_cupom: {
+        Args: {
+          p_codigo: string
+          p_organization_id: string
+          p_valor_pedido: number
+        }
+        Returns: {
+          cupom_id: string
+          desconto: number
+        }[]
+      }
       verify_cliente_login: {
         Args: { p_email: string; p_organization_id: string; p_password: string }
         Returns: {
