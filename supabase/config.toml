@@ -86,3 +86,9 @@ verify_jwt = false
 
 [functions.ecommerce-process-payment]
 verify_jwt = false
+
+[functions.ecommerce-webhook]
+verify_jwt = false
+
+[functions.enviar-confirmacao-pedido]
+verify_jwt = false
