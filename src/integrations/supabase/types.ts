@@ -1241,6 +1241,7 @@ export type Database = {
       }
       ecommerce_config: {
         Row: {
+          apenas_com_foto: boolean | null
           ativo: boolean
           cor_primaria: string | null
           cor_secundaria: string | null
@@ -1258,6 +1259,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          apenas_com_foto?: boolean | null
           ativo?: boolean
           cor_primaria?: string | null
           cor_secundaria?: string | null
@@ -1275,6 +1277,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          apenas_com_foto?: boolean | null
           ativo?: boolean
           cor_primaria?: string | null
           cor_secundaria?: string | null

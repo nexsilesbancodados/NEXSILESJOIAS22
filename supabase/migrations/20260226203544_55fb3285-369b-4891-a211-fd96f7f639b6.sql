@@ -1,0 +1,1 @@
+ALTER TABLE public.ecommerce_config ADD COLUMN apenas_com_foto BOOLEAN DEFAULT false;

@@ -37,6 +37,7 @@ export function EcommerceConfigTab() {
     cor_secundaria: '#7c3aed',
     descricao: '',
     ativo: false,
+    apenas_com_foto: false,
     frete_gratis_acima: '',
     taxa_entrega: '0',
     whatsapp: '',
@@ -53,6 +54,7 @@ export function EcommerceConfigTab() {
         cor_secundaria: config.cor_secundaria || '#7c3aed',
         descricao: config.descricao || '',
         ativo: config.ativo || false,
+        apenas_com_foto: config.apenas_com_foto || false,
         frete_gratis_acima: config.frete_gratis_acima?.toString() || '',
         taxa_entrega: config.taxa_entrega?.toString() || '0',
         whatsapp: config.whatsapp || '',
@@ -78,6 +80,7 @@ export function EcommerceConfigTab() {
         cor_secundaria: form.cor_secundaria,
         descricao: form.descricao || null,
         ativo: form.ativo,
+        apenas_com_foto: form.apenas_com_foto,
         frete_gratis_acima: form.frete_gratis_acima ? parseFloat(form.frete_gratis_acima) : null,
         taxa_entrega: parseFloat(form.taxa_entrega) || 0,
         whatsapp: form.whatsapp || null,
@@ -125,6 +128,14 @@ export function EcommerceConfigTab() {
               <p className="text-sm text-muted-foreground">Sua loja ficará acessível ao público</p>
             </div>
             <Switch checked={form.ativo} onCheckedChange={v => setForm(p => ({ ...p, ativo: v }))} />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-foreground">Exibir apenas produtos com foto</p>
+              <p className="text-sm text-muted-foreground">Oculta produtos sem imagem na loja pública</p>
+            </div>
+            <Switch checked={form.apenas_com_foto} onCheckedChange={v => setForm(p => ({ ...p, apenas_com_foto: v }))} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
