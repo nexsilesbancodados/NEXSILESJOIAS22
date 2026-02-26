@@ -954,27 +954,62 @@ export default function LojaPublicaPage() {
         </section>
       )}
 
-      {/* Depoimentos */}
+      {/* Depoimentos - Stories */}
       <section id="depoimentos" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-10">
             <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>O Que Dizem</p>
             <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>Nossas Clientes</h3>
             <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-2">
             {[
-              { nome: 'Ana Paula', texto: 'Peças incríveis! A qualidade é impressionante, superou todas as minhas expectativas.', estrelas: 5 },
-              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda. Comprei um anel e recebi com um cuidado maravilhoso.', estrelas: 5 },
-              { nome: 'Juliana M.', texto: 'Atendimento excepcional! Me ajudaram a escolher o presente perfeito.', estrelas: 5 },
+              { nome: 'Ana Paula', texto: 'Peças incríveis! A qualidade é impressionante, superou todas as minhas expectativas.', estrelas: 5, iniciais: 'AP', cor: '#B76E79' },
+              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda. Comprei um anel e recebi com um cuidado maravilhoso.', estrelas: 5, iniciais: 'CR', cor: '#D4A0A7' },
+              { nome: 'Juliana M.', texto: 'Atendimento excepcional! Me ajudaram a escolher o presente perfeito.', estrelas: 5, iniciais: 'JM', cor: '#8B4F57' },
+              { nome: 'Fernanda L.', texto: 'Uso minhas peças todo dia! Não desbotam e parecem joias caríssimas. Super recomendo.', estrelas: 5, iniciais: 'FL', cor: '#C08B93' },
+              { nome: 'Mariana S.', texto: 'Presente perfeito pra minha mãe! Ela amou o brinco e a caixinha veio linda.', estrelas: 5, iniciais: 'MS', cor: '#9E6B73' },
+              { nome: 'Patrícia G.', texto: 'Já é minha terceira compra. Qualidade consistente e sempre peças novas lindas.', estrelas: 5, iniciais: 'PG', cor: '#B76E79' },
+              { nome: 'Rafaela D.', texto: 'O anel que comprei é simplesmente perfeito! Recebo elogios toda vez que uso.', estrelas: 5, iniciais: 'RD', cor: '#D4A0A7' },
+              { nome: 'Beatriz C.', texto: 'Frete grátis e chegou antes do prazo. A peça é ainda mais bonita pessoalmente!', estrelas: 5, iniciais: 'BC', cor: '#8B4F57' },
+              { nome: 'Larissa F.', texto: 'Encontrei a loja pelo Instagram e virei cliente fiel. Tudo impecável!', estrelas: 5, iniciais: 'LF', cor: '#C08B93' },
+              { nome: 'Isabela T.', texto: 'Comprei pro meu noivado e foi a melhor escolha. Design lindo e acabamento perfeito.', estrelas: 5, iniciais: 'IT', cor: '#9E6B73' },
             ].map((dep, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}
-                className="p-6 text-center border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
-                <div className="flex justify-center gap-1 mb-4">
-                  {Array.from({ length: dep.estrelas }).map((_, s) => <Star key={s} className="w-4 h-4" style={{ color: roseGold }} fill={roseGold} />)}
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.06 }}
+                className="flex-shrink-0 snap-start w-[160px] sm:w-[180px] cursor-pointer group"
+              >
+                {/* Story circle */}
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative">
+                    <div
+                      className="w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] rounded-full p-[3px] transition-transform group-hover:scale-110"
+                      style={{ background: `linear-gradient(135deg, ${dep.cor}, ${roseGold}, #E8C8CC)` }}
+                    >
+                      <div className="w-full h-full rounded-full flex items-center justify-center text-base sm:text-lg font-semibold" style={{ backgroundColor: warmWhite, color: dep.cor, fontFamily: "'Cormorant Garamond', serif" }}>
+                        {dep.iniciais}
+                      </div>
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: roseGold }}>
+                      <Star className="w-2.5 h-2.5 text-white" fill="white" />
+                    </div>
+                  </div>
+                  <p className="text-[11px] font-medium text-center truncate w-full" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{dep.nome}</p>
                 </div>
-                <p className="text-sm leading-relaxed italic mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>"{dep.texto}"</p>
-                <p className="text-xs uppercase tracking-[0.15em] font-semibold" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>— {dep.nome}</p>
+
+                {/* Tooltip card on hover */}
+                <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none mt-2">
+                  <div className="p-3 border text-center shadow-lg" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+                    <div className="flex justify-center gap-0.5 mb-2">
+                      {Array.from({ length: dep.estrelas }).map((_, s) => <Star key={s} className="w-3 h-3" style={{ color: roseGold }} fill={roseGold} />)}
+                    </div>
+                    <p className="text-[10px] leading-relaxed italic" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>"{dep.texto}"</p>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
