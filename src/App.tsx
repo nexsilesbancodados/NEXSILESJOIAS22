@@ -155,9 +155,8 @@ function AppRoutes() {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/loja/:slug" element={<LojaPublicaPage />} />
-          <Route path="/:slug" element={<LojaSubdomainRedirect />} />
-          <Route path="*" element={<Navigate to="/loja/beneloahsemijoias" replace />} />
+          <Route path="/:slug" element={<LojaPublicaPage />} />
+          <Route path="*" element={<Navigate to="/beneloahsemijoias" replace />} />
         </Routes>
       </Suspense>
     );
