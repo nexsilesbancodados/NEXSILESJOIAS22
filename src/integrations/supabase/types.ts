@@ -2373,6 +2373,98 @@ export type Database = {
           },
         ]
       }
+      movimentos_pontos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          pontos_fidelidade_id: string
+          quantidade: number
+          tipo: string
+          venda_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          pontos_fidelidade_id: string
+          quantidade: number
+          tipo?: string
+          venda_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          pontos_fidelidade_id?: string
+          quantidade?: number
+          tipo?: string
+          venda_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentos_pontos_pontos_fidelidade_id_fkey"
+            columns: ["pontos_fidelidade_id"]
+            isOneToOne: false
+            referencedRelation: "pontos_fidelidade"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentos_pontos_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: false
+            referencedRelation: "vendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      niveis_fidelidade: {
+        Row: {
+          beneficios: string | null
+          cor: string
+          created_at: string
+          desconto_percentual: number
+          icone: string | null
+          id: string
+          nome: string
+          organization_id: string | null
+          pontos_minimos: number
+          user_id: string
+        }
+        Insert: {
+          beneficios?: string | null
+          cor?: string
+          created_at?: string
+          desconto_percentual?: number
+          icone?: string | null
+          id?: string
+          nome: string
+          organization_id?: string | null
+          pontos_minimos?: number
+          user_id: string
+        }
+        Update: {
+          beneficios?: string | null
+          cor?: string
+          created_at?: string
+          desconto_percentual?: number
+          icone?: string | null
+          id?: string
+          nome?: string
+          organization_id?: string | null
+          pontos_minimos?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "niveis_fidelidade_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacoes: {
         Row: {
           created_at: string | null
@@ -2649,6 +2741,64 @@ export type Database = {
           },
         ]
       }
+      pontos_fidelidade: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          nivel_atual_id: string | null
+          organization_id: string | null
+          pontos_disponiveis: number
+          pontos_totais: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          nivel_atual_id?: string | null
+          organization_id?: string | null
+          pontos_disponiveis?: number
+          pontos_totais?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          nivel_atual_id?: string | null
+          organization_id?: string | null
+          pontos_disponiveis?: number
+          pontos_totais?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pontos_fidelidade_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pontos_fidelidade_nivel_atual_id_fkey"
+            columns: ["nivel_atual_id"]
+            isOneToOne: false
+            referencedRelation: "niveis_fidelidade"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pontos_fidelidade_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_associacoes: {
         Row: {
           created_at: string | null
@@ -2765,6 +2915,66 @@ export type Database = {
             columns: ["envio_id"]
             isOneToOne: false
             referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recompensas_fidelidade: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          organization_id: string | null
+          pontos_necessarios: number
+          produto_id: string | null
+          quantidade_disponivel: number | null
+          tipo: string
+          user_id: string
+          valor_desconto: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          organization_id?: string | null
+          pontos_necessarios?: number
+          produto_id?: string | null
+          quantidade_disponivel?: number | null
+          tipo?: string
+          user_id: string
+          valor_desconto?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          organization_id?: string | null
+          pontos_necessarios?: number
+          produto_id?: string | null
+          quantidade_disponivel?: number | null
+          tipo?: string
+          user_id?: string
+          valor_desconto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recompensas_fidelidade_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recompensas_fidelidade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
             referencedColumns: ["id"]
           },
         ]
