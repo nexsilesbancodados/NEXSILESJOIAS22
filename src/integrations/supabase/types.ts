@@ -2632,6 +2632,38 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          email: string
+          id: string
+          organization_id: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          email: string
+          id?: string
+          organization_id?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          email?: string
+          id?: string
+          organization_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_subscribers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       niveis_fidelidade: {
         Row: {
           beneficios: string | null

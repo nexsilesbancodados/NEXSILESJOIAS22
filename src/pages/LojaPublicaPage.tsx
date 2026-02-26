@@ -78,6 +78,13 @@ export default function LojaPublicaPage() {
   const [cupomLoading, setCupomLoading] = useState(false);
   const [cupomApplied, setCupomApplied] = useState('');
 
+  // Newsletter state
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+
+  // Policy modal state
+  const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
+
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
 
@@ -915,7 +922,7 @@ export default function LojaPublicaPage() {
 
       {/* Novidades - últimas peças adicionadas */}
       {pecas.length > 0 && (
-        <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+        <section id="novidades" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
           <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-10">
               <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Acabaram de Chegar</p>
@@ -954,7 +961,7 @@ export default function LojaPublicaPage() {
       )}
 
       {/* Depoimentos / Social Proof */}
-      <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
+      <section id="depoimentos" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-10">
             <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>O Que Dizem</p>
@@ -994,7 +1001,7 @@ export default function LojaPublicaPage() {
       </section>
 
       {/* Sobre a Marca */}
-      <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+      <section id="sobre-marca" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
         <div className="max-w-5xl mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 items-center">
             <motion.div
@@ -1073,21 +1080,45 @@ export default function LojaPublicaPage() {
           </p>
           <form
             className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-            onSubmit={e => { e.preventDefault(); toast.success('Cadastro realizado com sucesso! 🎉'); }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newsletterEmail.trim() || !config) return;
+              setNewsletterLoading(true);
+              try {
+                const { error } = await supabase.from('newsletter_subscribers' as any).insert({
+                  email: newsletterEmail.trim().toLowerCase(),
+                  organization_id: config.organization_id,
+                });
+                if (error) {
+                  if (error.code === '23505') toast.info('Este e-mail já está cadastrado!');
+                  else throw error;
+                } else {
+                  toast.success('Cadastro realizado com sucesso! 🎉');
+                  setNewsletterEmail('');
+                }
+              } catch {
+                toast.error('Erro ao cadastrar. Tente novamente.');
+              } finally {
+                setNewsletterLoading(false);
+              }
+            }}
           >
             <input
               type="email"
               required
+              value={newsletterEmail}
+              onChange={e => setNewsletterEmail(e.target.value)}
               placeholder="Seu melhor e-mail"
               className="flex-1 px-4 py-3 text-sm bg-white/10 border border-white/30 text-white placeholder-white/50 outline-none focus:border-white/60 transition-colors"
               style={{ fontFamily: "'Inter', sans-serif" }}
             />
             <button
               type="submit"
-              className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-white transition-all hover:opacity-90"
+              disabled={newsletterLoading}
+              className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-white transition-all hover:opacity-90 disabled:opacity-60"
               style={{ color: roseGold, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
             >
-              Cadastrar
+              {newsletterLoading ? 'Enviando...' : 'Cadastrar'}
             </button>
           </form>
         </div>
@@ -1123,9 +1154,14 @@ export default function LojaPublicaPage() {
             <div>
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Institucional</h5>
               <ul className="space-y-2.5">
-                {['Sobre Nós', 'Nossas Lojas', 'Trabalhe Conosco', 'Blog'].map(item => (
-                  <li key={item}>
-                    <span className="text-xs cursor-pointer transition-colors hover:text-white" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item}</span>
+                {[
+                  { label: 'Sobre Nós', action: () => document.getElementById('sobre-marca')?.scrollIntoView({ behavior: 'smooth' }) },
+                  { label: 'Nossas Coleções', action: () => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' }) },
+                  { label: 'Novidades', action: () => document.getElementById('novidades')?.scrollIntoView({ behavior: 'smooth' }) },
+                  { label: 'Depoimentos', action: () => document.getElementById('depoimentos')?.scrollIntoView({ behavior: 'smooth' }) },
+                ].map(item => (
+                  <li key={item.label}>
+                    <button onClick={item.action} className="text-xs transition-colors hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button>
                   </li>
                 ))}
               </ul>
@@ -1135,9 +1171,14 @@ export default function LojaPublicaPage() {
             <div>
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Ajuda</h5>
               <ul className="space-y-2.5">
-                {['Central de Ajuda', 'Trocas e Devoluções', 'Prazo de Entrega', 'Formas de Pagamento'].map(item => (
-                  <li key={item}>
-                    <span className="text-xs cursor-pointer transition-colors hover:text-white" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item}</span>
+                {[
+                  { label: 'Trocas e Devoluções', action: () => setPolicyModal({ title: 'Trocas e Devoluções', content: `Primeira troca gratuita em até 7 dias após o recebimento.\n\nCondições:\n• O produto deve estar em perfeito estado, sem uso.\n• Acompanhar a embalagem original e nota fiscal.\n• Solicite a troca pelo nosso WhatsApp${config.whatsapp ? ` (${config.whatsapp})` : ''}.\n\nApós análise, o envio do novo produto é feito em até 5 dias úteis.` }) },
+                  { label: 'Prazo de Entrega', action: () => setPolicyModal({ title: 'Prazo de Entrega', content: `Os prazos variam conforme a região:\n\n• Capitais: 3 a 7 dias úteis\n• Interior: 5 a 12 dias úteis\n• Regiões remotas: 7 a 15 dias úteis\n\nO prazo começa após a confirmação do pagamento.${config.frete_gratis_acima ? `\n\n✦ Frete grátis acima de R$ ${config.frete_gratis_acima.toFixed(0)}.` : ''}` }) },
+                  { label: 'Formas de Pagamento', action: () => setPolicyModal({ title: 'Formas de Pagamento', content: 'Aceitamos:\n\n• Cartão de crédito (até 12x sem juros)\n• Cartão de débito\n• PIX (aprovação instantânea)\n• Boleto bancário\n\nProcessado com segurança pelo Mercado Pago.' }) },
+                  { label: 'Central de Ajuda', action: () => { if (config.whatsapp) window.open(`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=Olá! Preciso de ajuda.`, '_blank'); else toast.info('Entre em contato pelo Instagram.'); } },
+                ].map(item => (
+                  <li key={item.label}>
+                    <button onClick={item.action} className="text-xs transition-colors hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button>
                   </li>
                 ))}
               </ul>
@@ -1169,15 +1210,38 @@ export default function LojaPublicaPage() {
               © {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.
             </p>
             <div className="flex items-center gap-4">
-              {['Política de Privacidade', 'Termos de Uso', 'Cookies'].map(item => (
-                <span key={item} className="text-[10px] cursor-pointer transition-colors hover:text-white" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>
-                  {item}
-                </span>
+              {[
+                { label: 'Política de Privacidade', content: `A ${config.nome_loja} respeita sua privacidade.\n\nDados coletados:\n• Nome, e-mail, telefone e endereço para processamento de pedidos.\n• Dados de navegação para melhorar sua experiência.\n\nSeus dados nunca serão vendidos a terceiros. Você pode solicitar a exclusão a qualquer momento.` },
+                { label: 'Termos de Uso', content: `Ao utilizar a loja ${config.nome_loja}, você concorda que:\n\n1. Preços sujeitos a alteração sem aviso.\n2. Imagens são ilustrativas.\n3. Reservamo-nos o direito de cancelar pedidos com suspeita de fraude.\n4. Conteúdo protegido por direitos autorais.` },
+                { label: 'Cookies', content: 'Utilizamos cookies para:\n\n• Manter sua sessão e carrinho.\n• Analisar tráfego e melhorar a experiência.\n• Personalizar ofertas.\n\nAo continuar navegando, você concorda com o uso de cookies.' },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  onClick={() => setPolicyModal({ title: item.label, content: item.content })}
+                  className="text-[10px] transition-colors hover:text-white"
+                  style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}
+                >
+                  {item.label}
+                </button>
               ))}
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Policy Modal */}
+      <Dialog open={!!policyModal} onOpenChange={() => setPolicyModal(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+          <DialogHeader>
+            <DialogTitle className="text-lg tracking-wide uppercase" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>
+              {policyModal?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2 whitespace-pre-line text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+            {policyModal?.content}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
