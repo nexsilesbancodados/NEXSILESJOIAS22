@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SearchAutocomplete } from '@/components/loja/SearchAutocomplete';
 import { CookieConsent } from '@/components/loja/CookieConsent';
 import { ProductShareButtons } from '@/components/loja/ProductShareButtons';
+import { ChatWidget } from '@/components/ai-agent/ChatWidget';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
@@ -80,6 +81,8 @@ export default function LojaPublicaPage() {
 
   // Policy modal
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
+  // Agent config for chatbot
+  const [agentConfig, setAgentConfig] = useState<any>(null);
 
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
@@ -144,6 +147,15 @@ export default function LojaPublicaPage() {
       if (configError || !configData) { setLoading(false); return; }
       setConfig(configData as any);
 
+      // Fetch agent config for chatbot
+      const { data: agentData } = await supabase
+        .from('agente_ia_config')
+        .select('nome_agente, cor_primaria, avatar_url, mensagem_boas_vindas, ativo')
+        .eq('organization_id', (configData as any).organization_id)
+        .maybeSingle();
+      if (agentData && agentData.ativo) {
+        setAgentConfig(agentData);
+      }
       let query = supabase
         .from('pecas_loja_public' as any).select('*')
         .eq('organization_id', (configData as any).organization_id).order('nome');
@@ -1349,6 +1361,19 @@ export default function LojaPublicaPage() {
 
       {/* Cookie Consent Banner */}
       <CookieConsent nomeLoja={config.nome_loja} roseGold={roseGold} />
+
+      {/* AI Chatbot */}
+      {agentConfig && (
+        <ChatWidget
+          organizationId={config.organization_id}
+          config={{
+            nome_agente: agentConfig.nome_agente,
+            cor_primaria: agentConfig.cor_primaria || roseGold,
+            avatar_url: agentConfig.avatar_url,
+            mensagem_boas_vindas: agentConfig.mensagem_boas_vindas,
+          }}
+        />
+      )}
     </div>
   );
 }
