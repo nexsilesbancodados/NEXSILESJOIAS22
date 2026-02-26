@@ -1,58 +1,45 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronRight, ChevronDown } from 'lucide-react';
+import {
+  ShoppingCart, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package,
+  Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronDown,
+  ChevronRight, ArrowUpDown, Bell, Star, Share2, Home,
+} from 'lucide-react';
 import { ClienteAuthArea } from '@/components/ecommerce/ClienteAuthArea';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SearchAutocomplete } from '@/components/loja/SearchAutocomplete';
+import { CookieConsent } from '@/components/loja/CookieConsent';
+import { ProductShareButtons } from '@/components/loja/ProductShareButtons';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
+
 const MP_PUBLIC_KEY = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
 
 interface StoreConfig {
-  id: string;
-  slug: string;
-  nome_loja: string;
-  logo_url: string | null;
-  cor_primaria: string;
-  cor_secundaria: string;
-  descricao: string | null;
-  frete_gratis_acima: number | null;
-  taxa_entrega: number;
-  whatsapp: string | null;
-  instagram: string | null;
-  organization_id: string;
+  id: string; slug: string; nome_loja: string; logo_url: string | null;
+  cor_primaria: string; cor_secundaria: string; descricao: string | null;
+  frete_gratis_acima: number | null; taxa_entrega: number;
+  whatsapp: string | null; instagram: string | null; organization_id: string;
 }
 
 interface Peca {
-  id: string;
-  nome: string;
-  codigo: string;
-  preco_venda: number;
-  imagem_url: string | null;
-  categoria: string | null;
-  material: string | null;
-  descricao: string | null;
-  estoque: number;
-  peso: number | null;
-  organization_id: string;
+  id: string; nome: string; codigo: string; preco_venda: number;
+  imagem_url: string | null; categoria: string | null; material: string | null;
+  descricao: string | null; estoque: number; peso: number | null; organization_id: string;
 }
 
-interface CartItem extends Peca {
-  quantidade: number;
-}
-
+interface CartItem extends Peca { quantidade: number; }
 type CheckoutStep = 'cart' | 'dados' | 'pagamento' | 'confirmacao';
+type SortOption = 'nome' | 'preco_asc' | 'preco_desc' | 'novidades';
 
 export default function LojaPublicaPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -71,6 +58,14 @@ export default function LojaPublicaPage() {
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
   const [selectedPeca, setSelectedPeca] = useState<Peca | null>(null);
 
+  // New feature states
+  const [sortBy, setSortBy] = useState<SortOption>('nome');
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [showPriceFilter, setShowPriceFilter] = useState(false);
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [aviseEmail, setAviseEmail] = useState('');
+  const [aviseLoading, setAviseLoading] = useState(false);
+
   // Cupom state
   const [cupomCode, setCupomCode] = useState('');
   const [cupomDesconto, setCupomDesconto] = useState(0);
@@ -82,13 +77,13 @@ export default function LojaPublicaPage() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterLoading, setNewsletterLoading] = useState(false);
 
-  // Policy modal state
+  // Policy modal
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
 
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
 
-  // Hero carousel
+  // Hero
   const heroSlides = [
     { image: heroSlide1, title: 'Joias que contam', subtitle: 'a sua história', cta: 'Explorar Coleção' },
     { image: heroSlide2, title: 'Brincos exclusivos', subtitle: 'para cada momento', cta: 'Ver Brincos' },
@@ -101,44 +96,70 @@ export default function LojaPublicaPage() {
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
-  useEffect(() => {
-    if (!slug) return;
-    loadStore();
-  }, [slug]);
+  useEffect(() => { if (slug) loadStore(); }, [slug]);
 
   useEffect(() => {
     const pagamento = searchParams.get('pagamento');
     if (pagamento === 'sucesso') toast.success('Pagamento aprovado! 🎉');
-    else if (pagamento === 'erro') toast.error('Pagamento não aprovado. Tente novamente.');
-    else if (pagamento === 'pendente') toast.info('Pagamento pendente de confirmação.');
+    else if (pagamento === 'erro') toast.error('Pagamento não aprovado.');
+    else if (pagamento === 'pendente') toast.info('Pagamento pendente.');
   }, [searchParams]);
+
+  // Load wishlist from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(`wishlist_${slug}`);
+    if (saved) setWishlist(new Set(JSON.parse(saved)));
+  }, [slug]);
+
+  // SEO dynamic meta tags
+  useEffect(() => {
+    if (config) {
+      document.title = `${config.nome_loja} - Semijoias Exclusivas`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', config.descricao || `Loja ${config.nome_loja} - Semijoias exclusivas com frete grátis e parcelamento em até 12x.`);
+      else {
+        const meta = document.createElement('meta');
+        meta.name = 'description';
+        meta.content = config.descricao || `Loja ${config.nome_loja} - Semijoias exclusivas.`;
+        document.head.appendChild(meta);
+      }
+    }
+    return () => { document.title = 'Nexsiles'; };
+  }, [config]);
+
+  // Update SEO for selected product
+  useEffect(() => {
+    if (selectedPeca && config) {
+      document.title = `${selectedPeca.nome} - ${config.nome_loja}`;
+    } else if (config) {
+      document.title = `${config.nome_loja} - Semijoias Exclusivas`;
+    }
+  }, [selectedPeca, config]);
 
   const loadStore = async () => {
     try {
       const { data: configData, error: configError } = await supabase
-        .from('ecommerce_config_public' as any)
-        .select('*')
-        .eq('slug', slug)
-        .maybeSingle();
-
+        .from('ecommerce_config_public' as any).select('*').eq('slug', slug).maybeSingle();
       if (configError || !configData) { setLoading(false); return; }
       setConfig(configData as any);
 
       const { data: pecasData } = await supabase
-        .from('pecas_loja_public' as any)
-        .select('*')
-        .eq('organization_id', (configData as any).organization_id)
-        .order('nome');
-
+        .from('pecas_loja_public' as any).select('*')
+        .eq('organization_id', (configData as any).organization_id).order('nome');
       setPecas((pecasData as any) || []);
-    } catch (err) {
-      console.error('Error loading store:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
-  // Build category-subcategory tree: { categoria: [material1, material2, ...] }
+  // Price range bounds
+  const priceBounds = useMemo(() => {
+    if (pecas.length === 0) return [0, 1000];
+    const prices = pecas.map(p => p.preco_venda);
+    return [Math.floor(Math.min(...prices)), Math.ceil(Math.max(...prices))];
+  }, [pecas]);
+
+  useEffect(() => { setPriceRange([priceBounds[0], priceBounds[1]]); }, [priceBounds]);
+
   const categoryTree = useMemo(() => {
     const tree: Record<string, string[]> = {};
     pecas.forEach(p => {
@@ -147,17 +168,14 @@ export default function LojaPublicaPage() {
       if (!tree[cat]) tree[cat] = [];
       if (mat && !tree[cat].includes(mat)) tree[cat].push(mat);
     });
-    // Sort materials within each category
     Object.keys(tree).forEach(cat => tree[cat].sort());
     return tree;
   }, [pecas]);
 
   const categorias = useMemo(() => Object.keys(categoryTree).sort(), [categoryTree]);
-
   const materiais = useMemo(() => {
     if (categoriaFilter === 'todas') {
-      const allMats = new Set(pecas.map(p => p.material).filter(Boolean));
-      return Array.from(allMats).sort() as string[];
+      return Array.from(new Set(pecas.map(p => p.material).filter(Boolean))).sort() as string[];
     }
     return categoryTree[categoriaFilter] || [];
   }, [pecas, categoriaFilter, categoryTree]);
@@ -165,13 +183,50 @@ export default function LojaPublicaPage() {
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
 
   const filteredPecas = useMemo(() => {
-    return pecas.filter(p => {
+    let result = pecas.filter(p => {
       const matchSearch = !search || p.nome.toLowerCase().includes(search.toLowerCase()) || p.codigo?.toLowerCase().includes(search.toLowerCase());
       const matchCategoria = categoriaFilter === 'todas' || p.categoria === categoriaFilter;
       const matchMaterial = materialFilter === 'todos' || p.material === materialFilter;
-      return matchSearch && matchCategoria && matchMaterial;
+      const matchPrice = p.preco_venda >= priceRange[0] && p.preco_venda <= priceRange[1];
+      return matchSearch && matchCategoria && matchMaterial && matchPrice;
     });
-  }, [pecas, search, categoriaFilter, materialFilter]);
+
+    // Sort
+    switch (sortBy) {
+      case 'preco_asc': result.sort((a, b) => a.preco_venda - b.preco_venda); break;
+      case 'preco_desc': result.sort((a, b) => b.preco_venda - a.preco_venda); break;
+      case 'novidades': result.reverse(); break;
+      default: result.sort((a, b) => a.nome.localeCompare(b.nome));
+    }
+    return result;
+  }, [pecas, search, categoriaFilter, materialFilter, priceRange, sortBy]);
+
+  const toggleWishlist = useCallback((pecaId: string) => {
+    setWishlist(prev => {
+      const next = new Set(prev);
+      if (next.has(pecaId)) next.delete(pecaId); else next.add(pecaId);
+      localStorage.setItem(`wishlist_${slug}`, JSON.stringify([...next]));
+      return next;
+    });
+  }, [slug]);
+
+  const handleAviseMe = async (pecaId: string) => {
+    if (!aviseEmail.trim() || !config) return;
+    setAviseLoading(true);
+    try {
+      const { error } = await (supabase as any).from('loja_avise_me').insert({
+        peca_id: pecaId, organization_id: config.organization_id, email: aviseEmail.trim().toLowerCase(),
+      });
+      if (error) {
+        if (error.code === '23505') toast.info('Você já será notificado!');
+        else throw error;
+      } else {
+        toast.success('Você será notificado quando voltar ao estoque! 🔔');
+        setAviseEmail('');
+      }
+    } catch { toast.error('Erro ao cadastrar'); }
+    finally { setAviseLoading(false); }
+  };
 
   const addToCart = useCallback((peca: Peca) => {
     setCart(prev => {
@@ -189,8 +244,7 @@ export default function LojaPublicaPage() {
     setCart(prev => prev.map(item => {
       if (item.id !== pecaId) return item;
       const newQty = item.quantidade + delta;
-      if (newQty <= 0) return item;
-      if (newQty > item.estoque) { toast.error('Estoque insuficiente'); return item; }
+      if (newQty <= 0 || newQty > item.estoque) return item;
       return { ...item, quantidade: newQty };
     }));
   }, []);
@@ -202,46 +256,36 @@ export default function LojaPublicaPage() {
   const subtotal = useMemo(() => cart.reduce((sum, i) => sum + i.preco_venda * i.quantidade, 0), [cart]);
   const valorFrete = useMemo(() => {
     if (!config) return 0;
-    const subtotalComDesconto = subtotal - cupomDesconto;
-    if (config.frete_gratis_acima && subtotalComDesconto >= config.frete_gratis_acima) return 0;
+    const sub = subtotal - cupomDesconto;
+    if (config.frete_gratis_acima && sub >= config.frete_gratis_acima) return 0;
     return config.taxa_entrega || 0;
   }, [config, subtotal, cupomDesconto]);
   const total = subtotal - cupomDesconto + valorFrete;
+  const cartCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantidade, 0), [cart]);
 
   const aplicarCupom = async () => {
     if (!cupomCode.trim() || !config) return;
     setCupomLoading(true);
     try {
       const { data, error } = await (supabase as any).rpc('validar_cupom', {
-        p_codigo: cupomCode,
-        p_organization_id: config.organization_id,
-        p_valor_pedido: subtotal,
+        p_codigo: cupomCode, p_organization_id: config.organization_id, p_valor_pedido: subtotal,
       });
       if (error) throw error;
       if (data && Array.isArray(data) && data.length > 0) {
-        setCupomDesconto(data[0].desconto);
-        setCupomId(data[0].cupom_id);
+        setCupomDesconto(data[0].desconto); setCupomId(data[0].cupom_id);
         setCupomApplied(cupomCode.toUpperCase());
         toast.success(`Cupom aplicado! Desconto: ${formatCurrency(data[0].desconto)}`);
       }
     } catch (err: any) {
       toast.error(err.message || 'Cupom inválido');
-      setCupomDesconto(0);
-      setCupomId(null);
-      setCupomApplied('');
-    } finally {
-      setCupomLoading(false);
-    }
+      setCupomDesconto(0); setCupomId(null); setCupomApplied('');
+    } finally { setCupomLoading(false); }
   };
 
   const removerCupom = () => {
-    setCupomCode('');
-    setCupomDesconto(0);
-    setCupomId(null);
-    setCupomApplied('');
+    setCupomCode(''); setCupomDesconto(0); setCupomId(null); setCupomApplied('');
     toast.success('Cupom removido');
   };
-  const cartCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantidade, 0), [cart]);
 
   const handleCheckout = async () => {
     if (!cliente.nome.trim()) { toast.error('Informe seu nome'); return; }
@@ -252,17 +296,13 @@ export default function LojaPublicaPage() {
         body: {
           items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
           organization_id: config.organization_id, cliente,
-          endereco: endereco.cep ? endereco : undefined,
-          valor_frete: valorFrete,
+          endereco: endereco.cep ? endereco : undefined, valor_frete: valorFrete,
         },
       });
       if (error || !data?.preferenceId) { toast.error(data?.error || 'Erro ao iniciar pagamento'); setProcessing(false); return; }
       setCheckoutStep('pagamento');
       setTimeout(() => initPaymentBrick(data.preferenceId), 300);
-    } catch (err) {
-      toast.error('Erro ao processar checkout');
-      setProcessing(false);
-    }
+    } catch { toast.error('Erro ao processar checkout'); setProcessing(false); }
   };
 
   const initPaymentBrick = async (preferenceId: string) => {
@@ -291,40 +331,41 @@ export default function LojaPublicaPage() {
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc' },
-                    body: JSON.stringify({
-                      formData, organization_id: config!.organization_id,
-                      items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
-                      cliente, endereco: endereco.cep ? endereco : undefined,
-                      valor_subtotal: subtotal, valor_frete: valorFrete,
-                      cupom_id: cupomId, valor_desconto: cupomDesconto,
-                    }),
+                  body: JSON.stringify({
+                    formData, organization_id: config!.organization_id,
+                    items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
+                    cliente, endereco: endereco.cep ? endereco : undefined,
+                    valor_subtotal: subtotal, valor_frete: valorFrete,
+                    cupom_id: cupomId, valor_desconto: cupomDesconto,
+                  }),
                 }
               );
               const result = await response.json();
               if (result.status === 'approved') {
-                setNumeroPedido(result.numero_pedido);
-                setCheckoutStep('confirmacao');
-                setCart([]);
-                toast.success('Pagamento aprovado! 🎉');
-              } else {
-                toast.error(result.status_detail || 'Pagamento não aprovado');
-              }
-            } catch (err) {
-              toast.error('Erro ao processar pagamento');
-            } finally {
-              setProcessing(false);
-            }
+                setNumeroPedido(result.numero_pedido); setCheckoutStep('confirmacao');
+                setCart([]); toast.success('Pagamento aprovado! 🎉');
+              } else { toast.error(result.status_detail || 'Pagamento não aprovado'); }
+            } catch { toast.error('Erro ao processar pagamento'); }
+            finally { setProcessing(false); }
           },
-          onError: (error: any) => { console.error('Brick error:', error); setProcessing(false); },
+          onError: (error: any) => { console.error(error); setProcessing(false); },
         },
       });
-    } catch (err) {
-      console.error('Error initializing brick:', err);
-      setProcessing(false);
-    }
+    } catch (err) { console.error(err); setProcessing(false); }
   };
 
   const formatCurrency = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  const getProductUrl = (peca: Peca) => `${window.location.origin}/loja/${slug}?produto=${peca.id}`;
+
+  // Auto-open product from URL
+  useEffect(() => {
+    const produtoId = searchParams.get('produto');
+    if (produtoId && pecas.length > 0) {
+      const found = pecas.find(p => p.id === produtoId);
+      if (found) setSelectedPeca(found);
+    }
+  }, [searchParams, pecas]);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FFF9F5' }}>
@@ -351,6 +392,13 @@ export default function LojaPublicaPage() {
   const textDark = '#2D2D2D';
   const textMuted = '#7A7A7A';
 
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: 'nome', label: 'Nome (A-Z)' },
+    { value: 'preco_asc', label: 'Menor Preço' },
+    { value: 'preco_desc', label: 'Maior Preço' },
+    { value: 'novidades', label: 'Novidades' },
+  ];
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: cream, fontFamily: "'Cormorant Garamond', 'Georgia', serif" }}>
       {/* Top Bar */}
@@ -376,11 +424,7 @@ export default function LojaPublicaPage() {
 
       {/* Announcement Bar */}
       <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: roseGold }}>
-        <motion.div
-          animate={{ x: ['100%', '-100%'] }}
-          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-          className="whitespace-nowrap"
-        >
+        <motion.div animate={{ x: ['100%', '-100%'] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="whitespace-nowrap">
           <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
             ✦ Frete grátis {config.frete_gratis_acima ? `acima de R$ ${config.frete_gratis_acima.toFixed(0)}` : 'em compras selecionadas'} ✦ Parcele em até 12x sem juros ✦ Troca grátis na primeira compra ✦ Novidades toda semana ✦
           </span>
@@ -390,18 +434,17 @@ export default function LojaPublicaPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ backgroundColor: `${warmWhite}F2`, borderColor: '#F0E6E0' }}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          {/* Search */}
-          <div className="relative hidden sm:block w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: textMuted }} />
-            <input
-              type="text"
-              placeholder="Buscar produtos..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-none border-b bg-transparent outline-none transition-colors focus:border-current"
-              style={{ borderColor: '#E0D5CF', color: textDark, fontFamily: "'Inter', sans-serif" }}
-            />
-          </div>
+          {/* Search with autocomplete */}
+          <SearchAutocomplete
+            pecas={pecas}
+            search={search}
+            setSearch={setSearch}
+            onSelect={peca => setSelectedPeca(peca)}
+            textDark={textDark}
+            textMuted={textMuted}
+            roseGold={roseGold}
+            className="hidden sm:block w-72"
+          />
 
           {/* Logo */}
           <div className="flex flex-col items-center flex-1 sm:flex-none">
@@ -414,24 +457,37 @@ export default function LojaPublicaPage() {
             )}
           </div>
 
-          {/* Cart */}
+          {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* Wishlist button */}
+            <button
+              className="relative p-2 transition-opacity hover:opacity-70"
+              onClick={() => {
+                if (wishlist.size === 0) { toast.info('Sua lista de desejos está vazia'); return; }
+                setCategoriaFilter('todas'); setMaterialFilter('todos');
+                setSearch('');
+                // filter to show wishlist items only - handled below
+              }}
+              title="Favoritos"
+            >
+              <Heart className="w-5 h-5" style={{ color: wishlist.size > 0 ? roseGold : textDark }} fill={wishlist.size > 0 ? roseGold : 'none'} />
+              {wishlist.size > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 text-white text-[9px] rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: roseGold }}>{wishlist.size}</span>
+              )}
+            </button>
+
             <ClienteAuthArea
               organizationId={config.organization_id}
-              roseGold={roseGold}
-              roseGoldLight={roseGoldLight}
-              textDark={textDark}
-              textMuted={textMuted}
-              warmWhite={warmWhite}
+              roseGold={roseGold} roseGoldLight={roseGoldLight}
+              textDark={textDark} textMuted={textMuted} warmWhite={warmWhite}
             />
+
             <Sheet open={cartOpen} onOpenChange={setCartOpen}>
               <SheetTrigger asChild>
                 <button className="relative p-2 transition-opacity hover:opacity-70">
                   <ShoppingCart className="w-5 h-5" style={{ color: textDark }} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-[10px] rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: roseGold }}>
-                      {cartCount}
-                    </span>
+                    <span className="absolute -top-1 -right-1 w-5 h-5 text-white text-[10px] rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: roseGold }}>{cartCount}</span>
                   )}
                 </button>
               </SheetTrigger>
@@ -448,35 +504,27 @@ export default function LojaPublicaPage() {
                         <ShoppingCart className="w-10 h-10 mx-auto mb-3" style={{ color: roseGoldLight }} />
                         <p className="text-sm" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Sua sacola está vazia</p>
                       </div>
-                    ) : (
-                      cart.map(item => (
-                        <div key={item.id} className="flex gap-3 p-3 border-b" style={{ borderColor: '#F0E6E0' }}>
-                          {item.imagem_url ? (
-                            <img src={item.imagem_url} alt={item.nome} className="w-20 h-20 object-cover" />
-                          ) : (
-                            <div className="w-20 h-20 flex items-center justify-center" style={{ backgroundColor: '#F5EEEA' }}>
-                              <Package className="w-6 h-6" style={{ color: roseGoldLight }} />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{item.nome}</p>
-                            <p className="text-sm font-semibold mt-0.5" style={{ color: roseGold }}>{formatCurrency(item.preco_venda)}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 border flex items-center justify-center transition-colors hover:bg-gray-50" style={{ borderColor: '#E0D5CF' }}>
-                                <Minus className="w-3 h-3" style={{ color: textDark }} />
-                              </button>
-                              <span className="text-sm w-6 text-center" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{item.quantidade}</span>
-                              <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 border flex items-center justify-center transition-colors hover:bg-gray-50" style={{ borderColor: '#E0D5CF' }}>
-                                <Plus className="w-3 h-3" style={{ color: textDark }} />
-                              </button>
-                              <button onClick={() => removeFromCart(item.id)} className="ml-auto transition-opacity hover:opacity-70">
-                                <Trash2 className="w-4 h-4" style={{ color: textMuted }} />
-                              </button>
-                            </div>
+                    ) : cart.map(item => (
+                      <div key={item.id} className="flex gap-3 p-3 border-b" style={{ borderColor: '#F0E6E0' }}>
+                        {item.imagem_url ? (
+                          <img src={item.imagem_url} alt={item.nome} className="w-20 h-20 object-cover" />
+                        ) : (
+                          <div className="w-20 h-20 flex items-center justify-center" style={{ backgroundColor: '#F5EEEA' }}>
+                            <Package className="w-6 h-6" style={{ color: roseGoldLight }} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{item.nome}</p>
+                          <p className="text-sm font-semibold mt-0.5" style={{ color: roseGold }}>{formatCurrency(item.preco_venda)}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button onClick={() => updateQuantity(item.id, -1)} className="w-7 h-7 border flex items-center justify-center hover:bg-gray-50" style={{ borderColor: '#E0D5CF' }}><Minus className="w-3 h-3" style={{ color: textDark }} /></button>
+                            <span className="text-sm w-6 text-center" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{item.quantidade}</span>
+                            <button onClick={() => updateQuantity(item.id, 1)} className="w-7 h-7 border flex items-center justify-center hover:bg-gray-50" style={{ borderColor: '#E0D5CF' }}><Plus className="w-3 h-3" style={{ color: textDark }} /></button>
+                            <button onClick={() => removeFromCart(item.id)} className="ml-auto hover:opacity-70"><Trash2 className="w-4 h-4" style={{ color: textMuted }} /></button>
                           </div>
                         </div>
-                      ))
-                    )}
+                      </div>
+                    ))}
                   </div>
                   {cart.length > 0 && (
                     <div className="border-t pt-4 space-y-2" style={{ borderColor: '#F0E6E0' }}>
@@ -487,9 +535,7 @@ export default function LojaPublicaPage() {
                         <span style={{ color: textMuted }}>Frete</span><span style={{ color: textDark }}>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span>
                       </div>
                       {config.frete_gratis_acima && subtotal < config.frete_gratis_acima && (
-                        <p className="text-xs" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-                          Frete grátis acima de {formatCurrency(config.frete_gratis_acima)}
-                        </p>
+                        <p className="text-xs" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Frete grátis acima de {formatCurrency(config.frete_gratis_acima)}</p>
                       )}
                       <div className="border-t pt-2 mt-2" style={{ borderColor: '#F0E6E0' }}>
                         <div className="flex justify-between font-semibold text-lg">
@@ -515,32 +561,15 @@ export default function LojaPublicaPage() {
         {/* Category Navigation */}
         <nav className="max-w-7xl mx-auto px-4 overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-6 sm:gap-8 justify-center py-3 min-w-max">
-            <button
-              onClick={() => setCategoriaFilter('todas')}
+            <button onClick={() => setCategoriaFilter('todas')}
               className="text-xs sm:text-sm uppercase tracking-[0.15em] pb-1 border-b-2 transition-all whitespace-nowrap"
-              style={{
-                color: categoriaFilter === 'todas' ? roseGold : textMuted,
-                borderColor: categoriaFilter === 'todas' ? roseGold : 'transparent',
-                fontFamily: "'Inter', sans-serif",
-                fontWeight: categoriaFilter === 'todas' ? 600 : 400,
-              }}
-            >
-              Todos
-            </button>
+              style={{ color: categoriaFilter === 'todas' ? roseGold : textMuted, borderColor: categoriaFilter === 'todas' ? roseGold : 'transparent', fontFamily: "'Inter', sans-serif", fontWeight: categoriaFilter === 'todas' ? 600 : 400 }}
+            >Todos</button>
             {categorias.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setCategoriaFilter(cat)}
+              <button key={cat} onClick={() => setCategoriaFilter(cat)}
                 className="text-xs sm:text-sm uppercase tracking-[0.15em] pb-1 border-b-2 transition-all whitespace-nowrap"
-                style={{
-                  color: categoriaFilter === cat ? roseGold : textMuted,
-                  borderColor: categoriaFilter === cat ? roseGold : 'transparent',
-                  fontFamily: "'Inter', sans-serif",
-                  fontWeight: categoriaFilter === cat ? 600 : 400,
-                }}
-              >
-                {cat}
-              </button>
+                style={{ color: categoriaFilter === cat ? roseGold : textMuted, borderColor: categoriaFilter === cat ? roseGold : 'transparent', fontFamily: "'Inter', sans-serif", fontWeight: categoriaFilter === cat ? 600 : 400 }}
+              >{cat}</button>
             ))}
           </div>
         </nav>
@@ -548,86 +577,65 @@ export default function LojaPublicaPage() {
 
       {/* Mobile Search */}
       <div className="sm:hidden px-4 pt-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: textMuted }} />
-          <input
-            type="text"
-            placeholder="Buscar produtos..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 text-sm border bg-transparent outline-none"
-            style={{ borderColor: '#E0D5CF', color: textDark, fontFamily: "'Inter', sans-serif" }}
-          />
+        <SearchAutocomplete
+          pecas={pecas}
+          search={search}
+          setSearch={setSearch}
+          onSelect={peca => setSelectedPeca(peca)}
+          textDark={textDark}
+          textMuted={textMuted}
+          roseGold={roseGold}
+        />
+      </div>
+
+      {/* Breadcrumbs */}
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="flex items-center gap-1.5 text-[11px]" style={{ fontFamily: "'Inter', sans-serif", color: textMuted }}>
+          <Home className="w-3 h-3" />
+          <span>Início</span>
+          {categoriaFilter !== 'todas' && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <span style={{ color: roseGold }}>{categoriaFilter}</span>
+            </>
+          )}
+          {materialFilter !== 'todos' && (
+            <>
+              <ChevronRight className="w-3 h-3" />
+              <span style={{ color: roseGold }}>{materialFilter}</span>
+            </>
+          )}
         </div>
       </div>
 
       {/* Hero Carousel */}
       <section className="relative overflow-hidden" style={{ height: '420px' }}>
         <AnimatePresence mode="wait">
-          <motion.div
-            key={heroIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8 }}
-            className="absolute inset-0"
-          >
-            <img
-              src={heroSlides[heroIndex].image}
-              alt={heroSlides[heroIndex].title}
-              className="w-full h-full object-cover"
-            />
-            {/* Overlay */}
+          <motion.div key={heroIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} className="absolute inset-0">
+            <img src={heroSlides[heroIndex].image} alt={heroSlides[heroIndex].title} className="w-full h-full object-cover" />
             <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)' }} />
           </motion.div>
         </AnimatePresence>
-
-        {/* Content overlay */}
         <div className="relative z-10 h-full max-w-7xl mx-auto px-6 flex flex-col justify-center">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={heroIndex}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.6 }}
-              className="max-w-lg"
-            >
-              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] mb-3 text-white/70" style={{ fontFamily: "'Inter', sans-serif" }}>
-                ✦ Coleção Exclusiva ✦
-              </p>
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight text-white">
-                {heroSlides[heroIndex].title}
-              </h2>
-              <h2 className="text-3xl sm:text-5xl lg:text-6xl italic mt-1" style={{ color: roseGoldLight, fontFamily: "'Cormorant Garamond', serif" }}>
-                {heroSlides[heroIndex].subtitle}
-              </h2>
+            <motion.div key={heroIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.6 }} className="max-w-lg">
+              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] mb-3 text-white/70" style={{ fontFamily: "'Inter', sans-serif" }}>✦ Coleção Exclusiva ✦</p>
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight text-white">{heroSlides[heroIndex].title}</h2>
+              <h2 className="text-3xl sm:text-5xl lg:text-6xl italic mt-1" style={{ color: roseGoldLight }}>{heroSlides[heroIndex].subtitle}</h2>
               <p className="mt-4 text-sm sm:text-base text-white/70 max-w-md" style={{ fontFamily: "'Inter', sans-serif" }}>
                 {config.descricao || 'Peças únicas feitas com amor e dedicação para você brilhar em cada momento.'}
               </p>
-              <button
-                className="mt-6 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90"
-                style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
-                onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
-              >
+              <button className="mt-6 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90" style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}>
                 {heroSlides[heroIndex].cta}
               </button>
             </motion.div>
           </AnimatePresence>
         </div>
-
-        {/* Dots */}
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex gap-2.5">
           {heroSlides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setHeroIndex(i)}
-              className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-              style={{
-                backgroundColor: i === heroIndex ? roseGold : 'rgba(255,255,255,0.5)',
-                transform: i === heroIndex ? 'scale(1.3)' : 'scale(1)',
-              }}
-            />
+            <button key={i} onClick={() => setHeroIndex(i)} className="w-2.5 h-2.5 rounded-full transition-all duration-300"
+              style={{ backgroundColor: i === heroIndex ? roseGold : 'rgba(255,255,255,0.5)', transform: i === heroIndex ? 'scale(1.3)' : 'scale(1)' }} />
           ))}
         </div>
       </section>
@@ -636,143 +644,71 @@ export default function LojaPublicaPage() {
       <section className="border-y" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
         <div className="max-w-7xl mx-auto px-4 py-5">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-            <div className="flex items-center gap-3 justify-center">
-              <CreditCard className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Parcele</p>
-                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>em até 12x sem juros</p>
+            {[
+              { icon: CreditCard, title: 'Parcele', desc: 'em até 12x sem juros' },
+              { icon: Truck, title: 'Frete Grátis', desc: config.frete_gratis_acima ? `acima de ${formatCurrency(config.frete_gratis_acima)}` : 'consulte' },
+              { icon: RefreshCw, title: 'Troca Grátis', desc: 'primeira troca por nossa conta' },
+              { icon: Sparkles, title: 'Qualidade', desc: 'garantia em todas as peças' },
+            ].map(b => (
+              <div key={b.title} className="flex items-center gap-3 justify-center">
+                <b.icon className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{b.title}</p>
+                  <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{b.desc}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 justify-center">
-              <Truck className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Frete Grátis</p>
-                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                  {config.frete_gratis_acima ? `acima de ${formatCurrency(config.frete_gratis_acima)}` : 'consulte condições'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 justify-center">
-              <RefreshCw className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Troca Grátis</p>
-                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>primeira troca por nossa conta</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 justify-center">
-              <Sparkles className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>Qualidade</p>
-                <p className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>garantia em todas as peças</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Products Section */}
       <section id="produtos" className="max-w-7xl mx-auto px-4 py-10 sm:py-14">
-        {/* Section Header */}
         <div className="text-center mb-8">
-          <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-            Nossa Coleção
-          </p>
+          <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Nossa Coleção</p>
           <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>
-            {categoriaFilter !== 'todas'
-              ? materialFilter !== 'todos'
-                ? `${categoriaFilter} — ${materialFilter}`
-                : categoriaFilter
-              : 'Todas as Peças'}
+            {categoriaFilter !== 'todas' ? (materialFilter !== 'todos' ? `${categoriaFilter} — ${materialFilter}` : categoriaFilter) : 'Todas as Peças'}
           </h3>
           <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
         </div>
 
-        {/* Category - Subcategory Navigation */}
+        {/* Filters: Category Pills */}
         {categorias.length > 0 && (
-          <div className="mb-10">
-            {/* Main Category Pills */}
+          <div className="mb-6">
             <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
-              <button
-                onClick={() => { setCategoriaFilter('todas'); setMaterialFilter('todos'); setExpandedCat(null); }}
+              <button onClick={() => { setCategoriaFilter('todas'); setMaterialFilter('todos'); setExpandedCat(null); }}
                 className="px-5 py-2 text-[11px] uppercase tracking-[0.15em] border transition-all"
-                style={{
-                  borderColor: categoriaFilter === 'todas' ? roseGold : '#E0D5CF',
-                  backgroundColor: categoriaFilter === 'todas' ? roseGold : 'transparent',
-                  color: categoriaFilter === 'todas' ? 'white' : textMuted,
-                  fontFamily: "'Inter', sans-serif",
-                }}
-              >
+                style={{ borderColor: categoriaFilter === 'todas' ? roseGold : '#E0D5CF', backgroundColor: categoriaFilter === 'todas' ? roseGold : 'transparent', color: categoriaFilter === 'todas' ? 'white' : textMuted, fontFamily: "'Inter', sans-serif" }}>
                 Todos
               </button>
               {categorias.map(cat => {
                 const isActive = categoriaFilter === cat;
                 const hasSubcats = categoryTree[cat] && categoryTree[cat].length > 0;
                 return (
-                  <button
-                    key={cat}
-                    onClick={() => {
-                      setCategoriaFilter(cat);
-                      setMaterialFilter('todos');
-                      setExpandedCat(isActive && expandedCat === cat ? null : cat);
-                    }}
+                  <button key={cat}
+                    onClick={() => { setCategoriaFilter(cat); setMaterialFilter('todos'); setExpandedCat(isActive && expandedCat === cat ? null : cat); }}
                     className="px-5 py-2 text-[11px] uppercase tracking-[0.15em] border transition-all flex items-center gap-1.5"
-                    style={{
-                      borderColor: isActive ? roseGold : '#E0D5CF',
-                      backgroundColor: isActive ? roseGold : 'transparent',
-                      color: isActive ? 'white' : textMuted,
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
+                    style={{ borderColor: isActive ? roseGold : '#E0D5CF', backgroundColor: isActive ? roseGold : 'transparent', color: isActive ? 'white' : textMuted, fontFamily: "'Inter', sans-serif" }}>
                     {cat}
-                    {hasSubcats && (
-                      <ChevronDown
-                        className="w-3 h-3 transition-transform"
-                        style={{ transform: isActive && expandedCat === cat ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                      />
-                    )}
+                    {hasSubcats && <ChevronDown className="w-3 h-3 transition-transform" style={{ transform: isActive && expandedCat === cat ? 'rotate(180deg)' : 'rotate(0deg)' }} />}
                   </button>
                 );
               })}
             </div>
-
-            {/* Subcategory (Material) Pills */}
             <AnimatePresence>
               {categoriaFilter !== 'todas' && materiais.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="overflow-hidden"
-                >
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                   <div className="flex items-center justify-center gap-2 flex-wrap pt-2 pb-1">
-                    <span className="text-[10px] uppercase tracking-wider mr-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                      Material:
-                    </span>
-                    <button
-                      onClick={() => setMaterialFilter('todos')}
+                    <span className="text-[10px] uppercase tracking-wider mr-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Material:</span>
+                    <button onClick={() => setMaterialFilter('todos')}
                       className="px-3 py-1 text-[10px] uppercase tracking-wider rounded-full border transition-all"
-                      style={{
-                        borderColor: materialFilter === 'todos' ? roseGoldDark : '#E0D5CF',
-                        backgroundColor: materialFilter === 'todos' ? roseGoldDark : 'transparent',
-                        color: materialFilter === 'todos' ? 'white' : textMuted,
-                        fontFamily: "'Inter', sans-serif",
-                      }}
-                    >
+                      style={{ borderColor: materialFilter === 'todos' ? roseGoldDark : '#E0D5CF', backgroundColor: materialFilter === 'todos' ? roseGoldDark : 'transparent', color: materialFilter === 'todos' ? 'white' : textMuted, fontFamily: "'Inter', sans-serif" }}>
                       Todos
                     </button>
                     {materiais.map(mat => (
-                      <button
-                        key={mat}
-                        onClick={() => setMaterialFilter(mat)}
+                      <button key={mat} onClick={() => setMaterialFilter(mat)}
                         className="px-3 py-1 text-[10px] uppercase tracking-wider rounded-full border transition-all"
-                        style={{
-                          borderColor: materialFilter === mat ? roseGoldDark : '#E0D5CF',
-                          backgroundColor: materialFilter === mat ? roseGoldDark : 'transparent',
-                          color: materialFilter === mat ? 'white' : textMuted,
-                          fontFamily: "'Inter', sans-serif",
-                        }}
-                      >
+                        style={{ borderColor: materialFilter === mat ? roseGoldDark : '#E0D5CF', backgroundColor: materialFilter === mat ? roseGoldDark : 'transparent', color: materialFilter === mat ? 'white' : textMuted, fontFamily: "'Inter', sans-serif" }}>
                         {mat}
                       </button>
                     ))}
@@ -783,72 +719,101 @@ export default function LojaPublicaPage() {
           </div>
         )}
 
-        {/* Count */}
-        <p className="text-xs mb-6 text-center" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-          {filteredPecas.length} produto{filteredPecas.length !== 1 ? 's' : ''}
-        </p>
+        {/* Sort + Price Filter Bar */}
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <p className="text-xs" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+            {filteredPecas.length} produto{filteredPecas.length !== 1 ? 's' : ''}
+          </p>
+          <div className="flex items-center gap-3">
+            {/* Price filter toggle */}
+            <button onClick={() => setShowPriceFilter(!showPriceFilter)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase tracking-wider border transition-all"
+              style={{ borderColor: showPriceFilter ? roseGold : '#E0D5CF', color: showPriceFilter ? roseGold : textMuted, fontFamily: "'Inter', sans-serif" }}>
+              💰 Preço
+            </button>
+            {/* Sort */}
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5" style={{ color: textMuted }} />
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as SortOption)}
+                className="text-[10px] uppercase tracking-wider bg-transparent border-b outline-none cursor-pointer py-1"
+                style={{ borderColor: '#E0D5CF', color: textDark, fontFamily: "'Inter', sans-serif" }}>
+                {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Price Range Slider */}
+        <AnimatePresence>
+          {showPriceFilter && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-6">
+              <div className="p-4 border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] uppercase tracking-wider" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                    Faixa de Preço
+                  </span>
+                  <span className="text-xs font-semibold" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                    {formatCurrency(priceRange[0])} — {formatCurrency(priceRange[1])}
+                  </span>
+                </div>
+                <Slider
+                  min={priceBounds[0]}
+                  max={priceBounds[1]}
+                  step={10}
+                  value={priceRange}
+                  onValueChange={(v) => setPriceRange(v as [number, number])}
+                  className="w-full"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Product Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {filteredPecas.map((peca, index) => (
-            <motion.div
-              key={peca.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
-              className="group cursor-pointer"
-              onClick={() => setSelectedPeca(peca)}
-            >
+            <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.03 }}
+              className="group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
               <div className="relative overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
                 <div className="aspect-square overflow-hidden">
                   {peca.imagem_url ? (
-                    <img
-                      src={peca.imagem_url}
-                      alt={peca.nome}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                    />
+                    <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Package className="w-10 h-10" style={{ color: roseGoldLight }} />
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center"><Package className="w-10 h-10" style={{ color: roseGoldLight }} /></div>
                   )}
                 </div>
-                {/* Hover overlay */}
+                {/* Hover */}
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-end justify-center pb-4 opacity-0 group-hover:opacity-100">
-                  <button
-                    className="px-5 py-2 text-[10px] uppercase tracking-[0.15em] text-white transition-transform translate-y-2 group-hover:translate-y-0"
+                  <button className="px-5 py-2 text-[10px] uppercase tracking-[0.15em] text-white transition-transform translate-y-2 group-hover:translate-y-0"
                     style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
-                    onClick={(e) => { e.stopPropagation(); addToCart(peca); }}
-                  >
+                    onClick={(e) => { e.stopPropagation(); addToCart(peca); }}>
                     Adicionar à Sacola
                   </button>
                 </div>
+                {/* Wishlist heart */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleWishlist(peca.id); }}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all bg-white/80 hover:bg-white shadow-sm"
+                >
+                  <Heart className="w-4 h-4" style={{ color: roseGold }} fill={wishlist.has(peca.id) ? roseGold : 'none'} />
+                </button>
                 {/* Badges */}
                 {peca.estoque <= 3 && peca.estoque > 0 && (
-                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>
-                    Últimas peças
-                  </span>
+                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>Últimas peças</span>
                 )}
                 {peca.estoque === 0 && (
-                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                    Esgotado
-                  </span>
+                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: textMuted, fontFamily: "'Inter', sans-serif" }}>Esgotado</span>
                 )}
               </div>
               <div className="pt-3 pb-1 text-center">
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
                   {[peca.categoria, peca.material].filter(Boolean).join(' · ') || ''}
                 </p>
-                <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>
-                  {peca.nome}
-                </h4>
-                <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-                  {formatCurrency(peca.preco_venda)}
-                </p>
-                <p className="text-[10px] mt-0.5" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                  ou 6x de {formatCurrency(peca.preco_venda / 6)}
-                </p>
+                <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>{peca.nome}</h4>
+                <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(peca.preco_venda)}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>ou 6x de {formatCurrency(peca.preco_venda / 6)}</p>
               </div>
             </motion.div>
           ))}
@@ -871,56 +836,90 @@ export default function LojaPublicaPage() {
                 {selectedPeca.imagem_url ? (
                   <img src={selectedPeca.imagem_url} alt={selectedPeca.nome} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-16 h-16" style={{ color: roseGoldLight }} />
-                  </div>
+                  <div className="w-full h-full flex items-center justify-center"><Package className="w-16 h-16" style={{ color: roseGoldLight }} /></div>
                 )}
               </div>
               <div className="sm:w-1/2 p-6 flex flex-col justify-center">
+                {/* Breadcrumb in modal */}
+                <div className="flex items-center gap-1 text-[10px] mb-2" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  <span className="cursor-pointer hover:underline" onClick={() => { setSelectedPeca(null); setCategoriaFilter('todas'); }}>Início</span>
+                  {selectedPeca.categoria && (
+                    <><ChevronRight className="w-2.5 h-2.5" /><span className="cursor-pointer hover:underline" onClick={() => { setSelectedPeca(null); setCategoriaFilter(selectedPeca.categoria!); }}>{selectedPeca.categoria}</span></>
+                  )}
+                  <ChevronRight className="w-2.5 h-2.5" /><span style={{ color: roseGold }}>{selectedPeca.nome}</span>
+                </div>
+
                 <p className="text-xs uppercase tracking-[0.2em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
                   {[selectedPeca.categoria, selectedPeca.material].filter(Boolean).join(' · ') || 'Peça'}
                 </p>
-                <h3 className="text-xl sm:text-2xl font-light leading-snug" style={{ color: textDark }}>
-                  {selectedPeca.nome}
-                </h3>
-                {selectedPeca.codigo && (
-                  <p className="text-[10px] mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                    Cód: {selectedPeca.codigo}
-                  </p>
+                <h3 className="text-xl sm:text-2xl font-light leading-snug" style={{ color: textDark }}>{selectedPeca.nome}</h3>
+                {selectedPeca.codigo && <p className="text-[10px] mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Cód: {selectedPeca.codigo}</p>}
+                <p className="text-2xl font-semibold mt-4" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(selectedPeca.preco_venda)}</p>
+                <p className="text-xs mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>ou 12x de {formatCurrency(selectedPeca.preco_venda / 12)} sem juros</p>
+                {selectedPeca.descricao && <p className="text-sm mt-4 leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{selectedPeca.descricao}</p>}
+
+                {/* Variações hint */}
+                {selectedPeca.material && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Material:</span>
+                    <span className="px-2 py-0.5 text-[10px] border" style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}>{selectedPeca.material}</span>
+                  </div>
                 )}
-                <p className="text-2xl font-semibold mt-4" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-                  {formatCurrency(selectedPeca.preco_venda)}
-                </p>
-                <p className="text-xs mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                  ou 12x de {formatCurrency(selectedPeca.preco_venda / 12)} sem juros
-                </p>
-                {selectedPeca.descricao && (
-                  <p className="text-sm mt-4 leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                    {selectedPeca.descricao}
-                  </p>
-                )}
-                <div className="mt-4 flex items-center gap-2 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {selectedPeca.estoque > 0 ? (
-                    <span style={{ color: '#4CAF50' }}>● Em estoque</span>
-                  ) : (
-                    <span style={{ color: textMuted }}>● Esgotado</span>
-                  )}
+
+                <div className="mt-3 flex items-center gap-2 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  {selectedPeca.estoque > 0 ? <span style={{ color: '#4CAF50' }}>● Em estoque ({selectedPeca.estoque} un.)</span> : <span style={{ color: textMuted }}>● Esgotado</span>}
                 </div>
-                <button
-                  className="w-full mt-6 py-3 text-white text-xs uppercase tracking-[0.15em] transition-all hover:opacity-90 disabled:opacity-50"
-                  style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
-                  disabled={selectedPeca.estoque === 0}
-                  onClick={() => { addToCart(selectedPeca); setSelectedPeca(null); }}
-                >
-                  {selectedPeca.estoque === 0 ? 'Produto Esgotado' : 'Adicionar à Sacola'}
+
+                {/* Wishlist toggle in modal */}
+                <button onClick={() => toggleWishlist(selectedPeca.id)}
+                  className="flex items-center gap-2 mt-3 text-xs transition-all hover:opacity-70"
+                  style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                  <Heart className="w-4 h-4" fill={wishlist.has(selectedPeca.id) ? roseGold : 'none'} />
+                  {wishlist.has(selectedPeca.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
                 </button>
+
+                {/* Share buttons */}
+                <ProductShareButtons
+                  productName={selectedPeca.nome}
+                  productUrl={getProductUrl(selectedPeca)}
+                  whatsapp={config.whatsapp}
+                  roseGold={roseGold}
+                  textMuted={textMuted}
+                />
+
+                {selectedPeca.estoque > 0 ? (
+                  <button className="w-full mt-5 py-3 text-white text-xs uppercase tracking-[0.15em] transition-all hover:opacity-90"
+                    style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
+                    onClick={() => { addToCart(selectedPeca); setSelectedPeca(null); }}>
+                    Adicionar à Sacola
+                  </button>
+                ) : (
+                  <div className="mt-5 space-y-2">
+                    <p className="text-xs text-center" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                      <Bell className="w-3.5 h-3.5 inline mr-1" />Avise-me quando disponível
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="email" placeholder="Seu e-mail" value={aviseEmail}
+                        onChange={e => setAviseEmail(e.target.value)}
+                        className="flex-1 px-3 py-2 text-xs border outline-none"
+                        style={{ borderColor: '#E0D5CF', fontFamily: "'Inter', sans-serif" }}
+                      />
+                      <button onClick={() => handleAviseMe(selectedPeca.id)} disabled={aviseLoading}
+                        className="px-4 py-2 text-[10px] uppercase text-white disabled:opacity-50"
+                        style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                        {aviseLoading ? '...' : 'Avisar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Novidades - últimas peças adicionadas */}
+      {/* Novidades */}
       {pecas.length > 0 && (
         <section id="novidades" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
           <div className="max-w-7xl mx-auto px-4">
@@ -931,21 +930,10 @@ export default function LojaPublicaPage() {
             </div>
             <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
               {pecas.slice(0, 8).map((peca, i) => (
-                <motion.div
-                  key={peca.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  className="flex-shrink-0 w-56 sm:w-64 snap-start group cursor-pointer"
-                  onClick={() => setSelectedPeca(peca)}
-                >
+                <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                  className="flex-shrink-0 w-56 sm:w-64 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
                   <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
-                    {peca.imagem_url ? (
-                      <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>
-                    )}
+                    {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
                     <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}>Novo</span>
                   </div>
                   <div className="pt-3 text-center">
@@ -960,7 +948,7 @@ export default function LojaPublicaPage() {
         </section>
       )}
 
-      {/* Depoimentos / Social Proof */}
+      {/* Depoimentos */}
       <section id="depoimentos" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-10">
@@ -970,30 +958,17 @@ export default function LojaPublicaPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
-              { nome: 'Ana Paula', texto: 'Peças incríveis! A qualidade é impressionante, superou todas as minhas expectativas. Já é minha loja favorita.', estrelas: 5 },
-              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda. Comprei um anel e recebi com um cuidado maravilhoso. Recomendo demais!', estrelas: 5 },
-              { nome: 'Juliana M.', texto: 'Atendimento excepcional! Me ajudaram a escolher o presente perfeito. As joias são ainda mais bonitas ao vivo.', estrelas: 5 },
+              { nome: 'Ana Paula', texto: 'Peças incríveis! A qualidade é impressionante, superou todas as minhas expectativas.', estrelas: 5 },
+              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda. Comprei um anel e recebi com um cuidado maravilhoso.', estrelas: 5 },
+              { nome: 'Juliana M.', texto: 'Atendimento excepcional! Me ajudaram a escolher o presente perfeito.', estrelas: 5 },
             ].map((dep, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="p-6 text-center border"
-                style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}
-              >
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.15 }}
+                className="p-6 text-center border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
                 <div className="flex justify-center gap-1 mb-4">
-                  {Array.from({ length: dep.estrelas }).map((_, s) => (
-                    <span key={s} className="text-sm" style={{ color: roseGold }}>★</span>
-                  ))}
+                  {Array.from({ length: dep.estrelas }).map((_, s) => <Star key={s} className="w-4 h-4" style={{ color: roseGold }} fill={roseGold} />)}
                 </div>
-                <p className="text-sm leading-relaxed italic mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                  "{dep.texto}"
-                </p>
-                <p className="text-xs uppercase tracking-[0.15em] font-semibold" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>
-                  — {dep.nome}
-                </p>
+                <p className="text-sm leading-relaxed italic mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>"{dep.texto}"</p>
+                <p className="text-xs uppercase tracking-[0.15em] font-semibold" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>— {dep.nome}</p>
               </motion.div>
             ))}
           </div>
@@ -1004,38 +979,21 @@ export default function LojaPublicaPage() {
       <section id="sobre-marca" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
         <div className="max-w-5xl mx-auto px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
               <p className="text-xs uppercase tracking-[0.3em] mb-3" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Nossa História</p>
               <h3 className="text-2xl sm:text-3xl font-light leading-snug mb-4" style={{ color: textDark }}>
                 Cada peça conta<br /><span className="italic" style={{ color: roseGold }}>uma história única</span>
               </h3>
               <p className="text-sm leading-relaxed mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                Nascemos da paixão por joias que transcendem tendências. Cada peça é cuidadosamente selecionada
-                para trazer elegância ao seu dia a dia, combinando design contemporâneo com a tradição da ourivesaria.
+                Nascemos da paixão por joias que transcendem tendências. Cada peça é cuidadosamente selecionada para trazer elegância ao seu dia a dia.
               </p>
               <p className="text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
                 Acreditamos que uma joia não é apenas um acessório — é uma extensão de quem você é.
-                Por isso, trabalhamos com materiais de alta qualidade e acabamento impecável em cada detalhe.
               </p>
             </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="relative">
               <div className="aspect-[4/5] overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
-                {pecas[0]?.imagem_url ? (
-                  <img src={pecas[0].imagem_url} alt="Sobre a marca" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Heart className="w-16 h-16" style={{ color: roseGoldLight }} />
-                  </div>
-                )}
+                {pecas[0]?.imagem_url ? <img src={pecas[0].imagem_url} alt="Sobre" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Heart className="w-16 h-16" style={{ color: roseGoldLight }} /></div>}
               </div>
               <div className="absolute -bottom-4 -left-4 w-32 h-32 border-2" style={{ borderColor: roseGold, zIndex: -1 }} />
             </motion.div>
@@ -1043,27 +1001,19 @@ export default function LojaPublicaPage() {
         </div>
       </section>
 
-      {/* Instagram Feed CTA */}
+      {/* Instagram CTA */}
       {config.instagram && (
         <section className="py-14 border-t text-center" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
           <div className="max-w-3xl mx-auto px-4">
             <Instagram className="w-8 h-8 mx-auto mb-4" style={{ color: roseGold }} />
             <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Siga-nos no Instagram</p>
-            <h3 className="text-2xl sm:text-3xl font-light mb-3" style={{ color: textDark }}>
-              @{config.instagram.replace('@', '')}
-            </h3>
-            <p className="text-sm mb-6" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-              Acompanhe as novidades, inspirações e bastidores das nossas coleções.
-            </p>
-            <a
-              href={`https://instagram.com/${config.instagram.replace('@', '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <h3 className="text-2xl sm:text-3xl font-light mb-3" style={{ color: textDark }}>@{config.instagram.replace('@', '')}</h3>
+            <p className="text-sm mb-6" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Acompanhe as novidades e bastidores.</p>
+            <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
               className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] border-2 transition-all hover:text-white"
               style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
               onMouseEnter={e => { (e.target as HTMLElement).style.backgroundColor = roseGold; (e.target as HTMLElement).style.color = 'white'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; (e.target as HTMLElement).style.color = roseGold; }}
-            >
+              onMouseLeave={e => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; (e.target as HTMLElement).style.color = roseGold; }}>
               Seguir Agora
             </a>
           </div>
@@ -1075,82 +1025,44 @@ export default function LojaPublicaPage() {
         <div className="max-w-2xl mx-auto px-4 text-center">
           <Sparkles className="w-6 h-6 mx-auto mb-4 text-white/80" />
           <h3 className="text-2xl sm:text-3xl font-light text-white mb-2">Fique por dentro</h3>
-          <p className="text-sm text-white/70 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
-            Cadastre-se e receba ofertas exclusivas, lançamentos e promoções em primeira mão.
-          </p>
-          <form
-            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!newsletterEmail.trim() || !config) return;
-              setNewsletterLoading(true);
-              try {
-                const { error } = await supabase.from('newsletter_subscribers' as any).insert({
-                  email: newsletterEmail.trim().toLowerCase(),
-                  organization_id: config.organization_id,
-                });
-                if (error) {
-                  if (error.code === '23505') toast.info('Este e-mail já está cadastrado!');
-                  else throw error;
-                } else {
-                  toast.success('Cadastro realizado com sucesso! 🎉');
-                  setNewsletterEmail('');
-                }
-              } catch {
-                toast.error('Erro ao cadastrar. Tente novamente.');
-              } finally {
-                setNewsletterLoading(false);
-              }
-            }}
-          >
-            <input
-              type="email"
-              required
-              value={newsletterEmail}
-              onChange={e => setNewsletterEmail(e.target.value)}
-              placeholder="Seu melhor e-mail"
-              className="flex-1 px-4 py-3 text-sm bg-white/10 border border-white/30 text-white placeholder-white/50 outline-none focus:border-white/60 transition-colors"
-              style={{ fontFamily: "'Inter', sans-serif" }}
-            />
-            <button
-              type="submit"
-              disabled={newsletterLoading}
+          <p className="text-sm text-white/70 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>Cadastre-se e receba ofertas exclusivas em primeira mão.</p>
+          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newsletterEmail.trim() || !config) return;
+            setNewsletterLoading(true);
+            try {
+              const { error } = await supabase.from('newsletter_subscribers' as any).insert({ email: newsletterEmail.trim().toLowerCase(), organization_id: config.organization_id });
+              if (error) { if (error.code === '23505') toast.info('E-mail já cadastrado!'); else throw error; }
+              else { toast.success('Cadastro realizado! 🎉'); setNewsletterEmail(''); }
+            } catch { toast.error('Erro ao cadastrar.'); }
+            finally { setNewsletterLoading(false); }
+          }}>
+            <input type="email" required value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="Seu melhor e-mail"
+              className="flex-1 px-4 py-3 text-sm bg-white/10 border border-white/30 text-white placeholder-white/50 outline-none focus:border-white/60"
+              style={{ fontFamily: "'Inter', sans-serif" }} />
+            <button type="submit" disabled={newsletterLoading}
               className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-white transition-all hover:opacity-90 disabled:opacity-60"
-              style={{ color: roseGold, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}
-            >
+              style={{ color: roseGold, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
               {newsletterLoading ? 'Enviando...' : 'Cadastrar'}
             </button>
           </form>
         </div>
       </section>
 
-      {/* Footer Completo */}
+      {/* Footer */}
       <footer className="border-t" style={{ borderColor: '#F0E6E0', backgroundColor: textDark }}>
         <div className="max-w-7xl mx-auto px-4 py-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-            {/* Marca */}
             <div>
-              <h4 className="text-lg tracking-[0.2em] uppercase mb-4" style={{ color: roseGoldLight }}>
-                {config.nome_loja}
-              </h4>
+              <h4 className="text-lg tracking-[0.2em] uppercase mb-4" style={{ color: roseGoldLight }}>{config.nome_loja}</h4>
               <p className="text-xs leading-relaxed mb-4" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>
-                {config.descricao || 'Joias exclusivas com a qualidade que você merece. Elegância e sofisticação em cada detalhe.'}
+                {config.descricao || 'Joias exclusivas com a qualidade que você merece.'}
               </p>
               <div className="flex items-center gap-3">
-                {config.whatsapp && (
-                  <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="w-8 h-8 border border-white/20 flex items-center justify-center transition-all hover:border-white/50" style={{ color: roseGoldLight }}>
-                    <Phone className="w-3.5 h-3.5" />
-                  </a>
-                )}
-                {config.instagram && (
-                  <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-white/20 flex items-center justify-center transition-all hover:border-white/50" style={{ color: roseGoldLight }}>
-                    <Instagram className="w-3.5 h-3.5" />
-                  </a>
-                )}
+                {config.whatsapp && <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="w-8 h-8 border border-white/20 flex items-center justify-center hover:border-white/50" style={{ color: roseGoldLight }}><Phone className="w-3.5 h-3.5" /></a>}
+                {config.instagram && <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-white/20 flex items-center justify-center hover:border-white/50" style={{ color: roseGoldLight }}><Instagram className="w-3.5 h-3.5" /></a>}
               </div>
             </div>
-
-            {/* Institucional */}
             <div>
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Institucional</h5>
               <ul className="space-y-2.5">
@@ -1160,69 +1072,40 @@ export default function LojaPublicaPage() {
                   { label: 'Novidades', action: () => document.getElementById('novidades')?.scrollIntoView({ behavior: 'smooth' }) },
                   { label: 'Depoimentos', action: () => document.getElementById('depoimentos')?.scrollIntoView({ behavior: 'smooth' }) },
                 ].map(item => (
-                  <li key={item.label}>
-                    <button onClick={item.action} className="text-xs transition-colors hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button>
-                  </li>
+                  <li key={item.label}><button onClick={item.action} className="text-xs hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button></li>
                 ))}
               </ul>
             </div>
-
-            {/* Ajuda */}
             <div>
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Ajuda</h5>
               <ul className="space-y-2.5">
                 {[
-                  { label: 'Trocas e Devoluções', action: () => setPolicyModal({ title: 'Trocas e Devoluções', content: `Primeira troca gratuita em até 7 dias após o recebimento.\n\nCondições:\n• O produto deve estar em perfeito estado, sem uso.\n• Acompanhar a embalagem original e nota fiscal.\n• Solicite a troca pelo nosso WhatsApp${config.whatsapp ? ` (${config.whatsapp})` : ''}.\n\nApós análise, o envio do novo produto é feito em até 5 dias úteis.` }) },
-                  { label: 'Prazo de Entrega', action: () => setPolicyModal({ title: 'Prazo de Entrega', content: `Os prazos variam conforme a região:\n\n• Capitais: 3 a 7 dias úteis\n• Interior: 5 a 12 dias úteis\n• Regiões remotas: 7 a 15 dias úteis\n\nO prazo começa após a confirmação do pagamento.${config.frete_gratis_acima ? `\n\n✦ Frete grátis acima de R$ ${config.frete_gratis_acima.toFixed(0)}.` : ''}` }) },
-                  { label: 'Formas de Pagamento', action: () => setPolicyModal({ title: 'Formas de Pagamento', content: 'Aceitamos:\n\n• Cartão de crédito (até 12x sem juros)\n• Cartão de débito\n• PIX (aprovação instantânea)\n• Boleto bancário\n\nProcessado com segurança pelo Mercado Pago.' }) },
+                  { label: 'Trocas e Devoluções', action: () => setPolicyModal({ title: 'Trocas e Devoluções', content: `Primeira troca gratuita em até 7 dias.\n\nCondições:\n• Produto em perfeito estado.\n• Acompanhar embalagem e nota.\n• Solicite pelo WhatsApp${config.whatsapp ? ` (${config.whatsapp})` : ''}.` }) },
+                  { label: 'Prazo de Entrega', action: () => setPolicyModal({ title: 'Prazo de Entrega', content: `Capitais: 3-7 dias úteis\nInterior: 5-12 dias úteis\nRegiões remotas: 7-15 dias úteis${config.frete_gratis_acima ? `\n\n✦ Frete grátis acima de R$ ${config.frete_gratis_acima.toFixed(0)}.` : ''}` }) },
+                  { label: 'Formas de Pagamento', action: () => setPolicyModal({ title: 'Formas de Pagamento', content: 'Cartão de crédito (até 12x)\nCartão de débito\nPIX\nBoleto bancário\n\nProcessado pelo Mercado Pago.' }) },
                   { label: 'Central de Ajuda', action: () => { if (config.whatsapp) window.open(`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=Olá! Preciso de ajuda.`, '_blank'); else toast.info('Entre em contato pelo Instagram.'); } },
                 ].map(item => (
-                  <li key={item.label}>
-                    <button onClick={item.action} className="text-xs transition-colors hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button>
-                  </li>
+                  <li key={item.label}><button onClick={item.action} className="text-xs hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button></li>
                 ))}
               </ul>
             </div>
-
-            {/* Contato */}
             <div>
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Contato</h5>
               <ul className="space-y-2.5">
-                {config.whatsapp && (
-                  <li className="flex items-center gap-2">
-                    <Phone className="w-3 h-3" style={{ color: roseGoldLight }} />
-                    <span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{config.whatsapp}</span>
-                  </li>
-                )}
-                {config.instagram && (
-                  <li className="flex items-center gap-2">
-                    <Instagram className="w-3 h-3" style={{ color: roseGoldLight }} />
-                    <span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>@{config.instagram.replace('@', '')}</span>
-                  </li>
-                )}
+                {config.whatsapp && <li className="flex items-center gap-2"><Phone className="w-3 h-3" style={{ color: roseGoldLight }} /><span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{config.whatsapp}</span></li>}
+                {config.instagram && <li className="flex items-center gap-2"><Instagram className="w-3 h-3" style={{ color: roseGoldLight }} /><span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>@{config.instagram.replace('@', '')}</span></li>}
               </ul>
             </div>
           </div>
-
-          {/* Políticas */}
           <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-            <p className="text-[10px]" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>
-              © {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.
-            </p>
+            <p className="text-[10px]" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>© {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.</p>
             <div className="flex items-center gap-4">
               {[
-                { label: 'Política de Privacidade', content: `A ${config.nome_loja} respeita sua privacidade.\n\nDados coletados:\n• Nome, e-mail, telefone e endereço para processamento de pedidos.\n• Dados de navegação para melhorar sua experiência.\n\nSeus dados nunca serão vendidos a terceiros. Você pode solicitar a exclusão a qualquer momento.` },
-                { label: 'Termos de Uso', content: `Ao utilizar a loja ${config.nome_loja}, você concorda que:\n\n1. Preços sujeitos a alteração sem aviso.\n2. Imagens são ilustrativas.\n3. Reservamo-nos o direito de cancelar pedidos com suspeita de fraude.\n4. Conteúdo protegido por direitos autorais.` },
-                { label: 'Cookies', content: 'Utilizamos cookies para:\n\n• Manter sua sessão e carrinho.\n• Analisar tráfego e melhorar a experiência.\n• Personalizar ofertas.\n\nAo continuar navegando, você concorda com o uso de cookies.' },
+                { label: 'Política de Privacidade', content: `A ${config.nome_loja} respeita sua privacidade.\n\nDados coletados: nome, e-mail, telefone e endereço para pedidos.\nSeus dados nunca serão vendidos.` },
+                { label: 'Termos de Uso', content: `Ao utilizar a loja, você concorda que:\n1. Preços sujeitos a alteração.\n2. Imagens ilustrativas.\n3. Conteúdo protegido por direitos autorais.` },
+                { label: 'Cookies', content: 'Utilizamos cookies para manter sua sessão, analisar tráfego e personalizar ofertas.' },
               ].map(item => (
-                <button
-                  key={item.label}
-                  onClick={() => setPolicyModal({ title: item.label, content: item.content })}
-                  className="text-[10px] transition-colors hover:text-white"
-                  style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}
-                >
-                  {item.label}
-                </button>
+                <button key={item.label} onClick={() => setPolicyModal({ title: item.label, content: item.content })} className="text-[10px] hover:text-white" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button>
               ))}
             </div>
           </div>
@@ -1233,13 +1116,9 @@ export default function LojaPublicaPage() {
       <Dialog open={!!policyModal} onOpenChange={() => setPolicyModal(null)}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
           <DialogHeader>
-            <DialogTitle className="text-lg tracking-wide uppercase" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>
-              {policyModal?.title}
-            </DialogTitle>
+            <DialogTitle className="text-lg tracking-wide uppercase" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>{policyModal?.title}</DialogTitle>
           </DialogHeader>
-          <div className="mt-2 whitespace-pre-line text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-            {policyModal?.content}
-          </div>
+          <div className="mt-2 whitespace-pre-line text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{policyModal?.content}</div>
         </DialogContent>
       </Dialog>
 
@@ -1280,16 +1159,17 @@ export default function LojaPublicaPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-2">
                   <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>CEP</Label>
-                  <Input value={endereco.cep} onChange={e => setEndereco(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" className="rounded-none border" style={{ borderColor: '#E0D5CF' }} onBlur={async () => {
-                    const cep = endereco.cep.replace(/\D/g, '');
-                    if (cep.length === 8) {
-                      try {
-                        const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-                        const data = await resp.json();
-                        if (!data.erro) setEndereco(p => ({ ...p, rua: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }));
-                      } catch {}
-                    }
-                  }} />
+                  <Input value={endereco.cep} onChange={e => setEndereco(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" className="rounded-none border" style={{ borderColor: '#E0D5CF' }}
+                    onBlur={async () => {
+                      const cep = endereco.cep.replace(/\D/g, '');
+                      if (cep.length === 8) {
+                        try {
+                          const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                          const data = await resp.json();
+                          if (!data.erro) setEndereco(p => ({ ...p, rua: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }));
+                        } catch {}
+                      }
+                    }} />
                 </div>
                 <div className="col-span-2 space-y-2">
                   <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Rua</Label>
@@ -1330,43 +1210,26 @@ export default function LojaPublicaPage() {
                   </div>
                 ) : (
                   <div className="flex gap-2 mt-2">
-                    <Input
-                      value={cupomCode}
-                      onChange={e => setCupomCode(e.target.value.toUpperCase())}
-                      placeholder="CÓDIGO"
-                      className="rounded-none border flex-1 text-xs uppercase"
-                      style={{ borderColor: '#E0D5CF' }}
-                      onKeyDown={e => e.key === 'Enter' && aplicarCupom()}
-                    />
-                    <button
-                      onClick={aplicarCupom}
-                      disabled={cupomLoading || !cupomCode.trim()}
-                      className="px-4 py-2 text-xs uppercase tracking-wider text-white transition-all hover:opacity-90 disabled:opacity-50"
-                      style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
-                    >
+                    <Input value={cupomCode} onChange={e => setCupomCode(e.target.value.toUpperCase())} placeholder="CÓDIGO" className="rounded-none border flex-1 text-xs uppercase" style={{ borderColor: '#E0D5CF' }}
+                      onKeyDown={e => e.key === 'Enter' && aplicarCupom()} />
+                    <button onClick={aplicarCupom} disabled={cupomLoading || !cupomCode.trim()}
+                      className="px-4 py-2 text-xs uppercase tracking-wider text-white hover:opacity-90 disabled:opacity-50"
+                      style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}>
                       {cupomLoading ? '...' : 'Aplicar'}
                     </button>
                   </div>
                 )}
               </div>
-
               <div className="border-t pt-3 space-y-1" style={{ borderColor: '#F0E6E0' }}>
                 <div className="flex justify-between text-sm"><span style={{ color: textMuted }}>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-                {cupomDesconto > 0 && (
-                  <div className="flex justify-between text-sm"><span style={{ color: roseGold }}>Desconto</span><span style={{ color: roseGold }}>-{formatCurrency(cupomDesconto)}</span></div>
-                )}
+                {cupomDesconto > 0 && <div className="flex justify-between text-sm"><span style={{ color: roseGold }}>Desconto</span><span style={{ color: roseGold }}>-{formatCurrency(cupomDesconto)}</span></div>}
                 <div className="flex justify-between text-sm"><span style={{ color: textMuted }}>Frete</span><span>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span></div>
                 <div className="flex justify-between font-semibold text-lg pt-2 border-t" style={{ borderColor: '#F0E6E0' }}>
-                  <span style={{ color: textDark }}>Total</span>
-                  <span style={{ color: roseGold }}>{formatCurrency(total)}</span>
+                  <span style={{ color: textDark }}>Total</span><span style={{ color: roseGold }}>{formatCurrency(total)}</span>
                 </div>
               </div>
-              <button
-                className="w-full py-3 text-white text-xs uppercase tracking-[0.15em] transition-all hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: roseGold }}
-                onClick={handleCheckout}
-                disabled={processing}
-              >
+              <button className="w-full py-3 text-white text-xs uppercase tracking-[0.15em] hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: roseGold }} onClick={handleCheckout} disabled={processing}>
                 {processing ? 'Processando...' : 'Ir para Pagamento'}
               </button>
             </div>
@@ -1374,11 +1237,7 @@ export default function LojaPublicaPage() {
 
           {checkoutStep === 'pagamento' && (
             <div>
-              {processing && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin" style={{ color: roseGold }} />
-                </div>
-              )}
+              {processing && <div className="flex items-center justify-center py-8"><Loader2 className="w-8 h-8 animate-spin" style={{ color: roseGold }} /></div>}
               <div id="ecommerce-brick-container" className="min-h-[200px]" />
             </div>
           )}
@@ -1388,17 +1247,13 @@ export default function LojaPublicaPage() {
               <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: '#F5EEEA' }}>
                 <CheckCircle className="w-10 h-10" style={{ color: roseGold }} />
               </div>
-              <h3 className="text-2xl font-light" style={{ color: textDark }}>
-                Pedido #{numeroPedido}
-              </h3>
+              <h3 className="text-2xl font-light" style={{ color: textDark }}>Pedido #{numeroPedido}</h3>
               <p className="text-sm text-center max-w-xs" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
                 Seu pedido foi realizado com sucesso! Você receberá atualizações por e-mail.
               </p>
-              <button
-                className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] border transition-all hover:opacity-80"
+              <button className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] border hover:opacity-80"
                 style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
-                onClick={() => { setCheckoutOpen(false); setCheckoutStep('dados'); }}
-              >
+                onClick={() => { setCheckoutOpen(false); setCheckoutStep('dados'); }}>
                 Continuar Comprando
               </button>
             </div>
@@ -1409,31 +1264,27 @@ export default function LojaPublicaPage() {
       {/* Floating Cart (mobile) */}
       {cartCount > 0 && (
         <div className="fixed bottom-4 right-4 sm:hidden z-50">
-          <button
-            className="flex items-center gap-2 px-5 py-3 text-white text-sm shadow-lg"
+          <button className="flex items-center gap-2 px-5 py-3 text-white text-sm shadow-lg"
             style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
-            onClick={() => setCartOpen(true)}
-          >
-            <ShoppingCart className="w-5 h-5" />
-            {cartCount} · {formatCurrency(total)}
+            onClick={() => setCartOpen(true)}>
+            <ShoppingCart className="w-5 h-5" /> {cartCount} · {formatCurrency(total)}
           </button>
         </div>
       )}
 
       {/* WhatsApp Float */}
       {config.whatsapp && (
-        <a
-          href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-4 left-4 z-50 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-          style={{ backgroundColor: '#25D366' }}
-        >
+        <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+          className="fixed bottom-4 left-4 z-50 w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+          style={{ backgroundColor: '#25D366' }}>
           <svg viewBox="0 0 24 24" className="w-6 h-6 text-white fill-current">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
           </svg>
         </a>
       )}
+
+      {/* Cookie Consent Banner */}
+      <CookieConsent nomeLoja={config.nome_loja} roseGold={roseGold} />
     </div>
   );
 }
