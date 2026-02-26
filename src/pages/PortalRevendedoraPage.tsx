@@ -11,11 +11,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing } from 'lucide-react';
+import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing, Download, WifiOff, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { usePortalNotifications } from '@/hooks/usePortalNotifications';
+import { usePortalPWA } from '@/hooks/usePortalPWA';
 
 interface Revendedora {
   id: string;
@@ -105,6 +106,9 @@ export default function PortalRevendedoraPage() {
     revendedoraId: revendedora?.id || null,
     enabled: isAuthenticated,
   });
+
+  // PWA
+  const { canInstall, isInstalled, isOnline, installApp } = usePortalPWA();
 
   // Check session storage for existing login
   useEffect(() => {
@@ -472,6 +476,13 @@ export default function PortalRevendedoraPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/10 flex items-center justify-center p-4">
+        {/* Offline Banner */}
+        {!isOnline && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-destructive text-destructive-foreground text-center py-2 text-sm font-medium flex items-center justify-center gap-2">
+            <WifiOff className="w-4 h-4" /> Você está offline
+          </div>
+        )}
+
         <div className="w-full max-w-md space-y-6">
           {/* Logo / Branding */}
           <div className="text-center space-y-2">
@@ -534,6 +545,30 @@ export default function PortalRevendedoraPage() {
             </CardContent>
           </Card>
 
+          {/* PWA Install Banner */}
+          {canInstall && !isInstalled && (
+            <Card className="border border-primary/20 bg-primary/5">
+              <CardContent className="pt-4 pb-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Smartphone className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Instalar App</p>
+                  <p className="text-xs text-muted-foreground">Acesse direto da tela inicial</p>
+                </div>
+                <Button size="sm" onClick={installApp} className="shrink-0">
+                  <Download className="w-4 h-4 mr-1" /> Instalar
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {isInstalled && (
+            <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-green-500" /> App instalado
+            </p>
+          )}
+
           <p className="text-center text-xs text-muted-foreground">
             Solicite suas credenciais ao administrador da loja
           </p>
@@ -545,8 +580,28 @@ export default function PortalRevendedoraPage() {
   // Portal Dashboard
   return (
     <div className="min-h-screen bg-background">
+      {/* Offline Banner */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-destructive text-destructive-foreground text-center py-2 text-sm font-medium flex items-center justify-center gap-2">
+          <WifiOff className="w-4 h-4" /> Você está offline — dados podem estar desatualizados
+        </div>
+      )}
+
+      {/* Install Banner (top, dismissible) */}
+      {canInstall && !isInstalled && (
+        <div className="bg-primary/10 border-b border-primary/20 px-4 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <Smartphone className="w-4 h-4 text-primary" />
+            <span>Instale o app para acesso rápido</span>
+          </div>
+          <Button size="sm" variant="default" onClick={installApp} className="h-7 text-xs">
+            <Download className="w-3 h-3 mr-1" /> Instalar
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur">
+      <header className={`sticky ${!isOnline ? 'top-8' : 'top-0'} z-50 border-b bg-card/95 backdrop-blur`}>
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
