@@ -40,7 +40,7 @@ export default function ConfiguracoesPage() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab) setActiveTab(tab);
+    setActiveTab(tab || 'perfil');
   }, [searchParams]);
 
   const [config, setConfig] = useState({
