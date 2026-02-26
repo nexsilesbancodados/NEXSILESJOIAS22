@@ -3308,19 +3308,19 @@ export type Database = {
       }
       revendedoras_portal_public: {
         Row: {
+          email: string | null
           id: string | null
           nome: string | null
-          usuario_portal: string | null
         }
         Insert: {
+          email?: string | null
           id?: string | null
           nome?: string | null
-          usuario_portal?: string | null
         }
         Update: {
+          email?: string | null
           id?: string | null
           nome?: string | null
-          usuario_portal?: string | null
         }
         Relationships: []
       }

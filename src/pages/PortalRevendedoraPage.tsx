@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing } from 'lucide-react';
+import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -82,8 +82,9 @@ export default function PortalRevendedoraPage() {
   // Login state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [usuario, setUsuario] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [showSenha, setShowSenha] = useState(false);
   
   // Data state
   const [revendedora, setRevendedora] = useState<Revendedora | null>(null);
@@ -139,22 +140,22 @@ export default function PortalRevendedoraPage() {
   }, [maletaSelecionada]);
 
   const handleLogin = async () => {
-    if (!usuario.trim() || !senha.trim()) {
-      toast.error('Preencha usuário e senha');
+    if (!loginEmail.trim() || !senha.trim()) {
+      toast.error('Preencha e-mail e senha');
       return;
     }
 
     setLoginLoading(true);
     try {
-      // Step 1: Use secure public view to find user (no password exposed)
+      // Step 1: Use secure public view to find user by email (no password exposed)
       const { data: publicData, error: publicError } = await supabase
         .from('revendedoras_portal_public' as 'revendedoras')
-        .select('id, nome, usuario_portal')
-        .eq('usuario_portal', usuario.trim().toLowerCase())
+        .select('id, nome, email')
+        .eq('email', loginEmail.trim().toLowerCase())
         .maybeSingle();
 
       if (publicError || !publicData) {
-        toast.error('Usuário não encontrado');
+        toast.error('E-mail não encontrado');
         setLoginLoading(false);
         return;
       }
@@ -211,7 +212,7 @@ export default function PortalRevendedoraPage() {
     setRevendedora(null);
     setMaletas([]);
     setInteresses([]);
-    setUsuario('');
+    setLoginEmail('');
     setSenha('');
     navigate('/portal/login', { replace: true });
   };
@@ -470,49 +471,73 @@ export default function PortalRevendedoraPage() {
   // Login Screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <Briefcase className="w-8 h-8 text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/10 flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6">
+          {/* Logo / Branding */}
+          <div className="text-center space-y-2">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/25">
+              <Briefcase className="w-10 h-10 text-primary-foreground" />
             </div>
-            <CardTitle className="text-2xl">Portal da Revendedora</CardTitle>
-            <CardDescription>
-              Entre com suas credenciais para acessar suas maletas e vendas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="usuario">Usuário</Label>
-              <Input
-                id="usuario"
-                placeholder="Seu usuário do portal"
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="senha">Senha</Label>
-              <Input
-                id="senha"
-                type="password"
-                placeholder="Sua senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <Button 
-              className="w-full" 
-              onClick={handleLogin}
-              disabled={loginLoading}
-            >
-              {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Entrar
-            </Button>
-          </CardContent>
-        </Card>
+            <h1 className="text-3xl font-bold tracking-tight">Portal da Revendedora</h1>
+            <p className="text-muted-foreground text-sm">
+              Acesse suas maletas, vendas e comissões
+            </p>
+          </div>
+
+          <Card className="border-0 shadow-xl shadow-black/5">
+            <CardContent className="pt-6 space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="loginEmail" className="text-sm font-medium">E-mail</Label>
+                <Input
+                  id="loginEmail"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && document.getElementById('loginSenha')?.focus()}
+                  className="h-11"
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="loginSenha" className="text-sm font-medium">Senha</Label>
+                <div className="relative">
+                  <Input
+                    id="loginSenha"
+                    type={showSenha ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                    className="h-11 pr-10"
+                    autoComplete="current-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowSenha(!showSenha)}
+                  >
+                    {showSenha ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <Button 
+                className="w-full h-11 font-semibold text-base" 
+                onClick={handleLogin}
+                disabled={loginLoading}
+              >
+                {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Entrar no Portal
+              </Button>
+            </CardContent>
+          </Card>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Solicite suas credenciais ao administrador da loja
+          </p>
+        </div>
       </div>
     );
   }

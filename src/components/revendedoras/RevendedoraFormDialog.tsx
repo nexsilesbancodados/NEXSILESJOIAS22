@@ -23,7 +23,6 @@ const revendedoraSchema = z.object({
     (val) => !val || (parseFloat(val) >= 0 && parseFloat(val) <= 100),
     'Comissão deve ser entre 0 e 100'
   ),
-  usuario_portal: z.string().min(4, 'Usuário deve ter pelo menos 4 caracteres').max(50).regex(/^[a-zA-Z0-9_]+$/, 'Apenas letras, números e _').optional().or(z.literal('')),
   senha_portal: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').max(50).optional().or(z.literal('')),
 });
 
@@ -36,7 +35,6 @@ interface RevendedoraFormDialogProps {
     telefone: string | null;
     email: string | null;
     comissao: number;
-    usuario_portal?: string | null;
     senha_portal?: string | null;
   }) => Promise<void>;
   isLoading?: boolean;
@@ -54,7 +52,6 @@ export function RevendedoraFormDialog({
     telefone: '',
     email: '',
     comissao: '30',
-    usuario_portal: '',
     senha_portal: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -67,7 +64,6 @@ export function RevendedoraFormDialog({
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
         comissao: (revendedora.comissao_percentual || 30).toString(),
-        usuario_portal: (revendedora as any).usuario_portal || '',
         senha_portal: (revendedora as any).senha_portal || '',
       });
     } else {
@@ -76,7 +72,6 @@ export function RevendedoraFormDialog({
         telefone: '',
         email: '',
         comissao: '30',
-        usuario_portal: '',
         senha_portal: '',
       });
     }
@@ -85,26 +80,16 @@ export function RevendedoraFormDialog({
   }, [revendedora, open]);
 
   const handleSubmit = async () => {
-    // Only validate portal fields if at least one is filled
-    const portalFieldsFilled = formData.usuario_portal.trim() || formData.senha_portal.trim();
-    
+    // If senha is filled, email is required for portal access
+    if (formData.senha_portal.trim() && !formData.email.trim()) {
+      setErrors({ email: 'E-mail é obrigatório para acesso ao portal' });
+      return;
+    }
+
     const dataToValidate = {
       ...formData,
-      usuario_portal: portalFieldsFilled ? formData.usuario_portal : '',
-      senha_portal: portalFieldsFilled ? formData.senha_portal : '',
+      senha_portal: formData.senha_portal.trim() ? formData.senha_portal : '',
     };
-
-    // If one portal field is filled, both are required
-    if (portalFieldsFilled) {
-      if (!formData.usuario_portal.trim()) {
-        setErrors({ usuario_portal: 'Usuário é obrigatório se senha for preenchida' });
-        return;
-      }
-      if (!formData.senha_portal.trim()) {
-        setErrors({ senha_portal: 'Senha é obrigatória se usuário for preenchido' });
-        return;
-      }
-    }
 
     const result = revendedoraSchema.safeParse(dataToValidate);
     
@@ -125,7 +110,6 @@ export function RevendedoraFormDialog({
         telefone: formData.telefone.trim() || null,
         email: formData.email.trim() || null,
         comissao: parseFloat(formData.comissao) || 30,
-        usuario_portal: formData.usuario_portal.trim() || null,
         senha_portal: formData.senha_portal.trim() || null,
       });
       onOpenChange(false);
@@ -233,7 +217,7 @@ export function RevendedoraFormDialog({
           <div className="border-t pt-4 mt-2">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-medium">Acesso ao Portal</h4>
-              {revendedora?.id && (formData.usuario_portal || (revendedora as any).usuario_portal) && (
+              {revendedora?.id && formData.email && (revendedora as any).senha_portal && (
                 <div className="flex gap-1">
                   <Button variant="ghost" size="sm" onClick={copyPortalLink}>
                     <Copy className="w-4 h-4" />
@@ -245,27 +229,10 @@ export function RevendedoraFormDialog({
               )}
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              Crie um usuário e senha para a revendedora acessar o portal e gerenciar suas vendas.
+              Defina uma senha para a revendedora acessar o portal usando o e-mail cadastrado acima.
             </p>
 
             <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="usuario_portal">Usuário do Portal</Label>
-                <Input
-                  id="usuario_portal"
-                  value={formData.usuario_portal}
-                  onChange={(e) => {
-                    setFormData({ ...formData, usuario_portal: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') });
-                    if (errors.usuario_portal) setErrors({ ...errors, usuario_portal: '' });
-                  }}
-                  placeholder="ex: joaninha44"
-                  className={errors.usuario_portal ? 'border-destructive' : ''}
-                />
-                {errors.usuario_portal && (
-                  <p className="text-sm text-destructive">{errors.usuario_portal}</p>
-                )}
-              </div>
-
               <div className="grid gap-2">
                 <Label htmlFor="senha_portal">Senha do Portal</Label>
                 <div className="relative">
