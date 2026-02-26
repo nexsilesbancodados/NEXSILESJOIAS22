@@ -599,7 +599,7 @@ export default function AuthPage() {
                             <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50">
                               <Crown className="h-4 w-4 text-amber-600" />
                               <AlertDescription className="text-xs text-amber-700 dark:text-amber-300">
-                                Não tem código? <a href="https://www.nexsiles.com.br/" target="_top" rel="noopener noreferrer" className="font-semibold underline hover:no-underline">Adquira um plano</a> para receber seu código de acesso.
+                                Não tem código? <button type="button" onClick={() => { window.location.href = 'https://www.nexsiles.com.br/'; }} className="font-semibold underline hover:no-underline">Adquira um plano</button> para receber seu código de acesso.
                               </AlertDescription>
                             </Alert>
                           )}
