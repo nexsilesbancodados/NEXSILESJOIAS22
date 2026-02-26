@@ -149,11 +149,12 @@ export default function LojaPublicaPage() {
 
       // Fetch agent config for chatbot
       const { data: agentData } = await supabase
-        .from('agente_ia_config')
+        .from('agente_ia_config_public' as any)
         .select('nome_agente, cor_primaria, avatar_url, mensagem_boas_vindas, ativo')
         .eq('organization_id', (configData as any).organization_id)
+        .eq('ativo', true)
         .maybeSingle();
-      if (agentData && agentData.ativo) {
+      if (agentData && (agentData as any).ativo) {
         setAgentConfig(agentData);
       }
       let query = supabase

@@ -3852,6 +3852,41 @@ export type Database = {
       }
     }
     Views: {
+      agente_ia_config_public: {
+        Row: {
+          ativo: boolean | null
+          avatar_url: string | null
+          cor_primaria: string | null
+          mensagem_boas_vindas: string | null
+          nome_agente: string | null
+          organization_id: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          avatar_url?: string | null
+          cor_primaria?: string | null
+          mensagem_boas_vindas?: string | null
+          nome_agente?: string | null
+          organization_id?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          avatar_url?: string | null
+          cor_primaria?: string | null
+          mensagem_boas_vindas?: string | null
+          nome_agente?: string | null
+          organization_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_ia_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalogos_public: {
         Row: {
           ativo: boolean | null
