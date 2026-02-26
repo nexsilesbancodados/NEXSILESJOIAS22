@@ -1,7 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShoppingBag, Settings, Package } from 'lucide-react';
+import { ShoppingBag, Settings, Package, LayoutGrid } from 'lucide-react';
 import { EcommerceConfigTab } from '@/components/ecommerce/EcommerceConfigTab';
 import { EcommercePedidosTab } from '@/components/ecommerce/EcommercePedidosTab';
+import { EcommerceProdutosTab } from '@/components/ecommerce/EcommerceProdutosTab';
 
 export default function LojaVirtualPage() {
   return (
@@ -13,13 +14,17 @@ export default function LojaVirtualPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Loja Virtual</h1>
-            <p className="text-sm text-muted-foreground">Gerencie sua loja online, configurações e pedidos</p>
+            <p className="text-sm text-muted-foreground">Gerencie sua loja online, produtos e pedidos</p>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="config" className="max-w-5xl">
+      <Tabs defaultValue="produtos" className="max-w-5xl">
         <TabsList className="mb-6">
+          <TabsTrigger value="produtos" className="gap-1.5">
+            <LayoutGrid className="w-4 h-4" />
+            Produtos
+          </TabsTrigger>
           <TabsTrigger value="config" className="gap-1.5">
             <Settings className="w-4 h-4" />
             Configurações
@@ -30,6 +35,9 @@ export default function LojaVirtualPage() {
           </TabsTrigger>
         </TabsList>
 
+        <TabsContent value="produtos">
+          <EcommerceProdutosTab />
+        </TabsContent>
         <TabsContent value="config">
           <EcommerceConfigTab />
         </TabsContent>
