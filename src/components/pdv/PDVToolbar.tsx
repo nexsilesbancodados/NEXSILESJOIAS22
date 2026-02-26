@@ -135,14 +135,9 @@ export function PDVToolbar({
               <Package className="w-4 h-4 mr-2" />
               Consultar Estoque
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={onRecuperarVenda}>
               <Clock className="w-4 h-4 mr-2" />
               Vendas Pendentes
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Gift className="w-4 h-4 mr-2" />
-              Vale Presente
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
