@@ -87,10 +87,12 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   // Modal states
   const [vendaModal, setVendaModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
   const [editQtdModal, setEditQtdModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
+  const [reporModal, setReporModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
   const [detalhesModal, setDetalhesModal] = useState<{ open: boolean; peca: Peca | null }>({ open: false, peca: null });
   const [fecharMaletaModal, setFecharMaletaModal] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
+  const [quantidadeRepor, setQuantidadeRepor] = useState(1);
 
   // Computed values - Now using quantidade_vendida for accurate tracking
   // Items with quantidade_vendida > 0 have had sales
@@ -250,6 +252,35 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const openEditQtdModal = (item: MaletaItem) => {
     setNovaQuantidade(item.quantidade || 1);
     setEditQtdModal({ open: true, item });
+  };
+
+  const openReporModal = (item: MaletaItem) => {
+    setQuantidadeRepor(1);
+    setReporModal({ open: true, item });
+  };
+
+  const handleRepor = async () => {
+    if (!reporModal.item || quantidadeRepor < 1) return;
+
+    const item = reporModal.item;
+    const pecaEstoque = pecas.find(p => p.id === item.peca_id)?.estoque || 0;
+
+    if (quantidadeRepor > pecaEstoque) {
+      toast.error(`Estoque insuficiente. Disponível: ${pecaEstoque}`);
+      return;
+    }
+
+    try {
+      await addMaletaItemMutation.mutateAsync({
+        maletaId: maleta.id,
+        pecaId: item.peca_id,
+        quantidade: quantidadeRepor,
+      });
+      setReporModal({ open: false, item: null });
+      toast.success(`${quantidadeRepor} peça(s) reposta(s) na maleta!`);
+    } catch (error) {
+      console.error('Error restocking item:', error);
+    }
   };
 
   // Gerar conteúdo do resumo para PDF/impressão
@@ -824,6 +855,16 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                                 <Button
                                   size="icon"
                                   variant="ghost"
+                                  className="h-7 w-7 text-primary hover:bg-primary/10"
+                                  onClick={() => openReporModal(item)}
+                                  disabled={isPending}
+                                  title="Repor peças do estoque"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
                                   className="h-7 w-7 hover:bg-secondary"
                                   onClick={() => openEditQtdModal(item)}
                                   disabled={isPending}
@@ -912,6 +953,19 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                         <TableCell className="text-right font-medium text-success">{formatCurrency(subtotal)}</TableCell>
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
+                            {maleta.status === 'aberta' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 text-primary hover:bg-primary/10"
+                                onClick={() => openReporModal(item)}
+                                disabled={isPending}
+                                title="Repor peças do estoque"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Repor
+                              </Button>
+                            )}
                             <Button
                               size="icon"
                               variant="ghost"
@@ -1059,7 +1113,84 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Detalhes da Peça */}
+      {/* Modal: Repor Peças */}
+      <Dialog open={reporModal.open} onOpenChange={(open) => setReporModal({ open, item: reporModal.item })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Repor Peças na Maleta</DialogTitle>
+            <DialogDescription>Adicione mais unidades do estoque para esta peça</DialogDescription>
+          </DialogHeader>
+          {reporModal.item && (() => {
+            const estoqueDisponivel = pecas.find(p => p.id === reporModal.item!.peca_id)?.estoque || 0;
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                  <img
+                    src={reporModal.item.peca?.imagem_url || '/placeholder.svg'}
+                    alt={reporModal.item.peca?.nome}
+                    className="w-12 h-12 rounded object-cover"
+                  />
+                  <div>
+                    <p className="font-medium">{reporModal.item.peca?.nome}</p>
+                    <p className="text-sm text-muted-foreground">{reporModal.item.peca?.codigo}</p>
+                    <div className="flex gap-3 text-xs mt-1">
+                      <span className="text-success">Vendidas: {reporModal.item.quantidade_vendida || 0}</span>
+                      <span className="text-warning">Na maleta: {reporModal.item.quantidade || 0}</span>
+                      <span className="text-muted-foreground">Estoque: {estoqueDisponivel}</span>
+                    </div>
+                  </div>
+                </div>
+                {estoqueDisponivel === 0 ? (
+                  <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive text-sm">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Sem estoque disponível para esta peça</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Quantidade a repor</Label>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantidadeRepor(q => Math.max(1, q - 1))}
+                        disabled={quantidadeRepor <= 1}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={quantidadeRepor}
+                        onChange={(e) => setQuantidadeRepor(Math.max(1, Math.min(estoqueDisponivel, parseInt(e.target.value) || 1)))}
+                        className="w-20 text-center text-lg font-bold"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantidadeRepor(q => Math.min(estoqueDisponivel, q + 1))}
+                        disabled={quantidadeRepor >= estoqueDisponivel}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Máximo disponível: {estoqueDisponivel}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReporModal({ open: false, item: null })}>Cancelar</Button>
+            <Button 
+              onClick={handleRepor} 
+              disabled={isPending || quantidadeRepor < 1 || (pecas.find(p => p.id === reporModal.item?.peca_id)?.estoque || 0) === 0}
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              Repor {quantidadeRepor} peça(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={detalhesModal.open} onOpenChange={(open) => setDetalhesModal({ open, peca: detalhesModal.peca })}>
         <DialogContent>
           <DialogHeader>
