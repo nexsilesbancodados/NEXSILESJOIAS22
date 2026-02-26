@@ -26,28 +26,20 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch the password securely (never exposed to client)
-    const { data, error } = await supabaseAdmin
-      .from("revendedoras")
-      .select("senha_portal")
-      .eq("id", revendedora_id)
-      .single();
+    // Verify password using bcrypt via database function
+    const { data: isValid, error: verifyError } = await supabaseAdmin
+      .rpc('verify_portal_password_by_id', {
+        p_revendedora_id: revendedora_id,
+        p_password: senha
+      });
 
-    if (error || !data) {
+    if (verifyError) {
+      console.error("Error verifying password:", verifyError);
       return new Response(
-        JSON.stringify({ success: false, message: "Revendedora não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, message: "Erro na verificação" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    if (!data.senha_portal) {
-      return new Response(
-        JSON.stringify({ success: false, message: "Acesso ao portal não configurado" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const isValid = data.senha_portal === senha;
 
     if (!isValid) {
       return new Response(
