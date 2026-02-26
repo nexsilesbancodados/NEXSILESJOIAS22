@@ -1239,6 +1239,64 @@ export type Database = {
           },
         ]
       }
+      ecommerce_avaliacoes: {
+        Row: {
+          aprovada: boolean | null
+          cliente_email: string | null
+          cliente_nome: string
+          comentario: string | null
+          created_at: string
+          id: string
+          nota: number
+          organization_id: string
+          peca_id: string
+        }
+        Insert: {
+          aprovada?: boolean | null
+          cliente_email?: string | null
+          cliente_nome: string
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          nota: number
+          organization_id: string
+          peca_id: string
+        }
+        Update: {
+          aprovada?: boolean | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          nota?: number
+          organization_id?: string
+          peca_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_avaliacoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_avaliacoes_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_avaliacoes_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ecommerce_config: {
         Row: {
           apenas_com_foto: boolean | null
@@ -3938,6 +3996,58 @@ export type Database = {
         }
         Relationships: []
       }
+      ecommerce_avaliacoes_public: {
+        Row: {
+          cliente_nome: string | null
+          comentario: string | null
+          created_at: string | null
+          id: string | null
+          nota: number | null
+          organization_id: string | null
+          peca_id: string | null
+        }
+        Insert: {
+          cliente_nome?: string | null
+          comentario?: string | null
+          created_at?: string | null
+          id?: string | null
+          nota?: number | null
+          organization_id?: string | null
+          peca_id?: string | null
+        }
+        Update: {
+          cliente_nome?: string | null
+          comentario?: string | null
+          created_at?: string | null
+          id?: string | null
+          nota?: number | null
+          organization_id?: string | null
+          peca_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_avaliacoes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_avaliacoes_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_avaliacoes_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ecommerce_config_public: {
         Row: {
           apenas_com_foto: boolean | null
@@ -4146,6 +4256,24 @@ export type Database = {
     }
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
+      fetch_avaliacoes_media: {
+        Args: { p_organization_id: string }
+        Returns: {
+          media_nota: number
+          peca_id: string
+          total_avaliacoes: number
+        }[]
+      }
+      fetch_avaliacoes_produto: {
+        Args: { p_peca_id: string }
+        Returns: {
+          cliente_nome: string
+          comentario: string
+          created_at: string
+          id: string
+          nota: number
+        }[]
+      }
       fetch_cliente_pedido_itens: {
         Args: { p_pedido_id: string }
         Returns: {
@@ -4275,6 +4403,17 @@ export type Database = {
       seed_default_email_templates: {
         Args: { p_organization_id: string }
         Returns: undefined
+      }
+      submeter_avaliacao: {
+        Args: {
+          p_cliente_email: string
+          p_cliente_nome: string
+          p_comentario?: string
+          p_nota: number
+          p_organization_id: string
+          p_peca_id: string
+        }
+        Returns: string
       }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }

@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SearchAutocomplete } from '@/components/loja/SearchAutocomplete';
 import { CookieConsent } from '@/components/loja/CookieConsent';
 import { ProductShareButtons } from '@/components/loja/ProductShareButtons';
+import { ProductReviews } from '@/components/ecommerce/ProductReviews';
 import { ChatWidget } from '@/components/ai-agent/ChatWidget';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
@@ -95,7 +96,7 @@ export default function LojaPublicaPage() {
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
   // Agent config for chatbot
   const [agentConfig, setAgentConfig] = useState<any>(null);
-
+  const [avaliacoes, setAvaliacoes] = useState<Record<string, { media: number; total: number }>>({});
   const [cliente, setCliente] = useState({ nome: '', email: '', telefone: '', cpf: '' });
   const [endereco, setEndereco] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '' });
 
@@ -178,6 +179,14 @@ export default function LojaPublicaPage() {
         items = items.filter((p: any) => p.imagem_url);
       }
       setPecas(items);
+
+      // Load ratings
+      const { data: ratingsData } = await supabase.rpc('fetch_avaliacoes_media', { p_organization_id: (configData as any).organization_id });
+      if (ratingsData) {
+        const map: Record<string, { media: number; total: number }> = {};
+        (ratingsData as any[]).forEach((r: any) => { map[r.peca_id] = { media: Number(r.media_nota), total: Number(r.total_avaliacoes) }; });
+        setAvaliacoes(map);
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -908,6 +917,16 @@ export default function LojaPublicaPage() {
                 <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>{peca.nome}</h4>
                 <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(peca.preco_venda)}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>ou 6x de {formatCurrency(peca.preco_venda / 6)}</p>
+                {avaliacoes[peca.id] && (
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map(n => (
+                        <Star key={n} className="w-2.5 h-2.5" fill={n <= Math.round(avaliacoes[peca.id].media) ? '#F5A623' : 'none'} stroke={n <= Math.round(avaliacoes[peca.id].media) ? '#F5A623' : '#D0D0D0'} strokeWidth={1.5} />
+                      ))}
+                    </div>
+                    <span className="text-[9px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>({avaliacoes[peca.id].total})</span>
+                  </div>
+                )}
                 {config.mostrar_estoque && peca.estoque > 0 && peca.estoque <= 5 && (
                   <p className="text-[10px] mt-0.5" style={{ color: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>Restam {peca.estoque} un.</p>
                 )}
@@ -1013,6 +1032,17 @@ export default function LojaPublicaPage() {
                       </button>
                     </div>
                   </div>
+                )}
+
+                {/* Avaliações do produto */}
+                {config.avaliacoes_ativas !== false && (
+                  <ProductReviews
+                    pecaId={selectedPeca.id}
+                    organizationId={config.organization_id}
+                    roseGold={roseGold}
+                    textDark={textDark}
+                    textMuted={textMuted}
+                  />
                 )}
               </div>
             </div>
