@@ -1,11 +1,15 @@
+import { useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+
 const LandingPlanosPage = () => {
+  useEffect(() => {
+    window.location.href = 'https://www.nexsiles.com.br/';
+  }, []);
+
   return (
-    <iframe
-      src="https://www.nexsiles.com.br/"
-      className="w-screen h-screen fixed inset-0 z-50 border-0"
-      title="Nexsiles"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
-    />
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    </div>
   );
 };
 
