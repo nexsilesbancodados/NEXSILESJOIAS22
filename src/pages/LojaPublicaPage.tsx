@@ -31,6 +31,12 @@ interface StoreConfig {
   frete_gratis_acima: number | null; taxa_entrega: number;
   whatsapp: string | null; instagram: string | null; organization_id: string;
   apenas_com_foto: boolean | null;
+  banner_ativo: boolean | null; banner_texto: string | null; banner_cor: string | null;
+  mostrar_estoque: boolean | null; mostrar_preco_original: boolean | null;
+  pedido_minimo: number | null; produtos_por_pagina: number | null;
+  metodos_pagamento: string[] | null; email_contato: string | null;
+  facebook: string | null; politica_troca: string | null; politica_privacidade: string | null;
+  avaliacoes_ativas: boolean | null; horario_funcionamento: any | null;
 }
 
 interface Peca {
@@ -311,6 +317,10 @@ export default function LojaPublicaPage() {
   const handleCheckout = async () => {
     if (!cliente.nome.trim()) { toast.error('Informe seu nome'); return; }
     if (!config) return;
+    if (config.pedido_minimo && subtotal < config.pedido_minimo) {
+      toast.error(`Pedido mínimo de ${formatCurrency(config.pedido_minimo)}`);
+      return;
+    }
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('ecommerce-checkout', {
@@ -465,14 +475,24 @@ export default function LojaPublicaPage() {
         </div>
       </div>
 
-      {/* Announcement Bar */}
-      <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: roseGold }}>
-        <motion.div animate={{ x: ['100%', '-100%'] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="whitespace-nowrap">
-          <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
-            ✦ Frete grátis {config.frete_gratis_acima ? `acima de R$ ${config.frete_gratis_acima.toFixed(0)}` : 'em compras selecionadas'} ✦ Parcele em até 12x sem juros ✦ Troca grátis na primeira compra ✦ Novidades toda semana ✦
-          </span>
-        </motion.div>
-      </div>
+      {/* Announcement Bar - uses banner config */}
+      {config.banner_ativo && config.banner_texto ? (
+        <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: config.banner_cor || roseGold }}>
+          <motion.div animate={{ x: ['100%', '-100%'] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="whitespace-nowrap">
+            <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+              {config.banner_texto}
+            </span>
+          </motion.div>
+        </div>
+      ) : (
+        <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: roseGold }}>
+          <motion.div animate={{ x: ['100%', '-100%'] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="whitespace-nowrap">
+            <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+              ✦ Frete grátis {config.frete_gratis_acima ? `acima de R$ ${config.frete_gratis_acima.toFixed(0)}` : 'em compras selecionadas'} ✦ Parcele em até 12x sem juros ✦ Troca grátis na primeira compra ✦ Novidades toda semana ✦
+            </span>
+          </motion.div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ backgroundColor: `${warmWhite}F2`, borderColor: '#F0E6E0' }}>
@@ -856,6 +876,9 @@ export default function LojaPublicaPage() {
                 <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>{peca.nome}</h4>
                 <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(peca.preco_venda)}</p>
                 <p className="text-[10px] mt-0.5" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>ou 6x de {formatCurrency(peca.preco_venda / 6)}</p>
+                {config.mostrar_estoque && peca.estoque > 0 && peca.estoque <= 5 && (
+                  <p className="text-[10px] mt-0.5" style={{ color: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>Restam {peca.estoque} un.</p>
+                )}
               </div>
             </motion.div>
           ))}
@@ -909,7 +932,11 @@ export default function LojaPublicaPage() {
                 )}
 
                 <div className="mt-3 flex items-center gap-2 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {selectedPeca.estoque > 0 ? <span style={{ color: '#4CAF50' }}>● Em estoque ({selectedPeca.estoque} un.)</span> : <span style={{ color: textMuted }}>● Esgotado</span>}
+                  {config.mostrar_estoque !== false ? (
+                    selectedPeca.estoque > 0 ? <span style={{ color: '#4CAF50' }}>● Em estoque ({selectedPeca.estoque} un.)</span> : <span style={{ color: textMuted }}>● Esgotado</span>
+                  ) : (
+                    selectedPeca.estoque > 0 ? <span style={{ color: '#4CAF50' }}>● Disponível</span> : <span style={{ color: textMuted }}>● Esgotado</span>
+                  )}
                 </div>
 
                 {/* Wishlist toggle in modal */}
@@ -1138,6 +1165,7 @@ export default function LojaPublicaPage() {
               <div className="flex items-center gap-3">
                 {config.whatsapp && <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}`} className="w-8 h-8 border border-white/20 flex items-center justify-center hover:border-white/50" style={{ color: roseGoldLight }}><Phone className="w-3.5 h-3.5" /></a>}
                 {config.instagram && <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-white/20 flex items-center justify-center hover:border-white/50" style={{ color: roseGoldLight }}><Instagram className="w-3.5 h-3.5" /></a>}
+                {config.facebook && <a href={config.facebook.startsWith('http') ? config.facebook : `https://facebook.com/${config.facebook}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-white/20 flex items-center justify-center hover:border-white/50" style={{ color: roseGoldLight }}><span className="text-xs font-bold">f</span></a>}
               </div>
             </div>
             <div>
@@ -1157,10 +1185,10 @@ export default function LojaPublicaPage() {
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Ajuda</h5>
               <ul className="space-y-2.5">
                 {[
-                  { label: 'Trocas e Devoluções', action: () => setPolicyModal({ title: 'Trocas e Devoluções', content: `Primeira troca gratuita em até 7 dias.\n\nCondições:\n• Produto em perfeito estado.\n• Acompanhar embalagem e nota.\n• Solicite pelo WhatsApp${config.whatsapp ? ` (${config.whatsapp})` : ''}.` }) },
+                  { label: 'Trocas e Devoluções', action: () => setPolicyModal({ title: 'Trocas e Devoluções', content: config.politica_troca || `Primeira troca gratuita em até 7 dias.\n\nCondições:\n• Produto em perfeito estado.\n• Acompanhar embalagem e nota.\n• Solicite pelo WhatsApp${config.whatsapp ? ` (${config.whatsapp})` : ''}.` }) },
                   { label: 'Prazo de Entrega', action: () => setPolicyModal({ title: 'Prazo de Entrega', content: `Capitais: 3-7 dias úteis\nInterior: 5-12 dias úteis\nRegiões remotas: 7-15 dias úteis${config.frete_gratis_acima ? `\n\n✦ Frete grátis acima de R$ ${config.frete_gratis_acima.toFixed(0)}.` : ''}` }) },
-                  { label: 'Formas de Pagamento', action: () => setPolicyModal({ title: 'Formas de Pagamento', content: 'Cartão de crédito (até 12x)\nCartão de débito\nPIX\nBoleto bancário\n\nProcessado pelo Mercado Pago.' }) },
-                  { label: 'Central de Ajuda', action: () => { if (config.whatsapp) window.open(`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=Olá! Preciso de ajuda.`, '_blank'); else toast.info('Entre em contato pelo Instagram.'); } },
+                  { label: 'Formas de Pagamento', action: () => setPolicyModal({ title: 'Formas de Pagamento', content: config.metodos_pagamento?.length ? `Formas aceitas:\n${config.metodos_pagamento.map(m => `• ${m.charAt(0).toUpperCase() + m.slice(1)}`).join('\n')}\n\nProcessado pelo Mercado Pago.` : 'Cartão de crédito (até 12x)\nCartão de débito\nPIX\nBoleto bancário\n\nProcessado pelo Mercado Pago.' }) },
+                  { label: 'Central de Ajuda', action: () => { if (config.whatsapp) window.open(`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=Olá! Preciso de ajuda.`, '_blank'); else if (config.email_contato) window.location.href = `mailto:${config.email_contato}`; else toast.info('Entre em contato pelo Instagram.'); } },
                 ].map(item => (
                   <li key={item.label}><button onClick={item.action} className="text-xs hover:text-white text-left" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{item.label}</button></li>
                 ))}
@@ -1170,6 +1198,7 @@ export default function LojaPublicaPage() {
               <h5 className="text-xs uppercase tracking-[0.2em] mb-4 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Contato</h5>
               <ul className="space-y-2.5">
                 {config.whatsapp && <li className="flex items-center gap-2"><Phone className="w-3 h-3" style={{ color: roseGoldLight }} /><span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{config.whatsapp}</span></li>}
+                {config.email_contato && <li className="flex items-center gap-2"><span className="text-xs" style={{ color: roseGoldLight }}>✉</span><a href={`mailto:${config.email_contato}`} className="text-xs hover:text-white" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{config.email_contato}</a></li>}
                 {config.instagram && <li className="flex items-center gap-2"><Instagram className="w-3 h-3" style={{ color: roseGoldLight }} /><span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>@{config.instagram.replace('@', '')}</span></li>}
               </ul>
             </div>
@@ -1178,7 +1207,7 @@ export default function LojaPublicaPage() {
             <p className="text-[10px]" style={{ color: '#6A6A6A', fontFamily: "'Inter', sans-serif" }}>© {new Date().getFullYear()} {config.nome_loja}. Todos os direitos reservados.</p>
             <div className="flex items-center gap-4">
               {[
-                { label: 'Política de Privacidade', content: `A ${config.nome_loja} respeita sua privacidade.\n\nDados coletados: nome, e-mail, telefone e endereço para pedidos.\nSeus dados nunca serão vendidos.` },
+                { label: 'Política de Privacidade', content: config.politica_privacidade || `A ${config.nome_loja} respeita sua privacidade.\n\nDados coletados: nome, e-mail, telefone e endereço para pedidos.\nSeus dados nunca serão vendidos.` },
                 { label: 'Termos de Uso', content: `Ao utilizar a loja, você concorda que:\n1. Preços sujeitos a alteração.\n2. Imagens ilustrativas.\n3. Conteúdo protegido por direitos autorais.` },
                 { label: 'Cookies', content: 'Utilizamos cookies para manter sua sessão, analisar tráfego e personalizar ofertas.' },
               ].map(item => (
@@ -1305,8 +1334,13 @@ export default function LojaPublicaPage() {
                   <span style={{ color: textDark }}>Total</span><span style={{ color: roseGold }}>{formatCurrency(total)}</span>
                 </div>
               </div>
+              {config.pedido_minimo && subtotal < config.pedido_minimo && (
+                <p className="text-[11px] text-center py-1" style={{ color: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>
+                  Pedido mínimo de {formatCurrency(config.pedido_minimo)} (faltam {formatCurrency(config.pedido_minimo - subtotal)})
+                </p>
+              )}
               <button className="w-full py-3 text-white text-xs uppercase tracking-[0.15em] hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: roseGold }} onClick={handleCheckout} disabled={processing}>
+                style={{ backgroundColor: roseGold }} onClick={handleCheckout} disabled={processing || (!!config.pedido_minimo && subtotal < config.pedido_minimo)}>
                 {processing ? 'Processando...' : 'Ir para Pagamento'}
               </button>
             </div>
