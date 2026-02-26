@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Store, Loader2, CheckCircle, Package, Heart, Truck, CreditCard, RefreshCw, Sparkles, Instagram, Phone, ChevronRight, ChevronDown } from 'lucide-react';
 import { ClienteAuthArea } from '@/components/ecommerce/ClienteAuthArea';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -116,15 +116,31 @@ export default function LojaPublicaPage() {
     }
   };
 
-  const categorias = useMemo(() => {
-    const cats = new Set(pecas.map(p => p.categoria).filter(Boolean));
-    return Array.from(cats) as string[];
+  // Build category-subcategory tree: { categoria: [material1, material2, ...] }
+  const categoryTree = useMemo(() => {
+    const tree: Record<string, string[]> = {};
+    pecas.forEach(p => {
+      const cat = p.categoria || 'Outros';
+      const mat = p.material || '';
+      if (!tree[cat]) tree[cat] = [];
+      if (mat && !tree[cat].includes(mat)) tree[cat].push(mat);
+    });
+    // Sort materials within each category
+    Object.keys(tree).forEach(cat => tree[cat].sort());
+    return tree;
   }, [pecas]);
 
+  const categorias = useMemo(() => Object.keys(categoryTree).sort(), [categoryTree]);
+
   const materiais = useMemo(() => {
-    const mats = new Set(pecas.map(p => p.material).filter(Boolean));
-    return Array.from(mats) as string[];
-  }, [pecas]);
+    if (categoriaFilter === 'todas') {
+      const allMats = new Set(pecas.map(p => p.material).filter(Boolean));
+      return Array.from(allMats).sort() as string[];
+    }
+    return categoryTree[categoriaFilter] || [];
+  }, [pecas, categoriaFilter, categoryTree]);
+
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
 
   const filteredPecas = useMemo(() => {
     return pecas.filter(p => {
@@ -590,41 +606,108 @@ export default function LojaPublicaPage() {
             Nossa Coleção
           </p>
           <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>
-            {categoriaFilter !== 'todas' ? categoriaFilter : 'Todas as Peças'}
+            {categoriaFilter !== 'todas'
+              ? materialFilter !== 'todos'
+                ? `${categoriaFilter} — ${materialFilter}`
+                : categoriaFilter
+              : 'Todas as Peças'}
           </h3>
           <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
         </div>
 
-        {/* Material Filter Pills */}
-        {materiais.length > 1 && (
-          <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
-            <button
-              onClick={() => setMaterialFilter('todos')}
-              className="px-4 py-1.5 text-[11px] uppercase tracking-wider border transition-all"
-              style={{
-                borderColor: materialFilter === 'todos' ? roseGold : '#E0D5CF',
-                backgroundColor: materialFilter === 'todos' ? roseGold : 'transparent',
-                color: materialFilter === 'todos' ? 'white' : textMuted,
-                fontFamily: "'Inter', sans-serif",
-              }}
-            >
-              Todos
-            </button>
-            {materiais.map(m => (
+        {/* Category - Subcategory Navigation */}
+        {categorias.length > 0 && (
+          <div className="mb-10">
+            {/* Main Category Pills */}
+            <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
               <button
-                key={m}
-                onClick={() => setMaterialFilter(m)}
-                className="px-4 py-1.5 text-[11px] uppercase tracking-wider border transition-all"
+                onClick={() => { setCategoriaFilter('todas'); setMaterialFilter('todos'); setExpandedCat(null); }}
+                className="px-5 py-2 text-[11px] uppercase tracking-[0.15em] border transition-all"
                 style={{
-                  borderColor: materialFilter === m ? roseGold : '#E0D5CF',
-                  backgroundColor: materialFilter === m ? roseGold : 'transparent',
-                  color: materialFilter === m ? 'white' : textMuted,
+                  borderColor: categoriaFilter === 'todas' ? roseGold : '#E0D5CF',
+                  backgroundColor: categoriaFilter === 'todas' ? roseGold : 'transparent',
+                  color: categoriaFilter === 'todas' ? 'white' : textMuted,
                   fontFamily: "'Inter', sans-serif",
                 }}
               >
-                {m}
+                Todos
               </button>
-            ))}
+              {categorias.map(cat => {
+                const isActive = categoriaFilter === cat;
+                const hasSubcats = categoryTree[cat] && categoryTree[cat].length > 0;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setCategoriaFilter(cat);
+                      setMaterialFilter('todos');
+                      setExpandedCat(isActive && expandedCat === cat ? null : cat);
+                    }}
+                    className="px-5 py-2 text-[11px] uppercase tracking-[0.15em] border transition-all flex items-center gap-1.5"
+                    style={{
+                      borderColor: isActive ? roseGold : '#E0D5CF',
+                      backgroundColor: isActive ? roseGold : 'transparent',
+                      color: isActive ? 'white' : textMuted,
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {cat}
+                    {hasSubcats && (
+                      <ChevronDown
+                        className="w-3 h-3 transition-transform"
+                        style={{ transform: isActive && expandedCat === cat ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Subcategory (Material) Pills */}
+            <AnimatePresence>
+              {categoriaFilter !== 'todas' && materiais.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center justify-center gap-2 flex-wrap pt-2 pb-1">
+                    <span className="text-[10px] uppercase tracking-wider mr-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                      Material:
+                    </span>
+                    <button
+                      onClick={() => setMaterialFilter('todos')}
+                      className="px-3 py-1 text-[10px] uppercase tracking-wider rounded-full border transition-all"
+                      style={{
+                        borderColor: materialFilter === 'todos' ? roseGoldDark : '#E0D5CF',
+                        backgroundColor: materialFilter === 'todos' ? roseGoldDark : 'transparent',
+                        color: materialFilter === 'todos' ? 'white' : textMuted,
+                        fontFamily: "'Inter', sans-serif",
+                      }}
+                    >
+                      Todos
+                    </button>
+                    {materiais.map(mat => (
+                      <button
+                        key={mat}
+                        onClick={() => setMaterialFilter(mat)}
+                        className="px-3 py-1 text-[10px] uppercase tracking-wider rounded-full border transition-all"
+                        style={{
+                          borderColor: materialFilter === mat ? roseGoldDark : '#E0D5CF',
+                          backgroundColor: materialFilter === mat ? roseGoldDark : 'transparent',
+                          color: materialFilter === mat ? 'white' : textMuted,
+                          fontFamily: "'Inter', sans-serif",
+                        }}
+                      >
+                        {mat}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -683,7 +766,7 @@ export default function LojaPublicaPage() {
               </div>
               <div className="pt-3 pb-1 text-center">
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                  {peca.categoria || peca.material || ''}
+                  {[peca.categoria, peca.material].filter(Boolean).join(' · ') || ''}
                 </p>
                 <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>
                   {peca.nome}
@@ -723,7 +806,7 @@ export default function LojaPublicaPage() {
               </div>
               <div className="sm:w-1/2 p-6 flex flex-col justify-center">
                 <p className="text-xs uppercase tracking-[0.2em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-                  {selectedPeca.categoria || selectedPeca.material || 'Peça'}
+                  {[selectedPeca.categoria, selectedPeca.material].filter(Boolean).join(' · ') || 'Peça'}
                 </p>
                 <h3 className="text-xl sm:text-2xl font-light leading-snug" style={{ color: textDark }}>
                   {selectedPeca.nome}
