@@ -46,6 +46,9 @@ const AtendimentoPage = lazy(() => import("./pages/AtendimentoPage"));
 const TutorialPage = lazy(() => import("./pages/TutorialPage"));
 const SuperAdminPage = lazy(() => import("./pages/SuperAdminPage"));
 const FiadoPage = lazy(() => import("./pages/FiadoPage"));
+const EntregasPage = lazy(() => import("./pages/EntregasPage"));
+const FidelidadePage = lazy(() => import("./pages/FidelidadePage"));
+const HistoricoPrecosPage = lazy(() => import("./pages/HistoricoPrecosPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -196,6 +199,9 @@ function AppRoutes() {
                       <Route path="/tutorial" element={<TutorialPage />} />
                       <Route path="/super-admin" element={<SuperAdminPage />} />
                       <Route path="/fiado" element={<FiadoPage />} />
+                      <Route path="/entregas" element={<EntregasPage />} />
+                      <Route path="/fidelidade" element={<FidelidadePage />} />
+                      <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

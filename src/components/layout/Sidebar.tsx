@@ -29,7 +29,9 @@ import {
   MessageCircle,
   GraduationCap,
   Shield,
-  HandCoins
+  HandCoins,
+  Star,
+  DollarSign,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRomaneios } from '@/hooks/useSupabaseData';
@@ -58,6 +60,9 @@ const routeImports: Record<string, () => Promise<unknown>> = {
   '/tutorial': () => import('@/pages/TutorialPage'),
   '/funcionarios': () => import('@/pages/FuncionariosPage'),
   '/configuracoes': () => import('@/pages/ConfiguracoesPage'),
+  '/entregas': () => import('@/pages/EntregasPage'),
+  '/fidelidade': () => import('@/pages/FidelidadePage'),
+  '/historico-precos': () => import('@/pages/HistoricoPrecosPage'),
 };
 
 // Track which routes have already been prefetched to avoid duplicate calls
@@ -143,6 +148,9 @@ const menuItems = [
   { icon: FileText, label: 'Romaneios', path: '/romaneios', badge: true, color: 'from-orange-500 to-red-600' },
   { icon: BarChart3, label: 'Relatórios', path: '/relatorios', color: 'from-cyan-500 to-blue-600' },
   { icon: History, label: 'Histórico', path: '/historico', color: 'from-gray-500 to-slate-600' },
+  { icon: DollarSign, label: 'Histórico Preços', path: '/historico-precos', color: 'from-yellow-500 to-amber-600' },
+  { icon: Truck, label: 'Entregas', path: '/entregas', color: 'from-sky-500 to-blue-600' },
+  { icon: Star, label: 'Fidelidade', path: '/fidelidade', color: 'from-amber-500 to-yellow-600' },
   { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600' },
   { icon: GraduationCap, label: 'Tutorial', path: '/tutorial', color: 'from-emerald-500 to-green-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
