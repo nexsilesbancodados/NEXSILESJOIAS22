@@ -29,6 +29,7 @@ interface StoreConfig {
   cor_primaria: string; cor_secundaria: string; descricao: string | null;
   frete_gratis_acima: number | null; taxa_entrega: number;
   whatsapp: string | null; instagram: string | null; organization_id: string;
+  apenas_com_foto: boolean | null;
 }
 
 interface Peca {
@@ -143,10 +144,15 @@ export default function LojaPublicaPage() {
       if (configError || !configData) { setLoading(false); return; }
       setConfig(configData as any);
 
-      const { data: pecasData } = await supabase
+      let query = supabase
         .from('pecas_loja_public' as any).select('*')
         .eq('organization_id', (configData as any).organization_id).order('nome');
-      setPecas((pecasData as any) || []);
+      const { data: pecasData } = await query;
+      let items = (pecasData as any) || [];
+      if ((configData as any).apenas_com_foto) {
+        items = items.filter((p: any) => p.imagem_url);
+      }
+      setPecas(items);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
