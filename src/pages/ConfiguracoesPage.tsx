@@ -36,6 +36,13 @@ export default function ConfiguracoesPage() {
   const saveConfigs = useSaveConfiguracoes();
   const { resetWizard } = useSetupWizard();
   
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
+
   const [config, setConfig] = useState({
     nome_loja: '',
     telefone_loja: '',
@@ -106,7 +113,7 @@ export default function ConfiguracoesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue={defaultTab} className="max-w-4xl">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-4xl">
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
           <TabsTrigger value="perfil" className="gap-1">
             <User className="w-3 h-3" />
