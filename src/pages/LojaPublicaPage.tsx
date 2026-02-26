@@ -91,12 +91,11 @@ export default function LojaPublicaPage() {
 
   const loadStore = async () => {
     try {
-      // Load config via anon access
+      // Load config via public view (anon access)
       const { data: configData, error: configError } = await supabase
-        .from('ecommerce_config' as any)
+        .from('ecommerce_config_public' as any)
         .select('*')
         .eq('slug', slug)
-        .eq('ativo', true)
         .maybeSingle();
 
       if (configError || !configData) {
@@ -106,14 +105,11 @@ export default function LojaPublicaPage() {
 
       setConfig(configData as any);
 
-      // Load products
+      // Load products via public view (no cost price exposed)
       const { data: pecasData } = await supabase
-        .from('pecas' as any)
-        .select('id, nome, codigo, preco_venda, imagem_url, categoria, material, descricao, estoque, peso, organization_id')
+        .from('pecas_loja_public' as any)
+        .select('*')
         .eq('organization_id', (configData as any).organization_id)
-        .eq('disponivel_loja', true)
-        .eq('ativo', true)
-        .gt('estoque', 0)
         .order('nome');
 
       setPecas((pecasData as any) || []);
