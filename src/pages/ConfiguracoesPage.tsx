@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useConfiguracoes, useSaveConfiguracoes } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MetasConfig } from '@/components/metas/MetasConfig';
 import { BackupManager } from '@/components/backup/BackupManager';
 import { PrinterSettings } from '@/components/printer/PrinterSettings';
@@ -24,9 +24,12 @@ import { DataExportManager } from '@/components/export/DataExportManager';
 import { SmartAlertsManager } from '@/components/alerts/SmartAlertsManager';
 import { FuncionariosTab } from '@/components/funcionarios/FuncionariosTab';
 import { EcommerceConfigTab } from '@/components/ecommerce/EcommerceConfigTab';
+import { EcommercePedidosTab } from '@/components/ecommerce/EcommercePedidosTab';
 
 export default function ConfiguracoesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'perfil';
   const { signOut, profile } = useAuth();
   const { theme, setTheme } = useTheme();
   const { data: configData, isLoading } = useConfiguracoes();
@@ -103,7 +106,7 @@ export default function ConfiguracoesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="perfil" className="max-w-4xl">
+      <Tabs defaultValue={defaultTab} className="max-w-4xl">
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
           <TabsTrigger value="perfil" className="gap-1">
             <User className="w-3 h-3" />
@@ -449,7 +452,18 @@ export default function ConfiguracoesPage() {
         </TabsContent>
 
         <TabsContent value="ecommerce" className="space-y-6">
-          <EcommerceConfigTab />
+          <Tabs defaultValue="config-loja" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="config-loja">Configurações</TabsTrigger>
+              <TabsTrigger value="pedidos-loja">Pedidos</TabsTrigger>
+            </TabsList>
+            <TabsContent value="config-loja">
+              <EcommerceConfigTab />
+            </TabsContent>
+            <TabsContent value="pedidos-loja">
+              <EcommercePedidosTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
       </Tabs>
