@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
   Table, 
@@ -42,7 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Gem, Package, Loader2, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Wand2, Keyboard, AlertTriangle, ShoppingBag, Upload } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Gem, Package, Loader2, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Wand2, Keyboard, AlertTriangle, ShoppingBag, Upload, Store } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePecas, useAddPeca, useUpdatePeca, useDeletePeca, useFornecedores } from '@/hooks/useSupabaseData';
@@ -590,6 +591,7 @@ export default function PecasPage() {
                   Cadastro {getSortIcon('created_at')}
                 </button>
               </TableHead>
+              <TableHead className="w-12">Loja</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -626,6 +628,13 @@ export default function PecasPage() {
                 <TableCell className="text-muted-foreground text-sm">
                   {peca.created_at ? new Date(peca.created_at).toLocaleDateString('pt-BR') : '-'}
                 </TableCell>
+                <TableCell className="text-center">
+                  {(peca as any).disponivel_loja ? (
+                    <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30">Na Loja</Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -637,6 +646,19 @@ export default function PecasPage() {
                       <DropdownMenuItem onClick={() => handleOpenForm(peca)}>
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const newVal = !(peca as any).disponivel_loja;
+                          try {
+                            await updatePeca.mutateAsync({ id: peca.id, disponivel_loja: newVal } as any);
+                            toast.success(newVal ? 'Peça disponível na loja!' : 'Peça removida da loja');
+                          } catch { toast.error('Erro ao atualizar'); }
+                        }}
+                      >
+                        <Store className="w-4 h-4 mr-2" />
+                        {(peca as any).disponivel_loja ? 'Remover da Loja' : 'Disponibilizar na Loja'}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
