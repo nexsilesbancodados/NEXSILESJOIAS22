@@ -80,3 +80,9 @@ verify_jwt = false
 
 [functions.mercadopago-process-payment]
 verify_jwt = false
+
+[functions.ecommerce-checkout]
+verify_jwt = false
+
+[functions.ecommerce-process-payment]
+verify_jwt = false

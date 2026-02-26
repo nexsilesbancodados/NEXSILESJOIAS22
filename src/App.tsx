@@ -49,6 +49,8 @@ const FiadoPage = lazy(() => import("./pages/FiadoPage"));
 const EntregasPage = lazy(() => import("./pages/EntregasPage"));
 const FidelidadePage = lazy(() => import("./pages/FidelidadePage"));
 const HistoricoPrecosPage = lazy(() => import("./pages/HistoricoPrecosPage"));
+const LojaPublicaPage = lazy(() => import("./pages/LojaPublicaPage"));
+const PedidosLojaPage = lazy(() => import("./pages/PedidosLojaPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -140,6 +142,9 @@ function AppRoutes() {
         {/* Catálogo Público - Public page */}
         <Route path="/catalogo/:catalogoId" element={<CatalogoPublicoPage />} />
         
+        {/* Loja Pública - E-commerce */}
+        <Route path="/loja/:slug" element={<LojaPublicaPage />} />
+        
         {/* Maleta Pública - Public page for reseller customers */}
         <Route path="/maleta/:maletaId" element={<MaletaPublicaPage />} />
         
@@ -202,6 +207,7 @@ function AppRoutes() {
                       <Route path="/entregas" element={<EntregasPage />} />
                       <Route path="/fidelidade" element={<FidelidadePage />} />
                       <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
+                      <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>

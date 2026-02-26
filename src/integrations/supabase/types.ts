@@ -1014,6 +1014,13 @@ export type Database = {
             referencedRelation: "pecas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "catalogos_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cliente_preferencias: {
@@ -1229,6 +1236,182 @@ export type Database = {
           },
         ]
       }
+      ecommerce_config: {
+        Row: {
+          ativo: boolean
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          created_at: string
+          descricao: string | null
+          frete_gratis_acima: number | null
+          id: string
+          instagram: string | null
+          logo_url: string | null
+          nome_loja: string
+          organization_id: string
+          slug: string
+          taxa_entrega: number | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          created_at?: string
+          descricao?: string | null
+          frete_gratis_acima?: number | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          nome_loja?: string
+          organization_id: string
+          slug: string
+          taxa_entrega?: number | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          created_at?: string
+          descricao?: string | null
+          frete_gratis_acima?: number | null
+          id?: string
+          instagram?: string | null
+          logo_url?: string | null
+          nome_loja?: string
+          organization_id?: string
+          slug?: string
+          taxa_entrega?: number | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ecommerce_pedido_itens: {
+        Row: {
+          created_at: string
+          id: string
+          peca_id: string
+          pedido_id: string
+          preco_unitario: number
+          quantidade: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          peca_id: string
+          pedido_id: string
+          preco_unitario?: number
+          quantidade?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          peca_id?: string
+          pedido_id?: string
+          preco_unitario?: number
+          quantidade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_pedido_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_pedido_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ecommerce_pedido_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "ecommerce_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ecommerce_pedidos: {
+        Row: {
+          cliente_cpf: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          created_at: string
+          endereco: Json | null
+          id: string
+          mercadopago_payment_id: string | null
+          metodo_pagamento: string | null
+          numero_pedido: number
+          organization_id: string
+          status: string
+          updated_at: string
+          valor_frete: number
+          valor_subtotal: number
+          valor_total: number
+        }
+        Insert: {
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_telefone?: string | null
+          created_at?: string
+          endereco?: Json | null
+          id?: string
+          mercadopago_payment_id?: string | null
+          metodo_pagamento?: string | null
+          numero_pedido?: number
+          organization_id: string
+          status?: string
+          updated_at?: string
+          valor_frete?: number
+          valor_subtotal?: number
+          valor_total?: number
+        }
+        Update: {
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          created_at?: string
+          endereco?: Json | null
+          id?: string
+          mercadopago_payment_id?: string | null
+          metodo_pagamento?: string | null
+          numero_pedido?: number
+          organization_id?: string
+          status?: string
+          updated_at?: string
+          valor_frete?: number
+          valor_subtotal?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_pedidos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           aberto_at: string | null
@@ -1400,6 +1583,13 @@ export type Database = {
             columns: ["peca_id"]
             isOneToOne: false
             referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_galvanica_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1928,6 +2118,13 @@ export type Database = {
             referencedRelation: "pecas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "historico_precos_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maleta_interesse_itens: {
@@ -1965,6 +2162,13 @@ export type Database = {
             columns: ["peca_id"]
             isOneToOne: false
             referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_interesse_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2162,6 +2366,13 @@ export type Database = {
             columns: ["peca_id"]
             isOneToOne: false
             referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maletas_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2567,6 +2778,7 @@ export type Database = {
           codigo_barras: string | null
           created_at: string | null
           descricao: string | null
+          disponivel_loja: boolean
           estoque: number | null
           estoque_minimo: number | null
           fornecedor_id: string | null
@@ -2590,6 +2802,7 @@ export type Database = {
           codigo_barras?: string | null
           created_at?: string | null
           descricao?: string | null
+          disponivel_loja?: boolean
           estoque?: number | null
           estoque_minimo?: number | null
           fornecedor_id?: string | null
@@ -2613,6 +2826,7 @@ export type Database = {
           codigo_barras?: string | null
           created_at?: string | null
           descricao?: string | null
+          disponivel_loja?: boolean
           estoque?: number | null
           estoque_minimo?: number | null
           fornecedor_id?: string | null
@@ -2733,6 +2947,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pedidos_catalogo_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pedidos_catalogo_itens_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -2843,10 +3064,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "produto_associacoes_peca_associada_id_fkey"
+            columns: ["peca_associada_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "produto_associacoes_peca_origem_id_fkey"
             columns: ["peca_origem_id"]
             isOneToOne: false
             referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_associacoes_peca_origem_id_fkey"
+            columns: ["peca_origem_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2975,6 +3210,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recompensas_fidelidade_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3181,6 +3423,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "romaneios_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "romaneios_pecas_romaneio_id_fkey"
             columns: ["romaneio_id"]
             isOneToOne: false
@@ -3372,6 +3621,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vendas_pecas_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vendas_pecas_venda_id_fkey"
             columns: ["venda_id"]
             isOneToOne: false
@@ -3477,6 +3733,62 @@ export type Database = {
         }
         Relationships: []
       }
+      ecommerce_config_public: {
+        Row: {
+          ativo: boolean | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
+          descricao: string | null
+          frete_gratis_acima: number | null
+          id: string | null
+          instagram: string | null
+          logo_url: string | null
+          nome_loja: string | null
+          organization_id: string | null
+          slug: string | null
+          taxa_entrega: number | null
+          whatsapp: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          descricao?: string | null
+          frete_gratis_acima?: number | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          nome_loja?: string | null
+          organization_id?: string | null
+          slug?: string | null
+          taxa_entrega?: number | null
+          whatsapp?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
+          descricao?: string | null
+          frete_gratis_acima?: number | null
+          id?: string | null
+          instagram?: string | null
+          logo_url?: string | null
+          nome_loja?: string | null
+          organization_id?: string | null
+          slug?: string | null
+          taxa_entrega?: number | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecommerce_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maletas_public: {
         Row: {
           cor_primaria: string | null
@@ -3512,6 +3824,56 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      pecas_loja_public: {
+        Row: {
+          categoria: string | null
+          codigo: string | null
+          descricao: string | null
+          estoque: number | null
+          id: string | null
+          imagem_url: string | null
+          material: string | null
+          nome: string | null
+          organization_id: string | null
+          peso: number | null
+          preco_venda: number | null
+        }
+        Insert: {
+          categoria?: string | null
+          codigo?: string | null
+          descricao?: string | null
+          estoque?: number | null
+          id?: string | null
+          imagem_url?: string | null
+          material?: string | null
+          nome?: string | null
+          organization_id?: string | null
+          peso?: number | null
+          preco_venda?: number | null
+        }
+        Update: {
+          categoria?: string | null
+          codigo?: string | null
+          descricao?: string | null
+          estoque?: number | null
+          id?: string | null
+          imagem_url?: string | null
+          material?: string | null
+          nome?: string | null
+          organization_id?: string | null
+          peso?: number | null
+          preco_venda?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pecas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       revendedoras_portal_public: {
         Row: {
