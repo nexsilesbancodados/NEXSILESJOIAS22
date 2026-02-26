@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -53,6 +53,16 @@ const LojaPublicaPage = lazy(() => import("./pages/LojaPublicaPage"));
 const PedidosLojaPage = lazy(() => import("./pages/PedidosLojaPage"));
 const LojaVirtualPage = lazy(() => import("./pages/LojaVirtualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Componente que redireciona /:slug para /loja/:slug quando acessado pelo subdomínio loja.*
+function LojaSubdomainRedirect() {
+  const { slug } = useParams();
+  const isLojaSubdomain = window.location.hostname.startsWith('loja.');
+  if (isLojaSubdomain && slug) {
+    return <Suspense fallback={<div />}><LojaPublicaPage /></Suspense>;
+  }
+  return <Navigate to="/" replace />;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -145,6 +155,8 @@ function AppRoutes() {
         
         {/* Loja Pública - E-commerce */}
         <Route path="/loja/:slug" element={<LojaPublicaPage />} />
+        {/* Loja via subdomínio dedicado (loja.nexsiles.com.br/:slug) */}
+        <Route path="/:slug" element={<LojaSubdomainRedirect />} />
         
         {/* Maleta Pública - Public page for reseller customers */}
         <Route path="/maleta/:maletaId" element={<MaletaPublicaPage />} />
