@@ -49,6 +49,7 @@ const Header = memo(({
   user, 
   profile, 
   cargo,
+  isAdmin,
   onSignOut,
   sidebarWidth
 }: { 
@@ -57,6 +58,7 @@ const Header = memo(({
   user: any;
   profile: any;
   cargo: string | null;
+  isAdmin: boolean;
   onSignOut: () => void;
   sidebarWidth: number;
 }) => {
@@ -138,7 +140,7 @@ const Header = memo(({
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold">{profile?.nome || 'Usuário'}</p>
                 <p className="text-xs text-muted-foreground capitalize">
-                  {cargo || (profile?.role === 'admin' ? 'Administrador' : 'Usuário')}
+                  {cargo || (isAdmin ? 'Administrador' : 'Usuário')}
                 </p>
               </div>
               <UserAvatar 
@@ -170,7 +172,7 @@ const Header = memo(({
 Header.displayName = 'Header';
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, isAdmin } = useAuth();
   const { data: preferences, isLoading: prefsLoading } = useUserPreferences();
   const savePreference = useSaveUserPreference();
   const initializedRef = useRef(false);
@@ -276,6 +278,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           user={user}
           profile={profile}
           cargo={funcionarioData?.cargo || null}
+          isAdmin={isAdmin}
           onSignOut={handleSignOut}
           sidebarWidth={sidebarWidth}
         />
