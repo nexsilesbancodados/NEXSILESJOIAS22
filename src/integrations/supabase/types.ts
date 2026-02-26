@@ -2130,6 +2130,93 @@ export type Database = {
           },
         ]
       }
+      loja_avaliacoes: {
+        Row: {
+          aprovada: boolean | null
+          cliente_email: string
+          cliente_nome: string
+          comentario: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          peca_id: string
+          rating: number
+        }
+        Insert: {
+          aprovada?: boolean | null
+          cliente_email: string
+          cliente_nome: string
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          peca_id: string
+          rating: number
+        }
+        Update: {
+          aprovada?: boolean | null
+          cliente_email?: string
+          cliente_nome?: string
+          comentario?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          peca_id?: string
+          rating?: number
+        }
+        Relationships: []
+      }
+      loja_avise_me: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          notificado: boolean | null
+          organization_id: string
+          peca_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          notificado?: boolean | null
+          organization_id: string
+          peca_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          notificado?: boolean | null
+          organization_id?: string
+          peca_id?: string
+        }
+        Relationships: []
+      }
+      loja_favoritos: {
+        Row: {
+          cliente_email: string
+          created_at: string
+          id: string
+          organization_id: string
+          peca_id: string
+        }
+        Insert: {
+          cliente_email: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          peca_id: string
+        }
+        Update: {
+          cliente_email?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          peca_id?: string
+        }
+        Relationships: []
+      }
       maleta_interesse_itens: {
         Row: {
           created_at: string | null
