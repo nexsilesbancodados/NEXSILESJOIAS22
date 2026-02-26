@@ -756,13 +756,14 @@ export default function PecasPage() {
                 <div className="space-y-2">
                   <Label htmlFor="categoria">Categoria</Label>
                   <Select
-                    value={formData.categoria}
-                    onValueChange={(value) => setFormData({ ...formData, categoria: value })}
+                    value={formData.categoria || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, categoria: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       {CATEGORIAS.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
@@ -774,13 +775,14 @@ export default function PecasPage() {
                 <div className="space-y-2">
                   <Label htmlFor="material">Material</Label>
                   <Select
-                    value={formData.material}
-                    onValueChange={(value) => setFormData({ ...formData, material: value })}
+                    value={formData.material || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, material: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
                       {BANHOS.map((mat) => (
                         <SelectItem key={mat} value={mat}>
                           {mat}
@@ -794,13 +796,14 @@ export default function PecasPage() {
                 <div className="space-y-2">
                   <Label htmlFor="fornecedor">Fornecedor</Label>
                   <Select
-                    value={formData.fornecedor_id}
-                    onValueChange={(value) => setFormData({ ...formData, fornecedor_id: value })}
+                    value={formData.fornecedor_id || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, fornecedor_id: value === 'none' ? '' : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
                       {fornecedores.map((f) => (
                         <SelectItem key={f.id} value={f.id}>
                           {f.nome}
