@@ -27,7 +27,7 @@ serve(async (req) => {
     // Buscar fiados vencidos que ainda não receberam notificação
     const { data: fiados, error } = await supabaseAdmin
       .from('fiado')
-      .select('*, clientes(nome, telefone, whatsapp), organizations(nome)')
+      .select('*, clientes(nome, telefone, whatsapp), organizations:organization_id(name)')
       .in('status', ['aberto', 'vencido'])
       .lte('data_vencimento', hoje)
       .eq('notificacao_enviada', false)
