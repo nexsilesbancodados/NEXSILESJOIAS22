@@ -1243,16 +1243,31 @@ export type Database = {
         Row: {
           apenas_com_foto: boolean | null
           ativo: boolean
+          avaliacoes_ativas: boolean | null
+          banner_ativo: boolean | null
+          banner_cor: string | null
+          banner_texto: string | null
           cor_primaria: string | null
           cor_secundaria: string | null
           created_at: string
           descricao: string | null
+          email_contato: string | null
+          facebook: string | null
           frete_gratis_acima: number | null
+          horario_funcionamento: Json | null
           id: string
           instagram: string | null
           logo_url: string | null
+          mensagem_whatsapp: string | null
+          metodos_pagamento: string[] | null
+          mostrar_estoque: boolean | null
+          mostrar_preco_original: boolean | null
           nome_loja: string
           organization_id: string
+          pedido_minimo: number | null
+          politica_privacidade: string | null
+          politica_troca: string | null
+          produtos_por_pagina: number | null
           slug: string
           taxa_entrega: number | null
           updated_at: string
@@ -1261,16 +1276,31 @@ export type Database = {
         Insert: {
           apenas_com_foto?: boolean | null
           ativo?: boolean
+          avaliacoes_ativas?: boolean | null
+          banner_ativo?: boolean | null
+          banner_cor?: string | null
+          banner_texto?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           created_at?: string
           descricao?: string | null
+          email_contato?: string | null
+          facebook?: string | null
           frete_gratis_acima?: number | null
+          horario_funcionamento?: Json | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
+          mensagem_whatsapp?: string | null
+          metodos_pagamento?: string[] | null
+          mostrar_estoque?: boolean | null
+          mostrar_preco_original?: boolean | null
           nome_loja?: string
           organization_id: string
+          pedido_minimo?: number | null
+          politica_privacidade?: string | null
+          politica_troca?: string | null
+          produtos_por_pagina?: number | null
           slug: string
           taxa_entrega?: number | null
           updated_at?: string
@@ -1279,16 +1309,31 @@ export type Database = {
         Update: {
           apenas_com_foto?: boolean | null
           ativo?: boolean
+          avaliacoes_ativas?: boolean | null
+          banner_ativo?: boolean | null
+          banner_cor?: string | null
+          banner_texto?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           created_at?: string
           descricao?: string | null
+          email_contato?: string | null
+          facebook?: string | null
           frete_gratis_acima?: number | null
+          horario_funcionamento?: Json | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
+          mensagem_whatsapp?: string | null
+          metodos_pagamento?: string[] | null
+          mostrar_estoque?: boolean | null
+          mostrar_preco_original?: boolean | null
           nome_loja?: string
           organization_id?: string
+          pedido_minimo?: number | null
+          politica_privacidade?: string | null
+          politica_troca?: string | null
+          produtos_por_pagina?: number | null
           slug?: string
           taxa_entrega?: number | null
           updated_at?: string
