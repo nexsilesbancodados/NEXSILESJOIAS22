@@ -448,6 +448,10 @@ export default function ConfiguracoesPage() {
           <FuncionariosTab />
         </TabsContent>
 
+        <TabsContent value="ecommerce" className="space-y-6">
+          <EcommerceConfigTab />
+        </TabsContent>
+
       </Tabs>
 
       <div className="mt-6 max-w-4xl">
@@ -467,10 +471,6 @@ export default function ConfiguracoesPage() {
           )}
         </Button>
       </div>
-
-        <TabsContent value="ecommerce" className="space-y-6">
-          <EcommerceConfigTab />
-        </TabsContent>
     </div>
   );
 }
