@@ -22,120 +22,184 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user from auth header
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      throw new Error("Não autorizado");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      throw new Error("Usuário não autenticado");
-    }
-
     const body = await req.json();
-    const { plano, periodo, ...paymentData } = body;
+    const { plano, periodo, email: bodyEmail, nome, cpf, telefone, ...paymentData } = body;
 
-    console.log("Processing payment for user:", user.id, "plan:", plano);
-    console.log("Payment data keys:", Object.keys(paymentData));
+    // Try to get user from auth header (authenticated flow)
+    let userId: string | null = null;
+    let userEmail: string | null = null;
+    const authHeader = req.headers.get("authorization");
+    
+    if (authHeader && authHeader !== "Bearer undefined" && authHeader !== "Bearer null") {
+      const token = authHeader.replace("Bearer ", "");
+      try {
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) {
+          userId = user.id;
+          userEmail = user.email || null;
+        }
+      } catch {
+        // Auth failed, continue as public checkout
+      }
+    }
 
-    // Process payment via Mercado Pago API
-    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
-        "X-Idempotency-Key": `${user.id}-${plano}-${Date.now()}`,
-      },
-      body: JSON.stringify({
-        ...paymentData,
-        description: `Assinatura ${plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'} - ${periodo === 'anual' ? 'Anual' : 'Mensal'}`,
+    // For public checkout, use email from body
+    if (!userEmail) {
+      userEmail = bodyEmail;
+    }
+
+    if (!userEmail) {
+      throw new Error("Email é obrigatório");
+    }
+
+    if (!plano) {
+      throw new Error("Plano é obrigatório");
+    }
+
+    console.log("Processing payment for:", userEmail, "plan:", plano, "authenticated:", !!userId);
+
+    const PLANOS_CONFIG: Record<string, { nome: string; valor_mensal: number; valor_anual: number }> = {
+      nexsiles: { nome: "Nexsiles", valor_mensal: 189, valor_anual: 1890 },
+      nexsiles_max: { nome: "Nexsiles Max", valor_mensal: 249, valor_anual: 2490 },
+    };
+
+    const planoConfig = PLANOS_CONFIG[plano];
+    if (!planoConfig) {
+      throw new Error("Plano inválido");
+    }
+
+    const valor = periodo === 'anual' ? planoConfig.valor_anual : planoConfig.valor_mensal;
+    const diasValidade = periodo === 'anual' ? 365 : 30;
+
+    // If paymentData has token or payment_method_id, process as direct payment
+    // Otherwise, create a preference for redirect flow
+    const hasDirectPaymentData = paymentData.token || paymentData.payment_method_id;
+
+    if (hasDirectPaymentData) {
+      // Direct payment via MP API (from Payment Brick)
+      const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
+          "X-Idempotency-Key": `${userEmail}-${plano}-${Date.now()}`,
+        },
+        body: JSON.stringify({
+          ...paymentData,
+          transaction_amount: paymentData.transaction_amount || valor,
+          description: `Assinatura ${planoConfig.nome} - ${periodo === 'anual' ? 'Anual' : 'Mensal'}`,
+          payer: {
+            ...paymentData.payer,
+            email: userEmail,
+          },
+          external_reference: JSON.stringify({
+            plano,
+            periodo,
+            user_id: userId,
+            email: userEmail,
+          }),
+          statement_descriptor: "NEXSILES",
+          notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+        }),
+      });
+
+      const payment = await mpResponse.json();
+      console.log("MP Payment result:", JSON.stringify({
+        id: payment.id,
+        status: payment.status,
+        status_detail: payment.status_detail,
+      }));
+
+      if (!mpResponse.ok) {
+        console.error("MP Error:", JSON.stringify(payment));
+        return new Response(
+          JSON.stringify({
+            status: "rejected",
+            status_detail: payment.message || payment.cause?.[0]?.description || "Erro ao processar pagamento",
+            error: payment,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // If payment is approved, activate subscription
+      if (payment.status === "approved") {
+        await activateSubscription(supabase, userId, userEmail, plano, planoConfig, valor, diasValidade, payment.id);
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: payment.status,
+          status_detail: payment.status_detail,
+          payment_id: payment.id,
+          payment_method_id: payment.payment_method_id,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else {
+      // No direct payment data - create preference for redirect checkout
+      const origin = req.headers.get("origin") || "https://www.nexsiles.com.br";
+      
+      const preferenceData = {
+        items: [{
+          title: `${planoConfig.nome} - ${periodo === 'anual' ? 'Anual' : 'Mensal'}`,
+          description: `Assinatura ${planoConfig.nome}`,
+          quantity: 1,
+          currency_id: "BRL",
+          unit_price: valor,
+        }],
+        payer: {
+          email: userEmail,
+          name: nome || undefined,
+          identification: cpf ? { type: "CPF", number: cpf.replace(/\D/g, '') } : undefined,
+        },
+        back_urls: {
+          success: `${origin}/landing?pagamento=sucesso&email=${encodeURIComponent(userEmail)}`,
+          failure: `${origin}/landing?pagamento=erro`,
+          pending: `${origin}/landing?pagamento=pendente`,
+        },
+        auto_return: "approved",
         external_reference: JSON.stringify({
           plano,
           periodo,
-          user_id: user.id,
-          email: user.email,
+          valor,
+          email: userEmail,
+          user_id: userId,
         }),
-        statement_descriptor: "NEXSILES",
         notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
-      }),
-    });
-
-    const payment = await mpResponse.json();
-    console.log("MP Payment result:", JSON.stringify({
-      id: payment.id,
-      status: payment.status,
-      status_detail: payment.status_detail,
-    }));
-
-    if (!mpResponse.ok) {
-      console.error("MP Error:", JSON.stringify(payment));
-      return new Response(
-        JSON.stringify({
-          status: "rejected",
-          status_detail: payment.message || "Erro ao processar pagamento",
-          error: payment,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // If payment is approved, activate subscription immediately
-    if (payment.status === "approved") {
-      const PLANOS_CONFIG: Record<string, { nome: string; valor_mensal: number; valor_anual: number }> = {
-        nexsiles: { nome: "Nexsiles", valor_mensal: 189, valor_anual: 1890 },
-        nexsiles_max: { nome: "Nexsiles Max", valor_mensal: 249, valor_anual: 2490 },
+        statement_descriptor: "NEXSILES",
       };
 
-      const planoConfig = PLANOS_CONFIG[plano];
-      const valor = periodo === 'anual' ? planoConfig.valor_anual : planoConfig.valor_mensal;
-      const diasValidade = periodo === 'anual' ? 365 : 30;
+      console.log("Creating preference for:", userEmail);
 
-      const dataVencimento = new Date();
-      dataVencimento.setDate(dataVencimento.getDate() + diasValidade);
+      const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify(preferenceData),
+      });
 
-      // Upsert subscription
-      const { error: subError } = await supabase
-        .from('assinaturas')
-        .upsert({
-          user_id: user.id,
-          plano: plano,
-          status: 'ativo',
-          data_inicio: new Date().toISOString(),
-          data_vencimento: dataVencimento.toISOString(),
-          valor_mensal: planoConfig.valor_mensal,
-          mercadopago_payment_id: String(payment.id),
-          metodo_pagamento: 'mercadopago',
-          ultimo_pagamento_em: new Date().toISOString(),
-          trial_ativo: false,
-        }, {
-          onConflict: 'user_id',
-        });
-
-      if (subError) {
-        console.error("Error upserting subscription:", subError);
-      } else {
-        console.log(`Subscription activated for user ${user.id}, plan ${plano}`);
+      if (!mpResponse.ok) {
+        const errorData = await mpResponse.text();
+        console.error("MP Preference error:", errorData);
+        throw new Error(`Erro ao criar preferência: ${errorData}`);
       }
+
+      const preference = await mpResponse.json();
+      console.log("Preference created:", preference.id);
+
+      return new Response(
+        JSON.stringify({
+          status: "redirect",
+          preferenceId: preference.id,
+          initPoint: preference.init_point,
+          sandboxInitPoint: preference.sandbox_init_point,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
-    return new Response(
-      JSON.stringify({
-        status: payment.status,
-        status_detail: payment.status_detail,
-        payment_id: payment.id,
-        payment_method_id: payment.payment_method_id,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
   } catch (error: any) {
     console.error("Error in mercadopago-process-payment:", error);
     return new Response(
@@ -143,10 +207,76 @@ serve(async (req: Request) => {
         status: "error",
         status_detail: error.message,
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
+
+async function activateSubscription(
+  supabase: any,
+  userId: string | null,
+  email: string,
+  plano: string,
+  planoConfig: { nome: string; valor_mensal: number },
+  valor: number,
+  diasValidade: number,
+  paymentId: string | number
+) {
+  const dataVencimento = new Date();
+  dataVencimento.setDate(dataVencimento.getDate() + diasValidade);
+
+  // If we have a userId, upsert directly
+  if (userId) {
+    const { error } = await supabase
+      .from('assinaturas')
+      .upsert({
+        user_id: userId,
+        plano,
+        status: 'ativo',
+        data_inicio: new Date().toISOString(),
+        data_vencimento: dataVencimento.toISOString(),
+        valor_mensal: planoConfig.valor_mensal,
+        mercadopago_payment_id: String(paymentId),
+        metodo_pagamento: 'mercadopago',
+        ultimo_pagamento_em: new Date().toISOString(),
+        trial_ativo: false,
+      }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error("Error upserting subscription:", error);
+    } else {
+      console.log(`Subscription activated for user ${userId}, plan ${plano}`);
+    }
+  } else {
+    // Public checkout - generate access code for later activation
+    const codigo = generateAccessCode();
+    const validoAte = new Date();
+    validoAte.setDate(validoAte.getDate() + diasValidade);
+
+    const { error } = await supabase
+      .from('codigos_acesso')
+      .insert({
+        codigo,
+        email,
+        plano,
+        valor_pago: valor,
+        valido_ate: validoAte.toISOString(),
+        mercadopago_payment_id: String(paymentId),
+      });
+
+    if (error) {
+      console.error("Error creating access code:", error);
+    } else {
+      console.log(`Access code ${codigo} created for ${email}, plan ${plano}`);
+    }
+  }
+}
+
+function generateAccessCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 12; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
