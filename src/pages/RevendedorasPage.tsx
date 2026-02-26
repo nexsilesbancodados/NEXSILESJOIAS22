@@ -250,7 +250,6 @@ export default function RevendedorasPage() {
     telefone: '',
     email: '',
     comissao: '30',
-    usuario_portal: '',
     senha_portal: '',
   });
 
@@ -344,7 +343,6 @@ export default function RevendedorasPage() {
         telefone: revendedora.telefone || '',
         email: revendedora.email || '',
         comissao: (revendedora.comissao_percentual || 30).toString(),
-        usuario_portal: (revendedora as any).usuario_portal || '',
         senha_portal: (revendedora as any).senha_portal || '',
       });
     } else {
@@ -354,7 +352,6 @@ export default function RevendedorasPage() {
         telefone: '',
         email: '',
         comissao: '30',
-        usuario_portal: '',
         senha_portal: '',
       });
     }
@@ -372,7 +369,6 @@ export default function RevendedorasPage() {
       telefone: formData.telefone || null,
       email: formData.email || null,
       comissao_percentual: parseFloat(formData.comissao) || 30,
-      usuario_portal: formData.usuario_portal || null,
       senha_portal: formData.senha_portal || null,
     };
 
@@ -2097,28 +2093,17 @@ export default function RevendedorasPage() {
             <div className="border-t pt-4 mt-2">
               <h4 className="text-sm font-medium mb-3">Acesso ao Portal</h4>
               <p className="text-xs text-muted-foreground mb-3">
-                Crie credenciais para a revendedora acessar o portal e gerenciar suas vendas.
+                Defina uma senha para a revendedora acessar o portal usando o e-mail cadastrado acima.
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="usuario_portal">Usuário</Label>
-                  <Input
-                    id="usuario_portal"
-                    value={formData.usuario_portal}
-                    onChange={(e) => setFormData({ ...formData, usuario_portal: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
-                    placeholder="joaninha44"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="senha_portal">Senha</Label>
-                  <Input
-                    id="senha_portal"
-                    type="password"
-                    value={formData.senha_portal}
-                    onChange={(e) => setFormData({ ...formData, senha_portal: e.target.value })}
-                    placeholder="••••••••"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="senha_portal">Senha do Portal</Label>
+                <Input
+                  id="senha_portal"
+                  type="password"
+                  value={formData.senha_portal}
+                  onChange={(e) => setFormData({ ...formData, senha_portal: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                />
               </div>
             </div>
           </div>
