@@ -3544,13 +3544,85 @@ export type Database = {
         }
         Returns: boolean
       }
+      portal_fetch_interesse_itens: {
+        Args: { p_interesse_id: string; p_revendedora_id: string }
+        Returns: {
+          id: string
+          peca_codigo: string
+          peca_id: string
+          peca_nome: string
+          peca_preco_venda: number
+          quantidade: number
+        }[]
+      }
+      portal_fetch_interesses: {
+        Args: { p_revendedora_id: string }
+        Returns: {
+          cliente_email: string
+          cliente_nome: string
+          cliente_telefone: string
+          created_at: string
+          id: string
+          maleta_id: string
+          observacoes: string
+          status: string
+          updated_at: string
+        }[]
+      }
+      portal_fetch_maleta_pecas: {
+        Args: { p_maleta_id: string; p_revendedora_id: string }
+        Returns: {
+          data_venda: string
+          id: string
+          peca_codigo: string
+          peca_id: string
+          peca_imagem_url: string
+          peca_nome: string
+          peca_preco_venda: number
+          preco_unitario: number
+          quantidade: number
+          quantidade_vendida: number
+          vendida: boolean
+        }[]
+      }
+      portal_fetch_maletas: {
+        Args: { p_revendedora_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_public: boolean
+          nome: string
+          observacoes: string
+          slug: string
+          status: string
+          updated_at: string
+        }[]
+      }
       portal_login_lookup: {
         Args: { p_email: string }
         Returns: {
+          comissao_percentual: number
           email: string
           id: string
           nome: string
+          telefone: string
         }[]
+      }
+      portal_marcar_vendida: {
+        Args: {
+          p_maleta_peca_id: string
+          p_quantidade_venda: number
+          p_revendedora_id: string
+        }
+        Returns: boolean
+      }
+      portal_update_interesse_status: {
+        Args: {
+          p_interesse_id: string
+          p_revendedora_id: string
+          p_status: string
+        }
+        Returns: boolean
       }
       seed_default_email_templates: {
         Args: { p_organization_id: string }

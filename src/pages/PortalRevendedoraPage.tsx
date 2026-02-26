@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase-db';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -177,19 +177,13 @@ export default function PortalRevendedoraPage() {
         return;
       }
 
-      // Step 3: Get full revendedora data (authenticated RLS will apply)
-      const { data: fullData } = await supabase
-        .from('revendedoras')
-        .select('id, nome, comissao_percentual, telefone, email')
-        .eq('id', publicData.id)
-        .single();
-
+      // Step 3: Use data from login lookup (already has all needed fields)
       const revendedoraData = {
-        id: fullData?.id || publicData.id,
-        nome: fullData?.nome || publicData.nome,
-        comissao_percentual: fullData?.comissao_percentual || 30,
-        telefone: fullData?.telefone || undefined,
-        email: fullData?.email || undefined,
+        id: publicData.id,
+        nome: publicData.nome,
+        comissao_percentual: publicData.comissao_percentual || 30,
+        telefone: publicData.telefone || undefined,
+        email: publicData.email || undefined,
       };
 
       setRevendedora(revendedoraData);
@@ -226,10 +220,7 @@ export default function PortalRevendedoraPage() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('maletas')
-        .select('*')
-        .eq('revendedora_id', revendedora.id)
-        .order('created_at', { ascending: false });
+        .rpc('portal_fetch_maletas', { p_revendedora_id: revendedora.id });
 
       if (error) throw error;
       setMaletas(data || []);
@@ -245,25 +236,27 @@ export default function PortalRevendedoraPage() {
   };
 
   const fetchPecasMaleta = async (maletaId: string) => {
+    if (!revendedora) return;
     try {
       const { data, error } = await supabase
-        .from('maletas_pecas')
-        .select(`
-          id,
-          quantidade,
-          quantidade_vendida,
-          vendida,
-          preco_unitario,
-          data_venda,
-          peca:pecas(id, nome, codigo, preco_venda, imagem_url)
-        `)
-        .eq('maleta_id', maletaId);
+        .rpc('portal_fetch_maleta_pecas', { p_maleta_id: maletaId, p_revendedora_id: revendedora.id });
 
       if (error) throw error;
       
-      const formattedData = (data || []).map(item => ({
-        ...item,
-        peca: Array.isArray(item.peca) ? item.peca[0] : item.peca
+      const formattedData = (data || []).map((item: any) => ({
+        id: item.id,
+        quantidade: item.quantidade,
+        quantidade_vendida: item.quantidade_vendida,
+        vendida: item.vendida,
+        preco_unitario: item.preco_unitario,
+        data_venda: item.data_venda,
+        peca: {
+          id: item.peca_id,
+          nome: item.peca_nome,
+          codigo: item.peca_codigo,
+          preco_venda: item.peca_preco_venda,
+          imagem_url: item.peca_imagem_url,
+        }
       })) as MaletaPeca[];
       
       setPecasMaleta(formattedData);
@@ -276,48 +269,33 @@ export default function PortalRevendedoraPage() {
     if (!revendedora) return;
     
     try {
-      // First get maleta IDs for this revendedora
-      const { data: maletasData } = await supabase
-        .from('maletas')
-        .select('id')
-        .eq('revendedora_id', revendedora.id);
-
-      if (!maletasData || maletasData.length === 0) {
-        setInteresses([]);
-        return;
-      }
-
-      const maletaIds = maletasData.map(m => m.id);
-
       const { data, error } = await supabase
-        .from('maleta_interesses')
-        .select(`
-          *,
-          maleta:maletas(id, nome)
-        `)
-        .in('maleta_id', maletaIds)
-        .order('created_at', { ascending: false });
+        .rpc('portal_fetch_interesses', { p_revendedora_id: revendedora.id });
 
       if (error) throw error;
 
-      // Fetch items for each interesse
+      // Group interesses and fetch items via RPC
       const interessesWithItems = await Promise.all(
-        (data || []).map(async (interesse) => {
+        (data || []).map(async (interesse: any) => {
+          // Fetch items for each interesse using RPC
           const { data: itens } = await supabase
-            .from('maleta_interesse_itens')
-            .select(`
-              id,
-              quantidade,
-              peca:pecas(id, nome, codigo, preco_venda)
-            `)
-            .eq('interesse_id', interesse.id);
+            .rpc('portal_fetch_interesse_itens', { p_interesse_id: interesse.id, p_revendedora_id: revendedora.id });
+
+          // Find maleta name from our loaded maletas
+          const maletaInfo = maletas.find(m => m.id === interesse.maleta_id);
 
           return {
             ...interesse,
-            maleta: Array.isArray(interesse.maleta) ? interesse.maleta[0] : interesse.maleta,
-            itens: (itens || []).map(item => ({
-              ...item,
-              peca: Array.isArray(item.peca) ? item.peca[0] : item.peca
+            maleta: { id: interesse.maleta_id, nome: maletaInfo?.nome || 'Maleta' },
+            itens: (itens || []).map((item: any) => ({
+              id: item.id,
+              quantidade: item.quantidade,
+              peca: {
+                id: item.peca_id,
+                nome: item.peca_nome,
+                codigo: item.peca_codigo,
+                preco_venda: item.peca_preco_venda,
+              }
             }))
           } as Interesse;
         })
@@ -330,45 +308,34 @@ export default function PortalRevendedoraPage() {
   };
 
   const handleAprovarInteresse = async (interesse: Interesse) => {
+    if (!revendedora) return;
     setProcessando(true);
     try {
-      // Mark all items as sold in maletas_pecas using quantidade_vendida
+      // Mark all items as sold via RPC
       for (const item of interesse.itens) {
-        // Get current item data
-        const { data: currentItem } = await supabase
-          .from('maletas_pecas')
-          .select('id, quantidade, quantidade_vendida')
-          .eq('maleta_id', interesse.maleta.id)
-          .eq('peca_id', item.peca.id)
-          .maybeSingle();
-
-        if (currentItem) {
-          const quantidadeVenda = item.quantidade || 1;
-          const quantidadeRestante = Math.max(0, (currentItem.quantidade || 0) - quantidadeVenda);
-          const novaQuantidadeVendida = (currentItem.quantidade_vendida || 0) + quantidadeVenda;
-          const isFullySold = quantidadeRestante <= 0;
-
-          const { error } = await supabase
-            .from('maletas_pecas')
-            .update({
-              quantidade: quantidadeRestante,
-              quantidade_vendida: novaQuantidadeVendida,
-              vendida: isFullySold,
-              data_venda: new Date().toISOString().split('T')[0]
-            })
-            .eq('id', currentItem.id);
-
-          if (error) throw error;
+        // We need to find the maleta_peca by maleta_id + peca_id via a dedicated lookup
+        // For now, use portal_marcar_vendida_by_peca RPC or fetch via existing RPC
+        const pecas = await supabase.rpc('portal_fetch_maleta_pecas', { 
+          p_maleta_id: interesse.maleta.id, 
+          p_revendedora_id: revendedora.id 
+        });
+        
+        const matchingPeca = (pecas.data || []).find((p: any) => p.peca_id === item.peca.id);
+        if (matchingPeca) {
+          await supabase.rpc('portal_marcar_vendida', {
+            p_revendedora_id: revendedora.id,
+            p_maleta_peca_id: matchingPeca.id,
+            p_quantidade_venda: item.quantidade || 1
+          });
         }
       }
 
-      // Update interesse status to 'atendido' (valid constraint value)
-      const { error } = await supabase
-        .from('maleta_interesses')
-        .update({ status: 'atendido' })
-        .eq('id', interesse.id);
-
-      if (error) throw error;
+      // Update interesse status
+      await supabase.rpc('portal_update_interesse_status', {
+        p_revendedora_id: revendedora.id,
+        p_interesse_id: interesse.id,
+        p_status: 'atendido'
+      });
 
       toast.success('Venda aprovada! Itens marcados como vendidos.');
       setInteresseModal(null);
@@ -385,15 +352,14 @@ export default function PortalRevendedoraPage() {
   };
 
   const handleRejeitarInteresse = async (interesseId: string) => {
+    if (!revendedora) return;
     setProcessando(true);
     try {
-      // Update interesse status to 'cancelado' (valid constraint value)
-      const { error } = await supabase
-        .from('maleta_interesses')
-        .update({ status: 'cancelado' })
-        .eq('id', interesseId);
-
-      if (error) throw error;
+      await supabase.rpc('portal_update_interesse_status', {
+        p_revendedora_id: revendedora.id,
+        p_interesse_id: interesseId,
+        p_status: 'cancelado'
+      });
 
       toast.success('Interesse rejeitado');
       setInteresseModal(null);
@@ -407,36 +373,18 @@ export default function PortalRevendedoraPage() {
   };
 
   const handleMarcarVendida = async () => {
-    if (!vendaModal || !maletaSelecionada) return;
+    if (!vendaModal || !maletaSelecionada || !revendedora) return;
 
     setProcessando(true);
     try {
-      // Get current item data
-      const { data: currentItem, error: fetchError } = await supabase
-        .from('maletas_pecas')
-        .select('quantidade_vendida')
-        .eq('id', vendaModal.id)
-        .single();
+      const { data: result, error } = await supabase.rpc('portal_marcar_vendida', {
+        p_revendedora_id: revendedora.id,
+        p_maleta_peca_id: vendaModal.id,
+        p_quantidade_venda: quantidadeVenda
+      });
 
-      if (fetchError) throw fetchError;
-
-      const quantidadeRestante = vendaModal.quantidade - quantidadeVenda;
-      const novaQuantidadeVendida = (currentItem?.quantidade_vendida || 0) + quantidadeVenda;
-      const isFullySold = quantidadeRestante <= 0;
-
-      // Update using quantidade_vendida for tracking (consistent with admin panel)
-      const { error: updateError } = await supabase
-        .from('maletas_pecas')
-        .update({
-          quantidade: Math.max(0, quantidadeRestante),
-          quantidade_vendida: novaQuantidadeVendida,
-          vendida: isFullySold,
-          data_venda: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', vendaModal.id);
-
-      if (updateError) throw updateError;
+      if (error) throw error;
+      if (!result) throw new Error('Não autorizado');
 
       toast.success(quantidadeVenda > 1 
         ? `${quantidadeVenda} peças marcadas como vendidas!` 
