@@ -64,6 +64,7 @@ export default function LojaPublicaPage() {
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('dados');
   const [processing, setProcessing] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
+  const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [selectedPeca, setSelectedPeca] = useState<Peca | null>(null);
 
   // New feature states
@@ -84,6 +85,11 @@ export default function LojaPublicaPage() {
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterLoading, setNewsletterLoading] = useState(false);
+
+  // Frete dinâmico
+  const [freteOpcoes, setFreteOpcoes] = useState<{ sedex: { valor: number; prazo: number } | null; pac: { valor: number; prazo: number } | null } | null>(null);
+  const [freteEscolhido, setFreteEscolhido] = useState<'pac' | 'sedex' | 'taxa_fixa'>('taxa_fixa');
+  const [freteCalculando, setFreteCalculando] = useState(false);
 
   // Policy modal
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
@@ -285,8 +291,13 @@ export default function LojaPublicaPage() {
     if (!config) return 0;
     const sub = subtotal - cupomDesconto;
     if (config.frete_gratis_acima && sub >= config.frete_gratis_acima) return 0;
+    // Se frete dinâmico calculado
+    if (freteOpcoes && freteEscolhido !== 'taxa_fixa') {
+      const opcao = freteEscolhido === 'sedex' ? freteOpcoes.sedex : freteOpcoes.pac;
+      return opcao?.valor || 0;
+    }
     return config.taxa_entrega || 0;
-  }, [config, subtotal, cupomDesconto]);
+  }, [config, subtotal, cupomDesconto, freteOpcoes, freteEscolhido]);
   const total = subtotal - cupomDesconto + valorFrete;
   const cartCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantidade, 0), [cart]);
 
@@ -312,6 +323,27 @@ export default function LojaPublicaPage() {
   const removerCupom = () => {
     setCupomCode(''); setCupomDesconto(0); setCupomId(null); setCupomApplied('');
     toast.success('Cupom removido');
+  };
+
+  const calcularFreteDinamico = async (cep: string) => {
+    if (!config || cep.replace(/\D/g, '').length !== 8) return;
+    setFreteCalculando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('calcular-frete', {
+        body: {
+          cepOrigem: '01001000', // CEP padrão origem
+          cepDestino: cep.replace(/\D/g, ''),
+          peso: cart.reduce((sum, i) => sum + (i.peso || 0.05) * i.quantidade, 0),
+          comprimento: 20, largura: 15, altura: 10,
+          valor: subtotal,
+        },
+      });
+      if (!error && data) {
+        setFreteOpcoes(data);
+        setFreteEscolhido(data.pac ? 'pac' : data.sedex ? 'sedex' : 'taxa_fixa');
+      }
+    } catch { /* silently fail, keep taxa_fixa */ }
+    finally { setFreteCalculando(false); }
   };
 
   const handleCheckout = async () => {
@@ -373,8 +405,8 @@ export default function LojaPublicaPage() {
               );
               const result = await response.json();
               if (result.status === 'approved') {
-                setNumeroPedido(result.numero_pedido); setCheckoutStep('confirmacao');
-                setCart([]); toast.success('Pagamento aprovado! 🎉');
+                setNumeroPedido(result.numero_pedido); setPedidoId(result.pedido_id);
+                setCheckoutStep('confirmacao'); setCart([]); toast.success('Pagamento aprovado! 🎉');
               } else { toast.error(result.status_detail || 'Pagamento não aprovado'); }
             } catch { toast.error('Erro ao processar pagamento'); }
             finally { setProcessing(false); }
@@ -1274,6 +1306,8 @@ export default function LojaPublicaPage() {
                           const data = await resp.json();
                           if (!data.erro) setEndereco(p => ({ ...p, rua: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }));
                         } catch {}
+                        // Calcular frete dinâmico
+                        calcularFreteDinamico(cep);
                       }
                     }} />
                 </div>
@@ -1306,6 +1340,38 @@ export default function LojaPublicaPage() {
                   <Input value={endereco.estado} onChange={e => setEndereco(p => ({ ...p, estado: e.target.value }))} maxLength={2} className="rounded-none border" style={{ borderColor: '#E0D5CF' }} />
                 </div>
               </div>
+              {/* Opções de Frete */}
+              {freteOpcoes && !(config.frete_gratis_acima && (subtotal - cupomDesconto) >= config.frete_gratis_acima) && (
+                <div className="border-t pt-3 space-y-2" style={{ borderColor: '#F0E6E0' }}>
+                  <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Opção de envio</Label>
+                  {freteOpcoes.pac && (
+                    <label className="flex items-center gap-3 p-3 border cursor-pointer transition-all" style={{ borderColor: freteEscolhido === 'pac' ? roseGold : '#E0D5CF', backgroundColor: freteEscolhido === 'pac' ? '#FFF5F5' : 'transparent' }}>
+                      <input type="radio" name="frete" checked={freteEscolhido === 'pac'} onChange={() => setFreteEscolhido('pac')} style={{ accentColor: roseGold }} />
+                      <div className="flex-1">
+                        <span className="text-xs font-semibold" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>PAC</span>
+                        <span className="text-[10px] ml-2" style={{ color: textMuted }}>({freteOpcoes.pac.prazo} dias úteis)</span>
+                      </div>
+                      <span className="text-xs font-semibold" style={{ color: roseGold }}>{formatCurrency(freteOpcoes.pac.valor)}</span>
+                    </label>
+                  )}
+                  {freteOpcoes.sedex && (
+                    <label className="flex items-center gap-3 p-3 border cursor-pointer transition-all" style={{ borderColor: freteEscolhido === 'sedex' ? roseGold : '#E0D5CF', backgroundColor: freteEscolhido === 'sedex' ? '#FFF5F5' : 'transparent' }}>
+                      <input type="radio" name="frete" checked={freteEscolhido === 'sedex'} onChange={() => setFreteEscolhido('sedex')} style={{ accentColor: roseGold }} />
+                      <div className="flex-1">
+                        <span className="text-xs font-semibold" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>SEDEX</span>
+                        <span className="text-[10px] ml-2" style={{ color: textMuted }}>({freteOpcoes.sedex.prazo} dias úteis)</span>
+                      </div>
+                      <span className="text-xs font-semibold" style={{ color: roseGold }}>{formatCurrency(freteOpcoes.sedex.valor)}</span>
+                    </label>
+                  )}
+                </div>
+              )}
+              {freteCalculando && (
+                <div className="flex items-center gap-2 py-2">
+                  <Loader2 className="w-3 h-3 animate-spin" style={{ color: roseGold }} />
+                  <span className="text-[10px]" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Calculando frete...</span>
+                </div>
+              )}
               {/* Cupom */}
               <div className="border-t pt-3" style={{ borderColor: '#F0E6E0' }}>
                 <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Cupom de desconto</Label>
@@ -1362,11 +1428,37 @@ export default function LojaPublicaPage() {
               <p className="text-sm text-center max-w-xs" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
                 Seu pedido foi realizado com sucesso! Você receberá atualizações por e-mail.
               </p>
-              <button className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] border hover:opacity-80"
-                style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
-                onClick={() => { setCheckoutOpen(false); setCheckoutStep('dados'); }}>
-                Continuar Comprando
-              </button>
+              <div className="w-full max-w-xs space-y-2 p-4 border" style={{ borderColor: '#F0E6E0', backgroundColor: '#FAFAF8' }}>
+                <div className="flex justify-between text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  <span style={{ color: textMuted }}>Status</span>
+                  <Badge className="text-[10px]" style={{ backgroundColor: roseGold, color: 'white' }}>Pago</Badge>
+                </div>
+                {freteOpcoes && freteEscolhido !== 'taxa_fixa' && (
+                  <div className="flex justify-between text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                    <span style={{ color: textMuted }}>Envio</span>
+                    <span style={{ color: textDark }}>{freteEscolhido.toUpperCase()} ({(freteEscolhido === 'sedex' ? freteOpcoes.sedex?.prazo : freteOpcoes.pac?.prazo) || '?'} dias úteis)</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  <span style={{ color: textMuted }}>Total pago</span>
+                  <span className="font-semibold" style={{ color: roseGold }}>{formatCurrency(total)}</span>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-2">
+                <button className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] border hover:opacity-80"
+                  style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
+                  onClick={() => { setCheckoutOpen(false); setCheckoutStep('dados'); }}>
+                  Continuar Comprando
+                </button>
+                {config.whatsapp && (
+                  <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=Olá! Acabei de fazer o pedido %23${numeroPedido}.`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] text-white hover:opacity-90"
+                    style={{ backgroundColor: '#25D366', fontFamily: "'Inter', sans-serif" }}>
+                    WhatsApp
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>
