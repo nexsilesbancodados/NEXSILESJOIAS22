@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { ImageUpload } from '@/components/ImageUpload';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -514,16 +515,11 @@ export function EcommerceConfigTab() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Image className="w-3 h-3" /> URL do Logo</Label>
-                    <Input value={form.logo_url} onChange={e => setForm(p => ({ ...p, logo_url: e.target.value }))} placeholder="https://..." className="h-9 text-sm" />
-                    {form.logo_url && (
-                      <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                        <img src={form.logo_url} alt="Logo" className="w-10 h-10 rounded-md object-contain bg-white border" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                        <p className="text-[10px] text-muted-foreground">Preview</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImageUpload
+                    value={form.logo_url}
+                    onChange={(url) => setForm(p => ({ ...p, logo_url: url }))}
+                    label="Logo da Loja"
+                  />
                   <Separator />
                   <div className="space-y-2">
                     <Label className="text-xs font-medium">Temas Prontos</Label>
