@@ -3412,6 +3412,51 @@ export type Database = {
         }
         Relationships: []
       }
+      purchases: {
+        Row: {
+          access_code: string
+          cpf: string | null
+          created_at: string
+          email: string
+          expires_at: string | null
+          id: string
+          mercadopago_preference_id: string | null
+          name: string
+          payment_status: string
+          phone: string | null
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          access_code: string
+          cpf?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string | null
+          id?: string
+          mercadopago_preference_id?: string | null
+          name: string
+          payment_status?: string
+          phone?: string | null
+          plan: string
+          updated_at?: string
+        }
+        Update: {
+          access_code?: string
+          cpf?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string | null
+          id?: string
+          mercadopago_preference_id?: string | null
+          name?: string
+          payment_status?: string
+          phone?: string | null
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rastreio_eventos: {
         Row: {
           created_at: string
