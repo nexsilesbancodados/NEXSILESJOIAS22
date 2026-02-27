@@ -151,6 +151,7 @@ function AppRoutes() {
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const isLojaSubdomain = hostname.startsWith('loja.');
   const isCatalogoSubdomain = hostname.startsWith('catalogo.');
+  const isPortalSubdomain = hostname.startsWith('portal.');
   
   // Subdomínio loja.* → renderiza loja pública
   if (isLojaSubdomain) {
@@ -171,6 +172,19 @@ function AppRoutes() {
         <Routes>
           <Route path="/:catalogoId" element={<CatalogoPublicoPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  // Subdomínio portal.* → renderiza portal da revendedora
+  if (isPortalSubdomain) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/login" element={<PortalRevendedoraPage />} />
+          <Route path="/:revendedoraId" element={<PortalRevendedoraPage />} />
+          <Route path="*" element={<PortalRevendedoraPage />} />
         </Routes>
       </Suspense>
     );
