@@ -13,9 +13,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    if (!MERCADOPAGO_ACCESS_TOKEN) throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -25,11 +22,18 @@ serve(async (req: Request) => {
 
     if (!formData) throw new Error("formData obrigatório");
 
+    // Fetch org-specific MP token, fallback to global
+    const { data: ecomConfig } = await supabase
+      .from("ecommerce_config")
+      .select("mercadopago_access_token")
+      .eq("organization_id", organization_id)
+      .single();
+
+    const MERCADOPAGO_ACCESS_TOKEN = ecomConfig?.mercadopago_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    if (!MERCADOPAGO_ACCESS_TOKEN) throw new Error("Mercado Pago não configurado");
+
     // Process payment via MP API
-    const paymentData = {
-      ...formData,
-      description: `Pedido - Loja Online`,
-    };
+    const paymentData = { ...formData, description: `Pedido - Loja Online` };
 
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -84,10 +88,7 @@ serve(async (req: Request) => {
           preco_unitario: item.preco_unitario,
         }));
 
-        const { error: itensError } = await supabase
-          .from("ecommerce_pedido_itens")
-          .insert(orderItems);
-
+        const { error: itensError } = await supabase.from("ecommerce_pedido_itens").insert(orderItems);
         if (itensError) console.error("Error inserting items:", itensError);
 
         // Debit stock atomically
@@ -96,20 +97,10 @@ serve(async (req: Request) => {
             p_peca_id: item.peca_id,
             p_quantidade: item.quantidade,
           });
-
           if (stockError) {
-            // Fallback: direct update
-            const { data: peca } = await supabase
-              .from("pecas")
-              .select("estoque")
-              .eq("id", item.peca_id)
-              .single();
-
+            const { data: peca } = await supabase.from("pecas").select("estoque").eq("id", item.peca_id).single();
             if (peca) {
-              await supabase
-                .from("pecas")
-                .update({ estoque: Math.max(0, (peca.estoque || 0) - item.quantidade) })
-                .eq("id", item.peca_id);
+              await supabase.from("pecas").update({ estoque: Math.max(0, (peca.estoque || 0) - item.quantidade) }).eq("id", item.peca_id);
             }
           }
         }

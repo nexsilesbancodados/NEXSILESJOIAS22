@@ -13,9 +13,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    if (!MERCADOPAGO_ACCESS_TOKEN) throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -31,12 +28,41 @@ serve(async (req: Request) => {
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
+      // We need to determine the org to get the right token
+      // First try to find existing order for this payment
+      const { data: existingOrder } = await supabase
+        .from("ecommerce_pedidos")
+        .select("id, organization_id, status")
+        .eq("mercadopago_payment_id", String(paymentId))
+        .maybeSingle();
+
+      let mpToken: string | undefined;
+
+      if (existingOrder?.organization_id) {
+        // Fetch org token
+        const { data: ecomConfig } = await supabase
+          .from("ecommerce_config")
+          .select("mercadopago_access_token")
+          .eq("organization_id", existingOrder.organization_id)
+          .single();
+        mpToken = ecomConfig?.mercadopago_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+      } else {
+        // Try global token first, we'll resolve org from external_reference later
+        mpToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+      }
+
+      if (!mpToken) {
+        console.error("No MP token available for webhook");
+        return new Response("ok", { status: 200, headers: corsHeaders });
+      }
+
       // Fetch payment details from MP
       const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-        headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
+        headers: { Authorization: `Bearer ${mpToken}` },
       });
 
       if (!mpResponse.ok) {
+        // If global token failed, try to find org from external_reference via a different approach
         console.error("Failed to fetch payment from MP:", mpResponse.status);
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
@@ -45,16 +71,8 @@ serve(async (req: Request) => {
       console.log("Payment status:", payment.status, "ID:", payment.id);
 
       if (payment.status === "approved") {
-        // Check if order already exists for this payment
-        const { data: existingOrder } = await supabase
-          .from("ecommerce_pedidos")
-          .select("id")
-          .eq("mercadopago_payment_id", String(payment.id))
-          .maybeSingle();
-
         if (existingOrder) {
           console.log("Order already exists for payment:", payment.id);
-          // Update status if needed
           await supabase
             .from("ecommerce_pedidos")
             .update({ status: "pago" })
@@ -72,10 +90,30 @@ serve(async (req: Request) => {
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
 
-        const {
-          organization_id, items, cliente, endereco,
-          valor_subtotal, valor_frete, valor_total,
-        } = refData;
+        const { organization_id, items, cliente, endereco, valor_subtotal, valor_frete, valor_total } = refData;
+
+        // If we used global token but org has its own, re-fetch payment with org token
+        if (organization_id && !existingOrder) {
+          const { data: orgConfig } = await supabase
+            .from("ecommerce_config")
+            .select("mercadopago_access_token")
+            .eq("organization_id", organization_id)
+            .single();
+          
+          if (orgConfig?.mercadopago_access_token && orgConfig.mercadopago_access_token !== mpToken) {
+            // Re-verify with org-specific token
+            const orgMpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+              headers: { Authorization: `Bearer ${orgConfig.mercadopago_access_token}` },
+            });
+            if (orgMpResponse.ok) {
+              const orgPayment = await orgMpResponse.json();
+              if (orgPayment.status !== "approved") {
+                console.log("Payment not approved with org token");
+                return new Response("ok", { status: 200, headers: corsHeaders });
+              }
+            }
+          }
+        }
 
         // Create order
         const { data: pedido, error: pedidoError } = await supabase
@@ -132,7 +170,6 @@ serve(async (req: Request) => {
 
         console.log("Webhook order created:", pedido.numero_pedido);
       } else if (payment.status === "cancelled" || payment.status === "rejected") {
-        // Update existing order if any
         await supabase
           .from("ecommerce_pedidos")
           .update({ status: "cancelado" })
