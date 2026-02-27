@@ -1403,6 +1403,10 @@ export type Database = {
           organization_id: string
           parcelamento_max: number | null
           pedido_minimo: number | null
+          pix_chave: string | null
+          pix_cidade: string | null
+          pix_nome: string | null
+          pix_tipo: string | null
           politica_privacidade: string | null
           politica_troca: string | null
           produtos_por_pagina: number | null
@@ -1467,6 +1471,10 @@ export type Database = {
           organization_id: string
           parcelamento_max?: number | null
           pedido_minimo?: number | null
+          pix_chave?: string | null
+          pix_cidade?: string | null
+          pix_nome?: string | null
+          pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
           produtos_por_pagina?: number | null
@@ -1531,6 +1539,10 @@ export type Database = {
           organization_id?: string
           parcelamento_max?: number | null
           pedido_minimo?: number | null
+          pix_chave?: string | null
+          pix_cidade?: string | null
+          pix_nome?: string | null
+          pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
           produtos_por_pagina?: number | null
@@ -4302,6 +4314,10 @@ export type Database = {
           organization_id: string | null
           parcelamento_max: number | null
           pedido_minimo: number | null
+          pix_chave: string | null
+          pix_cidade: string | null
+          pix_nome: string | null
+          pix_tipo: string | null
           politica_privacidade: string | null
           politica_troca: string | null
           produtos_por_pagina: number | null
@@ -4363,6 +4379,10 @@ export type Database = {
           organization_id?: string | null
           parcelamento_max?: number | null
           pedido_minimo?: number | null
+          pix_chave?: string | null
+          pix_cidade?: string | null
+          pix_nome?: string | null
+          pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
           produtos_por_pagina?: number | null
@@ -4424,6 +4444,10 @@ export type Database = {
           organization_id?: string | null
           parcelamento_max?: number | null
           pedido_minimo?: number | null
+          pix_chave?: string | null
+          pix_cidade?: string | null
+          pix_nome?: string | null
+          pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
           produtos_por_pagina?: number | null

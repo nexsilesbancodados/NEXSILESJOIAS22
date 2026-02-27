@@ -188,6 +188,10 @@ export function EcommerceConfigTab() {
     badges_produto: [] as string[],
     mercadopago_access_token: '',
     mercadopago_public_key: '',
+    pix_chave: '',
+    pix_nome: '',
+    pix_tipo: 'cpf',
+    pix_cidade: 'SAO PAULO',
   });
   const [showMpToken, setShowMpToken] = useState(false);
 
@@ -253,6 +257,10 @@ export function EcommerceConfigTab() {
         badges_produto: config.badges_produto || [],
         mercadopago_access_token: config.mercadopago_access_token || '',
         mercadopago_public_key: config.mercadopago_public_key || '',
+        pix_chave: config.pix_chave || '',
+        pix_nome: config.pix_nome || '',
+        pix_tipo: config.pix_tipo || 'cpf',
+        pix_cidade: config.pix_cidade || 'SAO PAULO',
       });
     }
   }, [config]);
@@ -325,6 +333,10 @@ export function EcommerceConfigTab() {
         badges_produto: form.badges_produto,
         mercadopago_access_token: form.mercadopago_access_token || null,
         mercadopago_public_key: form.mercadopago_public_key || null,
+        pix_chave: form.pix_chave || null,
+        pix_nome: form.pix_nome || null,
+        pix_tipo: form.pix_tipo || 'cpf',
+        pix_cidade: form.pix_cidade || 'SAO PAULO',
       };
 
       if (config?.id) {
@@ -865,13 +877,62 @@ export function EcommerceConfigTab() {
                 <p className="text-[10px] text-muted-foreground mt-2">{form.metodos_pagamento.length} método(s) ativo(s)</p>
               </SectionCard>
 
+              {/* PIX Direto */}
+              <SectionCard icon={DollarSign} title="PIX Direto" description="Receba pagamentos diretamente via PIX — sem intermediário">
+                <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: form.pix_chave ? '#10B981' : '#F59E0B', backgroundColor: form.pix_chave ? '#10B98110' : '#F59E0B10' }}>
+                  {form.pix_chave ? (
+                    <><CheckCircle2 className="w-4 h-4 text-emerald-500" /><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">PIX configurado ✓ — Pagamentos vão direto para sua conta</span></>
+                  ) : (
+                    <><AlertCircle className="w-4 h-4 text-amber-500" /><span className="text-xs font-medium text-amber-700 dark:text-amber-300">Configure sua chave PIX para receber pagamentos</span></>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Tipo da Chave</Label>
+                    <Select value={form.pix_tipo} onValueChange={v => setForm(p => ({ ...p, pix_tipo: v }))}>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cpf">CPF</SelectItem>
+                        <SelectItem value="cnpj">CNPJ</SelectItem>
+                        <SelectItem value="email">E-mail</SelectItem>
+                        <SelectItem value="telefone">Telefone</SelectItem>
+                        <SelectItem value="aleatoria">Chave Aleatória</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Chave PIX</Label>
+                    <Input value={form.pix_chave} onChange={e => setForm(p => ({ ...p, pix_chave: e.target.value }))}
+                      placeholder={form.pix_tipo === 'cpf' ? '000.000.000-00' : form.pix_tipo === 'email' ? 'seu@email.com' : form.pix_tipo === 'telefone' ? '+5511999999999' : 'Sua chave PIX'}
+                      className="h-9 text-sm font-mono" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Nome do Recebedor</Label>
+                    <Input value={form.pix_nome} onChange={e => setForm(p => ({ ...p, pix_nome: e.target.value }))} placeholder="Seu nome ou razão social" className="h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Cidade</Label>
+                    <Input value={form.pix_cidade} onChange={e => setForm(p => ({ ...p, pix_cidade: e.target.value }))} placeholder="SAO PAULO" className="h-9 text-sm" />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                  <p className="text-xs font-medium text-foreground">💡 Como funciona:</p>
+                  <p className="text-[10px] text-muted-foreground">O cliente verá um QR Code PIX no checkout. Ao pagar, o valor cai <strong>direto na sua conta</strong> — sem taxas de intermediário.</p>
+                </div>
+              </SectionCard>
+
               {/* Integração Mercado Pago */}
-              <SectionCard icon={CreditCard} title="Integração Mercado Pago" description="Credenciais para receber pagamentos na sua conta">
+              <SectionCard icon={CreditCard} title="Integração Mercado Pago" description="Credenciais para receber pagamentos na sua conta (cartão, boleto)">
                 <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: form.mercadopago_access_token ? '#10B981' : '#F59E0B', backgroundColor: form.mercadopago_access_token ? '#10B98110' : '#F59E0B10' }}>
                   {form.mercadopago_access_token ? (
                     <><CheckCircle2 className="w-4 h-4 text-emerald-500" /><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Mercado Pago configurado ✓</span></>
                   ) : (
-                    <><AlertCircle className="w-4 h-4 text-amber-500" /><span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pagamento pendente de configuração</span></>
+                    <><AlertCircle className="w-4 h-4 text-amber-500" /><span className="text-xs font-medium text-amber-700 dark:text-amber-300">Opcional — para cartão de crédito e boleto</span></>
                   )}
                 </div>
 

@@ -20,6 +20,8 @@ import { CookieConsent } from '@/components/loja/CookieConsent';
 import { ProductShareButtons } from '@/components/loja/ProductShareButtons';
 import { ProductReviews } from '@/components/ecommerce/ProductReviews';
 import { ChatWidget } from '@/components/ai-agent/ChatWidget';
+import { generatePixPayload } from '@/lib/pix-generator';
+import { QRCodeSVG } from 'qrcode.react';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
@@ -39,7 +41,6 @@ interface StoreConfig {
   metodos_pagamento: string[] | null; email_contato: string | null;
   facebook: string | null; politica_troca: string | null; politica_privacidade: string | null;
   avaliacoes_ativas: boolean | null; horario_funcionamento: any | null;
-  // New config fields
   fonte_titulos: string | null; fonte_corpo: string | null;
   layout_produtos: string | null; colunas_desktop: number | null; colunas_mobile: number | null;
   mostrar_busca: boolean | null; mostrar_categorias: boolean | null;
@@ -55,6 +56,7 @@ interface StoreConfig {
   tempo_estimado_entrega: string | null; badges_produto: string[] | null;
   mensagem_whatsapp: string | null;
   mercadopago_public_key: string | null;
+  pix_chave: string | null; pix_nome: string | null; pix_tipo: string | null; pix_cidade: string | null;
 }
 
 interface Peca {
@@ -64,7 +66,7 @@ interface Peca {
 }
 
 interface CartItem extends Peca { quantidade: number; }
-type CheckoutStep = 'cart' | 'dados' | 'pagamento' | 'confirmacao';
+type CheckoutStep = 'cart' | 'dados' | 'metodo' | 'pagamento' | 'pix' | 'confirmacao';
 type SortOption = 'nome' | 'preco_asc' | 'preco_desc' | 'novidades';
 
 export default function LojaPublicaPage() {
@@ -109,8 +111,9 @@ export default function LojaPublicaPage() {
   const [freteEscolhido, setFreteEscolhido] = useState<'pac' | 'sedex' | 'taxa_fixa'>('taxa_fixa');
   const [freteCalculando, setFreteCalculando] = useState(false);
 
-  // Policy modal
   const [policyModal, setPolicyModal] = useState<{ title: string; content: string } | null>(null);
+  const [selectedPayMethod, setSelectedPayMethod] = useState<'pix' | 'cartao' | null>(null);
+  const [pixCopied, setPixCopied] = useState(false);
   // Agent config for chatbot
   const [agentConfig, setAgentConfig] = useState<any>(null);
   const [avaliacoes, setAvaliacoes] = useState<Record<string, { media: number; total: number }>>({});
@@ -429,6 +432,50 @@ export default function LojaPublicaPage() {
       toast.error(`Pedido mínimo de ${formatCurrency(config.pedido_minimo)}`);
       return;
     }
+    
+    // If PIX is configured and MP is also configured, let user choose
+    const hasPix = !!config.pix_chave;
+    const hasMp = !!config.mercadopago_public_key;
+    
+    if (hasPix && hasMp) {
+      setCheckoutStep('metodo');
+      return;
+    }
+    
+    if (hasPix && !hasMp) {
+      // PIX only
+      handlePixPayment();
+      return;
+    }
+    
+    // MP only (default)
+    await handleMpCheckout();
+  };
+
+  const handlePixPayment = async () => {
+    if (!config) return;
+    setProcessing(true);
+    try {
+      // Create order with status 'aguardando_pix'
+      const { data, error } = await supabase.functions.invoke('ecommerce-checkout', {
+        body: {
+          items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
+          organization_id: config.organization_id, cliente,
+          endereco: endereco.cep ? endereco : undefined, valor_frete: valorFrete,
+          metodo_pagamento: 'pix_direto',
+          cupom_id: cupomId, valor_desconto: cupomDesconto,
+        },
+      });
+      if (error) { toast.error('Erro ao criar pedido'); setProcessing(false); return; }
+      setNumeroPedido(data?.numero_pedido || null);
+      setPedidoId(data?.pedido_id || null);
+      setCheckoutStep('pix');
+    } catch { toast.error('Erro ao processar'); }
+    finally { setProcessing(false); }
+  };
+
+  const handleMpCheckout = async () => {
+    if (!config) return;
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('ecommerce-checkout', {
@@ -1519,7 +1566,9 @@ export default function LojaPublicaPage() {
           <DialogHeader>
             <DialogTitle className="text-lg tracking-wide uppercase" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>
               {checkoutStep === 'dados' && 'Dados para Entrega'}
+              {checkoutStep === 'metodo' && 'Forma de Pagamento'}
               {checkoutStep === 'pagamento' && 'Pagamento'}
+              {checkoutStep === 'pix' && 'Pagamento via PIX'}
               {checkoutStep === 'confirmacao' && 'Pedido Confirmado!'}
             </DialogTitle>
           </DialogHeader>
@@ -1662,6 +1711,136 @@ export default function LojaPublicaPage() {
                 style={{ backgroundColor: roseGold }} onClick={handleCheckout} disabled={processing || (!!config.pedido_minimo && subtotal < config.pedido_minimo)}>
                 {processing ? 'Processando...' : 'Ir para Pagamento'}
               </button>
+            </div>
+          )}
+
+          {checkoutStep === 'metodo' && (
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-center" style={{ color: textMuted, fontFamily: `'${fontCorpo}', sans-serif` }}>
+                Escolha como deseja pagar:
+              </p>
+              <div className="space-y-3">
+                {config.pix_chave && (
+                  <button
+                    onClick={() => { setSelectedPayMethod('pix'); handlePixPayment(); }}
+                    className="w-full p-4 border-2 rounded-xl flex items-center gap-4 transition-all hover:shadow-md"
+                    style={{ borderColor: roseGoldLight }}
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: '#E8F5E9' }}>💰</div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-sm" style={{ color: textDark }}>PIX</p>
+                      <p className="text-xs" style={{ color: textMuted }}>Pagamento instantâneo — sem taxas</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5" style={{ color: textMuted }} />
+                  </button>
+                )}
+                {config.mercadopago_public_key && (
+                  <button
+                    onClick={async () => { setSelectedPayMethod('cartao'); await handleMpCheckout(); }}
+                    className="w-full p-4 border-2 rounded-xl flex items-center gap-4 transition-all hover:shadow-md"
+                    style={{ borderColor: roseGoldLight }}
+                  >
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl" style={{ backgroundColor: '#E3F2FD' }}>💳</div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-sm" style={{ color: textDark }}>Cartão / Boleto</p>
+                      <p className="text-xs" style={{ color: textMuted }}>Cartão de crédito, débito ou boleto</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5" style={{ color: textMuted }} />
+                  </button>
+                )}
+              </div>
+              {processing && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin" style={{ color: roseGold }} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {checkoutStep === 'pix' && config.pix_chave && config.pix_nome && (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl" style={{ backgroundColor: '#E8F5E9' }}>💰</div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-semibold" style={{ color: textDark }}>Escaneie o QR Code para pagar</p>
+                <p className="text-2xl font-bold" style={{ color: roseGold }}>{formatCurrency(total)}</p>
+                {numeroPedido && <p className="text-xs" style={{ color: textMuted }}>Pedido #{numeroPedido}</p>}
+              </div>
+              
+              <div className="p-4 bg-white rounded-xl shadow-lg border">
+                <QRCodeSVG
+                  value={generatePixPayload({
+                    chave: config.pix_chave,
+                    nome: config.pix_nome,
+                    cidade: config.pix_cidade || 'SAO PAULO',
+                    valor: total,
+                    tipo: (config.pix_tipo as any) || 'cpf',
+                  })}
+                  size={220}
+                  level="M"
+                />
+              </div>
+
+              <div className="w-full max-w-xs space-y-2">
+                <p className="text-xs font-medium text-center" style={{ color: textMuted }}>Ou copie o código PIX:</p>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={generatePixPayload({
+                      chave: config.pix_chave,
+                      nome: config.pix_nome,
+                      cidade: config.pix_cidade || 'SAO PAULO',
+                      valor: total,
+                      tipo: (config.pix_tipo as any) || 'cpf',
+                    })}
+                    className="flex-1 text-[10px] font-mono p-2 border rounded-lg truncate"
+                    style={{ borderColor: roseGoldLight, backgroundColor: warmWhite }}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatePixPayload({
+                        chave: config.pix_chave!,
+                        nome: config.pix_nome!,
+                        cidade: config.pix_cidade || 'SAO PAULO',
+                        valor: total,
+                        tipo: (config.pix_tipo as any) || 'cpf',
+                      }));
+                      setPixCopied(true);
+                      toast.success('Código PIX copiado!');
+                      setTimeout(() => setPixCopied(false), 3000);
+                    }}
+                    className="px-3 py-2 text-xs rounded-lg border transition-all"
+                    style={{ borderColor: roseGold, color: pixCopied ? 'white' : roseGold, backgroundColor: pixCopied ? roseGold : 'transparent' }}
+                  >
+                    {pixCopied ? '✓' : 'Copiar'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="w-full max-w-xs p-3 rounded-lg border space-y-1" style={{ borderColor: roseGoldLight, backgroundColor: warmWhite }}>
+                <p className="text-xs font-medium" style={{ color: textDark }}>Recebedor: {config.pix_nome}</p>
+                <p className="text-xs" style={{ color: textMuted }}>Chave: {config.pix_chave}</p>
+              </div>
+
+              <div className="flex gap-3 mt-2">
+                <button
+                  onClick={() => { setCheckoutStep('confirmacao'); setCart([]); toast.success('Pedido registrado! ✨'); }}
+                  className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] text-white"
+                  style={{ backgroundColor: roseGold, fontFamily: `'${fontCorpo}', sans-serif` }}
+                >
+                  Já paguei
+                </button>
+                {config.whatsapp && (
+                  <a href={`https://wa.me/${config.whatsapp.replace(/\D/g, '')}?text=Olá! Realizei o pagamento PIX do pedido %23${numeroPedido}. Valor: ${formatCurrency(total)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="px-6 py-2.5 text-xs uppercase tracking-[0.15em] text-white"
+                    style={{ backgroundColor: '#25D366', fontFamily: `'${fontCorpo}', sans-serif` }}>
+                    Enviar comprovante
+                  </a>
+                )}
+              </div>
+              <p className="text-[10px] text-center" style={{ color: textMuted }}>
+                Após o pagamento, confirme clicando em "Já paguei" ou envie o comprovante via WhatsApp.
+              </p>
             </div>
           )}
 
