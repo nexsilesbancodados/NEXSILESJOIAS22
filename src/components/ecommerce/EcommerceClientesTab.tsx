@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useOrganization } from '@/hooks/useOrganization';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -18,16 +19,20 @@ import { ptBR } from 'date-fns/locale';
 export function EcommerceClientesTab() {
   const [search, setSearch] = useState('');
   const [selectedCliente, setSelectedCliente] = useState<any>(null);
+  const { organizationId } = useOrganization();
 
   const { data: pedidos = [], isLoading } = useQuery({
-    queryKey: ['ecommerce-clientes-pedidos'],
+    queryKey: ['ecommerce-clientes-pedidos', organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
       const { data } = await supabase
         .from('ecommerce_pedidos' as any)
         .select('*')
+        .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
       return (data as any[]) || [];
     },
+    enabled: !!organizationId,
   });
 
   // Aggregate clients from orders
