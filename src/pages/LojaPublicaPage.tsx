@@ -945,58 +945,99 @@ export default function LojaPublicaPage() {
 
       {/* Product Detail Modal */}
       <Dialog open={!!selectedPeca} onOpenChange={() => setSelectedPeca(null)}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden border-0 shadow-2xl rounded-2xl" style={{ backgroundColor: warmWhite }}>
           {selectedPeca && (
-            <div className="flex flex-col sm:flex-row">
-              <div className="sm:w-1/2 aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
+            <div className="flex flex-col md:flex-row">
+              {/* Image Section - Enhanced */}
+              <div className="md:w-[55%] relative group overflow-hidden" style={{ backgroundColor: '#F8F3F0' }}>
                 {selectedPeca.imagem_url ? (
-                  <img src={selectedPeca.imagem_url} alt={selectedPeca.nome} className="w-full h-full object-cover" />
+                  <img 
+                    src={selectedPeca.imagem_url} 
+                    alt={selectedPeca.nome} 
+                    className="w-full h-full object-cover aspect-square md:aspect-auto md:min-h-[520px] transition-transform duration-700 group-hover:scale-105" 
+                  />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center"><Package className="w-16 h-16" style={{ color: roseGoldLight }} /></div>
+                  <div className="w-full aspect-square md:min-h-[520px] flex flex-col items-center justify-center gap-3">
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: `${roseGold}15` }}>
+                      <Package className="w-10 h-10" style={{ color: roseGoldLight }} />
+                    </div>
+                    <p className="text-xs" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Imagem não disponível</p>
+                  </div>
+                )}
+                {/* Wishlist floating button */}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); toggleWishlist(selectedPeca.id); }}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-lg transition-all hover:scale-110 hover:bg-white"
+                >
+                  <Heart className="w-5 h-5" style={{ color: roseGold }} fill={wishlist.has(selectedPeca.id) ? roseGold : 'none'} />
+                </button>
+                {selectedPeca.estoque > 0 && selectedPeca.estoque <= 5 && config.mostrar_estoque && (
+                  <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-wider text-white" style={{ backgroundColor: '#E67E22', fontFamily: "'Inter', sans-serif" }}>
+                    Últimas {selectedPeca.estoque} unidades
+                  </div>
                 )}
               </div>
-              <div className="sm:w-1/2 p-6 flex flex-col justify-center">
-                {/* Breadcrumb in modal */}
-                <div className="flex items-center gap-1 text-[10px] mb-2" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                  <span className="cursor-pointer hover:underline" onClick={() => { setSelectedPeca(null); setCategoriaFilter('todas'); }}>Início</span>
+
+              {/* Details Section - Enhanced */}
+              <div className="md:w-[45%] p-7 md:p-8 flex flex-col overflow-y-auto max-h-[85vh]">
+                {/* Breadcrumb */}
+                <div className="flex items-center gap-1.5 text-[10px] mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                  <span className="cursor-pointer hover:underline transition-colors" onClick={() => { setSelectedPeca(null); setCategoriaFilter('todas'); }}>Início</span>
                   {selectedPeca.categoria && (
-                    <><ChevronRight className="w-2.5 h-2.5" /><span className="cursor-pointer hover:underline" onClick={() => { setSelectedPeca(null); setCategoriaFilter(selectedPeca.categoria!); }}>{selectedPeca.categoria}</span></>
+                    <><ChevronRight className="w-2.5 h-2.5" /><span className="cursor-pointer hover:underline transition-colors" onClick={() => { setSelectedPeca(null); setCategoriaFilter(selectedPeca.categoria!); }}>{selectedPeca.categoria}</span></>
                   )}
-                  <ChevronRight className="w-2.5 h-2.5" /><span style={{ color: roseGold }}>{selectedPeca.nome}</span>
+                  <ChevronRight className="w-2.5 h-2.5" /><span className="font-medium" style={{ color: textDark }}>{selectedPeca.nome}</span>
                 </div>
 
-                <p className="text-xs uppercase tracking-[0.2em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-                  {[selectedPeca.categoria, selectedPeca.material].filter(Boolean).join(' · ') || 'Peça'}
+                {/* Category & Material Tag */}
+                <p className="text-[10px] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
+                  {[selectedPeca.categoria, selectedPeca.material].filter(Boolean).join(' · ') || 'Peça exclusiva'}
                 </p>
-                <h3 className="text-xl sm:text-2xl font-light leading-snug" style={{ color: textDark }}>{selectedPeca.nome}</h3>
-                {selectedPeca.codigo && <p className="text-[10px] mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Cód: {selectedPeca.codigo}</p>}
-                <p className="text-2xl font-semibold mt-4" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(selectedPeca.preco_venda)}</p>
-                <p className="text-xs mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>ou 12x de {formatCurrency(selectedPeca.preco_venda / 12)} sem juros</p>
-                {selectedPeca.descricao && <p className="text-sm mt-4 leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{selectedPeca.descricao}</p>}
 
-                {/* Variações hint */}
+                {/* Title */}
+                <h3 className="text-2xl sm:text-3xl font-light leading-tight tracking-tight" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>{selectedPeca.nome}</h3>
+                {selectedPeca.codigo && <p className="text-[10px] mt-1.5 font-medium" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Cód: {selectedPeca.codigo}</p>}
+
+                {/* Divider */}
+                <div className="w-10 h-[1px] my-4" style={{ backgroundColor: roseGold }} />
+
+                {/* Price Section */}
+                <div className="mb-4">
+                  <p className="text-3xl font-bold tracking-tight" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(selectedPeca.preco_venda)}</p>
+                  <p className="text-[11px] mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                    ou <strong>12x</strong> de <strong>{formatCurrency(selectedPeca.preco_venda / 12)}</strong> sem juros
+                  </p>
+                </div>
+
+                {/* Description */}
+                {selectedPeca.descricao && (
+                  <p className="text-sm leading-relaxed mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{selectedPeca.descricao}</p>
+                )}
+
+                {/* Material Badge */}
                 {selectedPeca.material && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Material:</span>
-                    <span className="px-2 py-0.5 text-[10px] border" style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}>{selectedPeca.material}</span>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Material:</span>
+                    <span className="px-3 py-1 text-[10px] font-medium rounded-full border" style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}>{selectedPeca.material}</span>
                   </div>
                 )}
 
-                <div className="mt-3 flex items-center gap-2 text-xs" style={{ fontFamily: "'Inter', sans-serif" }}>
+                {/* Availability */}
+                <div className="flex items-center gap-2 text-xs mb-4 px-3 py-2 rounded-lg" style={{ backgroundColor: selectedPeca.estoque > 0 ? '#E8F5E9' : '#FFF3E0', fontFamily: "'Inter', sans-serif" }}>
                   {config.mostrar_estoque !== false ? (
-                    selectedPeca.estoque > 0 ? <span style={{ color: '#4CAF50' }}>● Em estoque ({selectedPeca.estoque} un.)</span> : <span style={{ color: textMuted }}>● Esgotado</span>
+                    selectedPeca.estoque > 0 ? (
+                      <span className="font-medium" style={{ color: '#2E7D32' }}>✓ Em estoque ({selectedPeca.estoque} un.)</span>
+                    ) : (
+                      <span className="font-medium" style={{ color: '#E65100' }}>✕ Esgotado</span>
+                    )
                   ) : (
-                    selectedPeca.estoque > 0 ? <span style={{ color: '#4CAF50' }}>● Disponível</span> : <span style={{ color: textMuted }}>● Esgotado</span>
+                    selectedPeca.estoque > 0 ? (
+                      <span className="font-medium" style={{ color: '#2E7D32' }}>✓ Disponível</span>
+                    ) : (
+                      <span className="font-medium" style={{ color: '#E65100' }}>✕ Esgotado</span>
+                    )
                   )}
                 </div>
-
-                {/* Wishlist toggle in modal */}
-                <button onClick={() => toggleWishlist(selectedPeca.id)}
-                  className="flex items-center gap-2 mt-3 text-xs transition-all hover:opacity-70"
-                  style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>
-                  <Heart className="w-4 h-4" fill={wishlist.has(selectedPeca.id) ? roseGold : 'none'} />
-                  {wishlist.has(selectedPeca.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                </button>
 
                 {/* Share buttons */}
                 <ProductShareButtons
@@ -1007,26 +1048,28 @@ export default function LojaPublicaPage() {
                   textMuted={textMuted}
                 />
 
+                {/* CTA Button */}
                 {selectedPeca.estoque > 0 ? (
-                  <button className="w-full mt-5 py-3 text-white text-xs uppercase tracking-[0.15em] transition-all hover:opacity-90"
+                  <button 
+                    className="w-full mt-5 py-4 text-white text-xs uppercase tracking-[0.2em] font-semibold transition-all hover:opacity-90 hover:shadow-lg rounded-lg"
                     style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}
                     onClick={() => { addToCart(selectedPeca); setSelectedPeca(null); }}>
                     Adicionar à Sacola
                   </button>
                 ) : (
-                  <div className="mt-5 space-y-2">
-                    <p className="text-xs text-center" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                      <Bell className="w-3.5 h-3.5 inline mr-1" />Avise-me quando disponível
+                  <div className="mt-5 space-y-3 p-4 rounded-lg border" style={{ borderColor: '#E0D5CF' }}>
+                    <p className="text-xs text-center font-medium flex items-center justify-center gap-1.5" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>
+                      <Bell className="w-3.5 h-3.5" />Avise-me quando disponível
                     </p>
                     <div className="flex gap-2">
                       <input
-                        type="email" placeholder="Seu e-mail" value={aviseEmail}
+                        type="email" placeholder="Seu melhor e-mail" value={aviseEmail}
                         onChange={e => setAviseEmail(e.target.value)}
-                        className="flex-1 px-3 py-2 text-xs border outline-none"
-                        style={{ borderColor: '#E0D5CF', fontFamily: "'Inter', sans-serif" }}
+                        className="flex-1 px-3 py-2.5 text-xs border outline-none rounded-lg transition-all focus:ring-2"
+                        style={{ borderColor: '#E0D5CF', fontFamily: "'Inter', sans-serif", ['--tw-ring-color' as string]: `${roseGold}40` }}
                       />
                       <button onClick={() => handleAviseMe(selectedPeca.id)} disabled={aviseLoading}
-                        className="px-4 py-2 text-[10px] uppercase text-white disabled:opacity-50"
+                        className="px-5 py-2.5 text-[10px] uppercase font-semibold text-white disabled:opacity-50 rounded-lg transition-all hover:opacity-90"
                         style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}>
                         {aviseLoading ? '...' : 'Avisar'}
                       </button>
@@ -1034,15 +1077,17 @@ export default function LojaPublicaPage() {
                   </div>
                 )}
 
-                {/* Avaliações do produto */}
+                {/* Reviews */}
                 {config.avaliacoes_ativas !== false && (
-                  <ProductReviews
-                    pecaId={selectedPeca.id}
-                    organizationId={config.organization_id}
-                    roseGold={roseGold}
-                    textDark={textDark}
-                    textMuted={textMuted}
-                  />
+                  <div className="mt-6 pt-5 border-t" style={{ borderColor: '#F0E6E0' }}>
+                    <ProductReviews
+                      pecaId={selectedPeca.id}
+                      organizationId={config.organization_id}
+                      roseGold={roseGold}
+                      textDark={textDark}
+                      textMuted={textMuted}
+                    />
+                  </div>
                 )}
               </div>
             </div>
