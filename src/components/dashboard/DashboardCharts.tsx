@@ -222,6 +222,7 @@ export const DashboardCharts = memo(function DashboardCharts({ vendas, pecas }: 
                     outerRadius={85}
                     paddingAngle={3}
                     dataKey="value"
+                    isAnimationActive={false}
                   >
                     {pieData.map((entry, index) => (
                       <Cell 
