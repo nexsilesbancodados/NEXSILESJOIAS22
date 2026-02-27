@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Bell, MessageSquare, Mail, ShoppingCart, Package, Star, AlertTriangle, Zap, Save } from 'lucide-react';
+import { Bell, ShoppingCart, Package, Star, AlertTriangle, Zap, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useOrganization } from '@/hooks/useOrganization';
+import { db } from '@/lib/supabase-db';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface AutomacaoConfig {
   id: string;
@@ -16,32 +18,98 @@ interface AutomacaoConfig {
   icon: any;
   ativo: boolean;
   canal: 'whatsapp' | 'email' | 'ambos';
-  template?: string;
+  template: string;
 }
 
+const DEFAULT_AUTOMACOES: AutomacaoConfig[] = [
+  { id: 'novo_pedido', nome: 'Novo Pedido', descricao: 'Notificar quando um novo pedido for realizado', icon: ShoppingCart, ativo: true, canal: 'whatsapp', template: 'Olá! Seu pedido #{numero} foi recebido com sucesso. Total: R$ {valor}. Acompanhe pelo link: {link}' },
+  { id: 'pedido_enviado', nome: 'Pedido Enviado', descricao: 'Notificar quando o pedido for despachado', icon: Package, ativo: true, canal: 'whatsapp', template: 'Seu pedido #{numero} foi enviado! Código de rastreio: {rastreio}. Acompanhe em: {link_rastreio}' },
+  { id: 'pedido_entregue', nome: 'Pedido Entregue', descricao: 'Confirmar entrega e solicitar avaliação', icon: Star, ativo: false, canal: 'whatsapp', template: 'Seu pedido #{numero} foi entregue! 🎉 Avalie sua experiência: {link_avaliacao}' },
+  { id: 'carrinho_abandonado', nome: 'Carrinho Abandonado', descricao: 'Lembrar cliente após abandono de carrinho', icon: AlertTriangle, ativo: false, canal: 'whatsapp', template: 'Olá {nome}! Você deixou itens no carrinho. Finalize sua compra com 10% OFF usando o cupom VOLTA10: {link}' },
+  { id: 'estoque_baixo', nome: 'Estoque Baixo', descricao: 'Alertar admin quando estoque estiver baixo', icon: AlertTriangle, ativo: true, canal: 'email', template: 'O produto {produto} está com estoque baixo ({quantidade} unidades). Reponha o estoque o quanto antes.' },
+  { id: 'avaliacao_recebida', nome: 'Nova Avaliação', descricao: 'Notificar admin sobre novas avaliações', icon: Star, ativo: false, canal: 'email', template: 'Nova avaliação de {cliente}: {nota}⭐ para {produto}. "{comentario}"' },
+];
+
+const CONFIG_KEY = 'ecommerce_automacoes';
+
 export function EcommerceNotificacoesTab() {
-  const [automacoes, setAutomacoes] = useState<AutomacaoConfig[]>([
-    { id: 'novo_pedido', nome: 'Novo Pedido', descricao: 'Notificar quando um novo pedido for realizado', icon: ShoppingCart, ativo: true, canal: 'whatsapp', template: 'Olá! Seu pedido #{numero} foi recebido com sucesso. Total: R$ {valor}. Acompanhe pelo link: {link}' },
-    { id: 'pedido_enviado', nome: 'Pedido Enviado', descricao: 'Notificar quando o pedido for despachado', icon: Package, ativo: true, canal: 'whatsapp', template: 'Seu pedido #{numero} foi enviado! Código de rastreio: {rastreio}. Acompanhe em: {link_rastreio}' },
-    { id: 'pedido_entregue', nome: 'Pedido Entregue', descricao: 'Confirmar entrega e solicitar avaliação', icon: Star, ativo: false, canal: 'whatsapp', template: 'Seu pedido #{numero} foi entregue! 🎉 Avalie sua experiência: {link_avaliacao}' },
-    { id: 'carrinho_abandonado', nome: 'Carrinho Abandonado', descricao: 'Lembrar cliente após abandono de carrinho', icon: AlertTriangle, ativo: false, canal: 'whatsapp', template: 'Olá {nome}! Você deixou itens no carrinho. Finalize sua compra com 10% OFF usando o cupom VOLTA10: {link}' },
-    { id: 'estoque_baixo', nome: 'Estoque Baixo', descricao: 'Alertar admin quando estoque estiver baixo', icon: AlertTriangle, ativo: true, canal: 'email', template: 'O produto {produto} está com estoque baixo ({quantidade} unidades). Reponha o estoque o quanto antes.' },
-    { id: 'avaliacao_recebida', nome: 'Nova Avaliação', descricao: 'Notificar admin sobre novas avaliações', icon: Star, ativo: false, canal: 'email', template: 'Nova avaliação de {cliente}: {nota}⭐ para {produto}. "{comentario}"' },
-  ]);
+  const { organization } = useOrganization();
+  const queryClient = useQueryClient();
+  const [automacoes, setAutomacoes] = useState<AutomacaoConfig[]>(DEFAULT_AUTOMACOES);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  // Load saved config from DB
+  const { data: savedConfig, isLoading } = useQuery({
+    queryKey: ['ecommerce-automacoes', organization?.id],
+    queryFn: async () => {
+      if (!organization?.id) return null;
+      const { data } = await db.from('configuracoes')
+        .select('valor')
+        .eq('organization_id', organization.id)
+        .eq('chave', CONFIG_KEY)
+        .maybeSingle();
+      return data?.valor ? JSON.parse(data.valor) : null;
+    },
+    enabled: !!organization?.id,
+  });
+
+  // Apply saved config on load
+  useEffect(() => {
+    if (savedConfig && Array.isArray(savedConfig)) {
+      setAutomacoes(prev => prev.map(a => {
+        const saved = savedConfig.find((s: any) => s.id === a.id);
+        if (saved) return { ...a, ativo: saved.ativo, template: saved.template || a.template, canal: saved.canal || a.canal };
+        return a;
+      }));
+      setHasChanges(false);
+    }
+  }, [savedConfig]);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!organization?.id) throw new Error('Sem organização');
+      const payload = automacoes.map(a => ({ id: a.id, ativo: a.ativo, template: a.template, canal: a.canal }));
+
+      // Upsert using chave + organization_id
+      const { data: existing } = await db.from('configuracoes')
+        .select('id')
+        .eq('organization_id', organization.id)
+        .eq('chave', CONFIG_KEY)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await db.from('configuracoes')
+          .update({ valor: JSON.stringify(payload) })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await db.from('configuracoes')
+          .insert({ organization_id: organization.id, chave: CONFIG_KEY, valor: JSON.stringify(payload), tipo: 'json', descricao: 'Configurações de automações do e-commerce' });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-automacoes'] });
+      setHasChanges(false);
+      toast.success('Configurações de automações salvas!');
+    },
+    onError: () => toast.error('Erro ao salvar configurações'),
+  });
 
   const toggleAutomacao = (id: string) => {
     setAutomacoes(prev => prev.map(a => a.id === id ? { ...a, ativo: !a.ativo } : a));
+    setHasChanges(true);
   };
 
   const updateTemplate = (id: string, template: string) => {
     setAutomacoes(prev => prev.map(a => a.id === id ? { ...a, template } : a));
+    setHasChanges(true);
   };
 
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const handleSave = () => {
-    toast.success('Configurações de notificações salvas!');
-  };
+  if (isLoading) {
+    return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -113,9 +181,9 @@ export function EcommerceNotificacoesTab() {
         })}
       </div>
 
-      <Button onClick={handleSave} className="w-full">
-        <Save className="h-4 w-4 mr-2" />
-        Salvar Configurações
+      <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !hasChanges} className="w-full">
+        {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+        {hasChanges ? 'Salvar Configurações' : 'Salvo ✓'}
       </Button>
     </div>
   );
