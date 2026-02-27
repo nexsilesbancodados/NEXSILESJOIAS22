@@ -24,7 +24,7 @@ import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
 
-const MP_PUBLIC_KEY = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
+const MP_PUBLIC_KEY_FALLBACK = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
 
 interface StoreConfig {
   id: string; slug: string; nome_loja: string; logo_url: string | null;
@@ -54,6 +54,7 @@ interface StoreConfig {
   parcelamento_max: number | null; mostrar_parcelamento: boolean | null;
   tempo_estimado_entrega: string | null; badges_produto: string[] | null;
   mensagem_whatsapp: string | null;
+  mercadopago_public_key: string | null;
 }
 
 interface Peca {
@@ -451,7 +452,8 @@ export default function LojaPublicaPage() {
         script.async = true;
         await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
       }
-      const mp = new (window as any).MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
+      const mpPublicKey = config?.mercadopago_public_key || MP_PUBLIC_KEY_FALLBACK;
+      const mp = new (window as any).MercadoPago(mpPublicKey, { locale: 'pt-BR' });
       const bricksBuilder = mp.bricks();
       await bricksBuilder.create('payment', 'ecommerce-brick-container', {
         initialization: { amount: total, preferenceId },

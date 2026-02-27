@@ -186,7 +186,10 @@ export function EcommerceConfigTab() {
     mostrar_parcelamento: true,
     tempo_estimado_entrega: '',
     badges_produto: [] as string[],
+    mercadopago_access_token: '',
+    mercadopago_public_key: '',
   });
+  const [showMpToken, setShowMpToken] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -248,6 +251,8 @@ export function EcommerceConfigTab() {
         mostrar_parcelamento: config.mostrar_parcelamento !== false,
         tempo_estimado_entrega: config.tempo_estimado_entrega || '',
         badges_produto: config.badges_produto || [],
+        mercadopago_access_token: config.mercadopago_access_token || '',
+        mercadopago_public_key: config.mercadopago_public_key || '',
       });
     }
   }, [config]);
@@ -318,6 +323,8 @@ export function EcommerceConfigTab() {
         mostrar_parcelamento: form.mostrar_parcelamento,
         tempo_estimado_entrega: form.tempo_estimado_entrega || null,
         badges_produto: form.badges_produto,
+        mercadopago_access_token: form.mercadopago_access_token || null,
+        mercadopago_public_key: form.mercadopago_public_key || null,
       };
 
       if (config?.id) {
@@ -856,6 +863,57 @@ export function EcommerceConfigTab() {
                   </div>
                 ))}
                 <p className="text-[10px] text-muted-foreground mt-2">{form.metodos_pagamento.length} método(s) ativo(s)</p>
+              </SectionCard>
+
+              {/* Integração Mercado Pago */}
+              <SectionCard icon={CreditCard} title="Integração Mercado Pago" description="Credenciais para receber pagamentos na sua conta">
+                <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: form.mercadopago_access_token ? '#10B981' : '#F59E0B', backgroundColor: form.mercadopago_access_token ? '#10B98110' : '#F59E0B10' }}>
+                  {form.mercadopago_access_token ? (
+                    <><CheckCircle2 className="w-4 h-4 text-emerald-500" /><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Mercado Pago configurado ✓</span></>
+                  ) : (
+                    <><AlertCircle className="w-4 h-4 text-amber-500" /><span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pagamento pendente de configuração</span></>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Access Token (Produção)</Label>
+                  <div className="relative">
+                    <Input
+                      type={showMpToken ? 'text' : 'password'}
+                      value={form.mercadopago_access_token}
+                      onChange={e => setForm(p => ({ ...p, mercadopago_access_token: e.target.value }))}
+                      placeholder="APP_USR-xxxx..."
+                      className="h-9 text-sm pr-10 font-mono"
+                    />
+                    <button type="button" onClick={() => setShowMpToken(!showMpToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showMpToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {form.mercadopago_access_token && (
+                    <p className="text-[10px] text-muted-foreground">Token: ****{form.mercadopago_access_token.slice(-4)}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Public Key</Label>
+                  <Input
+                    value={form.mercadopago_public_key}
+                    onChange={e => setForm(p => ({ ...p, mercadopago_public_key: e.target.value }))}
+                    placeholder="APP_USR-xxxx..."
+                    className="h-9 text-sm font-mono"
+                  />
+                </div>
+
+                <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                  <p className="text-xs font-medium text-foreground">📋 Como obter as credenciais:</p>
+                  <ol className="text-[10px] text-muted-foreground space-y-1 list-decimal pl-4">
+                    <li>Acesse <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener noreferrer" className="text-primary underline">Mercado Pago Developers</a></li>
+                    <li>Crie uma aplicação ou selecione existente</li>
+                    <li>Vá em <strong>Credenciais de Produção</strong></li>
+                    <li>Copie o <strong>Access Token</strong> e a <strong>Public Key</strong></li>
+                  </ol>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">⚠️ Use credenciais de PRODUÇÃO, não de teste.</p>
+                </div>
               </SectionCard>
             </TabsContent>
 

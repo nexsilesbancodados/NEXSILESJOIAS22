@@ -1388,6 +1388,8 @@ export type Database = {
           layout_produtos: string | null
           logo_url: string | null
           mensagem_whatsapp: string | null
+          mercadopago_access_token: string | null
+          mercadopago_public_key: string | null
           metodos_pagamento: string[] | null
           mostrar_busca: boolean | null
           mostrar_categorias: boolean | null
@@ -1450,6 +1452,8 @@ export type Database = {
           layout_produtos?: string | null
           logo_url?: string | null
           mensagem_whatsapp?: string | null
+          mercadopago_access_token?: string | null
+          mercadopago_public_key?: string | null
           metodos_pagamento?: string[] | null
           mostrar_busca?: boolean | null
           mostrar_categorias?: boolean | null
@@ -1512,6 +1516,8 @@ export type Database = {
           layout_produtos?: string | null
           logo_url?: string | null
           mensagem_whatsapp?: string | null
+          mercadopago_access_token?: string | null
+          mercadopago_public_key?: string | null
           metodos_pagamento?: string[] | null
           mostrar_busca?: boolean | null
           mostrar_categorias?: boolean | null
@@ -4250,91 +4256,184 @@ export type Database = {
           apenas_com_foto: boolean | null
           ativo: boolean | null
           avaliacoes_ativas: boolean | null
+          badges_produto: string[] | null
           banner_ativo: boolean | null
           banner_cor: string | null
+          banner_link: string | null
+          banner_posicao: string | null
           banner_texto: string | null
+          banner_url: string | null
+          colunas_desktop: number | null
+          colunas_mobile: number | null
           cor_primaria: string | null
           cor_secundaria: string | null
+          css_personalizado: string | null
           descricao: string | null
           email_contato: string | null
           facebook: string | null
+          facebook_pixel_id: string | null
+          fonte_corpo: string | null
+          fonte_titulos: string | null
           frete_gratis_acima: number | null
+          google_analytics_id: string | null
+          hero_cta_link: string | null
+          hero_cta_texto: string | null
+          hero_imagem_url: string | null
+          hero_overlay_opacity: number | null
+          hero_subtitulo: string | null
+          hero_titulo: string | null
           horario_funcionamento: Json | null
           id: string | null
           instagram: string | null
+          layout_produtos: string | null
           logo_url: string | null
+          mensagem_whatsapp: string | null
+          mercadopago_public_key: string | null
           metodos_pagamento: string[] | null
+          mostrar_busca: boolean | null
+          mostrar_categorias: boolean | null
           mostrar_estoque: boolean | null
+          mostrar_filtros: boolean | null
+          mostrar_ordenacao: boolean | null
+          mostrar_parcelamento: boolean | null
           mostrar_preco_original: boolean | null
+          mostrar_whatsapp_float: boolean | null
           nome_loja: string | null
           organization_id: string | null
+          parcelamento_max: number | null
           pedido_minimo: number | null
           politica_privacidade: string | null
           politica_troca: string | null
           produtos_por_pagina: number | null
+          selos_confianca: string[] | null
           slug: string | null
           taxa_entrega: number | null
+          tempo_estimado_entrega: string | null
+          texto_rodape: string | null
           whatsapp: string | null
+          whatsapp_posicao: string | null
         }
         Insert: {
           apenas_com_foto?: boolean | null
           ativo?: boolean | null
           avaliacoes_ativas?: boolean | null
+          badges_produto?: string[] | null
           banner_ativo?: boolean | null
           banner_cor?: string | null
+          banner_link?: string | null
+          banner_posicao?: string | null
           banner_texto?: string | null
+          banner_url?: string | null
+          colunas_desktop?: number | null
+          colunas_mobile?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          css_personalizado?: string | null
           descricao?: string | null
           email_contato?: string | null
           facebook?: string | null
+          facebook_pixel_id?: string | null
+          fonte_corpo?: string | null
+          fonte_titulos?: string | null
           frete_gratis_acima?: number | null
+          google_analytics_id?: string | null
+          hero_cta_link?: string | null
+          hero_cta_texto?: string | null
+          hero_imagem_url?: string | null
+          hero_overlay_opacity?: number | null
+          hero_subtitulo?: string | null
+          hero_titulo?: string | null
           horario_funcionamento?: Json | null
           id?: string | null
           instagram?: string | null
+          layout_produtos?: string | null
           logo_url?: string | null
+          mensagem_whatsapp?: string | null
+          mercadopago_public_key?: string | null
           metodos_pagamento?: string[] | null
+          mostrar_busca?: boolean | null
+          mostrar_categorias?: boolean | null
           mostrar_estoque?: boolean | null
+          mostrar_filtros?: boolean | null
+          mostrar_ordenacao?: boolean | null
+          mostrar_parcelamento?: boolean | null
           mostrar_preco_original?: boolean | null
+          mostrar_whatsapp_float?: boolean | null
           nome_loja?: string | null
           organization_id?: string | null
+          parcelamento_max?: number | null
           pedido_minimo?: number | null
           politica_privacidade?: string | null
           politica_troca?: string | null
           produtos_por_pagina?: number | null
+          selos_confianca?: string[] | null
           slug?: string | null
           taxa_entrega?: number | null
+          tempo_estimado_entrega?: string | null
+          texto_rodape?: string | null
           whatsapp?: string | null
+          whatsapp_posicao?: string | null
         }
         Update: {
           apenas_com_foto?: boolean | null
           ativo?: boolean | null
           avaliacoes_ativas?: boolean | null
+          badges_produto?: string[] | null
           banner_ativo?: boolean | null
           banner_cor?: string | null
+          banner_link?: string | null
+          banner_posicao?: string | null
           banner_texto?: string | null
+          banner_url?: string | null
+          colunas_desktop?: number | null
+          colunas_mobile?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          css_personalizado?: string | null
           descricao?: string | null
           email_contato?: string | null
           facebook?: string | null
+          facebook_pixel_id?: string | null
+          fonte_corpo?: string | null
+          fonte_titulos?: string | null
           frete_gratis_acima?: number | null
+          google_analytics_id?: string | null
+          hero_cta_link?: string | null
+          hero_cta_texto?: string | null
+          hero_imagem_url?: string | null
+          hero_overlay_opacity?: number | null
+          hero_subtitulo?: string | null
+          hero_titulo?: string | null
           horario_funcionamento?: Json | null
           id?: string | null
           instagram?: string | null
+          layout_produtos?: string | null
           logo_url?: string | null
+          mensagem_whatsapp?: string | null
+          mercadopago_public_key?: string | null
           metodos_pagamento?: string[] | null
+          mostrar_busca?: boolean | null
+          mostrar_categorias?: boolean | null
           mostrar_estoque?: boolean | null
+          mostrar_filtros?: boolean | null
+          mostrar_ordenacao?: boolean | null
+          mostrar_parcelamento?: boolean | null
           mostrar_preco_original?: boolean | null
+          mostrar_whatsapp_float?: boolean | null
           nome_loja?: string | null
           organization_id?: string | null
+          parcelamento_max?: number | null
           pedido_minimo?: number | null
           politica_privacidade?: string | null
           politica_troca?: string | null
           produtos_por_pagina?: number | null
+          selos_confianca?: string[] | null
           slug?: string | null
           taxa_entrega?: number | null
+          tempo_estimado_entrega?: string | null
+          texto_rodape?: string | null
           whatsapp?: string | null
+          whatsapp_posicao?: string | null
         }
         Relationships: [
           {
