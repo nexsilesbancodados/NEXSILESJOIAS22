@@ -245,6 +245,23 @@ function AppRoutes() {
           }
         />
 
+        {/* Loja Virtual - Standalone app (no MainLayout) */}
+        <Route
+          path="/loja-virtual"
+          element={
+            <ProtectedRoute>
+              <OrganizationGuard>
+                <SubscriptionActivator />
+                <SubscriptionProvider>
+                  <Suspense fallback={<PageLoader />}>
+                    <LojaVirtualPage />
+                  </Suspense>
+                </SubscriptionProvider>
+              </OrganizationGuard>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Admin pages with MainLayout - Protected */}
         <Route
           path="/*"
@@ -283,7 +300,7 @@ function AppRoutes() {
                       <Route path="/fidelidade" element={<FidelidadePage />} />
                       <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                       <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
-                      <Route path="/loja-virtual" element={<LojaVirtualPage />} />
+                      {/* Loja Virtual moved to standalone route above */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
