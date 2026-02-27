@@ -148,15 +148,29 @@ function CriticalDataPrefetcher() {
 }
 
 function AppRoutes() {
-  // Se estiver no subdomínio loja.*, redireciona tudo para a loja
-  const isLojaSubdomain = typeof window !== 'undefined' && window.location.hostname.startsWith('loja.');
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isLojaSubdomain = hostname.startsWith('loja.');
+  const isCatalogoSubdomain = hostname.startsWith('catalogo.');
   
+  // Subdomínio loja.* → renderiza loja pública
   if (isLojaSubdomain) {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/:slug" element={<LojaPublicaPage />} />
           <Route path="*" element={<Navigate to="/beneloahsemijoias" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
+  // Subdomínio catalogo.* → renderiza catálogo público
+  if (isCatalogoSubdomain) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/:catalogoId" element={<CatalogoPublicoPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     );
