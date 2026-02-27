@@ -83,6 +83,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchPeca, setSearchPeca] = useState('');
   const [quantidadeAdicionar, setQuantidadeAdicionar] = useState<Record<string, number>>({});
+  const [searchPendentes, setSearchPendentes] = useState('');
   
   // Modal states
   const [vendaModal, setVendaModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
@@ -98,6 +99,15 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   // Items with quantidade_vendida > 0 have had sales
   const itemsComVendas = items.filter(i => (i.quantidade_vendida || 0) > 0);
   const itemsPendentes = items.filter(i => (i.quantidade || 0) > 0 && !i.vendida);
+  const itemsPendentesFiltrados = itemsPendentes.filter(i => {
+    if (!searchPendentes) return true;
+    const termo = searchPendentes.toLowerCase();
+    return (
+      i.peca?.nome?.toLowerCase().includes(termo) ||
+      i.peca?.codigo?.toLowerCase().includes(termo) ||
+      i.peca?.categoria?.toLowerCase().includes(termo)
+    );
+  });
   const itemsTotalmenteVendidos = items.filter(i => i.vendida === true);
   
   // Total pieces = pending + sold
@@ -775,11 +785,22 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
       {/* Pending Items Table */}
       <Card>
-        <CardHeader className="py-3">
+        <CardHeader className="py-3 space-y-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="w-4 h-4 text-warning" />
             Peças Pendentes ({pecasPendentes})
           </CardTitle>
+          {itemsPendentes.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar peça por nome, código ou categoria..."
+                value={searchPendentes}
+                onChange={(e) => setSearchPendentes(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           {isLoadingItems ? (
@@ -790,6 +811,11 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
               <Check className="w-10 h-10 mb-2 text-success opacity-50" />
               <p className="text-sm">Todas as peças foram vendidas!</p>
+            </div>
+          ) : itemsPendentesFiltrados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <Search className="w-10 h-10 mb-2 opacity-50" />
+              <p className="text-sm">Nenhuma peça encontrada para "{searchPendentes}"</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -805,7 +831,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {itemsPendentes.map((item) => {
+                  {itemsPendentesFiltrados.map((item) => {
                     const preco = item.peca?.preco_venda || 0;
                     const qtd = item.quantidade || 1;
                     const subtotal = preco * qtd;
