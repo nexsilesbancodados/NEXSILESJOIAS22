@@ -11,20 +11,24 @@ import {
   Smartphone, Monitor, Loader2, CheckCircle2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useOrganization } from '@/hooks/useOrganization';
 
 export function EcommerceLinksTab() {
   const [copied, setCopied] = useState('');
+  const { organizationId } = useOrganization();
 
   const { data: config, isLoading } = useQuery({
-    queryKey: ['ecommerce-config-links'],
+    queryKey: ['ecommerce-config-links', organizationId],
     queryFn: async () => {
+      if (!organizationId) return null;
       const { data } = await supabase
         .from('ecommerce_config' as any)
         .select('slug, nome_loja, ativo')
-        .limit(1)
-        .single();
+        .eq('organization_id', organizationId)
+        .maybeSingle();
       return data as any;
     },
+    enabled: !!organizationId,
   });
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';

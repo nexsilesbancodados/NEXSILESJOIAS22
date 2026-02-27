@@ -7,23 +7,28 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Star, Loader2, MessageCircle, ThumbsUp, ThumbsDown, Trash2 } from 'lucide-react';
+import { useOrganization } from '@/hooks/useOrganization';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export function EcommerceAvaliacoesTab() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<'all' | 'approved' | 'pending'>('all');
+  const { organizationId } = useOrganization();
 
   const { data: avaliacoes = [], isLoading } = useQuery({
-    queryKey: ['ecommerce-avaliacoes-admin'],
+    queryKey: ['ecommerce-avaliacoes-admin', organizationId],
     queryFn: async () => {
+      if (!organizationId) return [];
       const { data, error } = await supabase
         .from('ecommerce_avaliacoes' as any)
         .select('*, pecas:peca_id(nome, codigo, imagem_url)')
+        .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data as any[]) || [];
     },
+    enabled: !!organizationId,
   });
 
   const toggleApproval = useMutation({
