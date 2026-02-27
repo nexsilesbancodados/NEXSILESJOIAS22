@@ -635,24 +635,16 @@ export default function CatalogosPage() {
 
               <TabsContent value="visual" className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="logo_url">URL do Logo</Label>
-                    <Input
-                      id="logo_url"
-                      value={formData.logo_url}
-                      onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="banner_url">URL do Banner</Label>
-                    <Input
-                      id="banner_url"
-                      value={formData.banner_url}
-                      onChange={(e) => setFormData({ ...formData, banner_url: e.target.value })}
-                      placeholder="https://..."
-                    />
-                  </div>
+                  <ImageUpload
+                    value={formData.logo_url}
+                    onChange={(url) => setFormData({ ...formData, logo_url: url })}
+                    label="Logo do Catálogo"
+                  />
+                  <ImageUpload
+                    value={formData.banner_url}
+                    onChange={(url) => setFormData({ ...formData, banner_url: url })}
+                    label="Banner do Catálogo"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
