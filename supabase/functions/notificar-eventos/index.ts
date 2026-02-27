@@ -171,6 +171,77 @@ serve(async (req) => {
           </div>`;
         break;
       }
+      case "envio_atualizado": {
+        const destinatario = dados.destinatario_nome || "Cliente";
+        const rastreio = dados.codigo_rastreio || "N/A";
+        const transportadora = dados.transportadora || "N/A";
+        const statusEnvio = dados.status || "enviado";
+        subject = `📦 Envio atualizado - ${destinatario}`;
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #3182ce; border-bottom: 2px solid #3182ce; padding-bottom: 10px;">📦 Envio Atualizado</h2>
+            <div style="background: #ebf8ff; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #bee3f8;">
+              <p><strong>Destinatário:</strong> ${destinatario}</p>
+              <p><strong>Status:</strong> ${statusEnvio}</p>
+              <p><strong>Transportadora:</strong> ${transportadora}</p>
+              <p><strong>Rastreio:</strong> ${rastreio}</p>
+            </div>
+          </div>`;
+        break;
+      }
+      case "pos_venda": {
+        const clienteNomeVenda = dados.cliente_nome || "Cliente";
+        const valorVenda = Number(dados.valor || 0).toFixed(2);
+        subject = `✨ Obrigado pela compra, ${clienteNomeVenda}!`;
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #8B5CF6, #EC4899); padding: 30px; border-radius: 12px; text-align: center; color: white;">
+              <h1 style="margin: 0;">✨ Obrigado pela Compra!</h1>
+            </div>
+            <div style="padding: 20px;">
+              <p style="font-size: 16px; color: #555;">Olá, <strong>${clienteNomeVenda}</strong>!</p>
+              <p style="font-size: 16px; color: #555;">Foi um prazer atendê-lo(a)! Sua compra de <strong>R$ ${valorVenda}</strong> foi registrada.</p>
+              <p style="font-size: 14px; color: #777;">Esperamos que aproveite suas novas peças! Volte sempre! 💎</p>
+            </div>
+          </div>`;
+        break;
+      }
+      case "reativacao_cliente": {
+        const clienteNomeReat = dados.cliente_nome || "Cliente";
+        const diasInativo = dados.dias_inativo || 30;
+        subject = `💎 Sentimos sua falta, ${clienteNomeReat}!`;
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #8B5CF6;">💎 Sentimos sua falta!</h2>
+            <p style="font-size: 16px; color: #555;">Olá, <strong>${clienteNomeReat}</strong>!</p>
+            <p style="font-size: 16px; color: #555;">Faz ${diasInativo} dias desde sua última visita e temos muitas novidades!</p>
+            <div style="background: #fef3c7; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+              <p style="font-size: 20px; font-weight: bold; color: #92400e; margin: 0;">🎁 DESCONTO ESPECIAL</p>
+              <p style="color: #92400e; margin: 8px 0 0;">Visite-nos e ganhe condições exclusivas!</p>
+            </div>
+          </div>`;
+        break;
+      }
+      case "novo_pedido_ecommerce": {
+        const clienteEcom = dados.cliente_nome || "Cliente";
+        const numeroPedido = dados.numero_pedido || "N/A";
+        const valorEcom = Number(dados.valor_total || 0).toFixed(2);
+        const nomeLoja = dados.nome_loja || "Loja";
+        subject = `🛒 Novo pedido #${numeroPedido} - ${nomeLoja}`;
+        html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #38a169;">🛒 Novo Pedido E-commerce!</h2>
+            <div style="background: #f0fff4; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #c6f6d5;">
+              <p><strong>Pedido:</strong> #${numeroPedido}</p>
+              <p><strong>Cliente:</strong> ${clienteEcom}</p>
+              <p><strong>Valor:</strong> R$ ${valorEcom}</p>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+              <a href="https://nexsiles2567.lovable.app/loja-virtual" style="display: inline-block; background: #38a169; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ver Pedidos</a>
+            </div>
+          </div>`;
+        break;
+      }
       default:
         subject = `📋 Notificação do Sistema`;
         html = `
