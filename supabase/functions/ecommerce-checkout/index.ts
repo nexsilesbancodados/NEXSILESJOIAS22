@@ -33,6 +33,9 @@ interface CheckoutRequest {
     estado: string;
   };
   valor_frete: number;
+  metodo_pagamento?: string;
+  cupom_id?: string;
+  valor_desconto?: number;
 }
 
 serve(async (req: Request) => {
@@ -46,23 +49,18 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body: CheckoutRequest = await req.json();
-    const { items, organization_id, cliente, endereco, valor_frete } = body;
+    const { items, organization_id, cliente, endereco, valor_frete, metodo_pagamento, cupom_id, valor_desconto } = body;
 
     if (!items || items.length === 0) throw new Error("Carrinho vazio");
     if (!organization_id) throw new Error("Organization ID obrigatório");
     if (!cliente?.nome) throw new Error("Nome do cliente obrigatório");
 
-    // Fetch org-specific MP token, fallback to global
+    // Fetch org config
     const { data: ecomConfig } = await supabase
       .from("ecommerce_config")
       .select("mercadopago_access_token, slug, nome_loja")
       .eq("organization_id", organization_id)
       .single();
-
-    const MERCADOPAGO_ACCESS_TOKEN = ecomConfig?.mercadopago_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    if (!MERCADOPAGO_ACCESS_TOKEN) {
-      throw new Error("Mercado Pago não configurado. Configure suas credenciais no painel.");
-    }
 
     // Validate stock for each item
     const pecaIds = items.map((i) => i.peca_id);
@@ -81,13 +79,81 @@ serve(async (req: Request) => {
     }
 
     // Calculate totals
+    const desconto = valor_desconto || 0;
     const valor_subtotal = items.reduce((sum, item) => sum + item.preco_unitario * item.quantidade, 0);
-    const valor_total = valor_subtotal + (valor_frete || 0);
+    const valor_total = valor_subtotal - desconto + (valor_frete || 0);
+
+    // ===== PIX DIRETO: Create order immediately =====
+    if (metodo_pagamento === 'pix_direto') {
+      const { data: pedido, error: pedidoError } = await supabase
+        .from("ecommerce_pedidos")
+        .insert({
+          organization_id,
+          cliente_nome: cliente.nome,
+          cliente_email: cliente.email || null,
+          cliente_telefone: cliente.telefone || null,
+          cliente_cpf: cliente.cpf || null,
+          endereco: endereco || null,
+          valor_subtotal,
+          valor_frete: valor_frete || 0,
+          valor_desconto: desconto,
+          cupom_id: cupom_id || null,
+          valor_total,
+          status: "aguardando_pix",
+          metodo_pagamento: "pix_direto",
+        })
+        .select("id, numero_pedido")
+        .single();
+
+      if (pedidoError) {
+        console.error("Error creating PIX order:", pedidoError);
+        throw new Error("Erro ao criar pedido");
+      }
+
+      // Insert order items
+      if (items.length > 0) {
+        const orderItems = items.map((item) => ({
+          pedido_id: pedido.id,
+          peca_id: item.peca_id,
+          quantidade: item.quantidade,
+          preco_unitario: item.preco_unitario,
+        }));
+        await supabase.from("ecommerce_pedido_itens").insert(orderItems);
+      }
+
+      // Increment coupon usage if applied
+      if (cupom_id) {
+        await supabase.rpc("usar_cupom", { p_cupom_id: cupom_id });
+      }
+
+      // Send confirmation email (fire and forget)
+      if (cliente.email) {
+        fetch(`${supabaseUrl}/functions/v1/enviar-confirmacao-pedido`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({ pedido_id: pedido.id }),
+        }).catch(err => console.error("Email error:", err));
+      }
+
+      return new Response(
+        JSON.stringify({
+          pedido_id: pedido.id,
+          numero_pedido: pedido.numero_pedido,
+          metodo: 'pix_direto',
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ===== MERCADO PAGO: Create preference =====
+    const MERCADOPAGO_ACCESS_TOKEN = ecomConfig?.mercadopago_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    if (!MERCADOPAGO_ACCESS_TOKEN) {
+      throw new Error("Mercado Pago não configurado. Configure suas credenciais no painel.");
+    }
 
     const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
     const lojaUrl = ecomConfig?.slug ? `${origin}/loja/${ecomConfig.slug}` : origin;
 
-    // Create MP preference
     const preferenceData = {
       items: items.map((item) => ({
         title: item.nome,
