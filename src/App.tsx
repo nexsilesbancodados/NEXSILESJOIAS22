@@ -152,6 +152,7 @@ function AppRoutes() {
   const isLojaSubdomain = hostname.startsWith('loja.');
   const isCatalogoSubdomain = hostname.startsWith('catalogo.');
   const isPortalSubdomain = hostname.startsWith('portal.');
+  const isMaletaSubdomain = hostname.startsWith('maleta.');
   
   // Subdomínio loja.* → renderiza loja pública
   if (isLojaSubdomain) {
@@ -190,6 +191,18 @@ function AppRoutes() {
     );
   }
 
+  // Subdomínio maleta.* → renderiza vitrine pública da maleta
+  if (isMaletaSubdomain) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/:maletaId" element={<MaletaPublicaPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
@@ -199,8 +212,7 @@ function AppRoutes() {
         
         {/* Landing - iframe do site */}
         <Route path="/landing" element={<LandingPlanosPage />} />
-        
-        
+
         {/* Catálogo Público - Public page */}
         <Route path="/catalogo/:catalogoId" element={<CatalogoPublicoPage />} />
         
