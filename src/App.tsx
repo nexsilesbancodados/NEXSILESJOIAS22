@@ -178,8 +178,7 @@ function AppRoutes() {
         
         {/* Loja Pública - E-commerce */}
         <Route path="/loja/:slug" element={<LojaPublicaPage />} />
-        {/* Loja via subdomínio dedicado (loja.nexsiles.com.br/:slug) */}
-        <Route path="/:slug" element={<LojaSubdomainRedirect />} />
+        {/* Loja via subdomínio dedicado - removido /:slug pois conflita com rotas internas */}
         
         {/* Maleta Pública - Public page for reseller customers */}
         <Route path="/maleta/:maletaId" element={<MaletaPublicaPage />} />
