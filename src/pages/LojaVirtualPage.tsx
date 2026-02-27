@@ -1,31 +1,38 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { 
   ShoppingBag, Settings, Package, LayoutGrid, Tag, 
   ArrowLeft, ChevronLeft, ChevronRight, BarChart3,
-  Palette, Globe, Megaphone
+  Star, Users, Link2, LayoutDashboard
 } from 'lucide-react';
 import { EcommerceConfigTab } from '@/components/ecommerce/EcommerceConfigTab';
 import { EcommercePedidosTab } from '@/components/ecommerce/EcommercePedidosTab';
 import { EcommerceProdutosTab } from '@/components/ecommerce/EcommerceProdutosTab';
 import { CuponsManager } from '@/components/ecommerce/CuponsManager';
+import { EcommerceDashboard } from '@/components/ecommerce/EcommerceDashboard';
+import { EcommerceAvaliacoesTab } from '@/components/ecommerce/EcommerceAvaliacoesTab';
+import { EcommerceClientesTab } from '@/components/ecommerce/EcommerceClientesTab';
+import { EcommerceLinksTab } from '@/components/ecommerce/EcommerceLinksTab';
 import { cn } from '@/lib/utils';
 
-type Section = 'produtos' | 'cupons' | 'pedidos' | 'config';
+type Section = 'dashboard' | 'produtos' | 'cupons' | 'pedidos' | 'avaliacoes' | 'clientes' | 'links' | 'config';
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutGrid; description: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Visão geral de vendas' },
   { id: 'produtos', label: 'Produtos', icon: LayoutGrid, description: 'Catálogo de produtos' },
-  { id: 'cupons', label: 'Cupons', icon: Tag, description: 'Cupons de desconto' },
   { id: 'pedidos', label: 'Pedidos', icon: Package, description: 'Pedidos recebidos' },
+  { id: 'clientes', label: 'Clientes', icon: Users, description: 'Base de clientes' },
+  { id: 'cupons', label: 'Cupons', icon: Tag, description: 'Cupons de desconto' },
+  { id: 'avaliacoes', label: 'Avaliações', icon: Star, description: 'Avaliações de produtos' },
+  { id: 'links', label: 'Link da Loja', icon: Link2, description: 'Compartilhar e QR Code' },
   { id: 'config', label: 'Configurações', icon: Settings, description: 'Personalizar loja' },
 ];
 
 export default function LojaVirtualPage() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState<Section>('produtos');
+  const [activeSection, setActiveSection] = useState<Section>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const activeNav = NAV_ITEMS.find(n => n.id === activeSection);
@@ -48,7 +55,7 @@ export default function LojaVirtualPage() {
           {!sidebarCollapsed && (
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                <ShoppingBag className="h-4 w-4 text-white" />
+                <ShoppingBag className="h-4 w-4 text-primary-foreground" />
               </div>
               <div className="min-w-0">
                 <h1 className="text-sm font-bold truncate">Loja Virtual</h1>
@@ -138,9 +145,13 @@ export default function LojaVirtualPage() {
 
         {/* Content area */}
         <div className="flex-1 overflow-y-auto p-6">
+          {activeSection === 'dashboard' && <EcommerceDashboard />}
           {activeSection === 'produtos' && <EcommerceProdutosTab />}
           {activeSection === 'cupons' && <CuponsManager />}
           {activeSection === 'pedidos' && <EcommercePedidosTab />}
+          {activeSection === 'avaliacoes' && <EcommerceAvaliacoesTab />}
+          {activeSection === 'clientes' && <EcommerceClientesTab />}
+          {activeSection === 'links' && <EcommerceLinksTab />}
           {activeSection === 'config' && <EcommerceConfigTab />}
         </div>
       </main>
