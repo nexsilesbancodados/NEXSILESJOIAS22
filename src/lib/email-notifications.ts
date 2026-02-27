@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase-db';
 
-type EventoTipo = 'venda_realizada' | 'estoque_baixo' | 'maleta_vencendo' | 'novo_pedido_catalogo';
+type EventoTipo = 'venda_realizada' | 'estoque_baixo' | 'maleta_vencendo' | 'novo_pedido_catalogo' | 'envio_atualizado' | 'pos_venda' | 'reativacao_cliente' | 'novo_pedido_ecommerce';
 
 interface EventoDados {
   [key: string]: any;

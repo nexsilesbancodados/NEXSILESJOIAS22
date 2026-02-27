@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.enviar-confirmacao-pedido]
 verify_jwt = false
+
+[functions.automacoes-vendas]
+verify_jwt = false
