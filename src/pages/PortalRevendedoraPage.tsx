@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing, Download, WifiOff, Smartphone } from 'lucide-react';
+import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing, Download, WifiOff, Smartphone, Share2, Copy, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +34,8 @@ interface Maleta {
   valor_total?: number;
   created_at?: string;
   data_devolucao?: string;
+  is_public?: boolean;
+  slug?: string;
 }
 
 interface MaletaPeca {
@@ -762,10 +764,33 @@ export default function PortalRevendedoraPage() {
                 {/* Pieces Table */}
                 {maletaSelecionada && (
                   <Card>
-                    <CardHeader>
+                     <CardHeader>
                       <CardTitle className="text-lg flex items-center justify-between">
                         <span>{maletaSelecionada.nome}</span>
-                        <Badge>{pecasPendentes} pendente(s)</Badge>
+                        <div className="flex items-center gap-2">
+                          {maletaSelecionada.is_public && maletaSelecionada.slug && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const url = `${window.location.origin}/maleta/${maletaSelecionada.slug}`;
+                                if (navigator.share) {
+                                  navigator.share({ title: `Maleta ${maletaSelecionada.nome}`, url }).catch(() => {
+                                    navigator.clipboard.writeText(url);
+                                    toast.success('Link copiado!');
+                                  });
+                                } else {
+                                  navigator.clipboard.writeText(url);
+                                  toast.success('Link copiado!');
+                                }
+                              }}
+                            >
+                              <Share2 className="w-4 h-4 mr-1" />
+                              Compartilhar
+                            </Button>
+                          )}
+                          <Badge>{pecasPendentes} pendente(s)</Badge>
+                        </div>
                       </CardTitle>
                       {maletaSelecionada.data_devolucao && (
                         <CardDescription>
