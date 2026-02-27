@@ -610,12 +610,24 @@ export default function LojaPublicaPage() {
 
       {/* Announcement Bar - uses banner config */}
       {config.banner_ativo && config.banner_texto ? (
-        <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: config.banner_cor || roseGold }}>
-          <motion.div animate={{ x: ['100%', '-100%'] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="whitespace-nowrap">
-            <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: `'${fontCorpo}', sans-serif` }}>
-              {config.banner_texto}
-            </span>
-          </motion.div>
+        <div className="w-full py-2 text-center overflow-hidden cursor-pointer" style={{ backgroundColor: config.banner_cor || roseGold }}
+          onClick={() => { if (config.banner_link) window.open(config.banner_link, '_blank'); }}>
+          {config.banner_url ? (
+            <div className="relative">
+              <img src={config.banner_url} alt="Banner" className="w-full h-12 sm:h-16 object-cover" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white font-medium" style={{ fontFamily: `'${fontCorpo}', sans-serif` }}>
+                  {config.banner_texto}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <motion.div animate={{ x: ['100%', '-100%'] }} transition={{ duration: 18, repeat: Infinity, ease: 'linear' }} className="whitespace-nowrap">
+              <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-white" style={{ fontFamily: `'${fontCorpo}', sans-serif` }}>
+                {config.banner_texto}
+              </span>
+            </motion.div>
+          )}
         </div>
       ) : (
         <div className="w-full py-2 text-center overflow-hidden" style={{ backgroundColor: roseGold }}>
@@ -866,7 +878,7 @@ export default function LojaPublicaPage() {
               { icon: CreditCard, title: 'Parcele', desc: `em até ${parcelamentoMax}x sem juros` },
               { icon: Truck, title: 'Frete Grátis', desc: config.frete_gratis_acima ? `acima de ${formatCurrency(config.frete_gratis_acima)}` : 'consulte' },
               { icon: RefreshCw, title: 'Troca Grátis', desc: 'primeira troca por nossa conta' },
-              { icon: Sparkles, title: 'Qualidade', desc: 'garantia em todas as peças' },
+              { icon: Sparkles, title: config.tempo_estimado_entrega ? 'Entrega' : 'Qualidade', desc: config.tempo_estimado_entrega || 'garantia em todas as peças' },
             ].map(b => (
               <div key={b.title} className="flex items-center gap-3 justify-center">
                 <b.icon className="w-5 h-5 flex-shrink-0" style={{ color: roseGold }} />
@@ -1040,12 +1052,21 @@ export default function LojaPublicaPage() {
                   <Heart className="w-4 h-4" style={{ color: roseGold }} fill={wishlist.has(peca.id) ? roseGold : 'none'} />
                 </button>
                 {/* Badges */}
-                {peca.estoque <= 3 && peca.estoque > 0 && (
-                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>Últimas peças</span>
-                )}
-                {peca.estoque === 0 && (
-                  <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: textMuted, fontFamily: "'Inter', sans-serif" }}>Esgotado</span>
-                )}
+                {/* Config badges */}
+                <div className="absolute top-3 left-3 flex flex-col gap-1">
+                  {peca.estoque <= 3 && peca.estoque > 0 && (
+                    <span className="text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGoldDark, fontFamily: "'Inter', sans-serif" }}>Últimas peças</span>
+                  )}
+                  {peca.estoque === 0 && (
+                    <span className="text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: textMuted, fontFamily: "'Inter', sans-serif" }}>Esgotado</span>
+                  )}
+                  {config.badges_produto?.includes('novo') && index < 4 && peca.estoque > 0 && (
+                    <span className="text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: '#10B981', fontFamily: "'Inter', sans-serif" }}>Novo</span>
+                  )}
+                  {config.badges_produto?.includes('mais_vendido') && avaliacoes[peca.id]?.total >= 3 && (
+                    <span className="text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: '#F59E0B', fontFamily: "'Inter', sans-serif" }}>Mais Vendido</span>
+                  )}
+                </div>
               </div>
               <div className="pt-3 pb-1 text-center">
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
@@ -1132,7 +1153,7 @@ export default function LojaPublicaPage() {
                 </p>
 
                 {/* Title */}
-                <h3 className="text-2xl sm:text-3xl font-light leading-tight tracking-tight" style={{ color: textDark, fontFamily: "'Cormorant Garamond', serif" }}>{selectedPeca.nome}</h3>
+                <h3 className="text-2xl sm:text-3xl font-light leading-tight tracking-tight" style={{ color: textDark, fontFamily: `'${fontTitulos}', serif` }}>{selectedPeca.nome}</h3>
                 {selectedPeca.codigo && <p className="text-[10px] mt-1.5 font-medium" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Cód: {selectedPeca.codigo}</p>}
 
                 {/* Divider */}
@@ -1142,7 +1163,7 @@ export default function LojaPublicaPage() {
                 <div className="mb-4">
                   <p className="text-3xl font-bold tracking-tight" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(selectedPeca.preco_venda)}</p>
                   <p className="text-[11px] mt-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                    ou <strong>12x</strong> de <strong>{formatCurrency(selectedPeca.preco_venda / 12)}</strong> sem juros
+                    ou <strong>{parcelamentoMax}x</strong> de <strong>{formatCurrency(selectedPeca.preco_venda / parcelamentoMax)}</strong> sem juros
                   </p>
                 </div>
 
@@ -1445,6 +1466,21 @@ export default function LojaPublicaPage() {
                 {config.email_contato && <li className="flex items-center gap-2"><span className="text-xs" style={{ color: roseGoldLight }}>✉</span><a href={`mailto:${config.email_contato}`} className="text-xs hover:text-white" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>{config.email_contato}</a></li>}
                 {config.instagram && <li className="flex items-center gap-2"><Instagram className="w-3 h-3" style={{ color: roseGoldLight }} /><span className="text-xs" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>@{config.instagram.replace('@', '')}</span></li>}
               </ul>
+              {/* Horário de Funcionamento */}
+              {config.horario_funcionamento && Object.keys(config.horario_funcionamento).length > 0 && (
+                <div className="mt-4">
+                  <h6 className="text-[10px] uppercase tracking-[0.15em] mb-2 font-semibold" style={{ color: roseGoldLight, fontFamily: "'Inter', sans-serif" }}>Horário</h6>
+                  <ul className="space-y-1">
+                    {Object.entries(config.horario_funcionamento as Record<string, { aberto: boolean; inicio: string; fim: string }>)
+                      .filter(([, v]) => v.aberto)
+                      .map(([dia, v]) => (
+                        <li key={dia} className="text-[10px]" style={{ color: '#9A9A9A', fontFamily: "'Inter', sans-serif" }}>
+                          <span className="capitalize">{dia}</span>: {v.inicio} - {v.fim}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
           <div className="border-t pt-6 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
