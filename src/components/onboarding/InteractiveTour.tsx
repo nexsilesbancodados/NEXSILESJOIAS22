@@ -169,8 +169,11 @@ export function InteractiveTour({
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[9999] pointer-events-none"
       >
-        {/* Overlay escuro com recorte para o elemento destacado */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        {/* Overlay escuro com recorte - clicável para fechar */}
+        <svg 
+          className="absolute inset-0 w-full h-full pointer-events-auto cursor-pointer"
+          onClick={handleSkip}
+        >
           <defs>
             <mask id="spotlight-mask">
               <rect x="0" y="0" width="100%" height="100%" fill="white" />
@@ -191,7 +194,7 @@ export function InteractiveTour({
             y="0"
             width="100%"
             height="100%"
-            fill="rgba(0,0,0,0.7)"
+            fill="rgba(0,0,0,0.5)"
             mask="url(#spotlight-mask)"
           />
         </svg>
@@ -322,16 +325,7 @@ export function InteractiveTour({
           </Card>
         </motion.div>
 
-        {/* Área clicável para fechar o tour */}
-        <div 
-          className="absolute inset-0 cursor-pointer pointer-events-auto" 
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              handleSkip();
-            }
-          }}
-          style={{ zIndex: -1 }}
-        />
+        {/* Overlay click handled by SVG above */}
       </motion.div>
     </AnimatePresence>,
     document.body
@@ -342,14 +336,8 @@ export function InteractiveTour({
 export function useInteractiveTour(storageKey: string = 'interactive_tour_completed') {
   const [showTour, setShowTour] = useState(false);
 
-  useEffect(() => {
-    const completed = localStorage.getItem(storageKey);
-    if (!completed) {
-      // Delay para elementos carregarem
-      const timer = setTimeout(() => setShowTour(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [storageKey]);
+  // Tour no longer auto-starts - must be explicitly triggered via startTour()
+  // This prevents the overlay from blocking all UI interactions
 
   const startTour = useCallback(() => {
     setShowTour(true);
