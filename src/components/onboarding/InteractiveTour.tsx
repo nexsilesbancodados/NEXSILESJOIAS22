@@ -167,7 +167,7 @@ export function InteractiveTour({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[9999]"
+        className="fixed inset-0 z-[9999] pointer-events-none"
       >
         {/* Overlay escuro com recorte para o elemento destacado */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
@@ -219,7 +219,7 @@ export function InteractiveTour({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
-          className="absolute z-10"
+          className="absolute z-10 pointer-events-auto"
           style={{
             top: tooltipPosition.top,
             left: tooltipPosition.left,
@@ -322,15 +322,15 @@ export function InteractiveTour({
           </Card>
         </motion.div>
 
-        {/* Área clicável para fechar */}
+        {/* Área clicável para fechar o tour */}
         <div 
-          className="absolute inset-0 cursor-pointer" 
+          className="absolute inset-0 cursor-pointer pointer-events-auto" 
           onClick={(e) => {
-            // Apenas fechar se clicar no overlay, não no tooltip ou elemento destacado
             if (e.target === e.currentTarget) {
-              // Não fazer nada - usuário deve usar os botões
+              handleSkip();
             }
           }}
+          style={{ zIndex: -1 }}
         />
       </motion.div>
     </AnimatePresence>,
