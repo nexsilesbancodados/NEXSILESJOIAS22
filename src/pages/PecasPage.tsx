@@ -151,7 +151,7 @@ export default function PecasPage() {
     .filter((peca) => {
       const matchesSearch =
         peca.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        peca.codigo.toLowerCase().includes(searchTerm.toLowerCase());
+        (peca.codigo || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesCategoria = !filterCategoria || filterCategoria === 'all' || peca.categoria === filterCategoria;
       const matchesMaterial = !filterBanho || filterBanho === 'all' || peca.material === filterBanho;
@@ -159,12 +159,13 @@ export default function PecasPage() {
       
       // Filtro de estoque
       let matchesEstoque = true;
+      const est = peca.estoque ?? 0;
       if (filterEstoque === 'esgotado') {
-        matchesEstoque = peca.estoque === 0;
+        matchesEstoque = est === 0;
       } else if (filterEstoque === 'disponivel') {
-        matchesEstoque = peca.estoque > 0;
+        matchesEstoque = est > 0;
       } else if (filterEstoque === 'baixo') {
-        matchesEstoque = peca.estoque > 0 && peca.estoque <= (peca.estoque_minimo || 5);
+        matchesEstoque = est > 0 && est <= (peca.estoque_minimo || 5);
       }
       
       return matchesSearch && matchesCategoria && matchesMaterial && matchesFornecedor && matchesEstoque;
@@ -177,10 +178,10 @@ export default function PecasPage() {
           comparison = a.nome.localeCompare(b.nome);
           break;
         case 'preco_venda':
-          comparison = a.preco_venda - b.preco_venda;
+          comparison = (a.preco_venda ?? 0) - (b.preco_venda ?? 0);
           break;
         case 'estoque':
-          comparison = a.estoque - b.estoque;
+          comparison = (a.estoque ?? 0) - (b.estoque ?? 0);
           break;
         case 'created_at':
           const dateA = a.created_at || '';
@@ -197,11 +198,11 @@ export default function PecasPage() {
       setSelectedPeca(peca);
       setFormData({
         nome: peca.nome,
-        codigo: peca.codigo,
-        estoque: peca.estoque.toString(),
+        codigo: peca.codigo || '',
+        estoque: (peca.estoque ?? 0).toString(),
         estoque_minimo: (peca.estoque_minimo || 5).toString(),
-        preco_custo: peca.preco_custo.toString(),
-        preco_venda: peca.preco_venda.toString(),
+        preco_custo: (peca.preco_custo ?? 0).toString(),
+        preco_venda: (peca.preco_venda ?? 0).toString(),
         preco_promocional: (peca as any).preco_promocional?.toString() || '',
         preco_atacado: (peca as any).preco_atacado?.toString() || '',
         qtd_min_atacado: (peca as any).qtd_min_atacado?.toString() || '',
@@ -251,7 +252,7 @@ export default function PecasPage() {
 
     // Verificar se código já existe (para nova peça)
     if (!selectedPeca) {
-      const codigoExiste = pecas.some(p => p.codigo.toLowerCase() === formData.codigo.toLowerCase().trim());
+      const codigoExiste = pecas.some(p => (p.codigo || '').toLowerCase() === formData.codigo.toLowerCase().trim());
       if (codigoExiste) {
         toast.error('Já existe uma peça com este código. Use um código diferente.');
         return;
@@ -261,7 +262,7 @@ export default function PecasPage() {
     // Verificar se código já existe em outra peça (para edição)
     if (selectedPeca) {
       const codigoExiste = pecas.some(p => 
-        p.codigo.toLowerCase() === formData.codigo.toLowerCase().trim() && 
+        (p.codigo || '').toLowerCase() === formData.codigo.toLowerCase().trim() && 
         p.id !== selectedPeca.id
       );
       if (codigoExiste) {
@@ -375,13 +376,13 @@ export default function PecasPage() {
         />
         <MiniGradientCard
           title="Em Estoque"
-          value={pecas.reduce((acc, p) => acc + p.estoque, 0).toLocaleString('pt-BR')}
+          value={pecas.reduce((acc, p) => acc + (p.estoque ?? 0), 0).toLocaleString('pt-BR')}
           icon={Gem}
           gradient="teal"
         />
         <MiniGradientCard
           title="Estoque Baixo"
-          value={pecas.filter((p) => p.estoque <= (p.estoque_minimo || 5)).length}
+          value={pecas.filter((p) => (p.estoque ?? 0) <= (p.estoque_minimo || 5)).length}
           icon={AlertTriangle}
           gradient="orange"
         />
@@ -528,7 +529,7 @@ export default function PecasPage() {
           onClick={() => setFilterEstoque('disponivel')}
         >
           <Package className="w-3.5 h-3.5 mr-1.5 text-success" />
-          Em estoque ({pecas.filter(p => p.estoque > 0).length})
+          Em estoque ({pecas.filter(p => (p.estoque ?? 0) > 0).length})
         </Button>
         <Button
           variant={filterEstoque === 'baixo' ? 'secondary' : 'ghost'}
@@ -537,7 +538,7 @@ export default function PecasPage() {
           onClick={() => setFilterEstoque('baixo')}
         >
           <AlertTriangle className="w-3.5 h-3.5 mr-1.5 text-warning" />
-          Baixo ({pecas.filter(p => p.estoque > 0 && p.estoque <= (p.estoque_minimo || 5)).length})
+          Baixo ({pecas.filter(p => (p.estoque ?? 0) > 0 && (p.estoque ?? 0) <= (p.estoque_minimo || 5)).length})
         </Button>
         <Button
           variant={filterEstoque === 'esgotado' ? 'secondary' : 'ghost'}
@@ -546,7 +547,7 @@ export default function PecasPage() {
           onClick={() => setFilterEstoque('esgotado')}
         >
           <X className="w-3.5 h-3.5 mr-1.5 text-destructive" />
-          Esgotado ({pecas.filter(p => p.estoque === 0).length})
+          Esgotado ({pecas.filter(p => (p.estoque ?? 0) === 0).length})
         </Button>
       </div>
 
@@ -609,20 +610,20 @@ export default function PecasPage() {
                   />
                 </TableCell>
                 <TableCell className="font-medium">{peca.nome}</TableCell>
-                <TableCell className="text-muted-foreground">{peca.codigo}</TableCell>
+                <TableCell className="text-muted-foreground">{peca.codigo || '-'}</TableCell>
                 <TableCell className="text-muted-foreground">{peca.categoria || '-'}</TableCell>
                 <TableCell className="text-right text-muted-foreground">
-                  {formatCurrency(peca.preco_custo)}
+                  {formatCurrency(peca.preco_custo ?? 0)}
                 </TableCell>
                 <TableCell className="text-right font-medium">
-                  {formatCurrency(peca.preco_venda)}
+                  {formatCurrency(peca.preco_venda ?? 0)}
                 </TableCell>
                 <TableCell className="text-center">
                   <span className={cn(
-                    peca.estoque === 0 ? 'stock-empty' : 
-                    peca.estoque <= (peca.estoque_minimo || 5) ? 'stock-low' : 'stock-ok'
+                    (peca.estoque ?? 0) === 0 ? 'stock-empty' : 
+                    (peca.estoque ?? 0) <= (peca.estoque_minimo || 5) ? 'stock-low' : 'stock-ok'
                   )}>
-                    {peca.estoque === 0 ? 'Esgotado' : peca.estoque}
+                    {(peca.estoque ?? 0) === 0 ? 'Esgotado' : peca.estoque}
                   </span>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
