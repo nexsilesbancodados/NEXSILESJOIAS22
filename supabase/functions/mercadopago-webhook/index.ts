@@ -1,12 +1,33 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+async function sendEmailBrevo(apiKey: string, to: { email: string; name?: string }, from: { email: string; name: string }, subject: string, htmlContent: string) {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: from.name, email: from.email },
+      to: [{ email: to.email, name: to.name || to.email }],
+      subject,
+      htmlContent,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error [${res.status}]: ${err}`);
+  }
+  return await res.json();
+}
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -33,7 +54,6 @@ serve(async (req: Request) => {
         return new Response("OK", { status: 200, headers: corsHeaders });
       }
 
-      // Get payment details from Mercado Pago
       const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
       });
@@ -51,14 +71,12 @@ serve(async (req: Request) => {
         return new Response("OK", { status: 200, headers: corsHeaders });
       }
 
-      // Extract subscription data from metadata (new) or external_reference (legacy)
       let plano: string | undefined;
       let periodo: string | undefined;
       let valor: number | undefined;
       let userEmail: string | undefined;
       let userId: string | undefined;
 
-      // Try metadata first (new format)
       if (payment.metadata?.plano) {
         plano = payment.metadata.plano;
         periodo = payment.metadata.periodo;
@@ -67,7 +85,6 @@ serve(async (req: Request) => {
         userId = payment.metadata.user_id;
         console.log("Using metadata for subscription data");
       } else {
-        // Legacy: try parsing external_reference as JSON
         try {
           const externalRef = JSON.parse(payment.external_reference);
           plano = externalRef.plano;
@@ -76,7 +93,6 @@ serve(async (req: Request) => {
           userEmail = externalRef.email;
           console.log("Using legacy external_reference JSON");
         } catch {
-          // New format: external_reference is a string like "assinatura_{user_id}_{plano}_{periodo}_{timestamp}"
           const extRef = payment.external_reference || "";
           const match = extRef.match(/^assinatura_([a-f0-9-]+)_(\w+)_(\w+)_/);
           if (match) {
@@ -100,7 +116,6 @@ serve(async (req: Request) => {
         return new Response("OK", { status: 200, headers: corsHeaders });
       }
 
-      // Check if already processed
       const { data: existingCode } = await supabase
         .from('codigos_acesso')
         .select('id')
@@ -112,7 +127,6 @@ serve(async (req: Request) => {
         return new Response("OK", { status: 200, headers: corsHeaders });
       }
 
-      // Generate access code
       const { data: codigoData, error: codigoError } = await supabase.rpc('gerar_codigo_acesso');
       if (codigoError) {
         console.error("Error generating code:", codigoError);
@@ -123,7 +137,6 @@ serve(async (req: Request) => {
       const validoAte = new Date();
       validoAte.setDate(validoAte.getDate() + 30);
 
-      // Save code to database
       const { error: insertError } = await supabase
         .from('codigos_acesso')
         .insert({
@@ -142,80 +155,81 @@ serve(async (req: Request) => {
 
       console.log(`Access code ${codigo} generated for ${payerEmail}`);
 
-      // Send email with access code
-      const resendApiKey = Deno.env.get("RESEND_API_KEY");
-      if (resendApiKey) {
+      // Send email with access code via Brevo
+      const brevoKey = Deno.env.get("BREVO_API_KEY");
+      if (brevoKey) {
         try {
-          const resend = new Resend(resendApiKey);
           const planoNome = plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles';
 
-          await resend.emails.send({
-            from: "Nexsiles <suporte@nexsales.online>",
-            to: [payerEmail],
-            subject: `🎉 Seu código de acesso ao ${planoNome}`,
-            html: `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <meta charset="utf-8">
-                <style>
-                  body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
-                  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-                  .header { background: linear-gradient(135deg, #f59e0b, #d97706); padding: 30px; text-align: center; }
-                  .header h1 { color: white; margin: 0; font-size: 24px; }
-                  .content { padding: 30px; }
-                  .code-box { background: #fef3c7; border: 2px dashed #f59e0b; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
-                  .code { font-size: 32px; font-weight: bold; color: #92400e; letter-spacing: 4px; font-family: monospace; }
-                  .info { color: #666; font-size: 14px; line-height: 1.6; }
-                  .button { display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; }
-                  .footer { background: #f9fafb; padding: 20px; text-align: center; color: #9ca3af; font-size: 12px; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1>🎉 Pagamento Confirmado!</h1>
-                  </div>
-                  <div class="content">
-                    <p>Olá!</p>
-                    <p>Seu pagamento do plano <strong>${planoNome}</strong> foi confirmado!</p>
-                    <p>Use o código abaixo para criar sua conta:</p>
-                    
-                    <div class="code-box">
-                      <div class="code">${codigo}</div>
-                      <p style="margin-top: 10px; color: #666; font-size: 12px;">Válido por 30 dias</p>
-                    </div>
-                    
-                    <p class="info">
-                      Para começar a usar o Nexsiles:
-                    </p>
-                    <ol class="info">
-                      <li>Acesse nosso sistema</li>
-                      <li>Clique em "Criar Conta"</li>
-                      <li>Insira o código acima</li>
-                      <li>Complete seu cadastro</li>
-                    </ol>
-                    
-                    <center>
-                      <a href="https://nexsiles2567.lovable.app/auth" class="button">
-                        Criar Minha Conta
-                      </a>
-                    </center>
-                  </div>
-                  <div class="footer">
-                    <p>© 2026 Nexsiles. Todos os direitos reservados.</p>
-                    <p>Dúvidas? Entre em contato: suporte@nexsales.online</p>
-                  </div>
+          const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+                .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { background: linear-gradient(135deg, #f59e0b, #d97706); padding: 30px; text-align: center; }
+                .header h1 { color: white; margin: 0; font-size: 24px; }
+                .content { padding: 30px; }
+                .code-box { background: #fef3c7; border: 2px dashed #f59e0b; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+                .code { font-size: 32px; font-weight: bold; color: #92400e; letter-spacing: 4px; font-family: monospace; }
+                .info { color: #666; font-size: 14px; line-height: 1.6; }
+                .button { display: inline-block; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+                .footer { background: #f9fafb; padding: 20px; text-align: center; color: #9ca3af; font-size: 12px; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>🎉 Pagamento Confirmado!</h1>
                 </div>
-              </body>
-              </html>
-            `,
-          });
+                <div class="content">
+                  <p>Olá!</p>
+                  <p>Seu pagamento do plano <strong>${planoNome}</strong> foi confirmado!</p>
+                  <p>Use o código abaixo para criar sua conta:</p>
+                  
+                  <div class="code-box">
+                    <div class="code">${codigo}</div>
+                    <p style="margin-top: 10px; color: #666; font-size: 12px;">Válido por 30 dias</p>
+                  </div>
+                  
+                  <p class="info">
+                    Para começar a usar o Nexsiles:
+                  </p>
+                  <ol class="info">
+                    <li>Acesse nosso sistema</li>
+                    <li>Clique em "Criar Conta"</li>
+                    <li>Insira o código acima</li>
+                    <li>Complete seu cadastro</li>
+                  </ol>
+                  
+                  <center>
+                    <a href="https://nexsiles2567.lovable.app/auth" class="button">
+                      Criar Minha Conta
+                    </a>
+                  </center>
+                </div>
+                <div class="footer">
+                  <p>© 2026 Nexsiles. Todos os direitos reservados.</p>
+                  <p>Dúvidas? Entre em contato: suporte@nexsales.online</p>
+                </div>
+              </div>
+            </body>
+            </html>
+          `;
 
-          console.log("Access code email sent to:", payerEmail);
+          await sendEmailBrevo(
+            brevoKey,
+            { email: payerEmail },
+            { email: "suporte@nexsales.online", name: "Nexsiles" },
+            `🎉 Seu código de acesso ao ${planoNome}`,
+            html
+          );
+
+          console.log("Access code email sent via Brevo to:", payerEmail);
         } catch (emailErr: any) {
           console.error("Email send error:", emailErr.message || emailErr);
-          // Don't throw - code was already saved, email is secondary
         }
       }
     }

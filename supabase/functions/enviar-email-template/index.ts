@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -8,17 +7,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function sendEmailBrevo(apiKey: string, to: { email: string; name?: string }, from: { email: string; name: string }, subject: string, htmlContent: string, textContent?: string) {
+  const payload: any = {
+    sender: { name: from.name, email: from.email },
+    to: [{ email: to.email, name: to.name || to.email }],
+    subject,
+    htmlContent,
+  };
+  if (textContent) payload.textContent = textContent;
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error [${res.status}]: ${err}`);
+  }
+  return await res.json();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendKey) {
-      throw new Error("RESEND_API_KEY não configurada");
-    }
-    const resend = new Resend(resendKey);
+    const brevoKey = Deno.env.get("BREVO_API_KEY");
+    if (!brevoKey) throw new Error("BREVO_API_KEY não configurada");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -46,16 +67,13 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get user's organization
     const { data: membership } = await supabaseAdmin
       .from("memberships")
       .select("organization_id")
       .eq("user_id", user.id)
       .single();
 
-    if (!membership) {
-      throw new Error("Organização não encontrada");
-    }
+    if (!membership) throw new Error("Organização não encontrada");
 
     const body = await req.json();
     const { template_id, destinatario_email, destinatario_nome, variaveis, remetente_email, remetente_nome } = body;
@@ -67,7 +85,6 @@ serve(async (req) => {
       });
     }
 
-    // Fetch template
     const { data: template, error: templateError } = await supabaseAdmin
       .from("email_templates")
       .select("*")
@@ -82,13 +99,11 @@ serve(async (req) => {
       });
     }
 
-    // Replace variables in subject and body
     let assunto = template.assunto;
     let corpoHtml = template.corpo_html;
     let corpoTexto = template.corpo_texto || "";
 
     const vars = variaveis || {};
-    // Add default variables
     vars["{data_hoje}"] = new Date().toLocaleDateString("pt-BR");
 
     for (const [key, value] of Object.entries(vars)) {
@@ -98,12 +113,11 @@ serve(async (req) => {
       corpoTexto = corpoTexto.replace(regex, String(value));
     }
 
-    // Create log entry first
     const { data: logEntry, error: logError } = await supabaseAdmin
       .from("email_logs")
       .insert({
         organization_id: membership.organization_id,
-        template_id: template_id,
+        template_id,
         destinatario_email,
         destinatario_nome: destinatario_nome || null,
         assunto,
@@ -112,32 +126,38 @@ serve(async (req) => {
       .select("id")
       .single();
 
-    if (logError) {
-      console.error("Error creating log:", logError);
-    }
+    if (logError) console.error("Error creating log:", logError);
 
-    // Send email via Resend
     const fromEmail = remetente_email || "noreply@nexsales.online";
     const fromName = remetente_nome || "NexSiles";
 
-    const { data: emailResult, error: emailError } = await resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
-      to: [destinatario_email],
-      subject: assunto,
-      html: corpoHtml,
-      text: corpoTexto || undefined,
-    });
+    try {
+      const result = await sendEmailBrevo(
+        brevoKey,
+        { email: destinatario_email, name: destinatario_nome },
+        { email: fromEmail, name: fromName },
+        assunto,
+        corpoHtml,
+        corpoTexto || undefined
+      );
 
-    if (emailError) {
-      console.error("Resend error:", emailError);
-      // Update log with error
       if (logEntry?.id) {
         await supabaseAdmin
           .from("email_logs")
-          .update({
-            status: "erro",
-            erro_mensagem: emailError.message || JSON.stringify(emailError),
-          })
+          .update({ status: "enviado", enviado_at: new Date().toISOString() })
+          .eq("id", logEntry.id);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, messageId: result?.messageId, log_id: logEntry?.id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (emailError: any) {
+      console.error("Brevo error:", emailError);
+      if (logEntry?.id) {
+        await supabaseAdmin
+          .from("email_logs")
+          .update({ status: "erro", erro_mensagem: emailError.message })
           .eq("id", logEntry.id);
       }
       return new Response(
@@ -145,22 +165,6 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Update log as sent
-    if (logEntry?.id) {
-      await supabaseAdmin
-        .from("email_logs")
-        .update({
-          status: "enviado",
-          enviado_at: new Date().toISOString(),
-        })
-        .eq("id", logEntry.id);
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, email_id: emailResult?.id, log_id: logEntry?.id }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
   } catch (error: any) {
     console.error("Error sending email:", error);
     return new Response(
