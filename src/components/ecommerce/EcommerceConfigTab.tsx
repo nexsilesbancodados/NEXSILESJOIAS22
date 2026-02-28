@@ -201,6 +201,8 @@ export function EcommerceConfigTab() {
     badges_produto: [] as string[],
     mercadopago_access_token: '',
     mercadopago_public_key: '',
+    mp_user_id: '',
+    commission_fee: '0',
     pix_chave: '',
     pix_nome: '',
     pix_tipo: 'cpf',
@@ -298,6 +300,8 @@ export function EcommerceConfigTab() {
         badges_produto: config.badges_produto || [],
         mercadopago_access_token: config.mercadopago_access_token || '',
         mercadopago_public_key: config.mercadopago_public_key || '',
+        mp_user_id: config.mp_user_id || '',
+        commission_fee: config.commission_fee?.toString() || '0',
         pix_chave: config.pix_chave || '',
         pix_nome: config.pix_nome || '',
         pix_tipo: config.pix_tipo || 'cpf',
@@ -332,6 +336,40 @@ export function EcommerceConfigTab() {
       });
     }
   }, [config]);
+
+  // Handle OAuth callback from Mercado Pago
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const isMpOAuth = params.get('mp_oauth');
+    
+    if (code && isMpOAuth && organizationId) {
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      const exchangeCode = async () => {
+        try {
+          toast.loading('Conectando ao Mercado Pago...');
+          const { data, error } = await supabase.functions.invoke('mercadopago-oauth', {
+            body: { code, organization_id: organizationId, redirect_uri: `${window.location.origin}/loja-virtual?mp_oauth=1` },
+          });
+          
+          toast.dismiss();
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          
+          toast.success('Mercado Pago conectado com sucesso!');
+          queryClient.invalidateQueries({ queryKey: ['ecommerce-config'] });
+        } catch (err: any) {
+          toast.dismiss();
+          toast.error(err.message || 'Erro ao conectar Mercado Pago');
+          console.error('MP OAuth error:', err);
+        }
+      };
+      
+      exchangeCode();
+    }
+  }, [organizationId, queryClient]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -433,6 +471,8 @@ export function EcommerceConfigTab() {
         zoom_imagem_ativo: form.zoom_imagem_ativo,
         produtos_relacionados_ativo: form.produtos_relacionados_ativo,
         barra_frete_ativo: form.barra_frete_ativo,
+        mp_user_id: form.mp_user_id || null,
+        commission_fee: form.commission_fee ? parseFloat(form.commission_fee) : 0,
       };
 
       if (config?.id) {
@@ -1016,25 +1056,73 @@ export function EcommerceConfigTab() {
               </div>
             </div>
             <Separator />
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mercado Pago</p>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Access Token (Produção)</Label>
-              <div className="relative">
-                <Input
-                  type={showMpToken ? 'text' : 'password'}
-                  value={form.mercadopago_access_token}
-                  onChange={e => setForm(p => ({ ...p, mercadopago_access_token: e.target.value }))}
-                  placeholder="APP_USR-xxxx..."
-                  className="h-9 text-sm pr-10 font-mono"
-                />
-                <button type="button" onClick={() => setShowMpToken(!showMpToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  {showMpToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mercado Pago — Marketplace</p>
+            {form.mp_user_id ? (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Conta conectada</p>
+                </div>
+                <p className="text-xs text-muted-foreground">MP User ID: <span className="font-mono">{form.mp_user_id}</span></p>
+                {form.mercadopago_public_key && (
+                  <p className="text-xs text-muted-foreground">Public Key: <span className="font-mono">{form.mercadopago_public_key.slice(0, 20)}...</span></p>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 text-xs"
+                  onClick={() => {
+                    setForm(p => ({ ...p, mercadopago_access_token: '', mercadopago_public_key: '', mp_user_id: '' }));
+                    toast.info('Credenciais removidas. Salve para aplicar.');
+                  }}
+                >
+                  Desconectar conta
+                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-500" />
+                  <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">Conecte sua conta do Mercado Pago</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ao conectar, os pagamentos da sua loja irão diretamente para a sua conta do Mercado Pago.
+                </p>
+                <Button
+                  className="w-full bg-[#009ee3] hover:bg-[#007eb5] text-white"
+                  onClick={() => {
+                    const clientId = import.meta.env.VITE_MP_CLIENT_ID || '';
+                    const redirectUri = encodeURIComponent(`${window.location.origin}/loja-virtual?mp_oauth=1`);
+                    const oauthUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
+                    window.location.href = oauthUrl;
+                  }}
+                >
+                  <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/6.6.92/mercadopago/logo__small@2x.png" alt="MP" className="w-5 h-5 mr-2 brightness-200" />
+                  Conectar com Mercado Pago
+                </Button>
+                <Separator />
+                <p className="text-xs text-muted-foreground">Ou insira manualmente:</p>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Input
+                      type={showMpToken ? 'text' : 'password'}
+                      value={form.mercadopago_access_token}
+                      onChange={e => setForm(p => ({ ...p, mercadopago_access_token: e.target.value }))}
+                      placeholder="Access Token"
+                      className="h-9 text-sm pr-10 font-mono"
+                    />
+                    <button type="button" onClick={() => setShowMpToken(!showMpToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showMpToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  <Input value={form.mercadopago_public_key} onChange={e => setForm(p => ({ ...p, mercadopago_public_key: e.target.value }))} placeholder="Public Key" className="h-9 text-sm font-mono" />
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Public Key</Label>
-              <Input value={form.mercadopago_public_key} onChange={e => setForm(p => ({ ...p, mercadopago_public_key: e.target.value }))} placeholder="APP_USR-xxxx..." className="h-9 text-sm font-mono" />
+              <Label className="text-xs font-medium flex items-center gap-1"><Percent className="w-3 h-3 text-amber-500" /> Comissão por venda (%)</Label>
+              <Input type="number" value={form.commission_fee} onChange={e => setForm(p => ({ ...p, commission_fee: e.target.value }))} placeholder="0" className="h-9 text-sm" min="0" max="100" step="0.5" />
+              <p className="text-[10px] text-muted-foreground">Porcentagem retida pela plataforma em cada venda (marketplace_fee do MP)</p>
             </div>
           </div>
         );

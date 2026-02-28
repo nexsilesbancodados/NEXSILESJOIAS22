@@ -58,7 +58,7 @@ serve(async (req: Request) => {
     // Fetch org config
     const { data: ecomConfig } = await supabase
       .from("ecommerce_config")
-      .select("mercadopago_access_token, slug, nome_loja")
+      .select("mercadopago_access_token, mercadopago_public_key, mp_user_id, commission_fee, slug, nome_loja")
       .eq("organization_id", organization_id)
       .single();
 
@@ -154,7 +154,11 @@ serve(async (req: Request) => {
     const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
     const lojaUrl = ecomConfig?.slug ? `${origin}/loja/${ecomConfig.slug}` : origin;
 
-    const preferenceData = {
+    // Calculate marketplace fee if configured
+    const commissionFee = ecomConfig?.commission_fee ? parseFloat(ecomConfig.commission_fee) : 0;
+    const marketplaceFee = commissionFee > 0 ? Math.round(valor_total * (commissionFee / 100) * 100) / 100 : 0;
+
+    const preferenceData: any = {
       items: items.map((item) => ({
         title: item.nome,
         quantity: item.quantidade,
@@ -178,6 +182,11 @@ serve(async (req: Request) => {
       notification_url: `${supabaseUrl}/functions/v1/ecommerce-webhook`,
       statement_descriptor: ecomConfig?.nome_loja?.substring(0, 22) || "LOJA ONLINE",
     };
+
+    // Add marketplace fee for split payment (only when using OAuth/marketplace token)
+    if (marketplaceFee > 0 && ecomConfig?.mp_user_id) {
+      preferenceData.marketplace_fee = marketplaceFee;
+    }
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
