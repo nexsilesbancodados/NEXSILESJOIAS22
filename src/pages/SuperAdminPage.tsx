@@ -20,10 +20,6 @@ import {
   ChevronDown, ChevronRight, UserCheck
 } from 'lucide-react';
 
-const SUPER_ADMIN_EMAILS = [
-  'beneloahsemijoias@gmail.com',
-];
-
 interface Funcionario {
   user_id: string;
   nome: string;
@@ -59,7 +55,7 @@ export default function SuperAdminPage() {
   const [deleteDialog, setDeleteDialog] = useState<AssinaturaRow | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const isSuperAdmin = profile?.email && SUPER_ADMIN_EMAILS.includes(profile.email);
+  const isSuperAdmin = profile?.is_super_admin === true;
 
   const { data: assinaturas = [], isLoading, refetch } = useQuery({
     queryKey: ['super-admin-assinaturas'],

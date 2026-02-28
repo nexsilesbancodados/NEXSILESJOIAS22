@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-const MP_PUBLIC_KEY = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
+const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY || '';
 
 interface MercadoPagoCheckoutProps {
   open: boolean;

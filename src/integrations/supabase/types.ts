@@ -1362,6 +1362,7 @@ export type Database = {
           banner_posicao: string | null
           banner_texto: string | null
           banner_url: string | null
+          cep_origem: string | null
           colunas_desktop: number | null
           colunas_mobile: number | null
           cor_primaria: string | null
@@ -1430,6 +1431,7 @@ export type Database = {
           banner_posicao?: string | null
           banner_texto?: string | null
           banner_url?: string | null
+          cep_origem?: string | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
           cor_primaria?: string | null
@@ -1498,6 +1500,7 @@ export type Database = {
           banner_posicao?: string | null
           banner_texto?: string | null
           banner_url?: string | null
+          cep_origem?: string | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
           cor_primaria?: string | null
@@ -3490,6 +3493,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           id: string
+          is_super_admin: boolean | null
           nome: string
           telefone: string | null
           updated_at: string | null
@@ -3500,6 +3504,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_super_admin?: boolean | null
           nome: string
           telefone?: string | null
           updated_at?: string | null
@@ -3510,6 +3515,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           id?: string
+          is_super_admin?: boolean | null
           nome?: string
           telefone?: string | null
           updated_at?: string | null

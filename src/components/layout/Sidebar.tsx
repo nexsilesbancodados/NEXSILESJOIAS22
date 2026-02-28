@@ -302,16 +302,16 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
     [romaneios]
   );
 
-  const SUPER_ADMIN_EMAILS = ['beneloahsemijoias@gmail.com'];
+  const isSuperAdmin = profile?.is_super_admin === true;
 
   // Filter menu items based on admin status and permissions
   const filteredMenuItems = useMemo(() => 
     menuItems.filter((item) => {
-      if ((item as any).superAdminOnly && !SUPER_ADMIN_EMAILS.includes(profile?.email || '')) return false;
+      if ((item as any).superAdminOnly && !isSuperAdmin) return false;
       if ((item as any).adminOnly && !isAdmin) return false;
       return canAccessPath(item.path);
     }),
-    [isAdmin, canAccessPath, profile?.email]
+    [isAdmin, canAccessPath, isSuperAdmin]
   );
 
   const handleNavigation = useCallback((path: string) => {

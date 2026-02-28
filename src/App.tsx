@@ -64,12 +64,8 @@ function LojaSubdomainRedirect() {
   return <Navigate to="/" replace />;
 }
 
-// Wrapper que detecta subdomínio loja.* na raiz e redireciona
+// Wrapper que detecta subdomínio loja.* na raiz — mostra 404 se sem slug
 function LojaRootRedirect() {
-  const isLojaSubdomain = typeof window !== 'undefined' && window.location.hostname.startsWith('loja.');
-  if (isLojaSubdomain) {
-    return <Navigate to="/loja/beneloahsemijoias" replace />;
-  }
   return null;
 }
 
@@ -160,7 +156,7 @@ function AppRoutes() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/:slug" element={<LojaPublicaPage />} />
-          <Route path="*" element={<Navigate to="/beneloahsemijoias" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     );
