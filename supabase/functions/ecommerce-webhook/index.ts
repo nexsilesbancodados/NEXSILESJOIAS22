@@ -20,7 +20,6 @@ serve(async (req: Request) => {
     const body = await req.json();
     console.log("Ecommerce webhook received:", JSON.stringify(body));
 
-    // MP sends notifications with type and data.id
     if (body.type === "payment" || body.action === "payment.created" || body.action === "payment.updated") {
       const paymentId = body.data?.id;
       if (!paymentId) {
@@ -28,8 +27,7 @@ serve(async (req: Request) => {
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
-      // We need to determine the org to get the right token
-      // First try to find existing order for this payment
+      // Check if order already exists for this payment
       const { data: existingOrder } = await supabase
         .from("ecommerce_pedidos")
         .select("id, organization_id, status")
@@ -39,7 +37,6 @@ serve(async (req: Request) => {
       let mpToken: string | undefined;
 
       if (existingOrder?.organization_id) {
-        // Fetch org token
         const { data: ecomConfig } = await supabase
           .from("ecommerce_config")
           .select("mercadopago_access_token")
@@ -47,7 +44,6 @@ serve(async (req: Request) => {
           .single();
         mpToken = ecomConfig?.mercadopago_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
       } else {
-        // Try global token first, we'll resolve org from external_reference later
         mpToken = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
       }
 
@@ -62,13 +58,12 @@ serve(async (req: Request) => {
       });
 
       if (!mpResponse.ok) {
-        // If global token failed, try to find org from external_reference via a different approach
         console.error("Failed to fetch payment from MP:", mpResponse.status);
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
       const payment = await mpResponse.json();
-      console.log("Payment status:", payment.status, "ID:", payment.id);
+      console.log("Payment status:", payment.status, "ID:", payment.id, "external_reference:", payment.external_reference);
 
       if (payment.status === "approved") {
         if (existingOrder) {
@@ -81,27 +76,50 @@ serve(async (req: Request) => {
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
 
-        // Try to create order from external_reference
-        let refData;
-        try {
-          refData = JSON.parse(payment.external_reference);
-        } catch {
-          console.log("Could not parse external_reference");
+        // Extract order data from metadata (new format) or external_reference (legacy)
+        let orderData: any = null;
+
+        // Try metadata first (new format)
+        if (payment.metadata && payment.metadata.organization_id) {
+          orderData = payment.metadata;
+          console.log("Using metadata for order data");
+        } else {
+          // Legacy: try parsing external_reference as JSON
+          try {
+            const parsed = JSON.parse(payment.external_reference);
+            if (parsed.organization_id) {
+              orderData = parsed;
+              console.log("Using legacy external_reference JSON for order data");
+            }
+          } catch {
+            // external_reference is a string (new format) - extract org_id from it
+            const extRef = payment.external_reference || "";
+            const orgMatch = extRef.match(/^org_([a-f0-9-]+)_/);
+            if (orgMatch) {
+              console.log("external_reference is new format, but no metadata. Skipping order creation.");
+            } else {
+              console.log("Could not parse external_reference and no metadata");
+            }
+            return new Response("ok", { status: 200, headers: corsHeaders });
+          }
+        }
+
+        if (!orderData) {
+          console.log("No order data found");
           return new Response("ok", { status: 200, headers: corsHeaders });
         }
 
-        const { organization_id, items, cliente, endereco, valor_subtotal, valor_frete, valor_total } = refData;
+        const { organization_id, items, cliente, endereco, valor_subtotal, valor_frete, valor_total, cupom_id, valor_desconto } = orderData;
 
-        // If we used global token but org has its own, re-fetch payment with org token
+        // If we used global token but org has its own, re-verify
         if (organization_id && !existingOrder) {
           const { data: orgConfig } = await supabase
             .from("ecommerce_config")
             .select("mercadopago_access_token")
             .eq("organization_id", organization_id)
             .single();
-          
+
           if (orgConfig?.mercadopago_access_token && orgConfig.mercadopago_access_token !== mpToken) {
-            // Re-verify with org-specific token
             const orgMpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
               headers: { Authorization: `Bearer ${orgConfig.mercadopago_access_token}` },
             });
@@ -120,14 +138,16 @@ serve(async (req: Request) => {
           .from("ecommerce_pedidos")
           .insert({
             organization_id,
-            cliente_nome: cliente.nome,
-            cliente_email: cliente.email || null,
-            cliente_telefone: cliente.telefone || null,
-            cliente_cpf: cliente.cpf || null,
+            cliente_nome: cliente?.nome || payment.payer?.first_name || "Cliente",
+            cliente_email: cliente?.email || payment.payer?.email || null,
+            cliente_telefone: cliente?.telefone || null,
+            cliente_cpf: cliente?.cpf || null,
             endereco: endereco || null,
-            valor_subtotal: valor_subtotal || 0,
+            valor_subtotal: valor_subtotal || payment.transaction_amount || 0,
             valor_frete: valor_frete || 0,
-            valor_total: valor_total || 0,
+            valor_desconto: valor_desconto || 0,
+            cupom_id: cupom_id || null,
+            valor_total: valor_total || payment.transaction_amount || 0,
             status: "pago",
             mercadopago_payment_id: String(payment.id),
             metodo_pagamento: payment.payment_method_id || "unknown",
@@ -159,8 +179,14 @@ serve(async (req: Request) => {
           }
         }
 
+        // Increment coupon usage
+        if (cupom_id) {
+          await supabase.rpc("usar_cupom", { p_cupom_id: cupom_id });
+        }
+
         // Send confirmation email
-        if (cliente.email) {
+        const clienteEmail = cliente?.email || payment.payer?.email;
+        if (clienteEmail) {
           fetch(`${supabaseUrl}/functions/v1/enviar-confirmacao-pedido`, {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },

@@ -12,25 +12,22 @@ interface CheckoutRequest {
   periodo: "mensal" | "anual";
 }
 
-// Chaves públicas do Mercado Pago
-const MERCADOPAGO_PUBLIC_KEY = "APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc";
-const MERCADOPAGO_CLIENT_ID = "6130575203030867";
-
 const PLANOS = {
   nexsiles: {
     nome: "Nexsiles",
+    descricao: "Gestão completa para joalherias e semijoias",
     valor_mensal: 189.0,
-    valor_anual: 1890.0, // 10 meses (2 meses grátis)
+    valor_anual: 1890.0,
   },
   nexsiles_max: {
     nome: "Nexsiles Max",
+    descricao: "Gestão avançada com IA e e-commerce integrado",
     valor_mensal: 249.0,
-    valor_anual: 2490.0, // 10 meses (2 meses grátis)
+    valor_anual: 2490.0,
   },
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -47,63 +44,76 @@ serve(async (req: Request) => {
 
     // Get user from auth header
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      throw new Error("Não autorizado");
-    }
+    if (!authHeader) throw new Error("Não autorizado");
 
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      throw new Error("Usuário não autenticado");
-    }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) throw new Error("Usuário não autenticado");
 
     const { plano, periodo }: CheckoutRequest = await req.json();
-
-    if (!plano || !PLANOS[plano]) {
-      throw new Error("Plano inválido");
-    }
+    if (!plano || !PLANOS[plano]) throw new Error("Plano inválido");
 
     const planoInfo = PLANOS[plano];
     const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
     const descricao = `${planoInfo.nome} - ${periodo === "anual" ? "Anual" : "Mensal"}`;
-    
+    const externalRef = `assinatura_${user.id}_${plano}_${periodo}_${Date.now()}`;
+
     const origin = req.headers.get("origin") || "https://nexsiles.com.br";
 
-    // Create Mercado Pago preference
+    // Split user email name for payer info
+    const emailName = user.email?.split("@")[0] || "Cliente";
+
     const preferenceData = {
+      // ===== ITEMS (completo) =====
       items: [
         {
+          id: `plano_${plano}_${periodo}`,
           title: descricao,
-          description: `Assinatura ${planoInfo.nome}`,
+          description: planoInfo.descricao,
+          category_id: "services",
           quantity: 1,
           currency_id: "BRL",
           unit_price: valor,
         },
       ],
+
+      // ===== PAYER (email obrigatório + nome) =====
       payer: {
         email: user.email,
+        first_name: emailName,
       },
+
+      // ===== BACK URLS =====
       back_urls: {
-        success: `${origin}/landing?pagamento=sucesso`,
+        success: `${origin}/landing?pagamento=sucesso&ref=${externalRef}`,
         failure: `${origin}/landing?pagamento=erro`,
-        pending: `${origin}/landing?pagamento=pendente`,
+        pending: `${origin}/landing?pagamento=pendente&ref=${externalRef}`,
       },
       auto_return: "approved",
-      external_reference: JSON.stringify({
-        plano: plano,
-        periodo: periodo,
-        valor: valor,
-        email: user.email,
-      }),
+
+      // ===== EXTERNAL REFERENCE (obrigatório - conciliação) =====
+      external_reference: externalRef,
+
+      // ===== NOTIFICATION URL (obrigatório - webhook) =====
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+
+      // ===== STATEMENT DESCRIPTOR =====
       statement_descriptor: "NEXSILES",
+
+      // ===== BINARY MODE =====
+      binary_mode: true,
+
+      // ===== METADATA =====
+      metadata: {
+        plano,
+        periodo,
+        valor,
+        user_id: user.id,
+        email: user.email,
+      },
     };
 
-    console.log("Creating Mercado Pago preference:", preferenceData);
+    console.log("Creating subscription preference:", JSON.stringify(preferenceData, null, 2));
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
@@ -121,7 +131,7 @@ serve(async (req: Request) => {
     }
 
     const preference = await mpResponse.json();
-    console.log("Preference created:", preference.id);
+    console.log("Subscription preference created:", preference.id);
 
     return new Response(
       JSON.stringify({
@@ -129,10 +139,7 @@ serve(async (req: Request) => {
         initPoint: preference.init_point,
         sandboxInitPoint: preference.sandbox_init_point,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Error in mercadopago-checkout:", error);

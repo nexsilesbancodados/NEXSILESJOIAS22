@@ -12,6 +12,9 @@ interface CartItem {
   quantidade: number;
   preco_unitario: number;
   nome: string;
+  codigo?: string;
+  descricao?: string;
+  categoria?: string;
 }
 
 interface CheckoutRequest {
@@ -58,7 +61,7 @@ serve(async (req: Request) => {
     // Fetch org config
     const { data: ecomConfig } = await supabase
       .from("ecommerce_config")
-      .select("mercadopago_access_token, mercadopago_public_key, mp_user_id, commission_fee, slug, nome_loja")
+      .select("mercadopago_access_token, mercadopago_public_key, mp_user_id, commission_fee, slug, nome_loja, parcelamento_max")
       .eq("organization_id", organization_id)
       .single();
 
@@ -66,7 +69,7 @@ serve(async (req: Request) => {
     const pecaIds = items.map((i) => i.peca_id);
     const { data: pecas, error: pecasError } = await supabase
       .from("pecas")
-      .select("id, nome, preco_venda, estoque, disponivel_loja, ativo")
+      .select("id, nome, codigo, preco_venda, estoque, disponivel_loja, ativo, categoria, descricao")
       .in("id", pecaIds);
 
     if (pecasError) throw new Error("Erro ao validar estoque");
@@ -158,35 +161,105 @@ serve(async (req: Request) => {
     const commissionFee = ecomConfig?.commission_fee ? parseFloat(ecomConfig.commission_fee) : 0;
     const marketplaceFee = commissionFee > 0 ? Math.round(valor_total * (commissionFee / 100) * 100) / 100 : 0;
 
+    // Split client name into first/last
+    const nameParts = cliente.nome.trim().split(/\s+/);
+    const firstName = nameParts[0] || cliente.nome;
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(" ") : "";
+
+    // Build external_reference as a unique order ID string
+    const externalRef = `org_${organization_id}_${Date.now()}`;
+
     const preferenceData: any = {
-      items: items.map((item) => ({
-        title: item.nome,
-        quantity: item.quantidade,
-        currency_id: "BRL",
-        unit_price: item.preco_unitario,
-      })),
+      // ===== ITEMS (quantity, unit_price, id, title, description, category_id) =====
+      items: items.map((item) => {
+        const peca = pecas?.find((p: any) => p.id === item.peca_id);
+        return {
+          id: peca?.codigo || item.peca_id,
+          title: peca?.nome || item.nome,
+          description: (peca?.descricao || peca?.nome || item.nome).substring(0, 256),
+          category_id: peca?.categoria || "others",
+          quantity: item.quantidade,
+          currency_id: "BRL",
+          unit_price: item.preco_unitario,
+        };
+      }),
+
+      // ===== PAYER (email obrigatório, nome, sobrenome, telefone, CPF, endereço) =====
+      payer: {
+        ...(cliente.email && { email: cliente.email }),
+        first_name: firstName,
+        last_name: lastName,
+        ...(cliente.telefone && {
+          phone: {
+            area_code: cliente.telefone.replace(/\D/g, "").substring(0, 2),
+            number: cliente.telefone.replace(/\D/g, "").substring(2),
+          },
+        }),
+        ...(cliente.cpf && {
+          identification: {
+            type: "CPF",
+            number: cliente.cpf.replace(/\D/g, ""),
+          },
+        }),
+        ...(endereco && {
+          address: {
+            zip_code: endereco.cep.replace(/\D/g, ""),
+            street_name: endereco.rua,
+            street_number: parseInt(endereco.numero) || 0,
+          },
+        }),
+      },
+
+      // ===== SHIPMENTS (frete) =====
       ...(valor_frete > 0 && {
         shipments: { cost: valor_frete, mode: "not_specified" },
       }),
-      payer: { email: cliente.email || undefined, name: cliente.nome },
+
+      // ===== BACK URLS =====
       back_urls: {
-        success: `${lojaUrl}?pagamento=sucesso`,
+        success: `${lojaUrl}?pagamento=sucesso&ref=${externalRef}`,
         failure: `${lojaUrl}?pagamento=erro`,
-        pending: `${lojaUrl}?pagamento=pendente`,
+        pending: `${lojaUrl}?pagamento=pendente&ref=${externalRef}`,
       },
       auto_return: "approved",
-      external_reference: JSON.stringify({
-        organization_id, items, cliente, endereco,
-        valor_subtotal, valor_frete: valor_frete || 0, valor_total,
-      }),
+
+      // ===== EXTERNAL REFERENCE (conciliação financeira - obrigatório) =====
+      external_reference: externalRef,
+
+      // ===== NOTIFICATION URL (webhook - obrigatório) =====
       notification_url: `${supabaseUrl}/functions/v1/ecommerce-webhook`,
-      statement_descriptor: ecomConfig?.nome_loja?.substring(0, 22) || "LOJA ONLINE",
+
+      // ===== STATEMENT DESCRIPTOR (fatura do cartão) =====
+      statement_descriptor: (ecomConfig?.nome_loja || "LOJA ONLINE").substring(0, 22).replace(/[^a-zA-Z0-9 ]/g, ""),
+
+      // ===== BINARY MODE (aprovação instantânea) =====
+      binary_mode: true,
+
+      // ===== INSTALLMENTS (parcelas) =====
+      payment_methods: {
+        installments: ecomConfig?.parcelamento_max || 12,
+      },
+
+      // ===== METADATA (dados internos para o webhook) =====
+      metadata: {
+        organization_id,
+        items: items.map(i => ({ peca_id: i.peca_id, quantidade: i.quantidade, preco_unitario: i.preco_unitario })),
+        cliente,
+        endereco: endereco || null,
+        valor_subtotal,
+        valor_frete: valor_frete || 0,
+        valor_desconto: desconto,
+        cupom_id: cupom_id || null,
+        valor_total,
+      },
     };
 
     // Add marketplace fee for split payment (only when using OAuth/marketplace token)
     if (marketplaceFee > 0 && ecomConfig?.mp_user_id) {
       preferenceData.marketplace_fee = marketplaceFee;
     }
+
+    console.log("Creating e-commerce preference with full data:", JSON.stringify(preferenceData, null, 2));
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
@@ -212,6 +285,7 @@ serve(async (req: Request) => {
         initPoint: preference.init_point,
         sandboxInitPoint: preference.sandbox_init_point,
         valor_total,
+        external_reference: externalRef,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
