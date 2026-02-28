@@ -10,7 +10,6 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
@@ -25,10 +24,12 @@ import {
   LayoutGrid, Facebook, Shield, Star, BarChart, DollarSign,
   Type, Columns, MousePointer, Code, Layers, ImagePlus,
   Percent, Timer, BadgeCheck, Grid3X3, List, SlidersHorizontal, Plus,
-  RefreshCw
+  RefreshCw, ChevronRight, X, ArrowUp, ShoppingCart, Heading,
+  PanelTop, Home, ListOrdered, CircleDot, ArrowDown
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { QRCodeSVG } from 'qrcode.react';
+import { cn } from '@/lib/utils';
 
 const COLOR_PRESETS = [
   { name: 'Rose Gold', primary: '#B76E79', secondary: '#8B4F57' },
@@ -92,12 +93,39 @@ const BADGES_PRODUTO_OPCOES = [
 const DIAS_SEMANA = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 const DIAS_LABELS: Record<string, string> = { seg: 'Segunda', ter: 'Terça', qua: 'Quarta', qui: 'Quinta', sex: 'Sexta', sab: 'Sábado', dom: 'Domingo' };
 
+// Sidebar menu items
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: typeof Palette;
+  group?: string;
+}
+
+const MENU_ITEMS: MenuItem[] = [
+  { id: 'logo', label: 'Imagem da sua marca', icon: Image },
+  { id: 'cores', label: 'Cores da sua marca', icon: Palette },
+  { id: 'tipografia', label: 'Tipo de Letra', icon: Type },
+  { id: 'design', label: 'Opções de design', icon: Settings2 },
+];
+
+const MENU_AVANCADO: MenuItem[] = [
+  { id: 'cabecalho', label: 'Cabeçalho', icon: PanelTop, group: 'avancado' },
+  { id: 'pagina_inicial', label: 'Página inicial', icon: Home, group: 'avancado' },
+  { id: 'lista_produtos', label: 'Lista de produtos', icon: LayoutGrid, group: 'avancado' },
+  { id: 'detalhe_produto', label: 'Detalhe do produto', icon: CircleDot, group: 'avancado' },
+  { id: 'carrinho', label: 'Carrinho de compras', icon: ShoppingCart, group: 'avancado' },
+  { id: 'rodape', label: 'Rodapé da página', icon: ArrowDown, group: 'avancado' },
+  { id: 'contato', label: 'Contato & Redes', icon: MessageCircle, group: 'avancado' },
+  { id: 'vendas', label: 'Pagamentos & Entrega', icon: CreditCard, group: 'avancado' },
+  { id: 'politicas', label: 'Políticas & Legal', icon: Shield, group: 'avancado' },
+  { id: 'css', label: 'Edição de CSS avançada', icon: Code, group: 'avancado' },
+];
+
 export function EcommerceConfigTab() {
   const queryClient = useQueryClient();
   const { organizationId } = useOrganization();
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('mobile');
-  const [showQR, setShowQR] = useState(false);
-  const [activeTab, setActiveTab] = useState('geral');
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['ecommerce-config', organizationId],
@@ -109,22 +137,6 @@ export function EcommerceConfigTab() {
         .eq('organization_id', organizationId)
         .maybeSingle();
       return data as any;
-    },
-    enabled: !!organizationId,
-  });
-
-  const { data: stats } = useQuery({
-    queryKey: ['ecommerce-stats', organizationId],
-    queryFn: async () => {
-      if (!organizationId) return null;
-      const [prodRes, pedRes] = await Promise.all([
-        supabase.from('pecas' as any).select('id', { count: 'exact', head: true }).eq('organization_id', organizationId),
-        supabase.from('ecommerce_pedidos' as any).select('id, valor_total', { count: 'exact' }).eq('organization_id', organizationId),
-      ]);
-      const totalProd = prodRes.count || 0;
-      const totalPed = pedRes.count || 0;
-      const totalVendas = (pedRes.data as any[])?.reduce((s: number, p: any) => s + (p.valor_total || 0), 0) || 0;
-      return { totalProd, totalPed, totalVendas };
     },
     enabled: !!organizationId,
   });
@@ -193,7 +205,6 @@ export function EcommerceConfigTab() {
     pix_nome: '',
     pix_tipo: 'cpf',
     pix_cidade: 'SAO PAULO',
-    // Marketing fields
     banners_carousel: [] as any[],
     countdown_ativo: false,
     countdown_titulo: '',
@@ -209,13 +220,18 @@ export function EcommerceConfigTab() {
     lookbook_titulo: '',
     lookbook_imagens: [] as any[],
     colecoes_destaque: [] as any[],
-    // Rodapé columns
     rodape_coluna1_titulo: '',
     rodape_coluna1_links: [] as { label: string; url: string }[],
     rodape_coluna2_titulo: '',
     rodape_coluna2_links: [] as { label: string; url: string }[],
     rodape_endereco: '',
     rodape_exibir_mapa: false,
+    header_sticky: true,
+    header_transparente_hero: false,
+    mostrar_codigo_produto: false,
+    zoom_imagem_ativo: true,
+    produtos_relacionados_ativo: true,
+    barra_frete_ativo: false,
   });
   const [showMpToken, setShowMpToken] = useState(false);
 
@@ -286,7 +302,6 @@ export function EcommerceConfigTab() {
         pix_nome: config.pix_nome || '',
         pix_tipo: config.pix_tipo || 'cpf',
         pix_cidade: config.pix_cidade || 'SAO PAULO',
-        // Marketing
         banners_carousel: config.banners_carousel || [],
         countdown_ativo: config.countdown_ativo || false,
         countdown_titulo: config.countdown_titulo || '',
@@ -302,13 +317,18 @@ export function EcommerceConfigTab() {
         lookbook_titulo: config.lookbook_titulo || '',
         lookbook_imagens: config.lookbook_imagens || [],
         colecoes_destaque: config.colecoes_destaque || [],
-        // Rodapé columns
         rodape_coluna1_titulo: config.rodape_coluna1_titulo || '',
         rodape_coluna1_links: config.rodape_coluna1_links || [],
         rodape_coluna2_titulo: config.rodape_coluna2_titulo || '',
         rodape_coluna2_links: config.rodape_coluna2_links || [],
         rodape_endereco: config.rodape_endereco || '',
         rodape_exibir_mapa: config.rodape_exibir_mapa || false,
+        header_sticky: config.header_sticky !== false,
+        header_transparente_hero: config.header_transparente_hero || false,
+        mostrar_codigo_produto: config.mostrar_codigo_produto || false,
+        zoom_imagem_ativo: config.zoom_imagem_ativo !== false,
+        produtos_relacionados_ativo: config.produtos_relacionados_ativo !== false,
+        barra_frete_ativo: config.barra_frete_ativo || false,
       });
     }
   }, [config]);
@@ -386,7 +406,6 @@ export function EcommerceConfigTab() {
         pix_nome: form.pix_nome || null,
         pix_tipo: form.pix_tipo || 'cpf',
         pix_cidade: form.pix_cidade || 'SAO PAULO',
-        // Marketing
         banners_carousel: form.banners_carousel,
         countdown_ativo: form.countdown_ativo,
         countdown_titulo: form.countdown_titulo || null,
@@ -402,7 +421,6 @@ export function EcommerceConfigTab() {
         lookbook_titulo: form.lookbook_titulo || null,
         lookbook_imagens: form.lookbook_imagens,
         colecoes_destaque: form.colecoes_destaque,
-        // Rodapé columns
         rodape_coluna1_titulo: form.rodape_coluna1_titulo || null,
         rodape_coluna1_links: form.rodape_coluna1_links.length > 0 ? form.rodape_coluna1_links : null,
         rodape_coluna2_titulo: form.rodape_coluna2_titulo || null,
@@ -421,8 +439,7 @@ export function EcommerceConfigTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ecommerce-config'] });
-      toast.success('Configurações salvas!');
-      // Auto-reload the live preview iframe
+      toast.success('Alterações publicadas!');
       setTimeout(() => {
         const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
         if (iframe) iframe.src = iframe.src;
@@ -432,11 +449,6 @@ export function EcommerceConfigTab() {
   });
 
   const lojaUrl = form.slug ? `${window.location.origin}/loja/${form.slug}` : '';
-
-  const hasChanges = useMemo(() => {
-    if (!config) return Object.values(form).some(v => v !== '' && v !== false && v !== '#B76E79' && v !== '#8B4F57' && v !== '0' && v !== '12');
-    return true; // Simplified - always allow save
-  }, [form, config]);
 
   const toggleMetodoPagamento = (id: string) => {
     setForm(p => ({
@@ -476,18 +488,6 @@ export function EcommerceConfigTab() {
     </div>
   );
 
-  const SectionCard = ({ icon: Icon, title, description, children, iconColor = 'text-primary' }: { icon: any; title: string; description: string; children: React.ReactNode; iconColor?: string }) => (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Icon className={`w-4 h-4 ${iconColor}`} /></div>
-          <div><CardTitle className="text-base">{title}</CardTitle><CardDescription className="text-xs">{description}</CardDescription></div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
-    </Card>
-  );
-
   const ToggleRow = ({ icon: Icon, title, description, checked, onChange, iconColor }: { icon: any; title: string; description: string; checked: boolean; onChange: (v: boolean) => void; iconColor?: string }) => (
     <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
       <div className="flex items-center gap-3">
@@ -498,807 +498,752 @@ export function EcommerceConfigTab() {
     </div>
   );
 
-  return (
-    <div className="space-y-6 max-w-6xl">
-      {/* Stats Row */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: 'Produtos', value: stats.totalProd, icon: Package, color: 'text-blue-500' },
-            { label: 'Pedidos', value: stats.totalPed, icon: ShoppingBag, color: 'text-emerald-500' },
-            { label: 'Faturamento', value: `R$ ${stats.totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-amber-500' },
-          ].map((stat) => (
-            <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3 p-3 rounded-xl border bg-card">
-              <stat.icon className={`w-5 h-5 ${stat.color} flex-shrink-0`} />
-              <div className="min-w-0"><p className="text-xs text-muted-foreground">{stat.label}</p><p className="text-sm font-semibold text-foreground truncate">{stat.value}</p></div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Status Banner */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-        className={`flex items-center gap-3 p-4 rounded-xl border transition-colors ${form.ativo ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-800' : 'bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800'}`}>
-        {form.ativo ? (
-          <>
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Loja ativa e acessível</p>
-              {lojaUrl && <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">{lojaUrl}</p>}
+  // Section content renderer
+  const renderSectionContent = (sectionId: string) => {
+    switch (sectionId) {
+      case 'logo':
+        return (
+          <div className="space-y-4">
+            <ImageUpload value={form.logo_url} onChange={(url) => setForm(p => ({ ...p, logo_url: url }))} label="Logo da Loja" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Nome da Loja <span className="text-destructive">*</span></Label>
+                <Input value={form.nome_loja} onChange={e => setForm(p => ({ ...p, nome_loja: e.target.value }))} placeholder="Ex: Joias Elegance" className="h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium flex items-center gap-1"><Link2 className="w-3 h-3" /> Slug <span className="text-destructive">*</span></Label>
+                <Input value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} placeholder="joias-elegance" className="h-9 font-mono text-xs" />
+              </div>
             </div>
-            <div className="flex gap-1.5 flex-shrink-0">
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => { navigator.clipboard.writeText(lojaUrl); toast.success('Link copiado!'); }}><Copy className="w-3 h-3 mr-1" /> Copiar</Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setShowQR(!showQR)}><QrCode className="w-3 h-3 mr-1" /> QR</Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => window.open(lojaUrl, '_blank')}><ExternalLink className="w-3 h-3 mr-1" /> Abrir</Button>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Descrição (SEO)</Label>
+              <Textarea value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Sobre sua loja..." rows={2} className="text-sm resize-none" />
             </div>
-          </>
-        ) : (
-          <>
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-            <div className="flex-1"><p className="text-sm font-medium text-amber-800 dark:text-amber-300">Loja desativada</p><p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Ative para que clientes possam acessar</p></div>
-            <Button size="sm" className="h-8 text-xs" onClick={() => setForm(p => ({ ...p, ativo: true }))}>Ativar Agora</Button>
-          </>
-        )}
-      </motion.div>
+            <ToggleRow icon={form.ativo ? Eye : EyeOff} title="Loja Ativa" description="Visível ao público" checked={form.ativo} onChange={v => setForm(p => ({ ...p, ativo: v }))} iconColor={form.ativo ? 'text-emerald-500' : undefined} />
+          </div>
+        );
 
-      {/* QR Code */}
-      <AnimatePresence>
-        {showQR && lojaUrl && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <Card className="border-dashed">
-              <CardContent className="p-6 flex flex-col items-center gap-4">
-                <p className="text-sm font-medium text-foreground">QR Code da Loja</p>
-                <div className="p-4 bg-white rounded-xl shadow-sm"><QRCodeSVG value={lojaUrl} size={180} fgColor={form.cor_primaria} /></div>
-                <p className="text-xs text-muted-foreground text-center max-w-xs">Imprima ou compartilhe para seus clientes acessarem a loja</p>
-                <Button variant="outline" size="sm" onClick={() => setShowQR(false)}>Fechar</Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Preview Mode Toggle */}
-      <div className="flex items-center gap-3 p-3 rounded-xl border bg-card/80">
-        <div className="flex items-center gap-2 flex-1">
-          <Eye className="w-4 h-4 text-primary" />
-          <span className="text-xs font-medium text-foreground">Preview ao Vivo</span>
-          <span className="text-[10px] text-muted-foreground">— Veja sua loja em tempo real enquanto edita</span>
-        </div>
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted">
-          <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'mobile' ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}><Smartphone className="w-3.5 h-3.5 text-foreground" /></button>
-          <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'desktop' ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}><Monitor className="w-3.5 h-3.5 text-foreground" /></button>
-        </div>
-        {lojaUrl && (
-          <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => window.open(lojaUrl, '_blank')}>
-            <ExternalLink className="w-3 h-3" /> Abrir Loja
-          </Button>
-        )}
-      </div>
-
-      {/* Main Layout - Split View */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6" style={{ minHeight: '75vh' }}>
-        {/* Left: Config Forms */}
-        <div className="space-y-4 overflow-y-auto max-h-[80vh] pr-1 scrollbar-thin">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid grid-cols-7 w-full">
-              <TabsTrigger value="geral" className="text-xs gap-1"><Store className="w-3 h-3" /> Geral</TabsTrigger>
-              <TabsTrigger value="aparencia" className="text-xs gap-1"><Palette className="w-3 h-3" /> Visual</TabsTrigger>
-              <TabsTrigger value="hero" className="text-xs gap-1"><ImagePlus className="w-3 h-3" /> Hero</TabsTrigger>
-              <TabsTrigger value="marketing" className="text-xs gap-1"><Megaphone className="w-3 h-3" /> Marketing</TabsTrigger>
-              <TabsTrigger value="vendas" className="text-xs gap-1"><CreditCard className="w-3 h-3" /> Vendas</TabsTrigger>
-              <TabsTrigger value="avancado" className="text-xs gap-1"><Settings2 className="w-3 h-3" /> Avançado</TabsTrigger>
-              <TabsTrigger value="politicas" className="text-xs gap-1"><Shield className="w-3 h-3" /> Legal</TabsTrigger>
-            </TabsList>
-
-            {/* TAB: Geral */}
-            <TabsContent value="geral" className="space-y-5">
-              <SectionCard icon={Store} title="Informações Gerais" description="Nome, descrição e endereço da loja">
-                <ToggleRow icon={form.ativo ? Eye : EyeOff} title="Ativar Loja" description="Visível ao público" checked={form.ativo} onChange={v => setForm(p => ({ ...p, ativo: v }))} iconColor={form.ativo ? 'text-emerald-500' : undefined} />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Nome da Loja <span className="text-destructive">*</span></Label>
-                    <Input value={form.nome_loja} onChange={e => setForm(p => ({ ...p, nome_loja: e.target.value }))} placeholder="Ex: Joias Elegance" className="h-9" />
+      case 'cores':
+        return (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {COLOR_PRESETS.map(preset => (
+                <button key={preset.name} onClick={() => setForm(p => ({ ...p, cor_primaria: preset.primary, cor_secundaria: preset.secondary }))}
+                  className={cn("flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-all hover:shadow-sm",
+                    form.cor_primaria === preset.primary ? 'border-primary ring-2 ring-primary/20 bg-primary/5' : 'hover:border-primary/40')}>
+                  <div className="flex gap-0.5">
+                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: preset.primary }} />
+                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: preset.secondary }} />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Link2 className="w-3 h-3" /> Slug <span className="text-destructive">*</span></Label>
-                    <Input value={form.slug} onChange={e => setForm(p => ({ ...p, slug: e.target.value }))} placeholder="joias-elegance" className="h-9 font-mono text-xs" />
-                  </div>
+                  <span className="font-medium text-foreground">{preset.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Cor Primária</Label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={form.cor_primaria} onChange={e => setForm(p => ({ ...p, cor_primaria: e.target.value }))} className="w-9 h-9 rounded-lg cursor-pointer border-2 border-border" />
+                  <Input value={form.cor_primaria} onChange={e => setForm(p => ({ ...p, cor_primaria: e.target.value }))} className="h-9 font-mono text-[10px] flex-1" />
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Cor Secundária</Label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={form.cor_secundaria} onChange={e => setForm(p => ({ ...p, cor_secundaria: e.target.value }))} className="w-9 h-9 rounded-lg cursor-pointer border-2 border-border" />
+                  <Input value={form.cor_secundaria} onChange={e => setForm(p => ({ ...p, cor_secundaria: e.target.value }))} className="h-9 font-mono text-[10px] flex-1" />
+                </div>
+              </div>
+            </div>
+            {/* Preview */}
+            <div className="rounded-lg overflow-hidden border">
+              <div className="py-2.5 px-4 text-center text-xs font-medium text-white" style={{ backgroundColor: form.cor_primaria }}>
+                Preview da cor primária
+              </div>
+              <div className="py-2.5 px-4 text-center text-xs font-medium text-white" style={{ backgroundColor: form.cor_secundaria }}>
+                Preview da cor secundária
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'tipografia':
+        return (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Fonte dos Títulos</Label>
+              <Select value={form.fonte_titulos} onValueChange={v => setForm(p => ({ ...p, fonte_titulos: v }))}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                      <span className="text-[10px] text-muted-foreground ml-2">({f.style})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Fonte do Corpo</Label>
+              <Select value={form.fonte_corpo} onValueChange={v => setForm(p => ({ ...p, fonte_corpo: v }))}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_CORPO_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                      <span className="text-[10px] text-muted-foreground ml-2">({f.style})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-4 rounded-lg border bg-muted/30">
+              <p className="text-lg font-semibold mb-1" style={{ fontFamily: form.fonte_titulos }}>Título da Sua Loja</p>
+              <p className="text-sm text-muted-foreground" style={{ fontFamily: form.fonte_corpo }}>Este é um exemplo de texto do corpo usando a fonte selecionada.</p>
+            </div>
+          </div>
+        );
+
+      case 'design':
+        return (
+          <div className="space-y-4">
+            <ToggleRow icon={Image} title="Apenas com foto" description="Oculta produtos sem imagem" checked={form.apenas_com_foto} onChange={v => setForm(p => ({ ...p, apenas_com_foto: v }))} />
+            <ToggleRow icon={Tag} title="Preço original riscado" description="Exibe preço anterior em promoções" checked={form.mostrar_preco_original} onChange={v => setForm(p => ({ ...p, mostrar_preco_original: v }))} />
+            <ToggleRow icon={Star} title="Avaliações" description="Permite reviews nos produtos" checked={form.avaliacoes_ativas} onChange={v => setForm(p => ({ ...p, avaliacoes_ativas: v }))} />
+            <ToggleRow icon={Percent} title="Parcelamento" description="Exibe parcelas no card do produto" checked={form.mostrar_parcelamento} onChange={v => setForm(p => ({ ...p, mostrar_parcelamento: v }))} />
+            {form.mostrar_parcelamento && (
+              <div className="space-y-1.5 pl-7">
+                <Label className="text-xs font-medium">Máximo de parcelas</Label>
+                <Select value={form.parcelamento_max} onValueChange={v => setForm(p => ({ ...p, parcelamento_max: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{['3', '6', '10', '12'].map(n => <SelectItem key={n} value={n}>{n}x sem juros</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            )}
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Badges de Produto</p>
+            <div className="flex flex-wrap gap-2">
+              {BADGES_PRODUTO_OPCOES.map(badge => (
+                <button key={badge.id} onClick={() => toggleBadge(badge.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold border transition-all ${form.badges_produto.includes(badge.id) ? 'ring-2 ring-offset-1' : 'opacity-60 hover:opacity-100'}`}
+                  style={form.badges_produto.includes(badge.id) ? { backgroundColor: badge.color + '20', borderColor: badge.color, color: badge.color, ['--tw-ring-color' as string]: badge.color } : {}}>
+                  {badge.label}
+                </button>
+              ))}
+            </div>
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Selos de Confiança</p>
+            <div className="grid grid-cols-2 gap-2">
+              {SELOS_OPCOES.map(selo => (
+                <button key={selo.id} onClick={() => toggleSelo(selo.id)}
+                  className={cn("flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all",
+                    form.selos_confianca.includes(selo.id) ? 'border-primary bg-primary/5 ring-1 ring-primary/30' : 'hover:border-primary/40')}>
+                  <span className="text-base">{selo.icon}</span>
+                  <span className="text-xs font-medium text-foreground">{selo.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'cabecalho':
+        return (
+          <div className="space-y-4">
+            <ToggleRow icon={PanelTop} title="Header fixo (sticky)" description="Menu fica fixo ao rolar a página" checked={form.header_sticky} onChange={v => setForm(p => ({ ...p, header_sticky: v }))} />
+            <ToggleRow icon={Eye} title="Header transparente no Hero" description="Cabeçalho sobre a imagem hero" checked={form.header_transparente_hero} onChange={v => setForm(p => ({ ...p, header_transparente_hero: v }))} />
+            <Separator />
+            <ToggleRow icon={Megaphone} title="Banner de anúncio" description="Barra superior com promoções" checked={form.banner_ativo} onChange={v => setForm(p => ({ ...p, banner_ativo: v }))} />
+            {form.banner_ativo && (
+              <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Descrição</Label>
-                  <Textarea value={form.descricao} onChange={e => setForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Sobre sua loja..." rows={2} className="text-sm resize-none" />
-                  <p className="text-[10px] text-muted-foreground">{form.descricao.length}/300 · Aparece no Google (SEO)</p>
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={MessageCircle} title="Contato & Redes Sociais" description="Canais de comunicação com o cliente">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Phone className="w-3 h-3 text-emerald-500" /> WhatsApp</Label>
-                    <Input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" className="h-9 text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Mail className="w-3 h-3 text-blue-500" /> E-mail</Label>
-                    <Input value={form.email_contato} onChange={e => setForm(p => ({ ...p, email_contato: e.target.value }))} placeholder="contato@loja.com" className="h-9 text-sm" />
-                  </div>
+                  <Label className="text-xs font-medium">Texto do Banner</Label>
+                  <Input value={form.banner_texto} onChange={e => setForm(p => ({ ...p, banner_texto: e.target.value }))} placeholder="🔥 Frete grátis acima de R$ 200!" className="h-9 text-sm" />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Instagram className="w-3 h-3 text-pink-500" /> Instagram</Label>
-                    <Input value={form.instagram} onChange={e => setForm(p => ({ ...p, instagram: e.target.value }))} placeholder="@sualoja" className="h-9 text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Facebook className="w-3 h-3 text-blue-600" /> Facebook</Label>
-                    <Input value={form.facebook} onChange={e => setForm(p => ({ ...p, facebook: e.target.value }))} placeholder="facebook.com/sualoja" className="h-9 text-sm" />
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Mensagem padrão do WhatsApp</Label>
-                  <Textarea value={form.mensagem_whatsapp} onChange={e => setForm(p => ({ ...p, mensagem_whatsapp: e.target.value }))} rows={2} className="text-sm resize-none" />
-                </div>
-                <ToggleRow icon={Phone} title="Botão WhatsApp flutuante" description="Exibe botão fixo para contato rápido" checked={form.mostrar_whatsapp_float} onChange={v => setForm(p => ({ ...p, mostrar_whatsapp_float: v }))} iconColor="text-emerald-500" />
-                {form.mostrar_whatsapp_float && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Posição do botão</Label>
-                    <Select value={form.whatsapp_posicao} onValueChange={v => setForm(p => ({ ...p, whatsapp_posicao: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="direita">Canto inferior direito</SelectItem>
-                        <SelectItem value="esquerda">Canto inferior esquerdo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </SectionCard>
-
-              <SectionCard icon={Clock} title="Horário de Funcionamento" description="Informe seus clientes quando você atende">
-                {DIAS_SEMANA.map(dia => {
-                  const horario = form.horario_funcionamento[dia] || { aberto: false, inicio: '09:00', fim: '18:00' };
-                  return (
-                    <div key={dia} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                      <Switch checked={horario.aberto} onCheckedChange={v => updateHorario(dia, 'aberto', v)} className="scale-75" />
-                      <span className={`text-xs font-medium w-16 ${horario.aberto ? 'text-foreground' : 'text-muted-foreground'}`}>{DIAS_LABELS[dia]}</span>
-                      {horario.aberto ? (
-                        <div className="flex items-center gap-2 flex-1">
-                          <Input type="time" value={horario.inicio} onChange={e => updateHorario(dia, 'inicio', e.target.value)} className="h-7 text-xs w-24" />
-                          <span className="text-xs text-muted-foreground">até</span>
-                          <Input type="time" value={horario.fim} onChange={e => updateHorario(dia, 'fim', e.target.value)} className="h-7 text-xs w-24" />
-                        </div>
-                      ) : <span className="text-xs text-muted-foreground italic">Fechado</span>}
-                    </div>
-                  );
-                })}
-              </SectionCard>
-
-              {/* SEO Preview */}
-              <SectionCard icon={Globe} title="Preview Google (SEO)" description="Como sua loja aparece na busca">
-                <div className="p-4 rounded-lg bg-white dark:bg-muted/30 border space-y-1">
-                  <p className="text-xs text-emerald-700 dark:text-emerald-400 font-mono truncate">{lojaUrl || 'seusite.com/loja/slug'}</p>
-                  <p className="text-base text-blue-700 dark:text-blue-400 font-medium hover:underline cursor-pointer truncate">{form.nome_loja || 'Nome da Loja'} — Loja Online</p>
-                  <p className="text-xs text-muted-foreground line-clamp-2">{form.descricao || 'Adicione uma descrição para melhorar seu posicionamento nos resultados de busca.'}</p>
-                </div>
-              </SectionCard>
-            </TabsContent>
-
-            {/* TAB: Aparência */}
-            <TabsContent value="aparencia" className="space-y-5">
-              <SectionCard icon={Image} title="Logo & Identidade" description="Imagem e cores da sua marca">
-                <ImageUpload value={form.logo_url} onChange={(url) => setForm(p => ({ ...p, logo_url: url }))} label="Logo da Loja" />
-                <Separator />
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Temas Prontos</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {COLOR_PRESETS.map((preset) => (
-                      <button key={preset.name} onClick={() => setForm(p => ({ ...p, cor_primaria: preset.primary, cor_secundaria: preset.secondary }))}
-                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-medium transition-all hover:scale-105 ${form.cor_primaria === preset.primary ? 'ring-2 ring-primary ring-offset-1' : 'hover:border-primary/50'}`}>
-                        <div className="w-3 h-3 rounded-full" style={{ background: `linear-gradient(135deg, ${preset.primary}, ${preset.secondary})` }} />
-                        {preset.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Cor Primária</Label>
+                    <Label className="text-xs font-medium">Cor</Label>
                     <div className="flex items-center gap-2">
-                      <input type="color" value={form.cor_primaria} onChange={e => setForm(p => ({ ...p, cor_primaria: e.target.value }))} className="w-9 h-9 rounded-lg cursor-pointer border-2 border-border" />
-                      <Input value={form.cor_primaria} onChange={e => setForm(p => ({ ...p, cor_primaria: e.target.value }))} className="h-9 font-mono text-[10px] flex-1" />
+                      <input type="color" value={form.banner_cor} onChange={e => setForm(p => ({ ...p, banner_cor: e.target.value }))} className="w-9 h-9 rounded-lg cursor-pointer border-2 border-border" />
+                      <Input value={form.banner_cor} onChange={e => setForm(p => ({ ...p, banner_cor: e.target.value }))} className="h-9 font-mono text-[10px] flex-1" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Cor Secundária</Label>
-                    <div className="flex items-center gap-2">
-                      <input type="color" value={form.cor_secundaria} onChange={e => setForm(p => ({ ...p, cor_secundaria: e.target.value }))} className="w-9 h-9 rounded-lg cursor-pointer border-2 border-border" />
-                      <Input value={form.cor_secundaria} onChange={e => setForm(p => ({ ...p, cor_secundaria: e.target.value }))} className="h-9 font-mono text-[10px] flex-1" />
-                    </div>
+                    <Label className="text-xs font-medium">Link (opcional)</Label>
+                    <Input value={form.banner_link} onChange={e => setForm(p => ({ ...p, banner_link: e.target.value }))} placeholder="https://..." className="h-9 text-sm" />
                   </div>
                 </div>
-              </SectionCard>
-
-              {/* Tipografia */}
-              <SectionCard icon={Type} title="Tipografia" description="Fontes para títulos e textos">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Fonte dos Títulos</Label>
-                    <Select value={form.fonte_titulos} onValueChange={v => setForm(p => ({ ...p, fonte_titulos: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {FONT_OPTIONS.map(f => (
-                          <SelectItem key={f.value} value={f.value}>
-                            <span style={{ fontFamily: f.value }}>{f.label}</span>
-                            <span className="text-[10px] text-muted-foreground ml-2">({f.style})</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Fonte do Corpo</Label>
-                    <Select value={form.fonte_corpo} onValueChange={v => setForm(p => ({ ...p, fonte_corpo: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {FONT_CORPO_OPTIONS.map(f => (
-                          <SelectItem key={f.value} value={f.value}>
-                            <span style={{ fontFamily: f.value }}>{f.label}</span>
-                            <span className="text-[10px] text-muted-foreground ml-2">({f.style})</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="rounded-lg overflow-hidden border">
+                  <div className="py-2 px-4 text-center text-xs font-medium text-white" style={{ backgroundColor: form.banner_cor }}>
+                    {form.banner_texto || 'Texto do banner'}
                   </div>
                 </div>
-                {/* Preview */}
-                <div className="p-4 rounded-lg border bg-muted/30">
-                  <p className="text-lg font-semibold mb-1" style={{ fontFamily: form.fonte_titulos }}>Título da Sua Loja</p>
-                  <p className="text-sm text-muted-foreground" style={{ fontFamily: form.fonte_corpo }}>Este é um exemplo de texto do corpo usando a fonte selecionada. Ideal para descrições de produtos.</p>
-                </div>
-              </SectionCard>
+              </div>
+            )}
+            <Separator />
+            <ToggleRow icon={Search} title="Barra de busca" description="Buscar produtos por nome" checked={form.mostrar_busca} onChange={v => setForm(p => ({ ...p, mostrar_busca: v }))} />
+            <ToggleRow icon={Layers} title="Menu de categorias" description="Navegação por categorias" checked={form.mostrar_categorias} onChange={v => setForm(p => ({ ...p, mostrar_categorias: v }))} />
+          </div>
+        );
 
-              {/* Banner de Anúncios */}
-              <SectionCard icon={Megaphone} title="Banner de Anúncio" description="Barra superior com promoções e avisos">
-                <ToggleRow icon={Megaphone} title="Ativar Banner" description="Exibe barra no topo da loja" checked={form.banner_ativo} onChange={v => setForm(p => ({ ...p, banner_ativo: v }))} />
-                {form.banner_ativo && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Texto do Banner</Label>
-                      <Input value={form.banner_texto} onChange={e => setForm(p => ({ ...p, banner_texto: e.target.value }))} placeholder="🔥 Frete grátis acima de R$ 200!" className="h-9 text-sm" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">Cor do Banner</Label>
-                        <div className="flex items-center gap-2">
-                          <input type="color" value={form.banner_cor} onChange={e => setForm(p => ({ ...p, banner_cor: e.target.value }))} className="w-9 h-9 rounded-lg cursor-pointer border-2 border-border" />
-                          <Input value={form.banner_cor} onChange={e => setForm(p => ({ ...p, banner_cor: e.target.value }))} className="h-9 font-mono text-[10px] flex-1" />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">Link (opcional)</Label>
-                        <Input value={form.banner_link} onChange={e => setForm(p => ({ ...p, banner_link: e.target.value }))} placeholder="https://..." className="h-9 text-sm" />
-                      </div>
-                    </div>
-                    <div className="rounded-lg overflow-hidden border">
-                      <div className="py-2 px-4 text-center text-xs font-medium text-white" style={{ backgroundColor: form.banner_cor }}>
-                        {form.banner_texto || 'Texto do banner aparecerá aqui'}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </SectionCard>
-
-              {/* Catálogo & Exibição */}
-              <SectionCard icon={LayoutGrid} title="Catálogo & Exibição" description="Controle como os produtos aparecem">
-                <ToggleRow icon={Image} title="Apenas com foto" description="Oculta produtos sem imagem" checked={form.apenas_com_foto} onChange={v => setForm(p => ({ ...p, apenas_com_foto: v }))} />
-                <ToggleRow icon={Tag} title="Mostrar preço original" description="Exibe preço riscado em promoções" checked={form.mostrar_preco_original} onChange={v => setForm(p => ({ ...p, mostrar_preco_original: v }))} />
-                <ToggleRow icon={Package} title="Mostrar estoque" description="Exibe quantidade disponível" checked={form.mostrar_estoque} onChange={v => setForm(p => ({ ...p, mostrar_estoque: v }))} />
-                <ToggleRow icon={Star} title="Avaliações de clientes" description="Permite reviews nos produtos" checked={form.avaliacoes_ativas} onChange={v => setForm(p => ({ ...p, avaliacoes_ativas: v }))} />
-                <ToggleRow icon={Search} title="Barra de busca" description="Permite buscar produtos por nome" checked={form.mostrar_busca} onChange={v => setForm(p => ({ ...p, mostrar_busca: v }))} />
-                <ToggleRow icon={Layers} title="Filtro por categorias" description="Menu de categorias no topo" checked={form.mostrar_categorias} onChange={v => setForm(p => ({ ...p, mostrar_categorias: v }))} />
-                <ToggleRow icon={SlidersHorizontal} title="Filtros avançados" description="Filtro por preço, material etc." checked={form.mostrar_filtros} onChange={v => setForm(p => ({ ...p, mostrar_filtros: v }))} />
-                <ToggleRow icon={BarChart} title="Ordenação" description="Permite ordenar por preço, nome etc." checked={form.mostrar_ordenacao} onChange={v => setForm(p => ({ ...p, mostrar_ordenacao: v }))} />
-                <ToggleRow icon={Percent} title="Mostrar parcelamento" description="Exibe parcelas no produto" checked={form.mostrar_parcelamento} onChange={v => setForm(p => ({ ...p, mostrar_parcelamento: v }))} />
-
-                <Separator />
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Produtos/página</Label>
-                    <Select value={form.produtos_por_pagina} onValueChange={v => setForm(p => ({ ...p, produtos_por_pagina: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{['8', '12', '16', '20', '24', '32'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Colunas Desktop</Label>
-                    <Select value={form.colunas_desktop} onValueChange={v => setForm(p => ({ ...p, colunas_desktop: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{['2', '3', '4', '5'].map(n => <SelectItem key={n} value={n}>{n} colunas</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Colunas Mobile</Label>
-                    <Select value={form.colunas_mobile} onValueChange={v => setForm(p => ({ ...p, colunas_mobile: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{['1', '2', '3'].map(n => <SelectItem key={n} value={n}>{n} coluna(s)</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {form.mostrar_parcelamento && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Máximo de parcelas</Label>
-                    <Select value={form.parcelamento_max} onValueChange={v => setForm(p => ({ ...p, parcelamento_max: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{['3', '6', '10', '12'].map(n => <SelectItem key={n} value={n}>{n}x sem juros</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </SectionCard>
-
-              {/* Badges de Produto */}
-              <SectionCard icon={BadgeCheck} title="Badges de Produto" description="Selos automáticos nos produtos">
-                <div className="flex flex-wrap gap-2">
-                  {BADGES_PRODUTO_OPCOES.map(badge => (
-                    <button key={badge.id} onClick={() => toggleBadge(badge.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold border transition-all ${form.badges_produto.includes(badge.id) ? 'ring-2 ring-offset-1' : 'opacity-60 hover:opacity-100'}`}
-                      style={form.badges_produto.includes(badge.id) ? { backgroundColor: badge.color + '20', borderColor: badge.color, color: badge.color, ['--tw-ring-color' as string]: badge.color } : {}}>
-                      {badge.label}
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground">{form.badges_produto.length} badge(s) ativo(s) · Aparece nos cards de produto</p>
-              </SectionCard>
-            </TabsContent>
-
-            {/* TAB: Hero Banner */}
-            <TabsContent value="hero" className="space-y-5">
-              <SectionCard icon={ImagePlus} title="Hero Banner Principal" description="Imagem destaque no topo da loja">
-                <ImageUpload value={form.hero_imagem_url} onChange={(url) => setForm(p => ({ ...p, hero_imagem_url: url }))} label="Imagem do Hero" />
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Título Principal</Label>
-                    <Input value={form.hero_titulo} onChange={e => setForm(p => ({ ...p, hero_titulo: e.target.value }))} placeholder="Nova Coleção 2025" className="h-9 text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Subtítulo</Label>
-                    <Input value={form.hero_subtitulo} onChange={e => setForm(p => ({ ...p, hero_subtitulo: e.target.value }))} placeholder="Peças exclusivas com até 30% OFF" className="h-9 text-sm" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Texto do Botão (CTA)</Label>
-                    <Input value={form.hero_cta_texto} onChange={e => setForm(p => ({ ...p, hero_cta_texto: e.target.value }))} placeholder="Ver Coleção" className="h-9 text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Link do Botão</Label>
-                    <Input value={form.hero_cta_link} onChange={e => setForm(p => ({ ...p, hero_cta_link: e.target.value }))} placeholder="#produtos ou URL" className="h-9 text-sm" />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Opacidade do Overlay ({Math.round(parseFloat(form.hero_overlay_opacity) * 100)}%)</Label>
-                  <input type="range" min="0" max="1" step="0.05" value={form.hero_overlay_opacity} onChange={e => setForm(p => ({ ...p, hero_overlay_opacity: e.target.value }))} className="w-full accent-primary" />
-                  <p className="text-[10px] text-muted-foreground">Controla a escuridão sobre a imagem de fundo</p>
-                </div>
-
-                {/* Hero Preview */}
-                <div className="rounded-lg overflow-hidden border relative" style={{ height: 160 }}>
-                  {form.hero_imagem_url ? (
-                    <img src={form.hero_imagem_url} alt="Hero" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }} />
-                  )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4" style={{ backgroundColor: `rgba(0,0,0,${form.hero_overlay_opacity})` }}>
-                    <p className="text-white text-sm font-bold" style={{ fontFamily: form.fonte_titulos }}>{form.hero_titulo || form.nome_loja || 'Sua Loja'}</p>
-                    {form.hero_subtitulo && <p className="text-white/80 text-xs mt-1" style={{ fontFamily: form.fonte_corpo }}>{form.hero_subtitulo}</p>}
-                    <div className="mt-2 px-4 py-1 bg-white/20 rounded-full border border-white/30">
-                      <span className="text-white text-[10px] font-medium">{form.hero_cta_texto || 'Ver Coleção'}</span>
-                    </div>
-                  </div>
-                </div>
-              </SectionCard>
-
-              {/* Banner Imagem */}
-              <SectionCard icon={Image} title="Banner Secundário (Imagem)" description="Banner adicional com imagem personalizada">
-                <ImageUpload value={form.banner_url} onChange={(url) => setForm(p => ({ ...p, banner_url: url }))} label="Imagem do Banner" />
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Link de destino</Label>
-                  <Input value={form.banner_link} onChange={e => setForm(p => ({ ...p, banner_link: e.target.value }))} placeholder="https://... ou #secao" className="h-9 text-sm" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Posição do Banner</Label>
-                  <Select value={form.banner_posicao} onValueChange={v => setForm(p => ({ ...p, banner_posicao: v }))}>
-                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="topo">Abaixo do Hero</SelectItem>
-                      <SelectItem value="meio">No meio dos produtos</SelectItem>
-                      <SelectItem value="rodape">Acima do rodapé</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </SectionCard>
-
-              {/* Selos de Confiança */}
-              <SectionCard icon={BadgeCheck} title="Selos de Confiança" description="Exibidos na barra de benefícios">
-                <div className="grid grid-cols-2 gap-2">
-                  {SELOS_OPCOES.map(selo => (
-                    <button key={selo.id} onClick={() => toggleSelo(selo.id)}
-                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-left transition-all ${form.selos_confianca.includes(selo.id) ? 'border-primary bg-primary/5 ring-1 ring-primary/30' : 'hover:border-primary/40'}`}>
-                      <span className="text-base">{selo.icon}</span>
-                      <span className="text-xs font-medium text-foreground">{selo.label}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground">{form.selos_confianca.length} selo(s) ativo(s) · Exibidos abaixo do Hero</p>
-              </SectionCard>
-            </TabsContent>
-
-            {/* TAB: Marketing */}
-            <TabsContent value="marketing" className="space-y-5">
-              {/* Banners Carousel */}
-              <SectionCard icon={Layers} title="Banners Carousel" description="Banners rotativos no topo da loja">
-                {form.banners_carousel.map((banner: any, idx: number) => (
-                  <div key={idx} className="p-3 border rounded-lg space-y-2 relative">
-                    <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, banners_carousel: p.banners_carousel.filter((_: any, i: number) => i !== idx) }))}>×</Button>
-                    <p className="text-xs font-medium text-muted-foreground">Banner {idx + 1}</p>
-                    <ImageUpload value={banner.image || ''} onChange={(url) => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], image: url }; setForm(p => ({ ...p, banners_carousel: arr })); }} label="Imagem" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input placeholder="Título" value={banner.title || ''} onChange={e => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], title: e.target.value }; setForm(p => ({ ...p, banners_carousel: arr })); }} className="h-8 text-xs" />
-                      <Input placeholder="Subtítulo" value={banner.subtitle || ''} onChange={e => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], subtitle: e.target.value }; setForm(p => ({ ...p, banners_carousel: arr })); }} className="h-8 text-xs" />
-                    </div>
-                    <Input placeholder="Texto do botão (CTA)" value={banner.cta || ''} onChange={e => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], cta: e.target.value }; setForm(p => ({ ...p, banners_carousel: arr })); }} className="h-8 text-xs" />
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, banners_carousel: [...p.banners_carousel, { image: '', title: '', subtitle: '', cta: 'Ver Coleção' }] }))}>
-                  <Plus className="w-3 h-3 mr-1" /> Adicionar Banner
-                </Button>
-                <p className="text-[10px] text-muted-foreground">{form.banners_carousel.length} banner(s) · Rotação automática a cada 5s</p>
-              </SectionCard>
-
-              {/* Coleções em Destaque */}
-              <SectionCard icon={Grid3X3} title="Coleções em Destaque" description="Cards de categorias com imagem de destaque">
-                {form.colecoes_destaque.map((col: any, idx: number) => (
-                  <div key={idx} className="p-3 border rounded-lg space-y-2 relative">
-                    <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, colecoes_destaque: p.colecoes_destaque.filter((_: any, i: number) => i !== idx) }))}>×</Button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input placeholder="Nome (ex: Anéis)" value={col.nome || ''} onChange={e => { const arr = [...form.colecoes_destaque]; arr[idx] = { ...arr[idx], nome: e.target.value }; setForm(p => ({ ...p, colecoes_destaque: arr })); }} className="h-8 text-xs" />
-                      <Input placeholder="Subtítulo" value={col.subtitulo || ''} onChange={e => { const arr = [...form.colecoes_destaque]; arr[idx] = { ...arr[idx], subtitulo: e.target.value }; setForm(p => ({ ...p, colecoes_destaque: arr })); }} className="h-8 text-xs" />
-                    </div>
-                    <ImageUpload value={col.imagem || ''} onChange={(url) => { const arr = [...form.colecoes_destaque]; arr[idx] = { ...arr[idx], imagem: url }; setForm(p => ({ ...p, colecoes_destaque: arr })); }} label="Imagem" />
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, colecoes_destaque: [...p.colecoes_destaque, { nome: '', subtitulo: '', imagem: '' }] }))}>
-                  <Plus className="w-3 h-3 mr-1" /> Adicionar Coleção
-                </Button>
-              </SectionCard>
-
-              {/* Countdown */}
-              <SectionCard icon={Timer} title="Contagem Regressiva" description="Timer de promoção por tempo limitado">
-                <ToggleRow icon={Timer} title="Ativar Countdown" description="Exibe timer regressivo na loja" checked={form.countdown_ativo} onChange={v => setForm(p => ({ ...p, countdown_ativo: v }))} iconColor="text-amber-500" />
-                {form.countdown_ativo && (
-                  <div className="space-y-3 mt-2">
-                    <Input placeholder="Título (ex: Black Friday)" value={form.countdown_titulo} onChange={e => setForm(p => ({ ...p, countdown_titulo: e.target.value }))} className="h-9 text-sm" />
-                    <Input placeholder="Subtítulo" value={form.countdown_subtitulo} onChange={e => setForm(p => ({ ...p, countdown_subtitulo: e.target.value }))} className="h-9 text-sm" />
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Data/hora de término</Label>
-                      <Input type="datetime-local" value={form.countdown_data_fim} onChange={e => setForm(p => ({ ...p, countdown_data_fim: e.target.value }))} className="h-9 text-sm" />
-                    </div>
-                  </div>
-                )}
-              </SectionCard>
-
-              {/* Popup */}
-              <SectionCard icon={Megaphone} title="Popup de Boas-Vindas" description="Captura de leads com desconto">
-                <ToggleRow icon={Megaphone} title="Ativar Popup" description="Exibe popup ao entrar na loja" checked={form.popup_ativo} onChange={v => setForm(p => ({ ...p, popup_ativo: v }))} iconColor="text-purple-500" />
-                {form.popup_ativo && (
-                  <div className="space-y-3 mt-2">
-                    <Input placeholder="Título" value={form.popup_titulo} onChange={e => setForm(p => ({ ...p, popup_titulo: e.target.value }))} className="h-9 text-sm" />
-                    <Textarea placeholder="Texto do popup" value={form.popup_texto} onChange={e => setForm(p => ({ ...p, popup_texto: e.target.value }))} className="text-sm" rows={2} />
-                    <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} label="Imagem do Popup" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">Cupom de desconto</Label>
-                        <Input placeholder="BEMVINDO10" value={form.popup_cupom} onChange={e => setForm(p => ({ ...p, popup_cupom: e.target.value }))} className="h-9 text-sm" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">Delay (segundos)</Label>
-                        <Input type="number" value={form.popup_delay_segundos} onChange={e => setForm(p => ({ ...p, popup_delay_segundos: e.target.value }))} className="h-9 text-sm" min="1" max="60" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </SectionCard>
-
-              {/* Lookbook */}
-              <SectionCard icon={Image} title="Lookbook" description="Galeria de fotos estilo editorial">
-                <ToggleRow icon={Image} title="Ativar Lookbook" description="Seção de fotos inspiracionais" checked={form.lookbook_ativo} onChange={v => setForm(p => ({ ...p, lookbook_ativo: v }))} iconColor="text-pink-500" />
-                {form.lookbook_ativo && (
-                  <div className="space-y-3 mt-2">
-                    <Input placeholder="Título da seção" value={form.lookbook_titulo} onChange={e => setForm(p => ({ ...p, lookbook_titulo: e.target.value }))} className="h-9 text-sm" />
-                    {form.lookbook_imagens.map((img: any, idx: number) => (
-                      <div key={idx} className="p-2 border rounded-lg relative">
-                        <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, lookbook_imagens: p.lookbook_imagens.filter((_: any, i: number) => i !== idx) }))}>×</Button>
-                        <ImageUpload value={img.url || ''} onChange={(url) => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], url }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} label={`Imagem ${idx + 1}`} />
-                        <Input placeholder="Legenda (opcional)" value={img.legenda || ''} onChange={e => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], legenda: e.target.value }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} className="h-8 text-xs mt-2" />
-                      </div>
-                    ))}
-                    <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, lookbook_imagens: [...p.lookbook_imagens, { url: '', legenda: '' }] }))}>
-                      <Plus className="w-3 h-3 mr-1" /> Adicionar Imagem
-                    </Button>
-                  </div>
-                )}
-              </SectionCard>
-            </TabsContent>
-
-            {/* TAB: Vendas */}
-            <TabsContent value="vendas" className="space-y-5">
-              <SectionCard icon={Truck} title="Entrega & Frete" description="Valores e promoções de entrega">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Taxa Padrão</Label>
-                    <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span><Input type="number" value={form.taxa_entrega} onChange={e => setForm(p => ({ ...p, taxa_entrega: e.target.value }))} className="h-9 pl-9 text-sm" min="0" step="0.01" /></div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-amber-500" /> Grátis acima de</Label>
-                    <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span><Input type="number" value={form.frete_gratis_acima} onChange={e => setForm(p => ({ ...p, frete_gratis_acima: e.target.value }))} placeholder="—" className="h-9 pl-9 text-sm" min="0" step="0.01" /></div>
-                  </div>
-                </div>
-                {form.frete_gratis_acima && (
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
-                    <Truck className="w-3.5 h-3.5 text-emerald-500" />
-                    <p className="text-xs text-emerald-700 dark:text-emerald-300">Frete grátis acima de <strong>R$ {parseFloat(form.frete_gratis_acima).toFixed(2)}</strong></p>
-                  </div>
-                )}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium flex items-center gap-1"><Package className="w-3 h-3" /> CEP de Origem</Label>
-                  <Input value={form.cep_origem} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 8); setForm(p => ({ ...p, cep_origem: v.length > 5 ? v.slice(0,5) + '-' + v.slice(5) : v })); }} placeholder="00000-000" className="h-9 text-sm" maxLength={9} />
-                  <p className="text-[10px] text-muted-foreground">Seu CEP para cálculo de frete dinâmico</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium flex items-center gap-1"><Timer className="w-3 h-3" /> Prazo estimado de entrega</Label>
-                  <Input value={form.tempo_estimado_entrega} onChange={e => setForm(p => ({ ...p, tempo_estimado_entrega: e.target.value }))} placeholder="Ex: 3 a 7 dias úteis" className="h-9 text-sm" />
-                  <p className="text-[10px] text-muted-foreground">Exibido na página do produto</p>
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={DollarSign} title="Pedido Mínimo" description="Valor mínimo para finalizar compra">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Valor mínimo do pedido</Label>
-                  <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span><Input type="number" value={form.pedido_minimo} onChange={e => setForm(p => ({ ...p, pedido_minimo: e.target.value }))} placeholder="Sem mínimo" className="h-9 pl-9 text-sm" min="0" step="0.01" /></div>
-                  <p className="text-[10px] text-muted-foreground">Deixe vazio para permitir pedidos de qualquer valor</p>
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={CreditCard} title="Métodos de Pagamento" description="Formas aceitas na loja">
-                {METODOS_PAGAMENTO.map(metodo => (
-                  <div key={metodo.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
-                    <div className="flex items-center gap-3"><span className="text-lg">{metodo.icon}</span><p className="text-sm font-medium text-foreground">{metodo.label}</p></div>
-                    <Switch checked={form.metodos_pagamento.includes(metodo.id)} onCheckedChange={() => toggleMetodoPagamento(metodo.id)} />
-                  </div>
-                ))}
-                <p className="text-[10px] text-muted-foreground mt-2">{form.metodos_pagamento.length} método(s) ativo(s)</p>
-              </SectionCard>
-
-              {/* PIX Direto */}
-              <SectionCard icon={DollarSign} title="PIX Direto" description="Receba pagamentos diretamente via PIX — sem intermediário">
-                <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: form.pix_chave ? '#10B981' : '#F59E0B', backgroundColor: form.pix_chave ? '#10B98110' : '#F59E0B10' }}>
-                  {form.pix_chave ? (
-                    <><CheckCircle2 className="w-4 h-4 text-emerald-500" /><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">PIX configurado ✓ — Pagamentos vão direto para sua conta</span></>
-                  ) : (
-                    <><AlertCircle className="w-4 h-4 text-amber-500" /><span className="text-xs font-medium text-amber-700 dark:text-amber-300">Configure sua chave PIX para receber pagamentos</span></>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Tipo da Chave</Label>
-                    <Select value={form.pix_tipo} onValueChange={v => setForm(p => ({ ...p, pix_tipo: v }))}>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cpf">CPF</SelectItem>
-                        <SelectItem value="cnpj">CNPJ</SelectItem>
-                        <SelectItem value="email">E-mail</SelectItem>
-                        <SelectItem value="telefone">Telefone</SelectItem>
-                        <SelectItem value="aleatoria">Chave Aleatória</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Chave PIX</Label>
-                    <Input value={form.pix_chave} onChange={e => setForm(p => ({ ...p, pix_chave: e.target.value }))}
-                      placeholder={form.pix_tipo === 'cpf' ? '000.000.000-00' : form.pix_tipo === 'email' ? 'seu@email.com' : form.pix_tipo === 'telefone' ? '+5511999999999' : 'Sua chave PIX'}
-                      className="h-9 text-sm font-mono" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Nome do Recebedor</Label>
-                    <Input value={form.pix_nome} onChange={e => setForm(p => ({ ...p, pix_nome: e.target.value }))} placeholder="Seu nome ou razão social" className="h-9 text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Cidade</Label>
-                    <Input value={form.pix_cidade} onChange={e => setForm(p => ({ ...p, pix_cidade: e.target.value }))} placeholder="SAO PAULO" className="h-9 text-sm" />
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-lg bg-muted/50 space-y-1">
-                  <p className="text-xs font-medium text-foreground">💡 Como funciona:</p>
-                  <p className="text-[10px] text-muted-foreground">O cliente verá um QR Code PIX no checkout. Ao pagar, o valor cai <strong>direto na sua conta</strong> — sem taxas de intermediário.</p>
-                </div>
-              </SectionCard>
-
-              {/* Integração Mercado Pago */}
-              <SectionCard icon={CreditCard} title="Integração Mercado Pago" description="Credenciais para receber pagamentos na sua conta (cartão, boleto)">
-                <div className="flex items-center gap-2 p-3 rounded-lg border" style={{ borderColor: form.mercadopago_access_token ? '#10B981' : '#F59E0B', backgroundColor: form.mercadopago_access_token ? '#10B98110' : '#F59E0B10' }}>
-                  {form.mercadopago_access_token ? (
-                    <><CheckCircle2 className="w-4 h-4 text-emerald-500" /><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Mercado Pago configurado ✓</span></>
-                  ) : (
-                    <><AlertCircle className="w-4 h-4 text-amber-500" /><span className="text-xs font-medium text-amber-700 dark:text-amber-300">Opcional — para cartão de crédito e boleto</span></>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Access Token (Produção)</Label>
-                  <div className="relative">
-                    <Input
-                      type={showMpToken ? 'text' : 'password'}
-                      value={form.mercadopago_access_token}
-                      onChange={e => setForm(p => ({ ...p, mercadopago_access_token: e.target.value }))}
-                      placeholder="APP_USR-xxxx..."
-                      className="h-9 text-sm pr-10 font-mono"
-                    />
-                    <button type="button" onClick={() => setShowMpToken(!showMpToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                      {showMpToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {form.mercadopago_access_token && (
-                    <p className="text-[10px] text-muted-foreground">Token: ****{form.mercadopago_access_token.slice(-4)}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Public Key</Label>
-                  <Input
-                    value={form.mercadopago_public_key}
-                    onChange={e => setForm(p => ({ ...p, mercadopago_public_key: e.target.value }))}
-                    placeholder="APP_USR-xxxx..."
-                    className="h-9 text-sm font-mono"
-                  />
-                </div>
-
-                <div className="p-3 rounded-lg bg-muted/50 space-y-2">
-                  <p className="text-xs font-medium text-foreground">📋 Como obter as credenciais:</p>
-                  <ol className="text-[10px] text-muted-foreground space-y-1 list-decimal pl-4">
-                    <li>Acesse <a href="https://www.mercadopago.com.br/developers/panel/app" target="_blank" rel="noopener noreferrer" className="text-primary underline">Mercado Pago Developers</a></li>
-                    <li>Crie uma aplicação ou selecione existente</li>
-                    <li>Vá em <strong>Credenciais de Produção</strong></li>
-                    <li>Copie o <strong>Access Token</strong> e a <strong>Public Key</strong></li>
-                  </ol>
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">⚠️ Use credenciais de PRODUÇÃO, não de teste.</p>
-                </div>
-              </SectionCard>
-            </TabsContent>
-
-            {/* TAB: Avançado */}
-            <TabsContent value="avancado" className="space-y-5">
-              <SectionCard icon={Share2} title="Compartilhamento" description="Links e compartilhamento social">
-                {lojaUrl && (
-                  <>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium">Link da Loja</Label>
-                      <div className="flex gap-2">
-                        <Input value={lojaUrl} readOnly className="h-9 text-xs font-mono bg-muted/50 flex-1" />
-                        <Button variant="outline" size="sm" className="h-9" onClick={() => { navigator.clipboard.writeText(lojaUrl); toast.success('Link copiado!'); }}><Copy className="w-3 h-3" /></Button>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Confira nossa loja: ${lojaUrl}`)}`, '_blank')}><Phone className="w-3 h-3 mr-1 text-emerald-500" /> WhatsApp</Button>
-                      <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(lojaUrl)}`, '_blank')}><Facebook className="w-3 h-3 mr-1 text-blue-500" /> Facebook</Button>
-                    </div>
-                  </>
-                )}
-              </SectionCard>
-
-              <SectionCard icon={BarChart3} title="Analytics & Rastreio" description="Integre com Google Analytics e Facebook Pixel">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium flex items-center gap-1"><Globe className="w-3 h-3" /> Google Analytics ID</Label>
-                  <Input value={form.google_analytics_id} onChange={e => setForm(p => ({ ...p, google_analytics_id: e.target.value }))} placeholder="G-XXXXXXXXXX" className="h-9 text-sm font-mono" />
-                  <p className="text-[10px] text-muted-foreground">Rastreie visitas, conversões e comportamento dos usuários</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium flex items-center gap-1"><Facebook className="w-3 h-3 text-blue-600" /> Facebook Pixel ID</Label>
-                  <Input value={form.facebook_pixel_id} onChange={e => setForm(p => ({ ...p, facebook_pixel_id: e.target.value }))} placeholder="123456789012345" className="h-9 text-sm font-mono" />
-                  <p className="text-[10px] text-muted-foreground">Para anúncios e remarketing no Facebook/Instagram</p>
-                </div>
-              </SectionCard>
-
-              <SectionCard icon={Code} title="CSS Personalizado" description="Estilize a loja com código CSS">
-                <Textarea value={form.css_personalizado} onChange={e => setForm(p => ({ ...p, css_personalizado: e.target.value }))} placeholder={`.loja-header {\n  /* suas customizações */\n}`} rows={6} className="text-xs font-mono resize-none" />
-                <p className="text-[10px] text-muted-foreground">⚠️ CSS avançado — pode afetar o layout. Use com cautela.</p>
-              </SectionCard>
-
-              <SectionCard icon={FileText} title="Rodapé" description="Texto e colunas de links do rodapé">
-                <Textarea value={form.texto_rodape} onChange={e => setForm(p => ({ ...p, texto_rodape: e.target.value }))} placeholder="© 2025 Sua Loja. Todos os direitos reservados." rows={2} className="text-sm resize-none" />
-                <Separator />
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium">Endereço / Localização</Label>
-                  <Input value={form.rodape_endereco} onChange={e => setForm(p => ({ ...p, rodape_endereco: e.target.value }))} placeholder="Rua das Joias, 123 - São Paulo/SP" className="h-9 text-sm" />
-                </div>
-                <Separator />
-                {/* Coluna 1 */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Coluna 1 — Links</Label>
-                  <Input value={form.rodape_coluna1_titulo} onChange={e => setForm(p => ({ ...p, rodape_coluna1_titulo: e.target.value }))} placeholder="Título da coluna (ex: Institucional)" className="h-8 text-xs" />
-                  {form.rodape_coluna1_links.map((link: any, idx: number) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <Input value={link.label} onChange={e => { const arr = [...form.rodape_coluna1_links]; arr[idx] = { ...arr[idx], label: e.target.value }; setForm(p => ({ ...p, rodape_coluna1_links: arr })); }} placeholder="Texto" className="h-7 text-xs flex-1" />
-                      <Input value={link.url} onChange={e => { const arr = [...form.rodape_coluna1_links]; arr[idx] = { ...arr[idx], url: e.target.value }; setForm(p => ({ ...p, rodape_coluna1_links: arr })); }} placeholder="Link" className="h-7 text-xs flex-1 font-mono" />
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, rodape_coluna1_links: p.rodape_coluna1_links.filter((_: any, i: number) => i !== idx) }))}>×</Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, rodape_coluna1_links: [...p.rodape_coluna1_links, { label: '', url: '' }] }))}>
-                    <Plus className="w-3 h-3 mr-1" /> Adicionar link
-                  </Button>
-                </div>
-                <Separator />
-                {/* Coluna 2 */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Coluna 2 — Links</Label>
-                  <Input value={form.rodape_coluna2_titulo} onChange={e => setForm(p => ({ ...p, rodape_coluna2_titulo: e.target.value }))} placeholder="Título da coluna (ex: Atendimento)" className="h-8 text-xs" />
-                  {form.rodape_coluna2_links.map((link: any, idx: number) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <Input value={link.label} onChange={e => { const arr = [...form.rodape_coluna2_links]; arr[idx] = { ...arr[idx], label: e.target.value }; setForm(p => ({ ...p, rodape_coluna2_links: arr })); }} placeholder="Texto" className="h-7 text-xs flex-1" />
-                      <Input value={link.url} onChange={e => { const arr = [...form.rodape_coluna2_links]; arr[idx] = { ...arr[idx], url: e.target.value }; setForm(p => ({ ...p, rodape_coluna2_links: arr })); }} placeholder="Link" className="h-7 text-xs flex-1 font-mono" />
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, rodape_coluna2_links: p.rodape_coluna2_links.filter((_: any, i: number) => i !== idx) }))}>×</Button>
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, rodape_coluna2_links: [...p.rodape_coluna2_links, { label: '', url: '' }] }))}>
-                    <Plus className="w-3 h-3 mr-1" /> Adicionar link
-                  </Button>
-                </div>
-              </SectionCard>
-            </TabsContent>
-
-            {/* TAB: Políticas */}
-            <TabsContent value="politicas" className="space-y-5">
-              <SectionCard icon={FileText} title="Política de Troca e Devolução" description="Regras para trocas e devoluções">
-                <Textarea value={form.politica_troca} onChange={e => setForm(p => ({ ...p, politica_troca: e.target.value }))} placeholder="Ex: Aceitamos trocas em até 7 dias..." rows={5} className="text-sm resize-none" />
-                <p className="text-[10px] text-muted-foreground">Exibida no rodapé da loja e na página de produto</p>
-              </SectionCard>
-              <SectionCard icon={Shield} title="Política de Privacidade" description="LGPD e proteção de dados">
-                <Textarea value={form.politica_privacidade} onChange={e => setForm(p => ({ ...p, politica_privacidade: e.target.value }))} placeholder="Ex: Seus dados pessoais são protegidos..." rows={5} className="text-sm resize-none" />
-                <p className="text-[10px] text-muted-foreground">Importante para conformidade com a LGPD</p>
-              </SectionCard>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Right: Live Store Preview (iframe) */}
-        <div className="hidden xl:block">
-          <div className="sticky top-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Globe className="w-3.5 h-3.5" /> Preview da Loja Real
-              </p>
-              {lojaUrl && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-xs h-6 gap-1 text-muted-foreground"
-                  onClick={() => {
-                    const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
-                    if (iframe) iframe.src = iframe.src; // force reload
-                  }}
-                >
-                  <RefreshCw className="w-3 h-3" /> Recarregar
-                </Button>
+      case 'pagina_inicial':
+        return (
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">Configure o Hero Banner e elementos da homepage.</p>
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hero Banner</p>
+            <ImageUpload value={form.hero_imagem_url} onChange={(url) => setForm(p => ({ ...p, hero_imagem_url: url }))} label="Imagem do Hero" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Título</Label>
+                <Input value={form.hero_titulo} onChange={e => setForm(p => ({ ...p, hero_titulo: e.target.value }))} placeholder="Nova Coleção 2025" className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Subtítulo</Label>
+                <Input value={form.hero_subtitulo} onChange={e => setForm(p => ({ ...p, hero_subtitulo: e.target.value }))} placeholder="Peças exclusivas com até 30% OFF" className="h-9 text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Texto do botão (CTA)</Label>
+                <Input value={form.hero_cta_texto} onChange={e => setForm(p => ({ ...p, hero_cta_texto: e.target.value }))} placeholder="Ver Coleção" className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Link do botão</Label>
+                <Input value={form.hero_cta_link} onChange={e => setForm(p => ({ ...p, hero_cta_link: e.target.value }))} placeholder="#produtos ou URL" className="h-9 text-sm" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Opacidade do Overlay ({Math.round(parseFloat(form.hero_overlay_opacity) * 100)}%)</Label>
+              <input type="range" min="0" max="1" step="0.05" value={form.hero_overlay_opacity} onChange={e => setForm(p => ({ ...p, hero_overlay_opacity: e.target.value }))} className="w-full accent-primary" />
+            </div>
+            {/* Hero preview */}
+            <div className="rounded-lg overflow-hidden border relative" style={{ height: 140 }}>
+              {form.hero_imagem_url ? (
+                <img src={form.hero_imagem_url} alt="Hero" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }} />
               )}
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4" style={{ backgroundColor: `rgba(0,0,0,${form.hero_overlay_opacity})` }}>
+                <p className="text-white text-sm font-bold" style={{ fontFamily: form.fonte_titulos }}>{form.hero_titulo || form.nome_loja || 'Sua Loja'}</p>
+                {form.hero_subtitulo && <p className="text-white/80 text-xs mt-1" style={{ fontFamily: form.fonte_corpo }}>{form.hero_subtitulo}</p>}
+                <div className="mt-2 px-4 py-1 bg-white/20 rounded-full border border-white/30">
+                  <span className="text-white text-[10px] font-medium">{form.hero_cta_texto || 'Ver Coleção'}</span>
+                </div>
+              </div>
+            </div>
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Banner Secundário</p>
+            <ImageUpload value={form.banner_url} onChange={(url) => setForm(p => ({ ...p, banner_url: url }))} label="Imagem do Banner" />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Posição</Label>
+              <Select value={form.banner_posicao} onValueChange={v => setForm(p => ({ ...p, banner_posicao: v }))}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="topo">Abaixo do Hero</SelectItem>
+                  <SelectItem value="meio">No meio dos produtos</SelectItem>
+                  <SelectItem value="rodape">Acima do rodapé</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Separator />
+            <ToggleRow icon={Timer} title="Countdown de promoção" description="Timer regressivo na homepage" checked={form.countdown_ativo} onChange={v => setForm(p => ({ ...p, countdown_ativo: v }))} iconColor="text-amber-500" />
+            {form.countdown_ativo && (
+              <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                <Input placeholder="Título" value={form.countdown_titulo} onChange={e => setForm(p => ({ ...p, countdown_titulo: e.target.value }))} className="h-9 text-sm" />
+                <Input placeholder="Subtítulo" value={form.countdown_subtitulo} onChange={e => setForm(p => ({ ...p, countdown_subtitulo: e.target.value }))} className="h-9 text-sm" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Data de término</Label>
+                  <Input type="datetime-local" value={form.countdown_data_fim} onChange={e => setForm(p => ({ ...p, countdown_data_fim: e.target.value }))} className="h-9 text-sm" />
+                </div>
+              </div>
+            )}
+            <ToggleRow icon={Image} title="Lookbook" description="Galeria de fotos editorial" checked={form.lookbook_ativo} onChange={v => setForm(p => ({ ...p, lookbook_ativo: v }))} iconColor="text-pink-500" />
+            {form.lookbook_ativo && (
+              <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                <Input placeholder="Título da seção" value={form.lookbook_titulo} onChange={e => setForm(p => ({ ...p, lookbook_titulo: e.target.value }))} className="h-9 text-sm" />
+                {form.lookbook_imagens.map((img: any, idx: number) => (
+                  <div key={idx} className="p-2 border rounded-lg relative">
+                    <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, lookbook_imagens: p.lookbook_imagens.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                    <ImageUpload value={img.url || ''} onChange={(url) => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], url }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} label={`Imagem ${idx + 1}`} />
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, lookbook_imagens: [...p.lookbook_imagens, { url: '', legenda: '' }] }))}>
+                  <Plus className="w-3 h-3 mr-1" /> Adicionar Imagem
+                </Button>
+              </div>
+            )}
+            <ToggleRow icon={Megaphone} title="Popup de boas-vindas" description="Modal com oferta especial" checked={form.popup_ativo} onChange={v => setForm(p => ({ ...p, popup_ativo: v }))} />
+            {form.popup_ativo && (
+              <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                <Input placeholder="Título" value={form.popup_titulo} onChange={e => setForm(p => ({ ...p, popup_titulo: e.target.value }))} className="h-9 text-sm" />
+                <Textarea placeholder="Texto" value={form.popup_texto} onChange={e => setForm(p => ({ ...p, popup_texto: e.target.value }))} rows={2} className="text-sm resize-none" />
+                <Input placeholder="Cupom de desconto" value={form.popup_cupom} onChange={e => setForm(p => ({ ...p, popup_cupom: e.target.value }))} className="h-9 text-sm" />
+                <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} label="Imagem (opcional)" />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Delay (segundos)</Label>
+                  <Input type="number" value={form.popup_delay_segundos} onChange={e => setForm(p => ({ ...p, popup_delay_segundos: e.target.value }))} className="h-9 text-sm" min="1" max="60" />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'lista_produtos':
+        return (
+          <div className="space-y-4">
+            <ToggleRow icon={SlidersHorizontal} title="Filtros avançados" description="Filtro por preço, material etc." checked={form.mostrar_filtros} onChange={v => setForm(p => ({ ...p, mostrar_filtros: v }))} />
+            <ToggleRow icon={BarChart} title="Ordenação" description="Ordenar por preço, nome etc." checked={form.mostrar_ordenacao} onChange={v => setForm(p => ({ ...p, mostrar_ordenacao: v }))} />
+            <ToggleRow icon={Package} title="Mostrar estoque" description="Quantidade disponível" checked={form.mostrar_estoque} onChange={v => setForm(p => ({ ...p, mostrar_estoque: v }))} />
+            <Separator />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Produtos/página</Label>
+                <Select value={form.produtos_por_pagina} onValueChange={v => setForm(p => ({ ...p, produtos_por_pagina: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{['8', '12', '16', '20', '24', '32'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Colunas Desktop</Label>
+                <Select value={form.colunas_desktop} onValueChange={v => setForm(p => ({ ...p, colunas_desktop: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{['2', '3', '4', '5'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Colunas Mobile</Label>
+                <Select value={form.colunas_mobile} onValueChange={v => setForm(p => ({ ...p, colunas_mobile: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>{['1', '2', '3'].map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'detalhe_produto':
+        return (
+          <div className="space-y-4">
+            <ToggleRow icon={Search} title="Zoom na imagem" description="Lupa ao passar o mouse na foto" checked={form.zoom_imagem_ativo} onChange={v => setForm(p => ({ ...p, zoom_imagem_ativo: v }))} />
+            <ToggleRow icon={LayoutGrid} title="Produtos relacionados" description="Sugestões abaixo do produto" checked={form.produtos_relacionados_ativo} onChange={v => setForm(p => ({ ...p, produtos_relacionados_ativo: v }))} />
+            <ToggleRow icon={Tag} title="Código do produto" description="Exibe código/referência" checked={form.mostrar_codigo_produto} onChange={v => setForm(p => ({ ...p, mostrar_codigo_produto: v }))} />
+          </div>
+        );
+
+      case 'carrinho':
+        return (
+          <div className="space-y-4">
+            <ToggleRow icon={Truck} title="Barra de frete grátis" description="Mostra quanto falta para frete grátis" checked={form.barra_frete_ativo} onChange={v => setForm(p => ({ ...p, barra_frete_ativo: v }))} iconColor="text-emerald-500" />
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Entrega & Frete</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Taxa Padrão</Label>
+                <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span><Input type="number" value={form.taxa_entrega} onChange={e => setForm(p => ({ ...p, taxa_entrega: e.target.value }))} className="h-9 pl-9 text-sm" min="0" step="0.01" /></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium flex items-center gap-1"><Sparkles className="w-3 h-3 text-amber-500" /> Grátis acima de</Label>
+                <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span><Input type="number" value={form.frete_gratis_acima} onChange={e => setForm(p => ({ ...p, frete_gratis_acima: e.target.value }))} placeholder="—" className="h-9 pl-9 text-sm" min="0" step="0.01" /></div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">CEP de Origem</Label>
+              <Input value={form.cep_origem} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 8); setForm(p => ({ ...p, cep_origem: v.length > 5 ? v.slice(0,5) + '-' + v.slice(5) : v })); }} placeholder="00000-000" className="h-9 text-sm" maxLength={9} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Prazo estimado</Label>
+              <Input value={form.tempo_estimado_entrega} onChange={e => setForm(p => ({ ...p, tempo_estimado_entrega: e.target.value }))} placeholder="Ex: 3 a 7 dias úteis" className="h-9 text-sm" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Pedido mínimo</Label>
+              <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span><Input type="number" value={form.pedido_minimo} onChange={e => setForm(p => ({ ...p, pedido_minimo: e.target.value }))} placeholder="Sem mínimo" className="h-9 pl-9 text-sm" min="0" step="0.01" /></div>
+            </div>
+          </div>
+        );
+
+      case 'rodape':
+        return (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Texto do rodapé</Label>
+              <Textarea value={form.texto_rodape} onChange={e => setForm(p => ({ ...p, texto_rodape: e.target.value }))} placeholder="© 2025 Sua Loja. Todos os direitos reservados." rows={2} className="text-sm resize-none" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Endereço / Localização</Label>
+              <Input value={form.rodape_endereco} onChange={e => setForm(p => ({ ...p, rodape_endereco: e.target.value }))} placeholder="Rua das Joias, 123 - São Paulo/SP" className="h-9 text-sm" />
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Coluna 1 — Links</Label>
+              <Input value={form.rodape_coluna1_titulo} onChange={e => setForm(p => ({ ...p, rodape_coluna1_titulo: e.target.value }))} placeholder="Título (ex: Institucional)" className="h-8 text-xs" />
+              {form.rodape_coluna1_links.map((link: any, idx: number) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input value={link.label} onChange={e => { const arr = [...form.rodape_coluna1_links]; arr[idx] = { ...arr[idx], label: e.target.value }; setForm(p => ({ ...p, rodape_coluna1_links: arr })); }} placeholder="Texto" className="h-7 text-xs flex-1" />
+                  <Input value={link.url} onChange={e => { const arr = [...form.rodape_coluna1_links]; arr[idx] = { ...arr[idx], url: e.target.value }; setForm(p => ({ ...p, rodape_coluna1_links: arr })); }} placeholder="Link" className="h-7 text-xs flex-1 font-mono" />
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, rodape_coluna1_links: p.rodape_coluna1_links.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, rodape_coluna1_links: [...p.rodape_coluna1_links, { label: '', url: '' }] }))}>
+                <Plus className="w-3 h-3 mr-1" /> Adicionar link
+              </Button>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Coluna 2 — Links</Label>
+              <Input value={form.rodape_coluna2_titulo} onChange={e => setForm(p => ({ ...p, rodape_coluna2_titulo: e.target.value }))} placeholder="Título (ex: Atendimento)" className="h-8 text-xs" />
+              {form.rodape_coluna2_links.map((link: any, idx: number) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input value={link.label} onChange={e => { const arr = [...form.rodape_coluna2_links]; arr[idx] = { ...arr[idx], label: e.target.value }; setForm(p => ({ ...p, rodape_coluna2_links: arr })); }} placeholder="Texto" className="h-7 text-xs flex-1" />
+                  <Input value={link.url} onChange={e => { const arr = [...form.rodape_coluna2_links]; arr[idx] = { ...arr[idx], url: e.target.value }; setForm(p => ({ ...p, rodape_coluna2_links: arr })); }} placeholder="Link" className="h-7 text-xs flex-1 font-mono" />
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, rodape_coluna2_links: p.rodape_coluna2_links.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, rodape_coluna2_links: [...p.rodape_coluna2_links, { label: '', url: '' }] }))}>
+                <Plus className="w-3 h-3 mr-1" /> Adicionar link
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 'contato':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium flex items-center gap-1"><Phone className="w-3 h-3 text-emerald-500" /> WhatsApp</Label>
+                <Input value={form.whatsapp} onChange={e => setForm(p => ({ ...p, whatsapp: e.target.value }))} placeholder="(11) 99999-9999" className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium flex items-center gap-1"><Mail className="w-3 h-3 text-blue-500" /> E-mail</Label>
+                <Input value={form.email_contato} onChange={e => setForm(p => ({ ...p, email_contato: e.target.value }))} placeholder="contato@loja.com" className="h-9 text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium flex items-center gap-1"><Instagram className="w-3 h-3 text-pink-500" /> Instagram</Label>
+                <Input value={form.instagram} onChange={e => setForm(p => ({ ...p, instagram: e.target.value }))} placeholder="@sualoja" className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium flex items-center gap-1"><Facebook className="w-3 h-3 text-blue-600" /> Facebook</Label>
+                <Input value={form.facebook} onChange={e => setForm(p => ({ ...p, facebook: e.target.value }))} placeholder="facebook.com/sualoja" className="h-9 text-sm" />
+              </div>
+            </div>
+            <Separator />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Mensagem padrão do WhatsApp</Label>
+              <Textarea value={form.mensagem_whatsapp} onChange={e => setForm(p => ({ ...p, mensagem_whatsapp: e.target.value }))} rows={2} className="text-sm resize-none" />
+            </div>
+            <ToggleRow icon={Phone} title="Botão WhatsApp flutuante" description="Botão fixo para contato" checked={form.mostrar_whatsapp_float} onChange={v => setForm(p => ({ ...p, mostrar_whatsapp_float: v }))} iconColor="text-emerald-500" />
+            {form.mostrar_whatsapp_float && (
+              <div className="space-y-1.5 pl-7">
+                <Label className="text-xs font-medium">Posição</Label>
+                <Select value={form.whatsapp_posicao} onValueChange={v => setForm(p => ({ ...p, whatsapp_posicao: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="direita">Canto inferior direito</SelectItem>
+                    <SelectItem value="esquerda">Canto inferior esquerdo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Horário de Funcionamento</p>
+            {DIAS_SEMANA.map(dia => {
+              const horario = form.horario_funcionamento[dia] || { aberto: false, inicio: '09:00', fim: '18:00' };
+              return (
+                <div key={dia} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                  <Switch checked={horario.aberto} onCheckedChange={v => updateHorario(dia, 'aberto', v)} className="scale-75" />
+                  <span className={`text-xs font-medium w-16 ${horario.aberto ? 'text-foreground' : 'text-muted-foreground'}`}>{DIAS_LABELS[dia]}</span>
+                  {horario.aberto ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input type="time" value={horario.inicio} onChange={e => updateHorario(dia, 'inicio', e.target.value)} className="h-7 text-xs w-24" />
+                      <span className="text-xs text-muted-foreground">até</span>
+                      <Input type="time" value={horario.fim} onChange={e => updateHorario(dia, 'fim', e.target.value)} className="h-7 text-xs w-24" />
+                    </div>
+                  ) : <span className="text-xs text-muted-foreground italic">Fechado</span>}
+                </div>
+              );
+            })}
+          </div>
+        );
+
+      case 'vendas':
+        return (
+          <div className="space-y-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Métodos de Pagamento</p>
+            {METODOS_PAGAMENTO.map(metodo => (
+              <div key={metodo.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                <div className="flex items-center gap-3"><span className="text-lg">{metodo.icon}</span><p className="text-sm font-medium text-foreground">{metodo.label}</p></div>
+                <Switch checked={form.metodos_pagamento.includes(metodo.id)} onCheckedChange={() => toggleMetodoPagamento(metodo.id)} />
+              </div>
+            ))}
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">PIX Direto</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Tipo da Chave</Label>
+                <Select value={form.pix_tipo} onValueChange={v => setForm(p => ({ ...p, pix_tipo: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cpf">CPF</SelectItem>
+                    <SelectItem value="cnpj">CNPJ</SelectItem>
+                    <SelectItem value="email">E-mail</SelectItem>
+                    <SelectItem value="telefone">Telefone</SelectItem>
+                    <SelectItem value="aleatoria">Chave Aleatória</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Chave PIX</Label>
+                <Input value={form.pix_chave} onChange={e => setForm(p => ({ ...p, pix_chave: e.target.value }))} placeholder="Sua chave PIX" className="h-9 text-sm font-mono" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Nome do Recebedor</Label>
+                <Input value={form.pix_nome} onChange={e => setForm(p => ({ ...p, pix_nome: e.target.value }))} placeholder="Seu nome" className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Cidade</Label>
+                <Input value={form.pix_cidade} onChange={e => setForm(p => ({ ...p, pix_cidade: e.target.value }))} placeholder="SAO PAULO" className="h-9 text-sm" />
+              </div>
+            </div>
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mercado Pago</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Access Token (Produção)</Label>
+              <div className="relative">
+                <Input
+                  type={showMpToken ? 'text' : 'password'}
+                  value={form.mercadopago_access_token}
+                  onChange={e => setForm(p => ({ ...p, mercadopago_access_token: e.target.value }))}
+                  placeholder="APP_USR-xxxx..."
+                  className="h-9 text-sm pr-10 font-mono"
+                />
+                <button type="button" onClick={() => setShowMpToken(!showMpToken)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showMpToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Public Key</Label>
+              <Input value={form.mercadopago_public_key} onChange={e => setForm(p => ({ ...p, mercadopago_public_key: e.target.value }))} placeholder="APP_USR-xxxx..." className="h-9 text-sm font-mono" />
+            </div>
+          </div>
+        );
+
+      case 'politicas':
+        return (
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Política de Troca e Devolução</Label>
+              <Textarea value={form.politica_troca} onChange={e => setForm(p => ({ ...p, politica_troca: e.target.value }))} placeholder="Ex: Aceitamos trocas em até 7 dias..." rows={5} className="text-sm resize-none" />
+            </div>
+            <Separator />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Política de Privacidade (LGPD)</Label>
+              <Textarea value={form.politica_privacidade} onChange={e => setForm(p => ({ ...p, politica_privacidade: e.target.value }))} placeholder="Ex: Seus dados pessoais são protegidos..." rows={5} className="text-sm resize-none" />
+            </div>
+          </div>
+        );
+
+      case 'css':
+        return (
+          <div className="space-y-4">
+            <Textarea value={form.css_personalizado} onChange={e => setForm(p => ({ ...p, css_personalizado: e.target.value }))} placeholder={`.loja-header {\n  /* suas customizações */\n}`} rows={12} className="text-xs font-mono resize-none" />
+            <p className="text-[10px] text-muted-foreground">⚠️ CSS avançado — pode afetar o layout. Use com cautela.</p>
+            <Separator />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Analytics & Rastreio</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Google Analytics ID</Label>
+              <Input value={form.google_analytics_id} onChange={e => setForm(p => ({ ...p, google_analytics_id: e.target.value }))} placeholder="G-XXXXXXXXXX" className="h-9 text-sm font-mono" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Facebook Pixel ID</Label>
+              <Input value={form.facebook_pixel_id} onChange={e => setForm(p => ({ ...p, facebook_pixel_id: e.target.value }))} placeholder="123456789012345" className="h-9 text-sm font-mono" />
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const toggleSection = (id: string) => {
+    setActiveSection(prev => prev === id ? null : id);
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-120px)] -m-4 md:-m-6">
+      {/* Top Bar - Nuvemshop style */}
+      <header className="flex items-center justify-between px-4 h-12 border-b border-border bg-card flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-semibold text-foreground">Editar layout</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs text-primary font-medium">Layout atual</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Device Toggle */}
+          <div className="flex items-center bg-muted rounded-lg p-0.5">
+            <button
+              onClick={() => setPreviewDevice('mobile')}
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                previewDevice === 'mobile' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              Celulares
+            </button>
+            <button
+              onClick={() => setPreviewDevice('desktop')}
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                previewDevice === 'desktop' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              Computadores
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {lojaUrl && (
+            <Button variant="ghost" size="sm" className="text-xs h-8 gap-1.5" onClick={() => window.open(lojaUrl, '_blank')}>
+              <ExternalLink className="w-3.5 h-3.5" />
+              Ver loja
+            </Button>
+          )}
+        </div>
+      </header>
+
+      {/* Main content - Sidebar + Preview */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar - Accordion menu */}
+        <aside className="w-[320px] flex-shrink-0 border-r border-border bg-card flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto scrollbar-thin">
+            {/* Main sections */}
+            {MENU_ITEMS.map(item => {
+              const Icon = item.icon;
+              const isOpen = activeSection === item.id;
+              return (
+                <div key={item.id}>
+                  <button
+                    onClick={() => toggleSection(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-border/50",
+                      isOpen ? 'bg-primary/5 text-foreground' : 'text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="flex-1 text-left font-medium">{item.label}</span>
+                    <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-90")} />
+                  </button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden border-b border-border/50"
+                      >
+                        <div className="p-4 bg-muted/20">
+                          {renderSectionContent(item.id)}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+
+            {/* Separator */}
+            <div className="px-4 py-3 border-b border-border/50">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Configurações avançadas</p>
             </div>
 
-            {lojaUrl ? (
-              <motion.div 
-                layout 
-                className={`mx-auto rounded-[1.5rem] border-[5px] border-foreground/10 bg-background overflow-hidden shadow-2xl transition-all duration-300 ${previewDevice === 'mobile' ? 'w-[375px]' : 'w-full'}`} 
+            {/* Advanced sections */}
+            {MENU_AVANCADO.map(item => {
+              const Icon = item.icon;
+              const isOpen = activeSection === item.id;
+              return (
+                <div key={item.id}>
+                  <button
+                    onClick={() => toggleSection(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-border/50",
+                      isOpen ? 'bg-primary/5 text-foreground' : 'text-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <span className="flex-1 text-left font-medium">{item.label}</span>
+                    <ChevronRight className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-90")} />
+                  </button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden border-b border-border/50"
+                      >
+                        <div className="p-4 bg-muted/20">
+                          {renderSectionContent(item.id)}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Publish button */}
+          <div className="p-3 border-t border-border bg-card flex-shrink-0">
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="sm"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              )}
+              Publicar alterações
+            </Button>
+          </div>
+        </aside>
+
+        {/* Right: Live Preview */}
+        <div className="flex-1 flex items-start justify-center bg-muted/30 p-6 overflow-auto">
+          {lojaUrl ? (
+            <div className="relative">
+              {/* Reload button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute -top-8 right-0 text-xs h-6 gap-1 text-muted-foreground z-10"
+                onClick={() => {
+                  const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
+                  if (iframe) iframe.src = iframe.src;
+                }}
+              >
+                <RefreshCw className="w-3 h-3" /> Recarregar
+              </Button>
+
+              <motion.div
+                layout
+                className={cn(
+                  "rounded-[1.5rem] border-[5px] border-foreground/10 bg-background overflow-hidden shadow-2xl transition-all duration-300",
+                  previewDevice === 'mobile' ? 'w-[375px]' : 'w-[900px]'
+                )}
                 style={{ height: previewDevice === 'mobile' ? '667px' : '600px' }}
               >
+                {/* Browser bar */}
                 <div className="h-7 flex items-center justify-between px-4 bg-foreground/5 border-b border-border/50">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
@@ -1312,50 +1257,24 @@ export function EcommerceConfigTab() {
                   </div>
                   <div className="w-10" />
                 </div>
-                <iframe 
+                <iframe
                   id="store-preview-iframe"
-                  src={lojaUrl} 
+                  src={lojaUrl}
                   className="w-full border-0"
                   style={{ height: previewDevice === 'mobile' ? '640px' : '573px' }}
                   title="Preview da Loja"
                 />
               </motion.div>
-            ) : (
-              <Card className="border-dashed border-2">
-                <CardContent className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                  <Globe className="w-10 h-10 mb-3 opacity-40" />
-                  <p className="font-medium text-sm">Nenhum preview disponível</p>
-                  <p className="text-xs mt-1">Defina um slug para sua loja para ver o preview</p>
-                </CardContent>
-              </Card>
-            )}
-
-            <p className="text-[10px] text-center text-muted-foreground">
-              Salve as alterações para atualizar o preview · Clique em "Recarregar" para ver
-            </p>
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <Globe className="w-12 h-12 mb-3 opacity-30" />
+              <p className="font-medium text-sm">Nenhum preview disponível</p>
+              <p className="text-xs mt-1">Abra "Imagem da sua marca" e defina um slug</p>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Sticky Save */}
-      <AnimatePresence>
-        {hasChanges && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="sticky bottom-4 z-10">
-            <div className="flex items-center justify-between p-4 rounded-xl border bg-card/95 backdrop-blur-sm shadow-lg">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                <p className="text-xs text-muted-foreground">Alterações não salvas</p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['ecommerce-config'] })}>Descartar</Button>
-                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} size="sm" className="px-6">
-                  {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-1.5" /> Salvar</>}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
