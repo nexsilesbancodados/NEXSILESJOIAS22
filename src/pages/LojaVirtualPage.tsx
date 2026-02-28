@@ -24,6 +24,10 @@ import { EcommerceEstoqueTab } from '@/components/ecommerce/EcommerceEstoqueTab'
 import { EcommerceCarrinhoAbandonadoTab } from '@/components/ecommerce/EcommerceCarrinhoAbandonadoTab';
 import { EcommerceNotificacoesTab } from '@/components/ecommerce/EcommerceNotificacoesTab';
 import { EcommerceSEOTab } from '@/components/ecommerce/EcommerceSEOTab';
+import { EcommerceBannersTab } from '@/components/ecommerce/EcommerceBannersTab';
+import { EcommerceSectionOrderTab } from '@/components/ecommerce/EcommerceSectionOrderTab';
+import { EcommerceColecoeTab } from '@/components/ecommerce/EcommerceColecoeTab';
+import { EcommercePromocoesTab } from '@/components/ecommerce/EcommercePromocoesTab';
 import { cn } from '@/lib/utils';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useQuery } from '@tanstack/react-query';
@@ -31,7 +35,7 @@ import { db } from '@/lib/supabase-db';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type Section = 'dashboard' | 'produtos' | 'estoque' | 'cupons' | 'pedidos' | 'carrinho' | 'avaliacoes' | 'clientes' | 'relatorios' | 'notificacoes' | 'seo' | 'links' | 'config';
+type Section = 'dashboard' | 'produtos' | 'estoque' | 'cupons' | 'pedidos' | 'carrinho' | 'avaliacoes' | 'clientes' | 'relatorios' | 'notificacoes' | 'seo' | 'links' | 'config' | 'banners' | 'secoes' | 'colecoes' | 'promocoes';
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutGrid; description: string; group: string; badge?: string }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Visão geral de vendas', group: 'Principal' },
@@ -40,10 +44,14 @@ const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutGrid; descript
   { id: 'pedidos', label: 'Pedidos', icon: Package, description: 'Pedidos recebidos', group: 'Vendas' },
   { id: 'carrinho', label: 'Carrinho Abandonado', icon: ShoppingCart, description: 'Recuperação de vendas', group: 'Vendas' },
   { id: 'clientes', label: 'Clientes', icon: Users, description: 'Base de clientes', group: 'Vendas' },
+  { id: 'banners', label: 'Banners', icon: LayoutGrid, description: 'Carrossel de banners', group: 'Marketing' },
+  { id: 'colecoes', label: 'Coleções', icon: ShoppingBag, description: 'Categorias em destaque', group: 'Marketing' },
+  { id: 'promocoes', label: 'Promoções', icon: Zap, description: 'Countdown, popup e lookbook', group: 'Marketing' },
   { id: 'cupons', label: 'Cupons', icon: Tag, description: 'Cupons de desconto', group: 'Marketing' },
   { id: 'avaliacoes', label: 'Avaliações', icon: Star, description: 'Avaliações de produtos', group: 'Marketing' },
   { id: 'relatorios', label: 'Relatórios', icon: BarChart3, description: 'Análises detalhadas', group: 'Análise' },
   { id: 'seo', label: 'SEO & Analytics', icon: Search, description: 'Otimização e métricas', group: 'Análise' },
+  { id: 'secoes', label: 'Seções', icon: LayoutDashboard, description: 'Ordem das seções', group: 'Sistema' },
   { id: 'notificacoes', label: 'Automações', icon: Bell, description: 'Notificações automáticas', group: 'Sistema' },
   { id: 'links', label: 'Link da Loja', icon: Link2, description: 'Compartilhar e QR Code', group: 'Sistema' },
   { id: 'config', label: 'Configurações', icon: Settings, description: 'Personalizar loja', group: 'Sistema' },
@@ -245,6 +253,10 @@ export default function LojaVirtualPage() {
       case 'seo': return <EcommerceSEOTab />;
       case 'notificacoes': return <EcommerceNotificacoesTab />;
       case 'links': return <EcommerceLinksTab />;
+      case 'banners': return <EcommerceBannersTab />;
+      case 'secoes': return <EcommerceSectionOrderTab />;
+      case 'colecoes': return <EcommerceColecoeTab />;
+      case 'promocoes': return <EcommercePromocoesTab />;
       case 'config': return <EcommerceConfigTab />;
       default: return null;
     }
