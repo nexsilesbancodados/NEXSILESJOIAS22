@@ -36,6 +36,14 @@ import heroSlide3 from '@/assets/hero-slide-3.jpg';
 
 const MP_PUBLIC_KEY_FALLBACK = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
 
+interface SectionConfig {
+  id: string;
+  tipo: string;
+  titulo: string;
+  visivel: boolean;
+  ordem: number;
+}
+
 interface StoreConfig {
   id: string; slug: string; nome_loja: string; logo_url: string | null;
   cor_primaria: string; cor_secundaria: string; descricao: string | null;
@@ -65,6 +73,25 @@ interface StoreConfig {
   mensagem_whatsapp: string | null;
   mercadopago_public_key: string | null;
   pix_chave: string | null; pix_nome: string | null; pix_tipo: string | null; pix_cidade: string | null;
+  // Marketing
+  banners_carousel: any[] | null;
+  colecoes_destaque: any[] | null;
+  countdown_ativo: boolean | null;
+  countdown_titulo: string | null;
+  countdown_subtitulo: string | null;
+  countdown_data_fim: string | null;
+  lookbook_ativo: boolean | null;
+  lookbook_titulo: string | null;
+  lookbook_imagens: any[] | null;
+  popup_ativo: boolean | null;
+  popup_titulo: string | null;
+  popup_texto: string | null;
+  popup_imagem_url: string | null;
+  popup_cupom: string | null;
+  popup_delay_segundos: number | null;
+  secoes_homepage: SectionConfig[] | null;
+  produtos_destaque_ids: string[] | null;
+  mais_vendidos_ids: string[] | null;
 }
 
 interface Peca {
@@ -928,100 +955,143 @@ export default function LojaPublicaPage() {
         </div>
       </section>
 
-      {/* Coleções em Destaque */}
-      <ColecoesDestaque
-        colecoes={(config as any).colecoes_destaque || []}
-        categorias={categorias}
-        produtos={pecas}
-        fontTitulos={fontTitulos}
-        corPrimaria={roseGold}
-        onCategoriaClick={(cat) => { setCategoriaFilter(cat); document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' }); }}
-      />
-
-      {/* Countdown */}
-      <CountdownSection
-        ativo={(config as any).countdown_ativo || false}
-        titulo={(config as any).countdown_titulo}
-        subtitulo={(config as any).countdown_subtitulo}
-        dataFim={(config as any).countdown_data_fim}
-        corPrimaria={roseGold}
-        fontTitulos={fontTitulos}
-        onVerProdutos={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
-      />
-
-      {/* Produtos em Destaque */}
+      {/* Dynamic Sections based on secoes_homepage config */}
       {(() => {
-        const destaqueIds: string[] = (config as any).produtos_destaque_ids || [];
+        const defaultSections: SectionConfig[] = [
+          { id: '1', tipo: 'colecoes', titulo: 'Coleções', visivel: true, ordem: 0 },
+          { id: '2', tipo: 'countdown', titulo: 'Countdown', visivel: false, ordem: 1 },
+          { id: '3', tipo: 'produtos_destaque', titulo: 'Destaques', visivel: true, ordem: 2 },
+          { id: '4', tipo: 'mais_vendidos', titulo: 'Mais Vendidos', visivel: true, ordem: 3 },
+          { id: '5', tipo: 'lookbook', titulo: 'Lookbook', visivel: false, ordem: 4 },
+          { id: '6', tipo: 'novidades', titulo: 'Novidades', visivel: true, ordem: 5 },
+          { id: '7', tipo: 'sobre_marca', titulo: 'Sobre a Marca', visivel: false, ordem: 6 },
+          { id: '8', tipo: 'instagram_cta', titulo: 'CTA Instagram', visivel: false, ordem: 7 },
+          { id: '9', tipo: 'newsletter', titulo: 'Newsletter', visivel: true, ordem: 8 },
+        ];
+        const sections = (config.secoes_homepage && Array.isArray(config.secoes_homepage) && config.secoes_homepage.length > 0)
+          ? [...config.secoes_homepage].sort((a, b) => a.ordem - b.ordem)
+          : defaultSections;
+
+        const destaqueIds: string[] = config.produtos_destaque_ids || [];
         const destaquePecas = destaqueIds.length > 0 ? pecas.filter(p => destaqueIds.includes(p.id)) : pecas.slice(0, 8);
-        if (destaquePecas.length === 0) return null;
-        return (
-          <section className="py-12 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark, fontFamily: `'${fontTitulos}', serif` }}>Destaques</h3>
-                <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                {destaquePecas.map((peca, i) => (
-                  <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                    className="flex-shrink-0 w-56 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
-                    <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
-                      {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
-                      <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: '#DAA520' }}>⭐ Destaque</span>
-                    </div>
-                    <div className="pt-3 text-center">
-                      <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
-                      <p className="text-sm font-semibold mt-1" style={{ color: roseGold }}>{formatCurrency(peca.preco_venda)}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* Mais Vendidos */}
-      {(() => {
-        const maisVendidosIds: string[] = (config as any).mais_vendidos_ids || [];
+        const maisVendidosIds: string[] = config.mais_vendidos_ids || [];
         const maisVendidosPecas = maisVendidosIds.length > 0 ? pecas.filter(p => maisVendidosIds.includes(p.id)) : [];
-        if (maisVendidosPecas.length === 0) return null;
-        return (
-          <section className="py-12 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
-            <div className="max-w-7xl mx-auto px-4">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark, fontFamily: `'${fontTitulos}', serif` }}>Mais Vendidos</h3>
-                <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
-              </div>
-              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                {maisVendidosPecas.map((peca, i) => (
-                  <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                    className="flex-shrink-0 w-56 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
-                    <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
-                      {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
-                      <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: '#F59E0B' }}>🔥 Mais Vendido</span>
-                    </div>
-                    <div className="pt-3 text-center">
-                      <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
-                      <p className="text-sm font-semibold mt-1" style={{ color: roseGold }}>{formatCurrency(peca.preco_venda)}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </section>
-        );
-      })()}
 
-      {/* Lookbook Section */}
-      <LookbookSection
-        ativo={(config as any).lookbook_ativo || false}
-        titulo={(config as any).lookbook_titulo}
-        imagens={(config as any).lookbook_imagens || []}
-        pecas={pecas}
-        corPrimaria={roseGold}
-        fontTitulos={fontTitulos}
-      />
+        const renderProductCarousel = (items: Peca[], badge: { text: string; color: string } | null) => (
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+            {items.map((peca, i) => (
+              <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                className="flex-shrink-0 w-56 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
+                <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
+                  {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
+                  {badge && <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: badge.color }}>{badge.text}</span>}
+                </div>
+                <div className="pt-3 text-center">
+                  <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
+                  <p className="text-sm font-semibold mt-1" style={{ color: roseGold }}>{formatCurrency(peca.preco_venda)}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        );
+
+        const SectionTitle = ({ subtitle, title }: { subtitle?: string; title: string }) => (
+          <div className="text-center mb-8">
+            {subtitle && <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{subtitle}</p>}
+            <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark, fontFamily: `'${fontTitulos}', serif` }}>{title}</h3>
+            <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
+          </div>
+        );
+
+        const renderSection = (s: SectionConfig) => {
+          if (!s.visivel) return null;
+          switch (s.tipo) {
+            case 'colecoes':
+              return <ColecoesDestaque key={s.id} colecoes={config.colecoes_destaque || []} categorias={categorias} produtos={pecas} fontTitulos={fontTitulos} corPrimaria={roseGold} onCategoriaClick={(cat) => { setCategoriaFilter(cat); document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' }); }} />;
+            case 'countdown':
+              return <CountdownSection key={s.id} ativo={config.countdown_ativo || false} titulo={config.countdown_titulo} subtitulo={config.countdown_subtitulo} dataFim={config.countdown_data_fim} corPrimaria={roseGold} fontTitulos={fontTitulos} onVerProdutos={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })} />;
+            case 'produtos_destaque':
+              if (destaquePecas.length === 0) return null;
+              return (<section key={s.id} className="py-12 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}><div className="max-w-7xl mx-auto px-4"><SectionTitle title="Destaques" />{renderProductCarousel(destaquePecas, { text: '⭐ Destaque', color: '#DAA520' })}</div></section>);
+            case 'mais_vendidos':
+              if (maisVendidosPecas.length === 0) return null;
+              return (<section key={s.id} className="py-12 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}><div className="max-w-7xl mx-auto px-4"><SectionTitle title="Mais Vendidos" />{renderProductCarousel(maisVendidosPecas, { text: '🔥 Mais Vendido', color: '#F59E0B' })}</div></section>);
+            case 'lookbook':
+              return <LookbookSection key={s.id} ativo={config.lookbook_ativo || false} titulo={config.lookbook_titulo} imagens={config.lookbook_imagens || []} pecas={pecas} corPrimaria={roseGold} fontTitulos={fontTitulos} />;
+            case 'novidades':
+              if (pecas.length === 0) return null;
+              return (<section key={s.id} id="novidades" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}><div className="max-w-7xl mx-auto px-4"><SectionTitle subtitle="Acabaram de Chegar" title="Novidades" />{renderProductCarousel(pecas.slice(0, 8), { text: 'Novo', color: roseGold })}</div></section>);
+            case 'sobre_marca':
+              return (
+                <section key={s.id} id="sobre-marca" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+                  <div className="max-w-5xl mx-auto px-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 items-center">
+                      <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+                        <p className="text-xs uppercase tracking-[0.3em] mb-3" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Nossa História</p>
+                        <h3 className="text-2xl sm:text-3xl font-light leading-snug mb-4" style={{ color: textDark }}>Cada peça conta<br /><span className="italic" style={{ color: roseGold }}>uma história única</span></h3>
+                        <p className="text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{config.descricao || 'Nascemos da paixão por joias que transcendem tendências.'}</p>
+                      </motion.div>
+                      <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="relative">
+                        <div className="aspect-[4/5] overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
+                          {pecas[0]?.imagem_url ? <img src={pecas[0].imagem_url} alt="Sobre" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Heart className="w-16 h-16" style={{ color: roseGoldLight }} /></div>}
+                        </div>
+                        <div className="absolute -bottom-4 -left-4 w-32 h-32 border-2" style={{ borderColor: roseGold, zIndex: -1 }} />
+                      </motion.div>
+                    </div>
+                  </div>
+                </section>
+              );
+            case 'instagram_cta':
+              if (!config.instagram) return null;
+              return (
+                <section key={s.id} className="py-14 border-t text-center" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
+                  <div className="max-w-3xl mx-auto px-4">
+                    <Instagram className="w-8 h-8 mx-auto mb-4" style={{ color: roseGold }} />
+                    <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Siga-nos no Instagram</p>
+                    <h3 className="text-2xl sm:text-3xl font-light mb-3" style={{ color: textDark }}>@{config.instagram!.replace('@', '')}</h3>
+                    <a href={`https://instagram.com/${config.instagram!.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                      className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] border-2 transition-all"
+                      style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
+                      onMouseEnter={e => { (e.target as HTMLElement).style.backgroundColor = roseGold; (e.target as HTMLElement).style.color = 'white'; }}
+                      onMouseLeave={e => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; (e.target as HTMLElement).style.color = roseGold; }}>
+                      Seguir Agora
+                    </a>
+                  </div>
+                </section>
+              );
+            case 'newsletter':
+              return (
+                <section key={s.id} className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: roseGold }}>
+                  <div className="max-w-2xl mx-auto px-4 text-center">
+                    <Sparkles className="w-6 h-6 mx-auto mb-4 text-white/80" />
+                    <h3 className="text-2xl sm:text-3xl font-light text-white mb-2">Fique por dentro</h3>
+                    <p className="text-sm text-white/70 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>Cadastre-se e receba ofertas exclusivas em primeira mão.</p>
+                    <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!newsletterEmail.trim() || !config) return;
+                      setNewsletterLoading(true);
+                      try {
+                        const { error } = await supabase.from('newsletter_subscribers' as any).insert({ email: newsletterEmail.trim().toLowerCase(), organization_id: config.organization_id });
+                        if (error) { if (error.code === '23505') toast.info('E-mail já cadastrado!'); else throw error; }
+                        else { toast.success('Cadastro realizado! 🎉'); setNewsletterEmail(''); }
+                      } catch { toast.error('Erro ao cadastrar.'); }
+                      finally { setNewsletterLoading(false); }
+                    }}>
+                      <input type="email" required value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="Seu melhor e-mail"
+                        className="flex-1 px-4 py-3 text-sm bg-white/10 border border-white/30 text-white placeholder-white/50 outline-none focus:border-white/60" style={{ fontFamily: "'Inter', sans-serif" }} />
+                      <button type="submit" disabled={newsletterLoading} className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-white transition-all hover:opacity-90 disabled:opacity-60" style={{ color: roseGold, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
+                        {newsletterLoading ? 'Enviando...' : 'Cadastrar'}
+                      </button>
+                    </form>
+                  </div>
+                </section>
+              );
+            default: return null;
+          }
+        };
+
+        return sections.map(renderSection);
+      })()}
 
       {/* Products Section */}
       <section id="produtos" className="max-w-7xl mx-auto px-4 py-10 sm:py-14">
@@ -1377,35 +1447,6 @@ export default function LojaPublicaPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Novidades */}
-      {pecas.length > 0 && (
-        <section id="novidades" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="text-center mb-10">
-              <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Acabaram de Chegar</p>
-              <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark }}>Novidades</h3>
-              <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
-            </div>
-            <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-              {pecas.slice(0, 8).map((peca, i) => (
-                <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-                  className="flex-shrink-0 w-56 sm:w-64 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
-                  <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
-                    {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
-                    <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: roseGold, fontFamily: "'Inter', sans-serif" }}>Novo</span>
-                  </div>
-                  <div className="pt-3 text-center">
-                    <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>{peca.categoria || ''}</p>
-                    <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
-                    <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(peca.preco_venda)}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Depoimentos - Stories */}
       <section id="depoimentos" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
         <div className="max-w-7xl mx-auto px-4">
@@ -1416,129 +1457,33 @@ export default function LojaPublicaPage() {
           </div>
           <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory px-2">
             {[
-              { nome: 'Ana Paula', texto: 'Peças incríveis! A qualidade é impressionante, superou todas as minhas expectativas.', estrelas: 5, iniciais: 'AP', cor: '#B76E79' },
-              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda. Comprei um anel e recebi com um cuidado maravilhoso.', estrelas: 5, iniciais: 'CR', cor: '#D4A0A7' },
-              { nome: 'Juliana M.', texto: 'Atendimento excepcional! Me ajudaram a escolher o presente perfeito.', estrelas: 5, iniciais: 'JM', cor: '#8B4F57' },
-              { nome: 'Fernanda L.', texto: 'Uso minhas peças todo dia! Não desbotam e parecem joias caríssimas. Super recomendo.', estrelas: 5, iniciais: 'FL', cor: '#C08B93' },
-              { nome: 'Mariana S.', texto: 'Presente perfeito pra minha mãe! Ela amou o brinco e a caixinha veio linda.', estrelas: 5, iniciais: 'MS', cor: '#9E6B73' },
-              { nome: 'Patrícia G.', texto: 'Já é minha terceira compra. Qualidade consistente e sempre peças novas lindas.', estrelas: 5, iniciais: 'PG', cor: '#B76E79' },
-              { nome: 'Rafaela D.', texto: 'O anel que comprei é simplesmente perfeito! Recebo elogios toda vez que uso.', estrelas: 5, iniciais: 'RD', cor: '#D4A0A7' },
-              { nome: 'Beatriz C.', texto: 'Frete grátis e chegou antes do prazo. A peça é ainda mais bonita pessoalmente!', estrelas: 5, iniciais: 'BC', cor: '#8B4F57' },
-              { nome: 'Larissa F.', texto: 'Encontrei a loja pelo Instagram e virei cliente fiel. Tudo impecável!', estrelas: 5, iniciais: 'LF', cor: '#C08B93' },
-              { nome: 'Isabela T.', texto: 'Comprei pro meu noivado e foi a melhor escolha. Design lindo e acabamento perfeito.', estrelas: 5, iniciais: 'IT', cor: '#9E6B73' },
+              { nome: 'Ana Paula', texto: 'Peças incríveis! Qualidade impressionante.', estrelas: 5, iniciais: 'AP', cor: '#B76E79' },
+              { nome: 'Camila R.', texto: 'Entrega rápida e embalagem linda.', estrelas: 5, iniciais: 'CR', cor: '#D4A0A7' },
+              { nome: 'Juliana M.', texto: 'Atendimento excepcional!', estrelas: 5, iniciais: 'JM', cor: '#8B4F57' },
+              { nome: 'Fernanda L.', texto: 'Uso minhas peças todo dia! Recomendo.', estrelas: 5, iniciais: 'FL', cor: '#C08B93' },
+              { nome: 'Mariana S.', texto: 'Presente perfeito pra minha mãe!', estrelas: 5, iniciais: 'MS', cor: '#9E6B73' },
+              { nome: 'Patrícia G.', texto: 'Terceira compra. Qualidade consistente.', estrelas: 5, iniciais: 'PG', cor: '#B76E79' },
             ].map((dep, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.06 }}
-                className="flex-shrink-0 snap-start w-[160px] sm:w-[180px] cursor-pointer group"
-              >
-                {/* Story circle */}
+              <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.06 }}
+                className="flex-shrink-0 snap-start w-[160px] sm:w-[180px] cursor-pointer group">
                 <div className="flex flex-col items-center gap-2">
                   <div className="relative">
-                    <div
-                      className="w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] rounded-full p-[3px] transition-transform group-hover:scale-110"
-                      style={{ background: `linear-gradient(135deg, ${dep.cor}, ${roseGold}, #E8C8CC)` }}
-                    >
-                      <div className="w-full h-full rounded-full flex items-center justify-center text-base sm:text-lg font-semibold" style={{ backgroundColor: warmWhite, color: dep.cor, fontFamily: "'Cormorant Garamond', serif" }}>
-                        {dep.iniciais}
-                      </div>
+                    <div className="w-[72px] h-[72px] sm:w-[80px] sm:h-[80px] rounded-full p-[3px] transition-transform group-hover:scale-110" style={{ background: `linear-gradient(135deg, ${dep.cor}, ${roseGold}, #E8C8CC)` }}>
+                      <div className="w-full h-full rounded-full flex items-center justify-center text-base sm:text-lg font-semibold" style={{ backgroundColor: warmWhite, color: dep.cor, fontFamily: "'Cormorant Garamond', serif" }}>{dep.iniciais}</div>
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: roseGold }}>
-                      <Star className="w-2.5 h-2.5 text-white" fill="white" />
-                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: roseGold }}><Star className="w-2.5 h-2.5 text-white" fill="white" /></div>
                   </div>
                   <p className="text-[11px] font-medium text-center truncate w-full" style={{ color: textDark, fontFamily: "'Inter', sans-serif" }}>{dep.nome}</p>
                 </div>
-
-                {/* Tooltip card on hover */}
                 <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none mt-2">
                   <div className="p-3 border text-center shadow-lg" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
-                    <div className="flex justify-center gap-0.5 mb-2">
-                      {Array.from({ length: dep.estrelas }).map((_, s) => <Star key={s} className="w-3 h-3" style={{ color: roseGold }} fill={roseGold} />)}
-                    </div>
+                    <div className="flex justify-center gap-0.5 mb-2">{Array.from({ length: dep.estrelas }).map((_, s) => <Star key={s} className="w-3 h-3" style={{ color: roseGold }} fill={roseGold} />)}</div>
                     <p className="text-[10px] leading-relaxed italic" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>"{dep.texto}"</p>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* Sobre a Marca */}
-      <section id="sobre-marca" className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 items-center">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <p className="text-xs uppercase tracking-[0.3em] mb-3" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Nossa História</p>
-              <h3 className="text-2xl sm:text-3xl font-light leading-snug mb-4" style={{ color: textDark }}>
-                Cada peça conta<br /><span className="italic" style={{ color: roseGold }}>uma história única</span>
-              </h3>
-              <p className="text-sm leading-relaxed mb-4" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                Nascemos da paixão por joias que transcendem tendências. Cada peça é cuidadosamente selecionada para trazer elegância ao seu dia a dia.
-              </p>
-              <p className="text-sm leading-relaxed" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
-                Acreditamos que uma joia não é apenas um acessório — é uma extensão de quem você é.
-              </p>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="relative">
-              <div className="aspect-[4/5] overflow-hidden" style={{ backgroundColor: '#F5EEEA' }}>
-                {pecas[0]?.imagem_url ? <img src={pecas[0].imagem_url} alt="Sobre" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><Heart className="w-16 h-16" style={{ color: roseGoldLight }} /></div>}
-              </div>
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 border-2" style={{ borderColor: roseGold, zIndex: -1 }} />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Instagram CTA */}
-      {config.instagram && (
-        <section className="py-14 border-t text-center" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
-          <div className="max-w-3xl mx-auto px-4">
-            <Instagram className="w-8 h-8 mx-auto mb-4" style={{ color: roseGold }} />
-            <p className="text-xs uppercase tracking-[0.3em] mb-2" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Siga-nos no Instagram</p>
-            <h3 className="text-2xl sm:text-3xl font-light mb-3" style={{ color: textDark }}>@{config.instagram.replace('@', '')}</h3>
-            <p className="text-sm mb-6" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>Acompanhe as novidades e bastidores.</p>
-            <a href={`https://instagram.com/${config.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-              className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] border-2 transition-all hover:text-white"
-              style={{ borderColor: roseGold, color: roseGold, fontFamily: "'Inter', sans-serif" }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.backgroundColor = roseGold; (e.target as HTMLElement).style.color = 'white'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; (e.target as HTMLElement).style.color = roseGold; }}>
-              Seguir Agora
-            </a>
-          </div>
-        </section>
-      )}
-
-      {/* Newsletter */}
-      <section className="py-14 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: roseGold }}>
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <Sparkles className="w-6 h-6 mx-auto mb-4 text-white/80" />
-          <h3 className="text-2xl sm:text-3xl font-light text-white mb-2">Fique por dentro</h3>
-          <p className="text-sm text-white/70 mb-6" style={{ fontFamily: "'Inter', sans-serif" }}>Cadastre-se e receba ofertas exclusivas em primeira mão.</p>
-          <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" onSubmit={async (e) => {
-            e.preventDefault();
-            if (!newsletterEmail.trim() || !config) return;
-            setNewsletterLoading(true);
-            try {
-              const { error } = await supabase.from('newsletter_subscribers' as any).insert({ email: newsletterEmail.trim().toLowerCase(), organization_id: config.organization_id });
-              if (error) { if (error.code === '23505') toast.info('E-mail já cadastrado!'); else throw error; }
-              else { toast.success('Cadastro realizado! 🎉'); setNewsletterEmail(''); }
-            } catch { toast.error('Erro ao cadastrar.'); }
-            finally { setNewsletterLoading(false); }
-          }}>
-            <input type="email" required value={newsletterEmail} onChange={e => setNewsletterEmail(e.target.value)} placeholder="Seu melhor e-mail"
-              className="flex-1 px-4 py-3 text-sm bg-white/10 border border-white/30 text-white placeholder-white/50 outline-none focus:border-white/60"
-              style={{ fontFamily: "'Inter', sans-serif" }} />
-            <button type="submit" disabled={newsletterLoading}
-              className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-white transition-all hover:opacity-90 disabled:opacity-60"
-              style={{ color: roseGold, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
-              {newsletterLoading ? 'Enviando...' : 'Cadastrar'}
-            </button>
-          </form>
         </div>
       </section>
 
