@@ -113,6 +113,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useVerificarMaletasVencendo } from '@/hooks/useMaletaAlerts';
 import { ComissaoEscala, FaixaComissao, calcularComissaoPorEscala, serializeFaixas, deserializeFaixas } from '@/components/maleta/ComissaoEscala';
+import { ComissoesManager } from '@/components/revendedoras/ComissoesManager';
 
 // Hook para atualizar maleta
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -1945,6 +1946,11 @@ export default function RevendedorasPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Comissões */}
+        <div className="mt-8">
+          <ComissoesManager />
+        </div>
 
         {/* WhatsApp Templates Modal */}
         <WhatsAppTemplates 
