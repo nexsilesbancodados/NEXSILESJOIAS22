@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.automacoes-vendas]
 verify_jwt = false
+
+[functions.mercadopago-oauth]
+verify_jwt = false

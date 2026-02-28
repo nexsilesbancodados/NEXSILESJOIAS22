@@ -1432,6 +1432,7 @@ export type Database = {
           colecoes_destaque: Json | null
           colunas_desktop: number | null
           colunas_mobile: number | null
+          commission_fee: number | null
           cor_primaria: string | null
           cor_secundaria: string | null
           countdown_ativo: boolean | null
@@ -1480,6 +1481,7 @@ export type Database = {
           mostrar_parcelamento: boolean | null
           mostrar_preco_original: boolean | null
           mostrar_whatsapp_float: boolean | null
+          mp_user_id: string | null
           nome_loja: string
           organization_id: string
           parcelamento_max: number | null
@@ -1533,6 +1535,7 @@ export type Database = {
           colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
+          commission_fee?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           countdown_ativo?: boolean | null
@@ -1581,6 +1584,7 @@ export type Database = {
           mostrar_parcelamento?: boolean | null
           mostrar_preco_original?: boolean | null
           mostrar_whatsapp_float?: boolean | null
+          mp_user_id?: string | null
           nome_loja?: string
           organization_id: string
           parcelamento_max?: number | null
@@ -1634,6 +1638,7 @@ export type Database = {
           colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
+          commission_fee?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           countdown_ativo?: boolean | null
@@ -1682,6 +1687,7 @@ export type Database = {
           mostrar_parcelamento?: boolean | null
           mostrar_preco_original?: boolean | null
           mostrar_whatsapp_float?: boolean | null
+          mp_user_id?: string | null
           nome_loja?: string
           organization_id?: string
           parcelamento_max?: number | null
