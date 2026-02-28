@@ -22,6 +22,14 @@ import { ProductReviews } from '@/components/ecommerce/ProductReviews';
 import { ChatWidget } from '@/components/ai-agent/ChatWidget';
 import { generatePixPayload } from '@/lib/pix-generator';
 import { QRCodeSVG } from 'qrcode.react';
+import { HeroCarousel } from '@/components/ecommerce/HeroCarousel';
+import { ColecoesDestaque } from '@/components/ecommerce/ColecoesDestaque';
+import { CountdownSection } from '@/components/ecommerce/CountdownSection';
+import { LookbookSection } from '@/components/ecommerce/LookbookSection';
+import { ProgressoFrete } from '@/components/ecommerce/ProgressoFrete';
+import { PopupBoasVindas } from '@/components/ecommerce/PopupBoasVindas';
+import { ProdutosRelacionados } from '@/components/ecommerce/ProdutosRelacionados';
+import { CheckoutProgress } from '@/components/ecommerce/CheckoutProgress';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
@@ -868,56 +876,16 @@ export default function LojaPublicaPage() {
         </div>
       </div>
 
-      {/* Hero Section - uses config hero or fallback carousel */}
-      {config.hero_imagem_url ? (
-        <section className="relative overflow-hidden" style={{ height: '420px' }}>
-          <img src={config.hero_imagem_url} alt={config.hero_titulo || config.nome_loja} className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${config.hero_overlay_opacity || 0.4})` }} />
-          <div className="absolute inset-0 z-10 max-w-7xl mx-auto px-6 flex flex-col justify-center">
-            <div className="max-w-lg">
-              {config.hero_titulo && <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight text-white">{config.hero_titulo}</h2>}
-              {config.hero_subtitulo && <h2 className="text-2xl sm:text-4xl lg:text-5xl italic mt-2" style={{ color: roseGoldLight }}>{config.hero_subtitulo}</h2>}
-              {config.hero_cta_texto && (
-                <button className="mt-6 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90" style={{ backgroundColor: roseGold, fontFamily: `'${fontCorpo}', sans-serif` }}
-                  onClick={() => { if (config.hero_cta_link) window.location.href = config.hero_cta_link; else document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' }); }}>
-                  {config.hero_cta_texto}
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section className="relative overflow-hidden" style={{ height: '420px' }}>
-          <AnimatePresence mode="wait">
-            <motion.div key={heroIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} className="absolute inset-0">
-              <img src={heroSlides[heroIndex].image} alt={heroSlides[heroIndex].title} className="w-full h-full object-cover" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)' }} />
-            </motion.div>
-          </AnimatePresence>
-          <div className="relative z-10 h-full max-w-7xl mx-auto px-6 flex flex-col justify-center">
-            <AnimatePresence mode="wait">
-              <motion.div key={heroIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -15 }} transition={{ duration: 0.6 }} className="max-w-lg">
-                <p className="text-xs sm:text-sm uppercase tracking-[0.3em] mb-3 text-white/70" style={{ fontFamily: `'${fontCorpo}', sans-serif` }}>✦ Coleção Exclusiva ✦</p>
-                <h2 className="text-3xl sm:text-5xl lg:text-6xl font-light leading-tight text-white">{heroSlides[heroIndex].title}</h2>
-                <h2 className="text-3xl sm:text-5xl lg:text-6xl italic mt-1" style={{ color: roseGoldLight }}>{heroSlides[heroIndex].subtitle}</h2>
-                <p className="mt-4 text-sm sm:text-base text-white/70 max-w-md" style={{ fontFamily: `'${fontCorpo}', sans-serif` }}>
-                  {config.descricao || 'Peças únicas feitas com amor e dedicação para você brilhar em cada momento.'}
-                </p>
-                <button className="mt-6 px-8 py-3 text-white text-xs uppercase tracking-[0.2em] transition-all hover:opacity-90" style={{ backgroundColor: roseGold, fontFamily: `'${fontCorpo}', sans-serif` }}
-                  onClick={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}>
-                  {heroSlides[heroIndex].cta}
-                </button>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex gap-2.5">
-            {heroSlides.map((_, i) => (
-              <button key={i} onClick={() => setHeroIndex(i)} className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-                style={{ backgroundColor: i === heroIndex ? roseGold : 'rgba(255,255,255,0.5)', transform: i === heroIndex ? 'scale(1.3)' : 'scale(1)' }} />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Hero Section - HeroCarousel or fallback */}
+      <HeroCarousel
+        banners={(config as any).banners_carousel || []}
+        fallbackSlides={config.hero_imagem_url 
+          ? [{ image: config.hero_imagem_url, title: config.hero_titulo || '', subtitle: config.hero_subtitulo || '', cta: config.hero_cta_texto || 'Ver Coleção' }]
+          : heroSlides
+        }
+        fontTitulos={fontTitulos}
+        corPrimaria={roseGold}
+      />
 
       {/* Benefits Bar + Selos de Confiança */}
       <section className="border-y" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
@@ -955,6 +923,91 @@ export default function LojaPublicaPage() {
           )}
         </div>
       </section>
+
+      {/* Coleções em Destaque */}
+      <ColecoesDestaque
+        colecoes={(config as any).colecoes_destaque || []}
+        categorias={categorias}
+        produtos={pecas}
+        fontTitulos={fontTitulos}
+        corPrimaria={roseGold}
+        onCategoriaClick={(cat) => { setCategoriaFilter(cat); document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' }); }}
+      />
+
+      {/* Countdown */}
+      <CountdownSection
+        ativo={(config as any).countdown_ativo || false}
+        titulo={(config as any).countdown_titulo}
+        subtitulo={(config as any).countdown_subtitulo}
+        dataFim={(config as any).countdown_data_fim}
+        corPrimaria={roseGold}
+        fontTitulos={fontTitulos}
+        onVerProdutos={() => document.getElementById('produtos')?.scrollIntoView({ behavior: 'smooth' })}
+      />
+
+      {/* Produtos em Destaque */}
+      {(() => {
+        const destaqueIds: string[] = (config as any).produtos_destaque_ids || [];
+        const destaquePecas = destaqueIds.length > 0 ? pecas.filter(p => destaqueIds.includes(p.id)) : pecas.slice(0, 8);
+        if (destaquePecas.length === 0) return null;
+        return (
+          <section className="py-12 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: warmWhite }}>
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark, fontFamily: `'${fontTitulos}', serif` }}>Destaques</h3>
+                <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
+              </div>
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+                {destaquePecas.map((peca, i) => (
+                  <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                    className="flex-shrink-0 w-56 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
+                    <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
+                      {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
+                      <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: '#DAA520' }}>⭐ Destaque</span>
+                    </div>
+                    <div className="pt-3 text-center">
+                      <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
+                      <p className="text-sm font-semibold mt-1" style={{ color: roseGold }}>{formatCurrency(peca.preco_venda)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* Mais Vendidos */}
+      {(() => {
+        const maisVendidosIds: string[] = (config as any).mais_vendidos_ids || [];
+        const maisVendidosPecas = maisVendidosIds.length > 0 ? pecas.filter(p => maisVendidosIds.includes(p.id)) : [];
+        if (maisVendidosPecas.length === 0) return null;
+        return (
+          <section className="py-12 border-t" style={{ borderColor: '#F0E6E0', backgroundColor: cream }}>
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="text-center mb-8">
+                <h3 className="text-2xl sm:text-3xl font-light" style={{ color: textDark, fontFamily: `'${fontTitulos}', serif` }}>Mais Vendidos</h3>
+                <div className="w-12 h-[1px] mx-auto mt-3" style={{ backgroundColor: roseGold }} />
+              </div>
+              <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
+                {maisVendidosPecas.map((peca, i) => (
+                  <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                    className="flex-shrink-0 w-56 snap-start group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
+                    <div className="relative overflow-hidden aspect-square" style={{ backgroundColor: '#F5EEEA' }}>
+                      {peca.imagem_url ? <img src={peca.imagem_url} alt={peca.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-8 h-8" style={{ color: roseGoldLight }} /></div>}
+                      <span className="absolute top-3 left-3 text-[9px] uppercase tracking-wider px-2 py-1 text-white" style={{ backgroundColor: '#F59E0B' }}>🔥 Mais Vendido</span>
+                    </div>
+                    <div className="pt-3 text-center">
+                      <h4 className="text-sm font-light" style={{ color: textDark }}>{peca.nome}</h4>
+                      <p className="text-sm font-semibold mt-1" style={{ color: roseGold }}>{formatCurrency(peca.preco_venda)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Products Section */}
       <section id="produtos" className="max-w-7xl mx-auto px-4 py-10 sm:py-14">
@@ -1917,6 +1970,18 @@ export default function LojaPublicaPage() {
           </svg>
         </a>
       )}
+
+      {/* Popup de Boas-Vindas */}
+      <PopupBoasVindas
+        ativo={(config as any).popup_ativo || false}
+        titulo={(config as any).popup_titulo}
+        texto={(config as any).popup_texto}
+        imagemUrl={(config as any).popup_imagem_url}
+        cupom={(config as any).popup_cupom}
+        delaySegundos={(config as any).popup_delay_segundos}
+        slug={slug || ''}
+        corPrimaria={roseGold}
+      />
 
       {/* Cookie Consent Banner */}
       <CookieConsent nomeLoja={config.nome_loja} roseGold={roseGold} />

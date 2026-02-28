@@ -1426,11 +1426,19 @@ export type Database = {
           banner_posicao: string | null
           banner_texto: string | null
           banner_url: string | null
+          banners_carousel: Json | null
+          barra_frete_ativo: boolean | null
           cep_origem: string | null
+          colecoes_destaque: Json | null
           colunas_desktop: number | null
           colunas_mobile: number | null
           cor_primaria: string | null
           cor_secundaria: string | null
+          countdown_ativo: boolean | null
+          countdown_data_fim: string | null
+          countdown_produto_ids: Json | null
+          countdown_subtitulo: string | null
+          countdown_titulo: string | null
           created_at: string
           css_personalizado: string | null
           descricao: string | null
@@ -1441,6 +1449,8 @@ export type Database = {
           fonte_titulos: string | null
           frete_gratis_acima: number | null
           google_analytics_id: string | null
+          header_sticky: boolean | null
+          header_transparente_hero: boolean | null
           hero_cta_link: string | null
           hero_cta_texto: string | null
           hero_imagem_url: string | null
@@ -1452,12 +1462,18 @@ export type Database = {
           instagram: string | null
           layout_produtos: string | null
           logo_url: string | null
+          lookbook_ativo: boolean | null
+          lookbook_imagens: Json | null
+          lookbook_titulo: string | null
+          mais_vendidos_ids: Json | null
           mensagem_whatsapp: string | null
           mercadopago_access_token: string | null
           mercadopago_public_key: string | null
+          metodos_entrega: Json | null
           metodos_pagamento: string[] | null
           mostrar_busca: boolean | null
           mostrar_categorias: boolean | null
+          mostrar_codigo_produto: boolean | null
           mostrar_estoque: boolean | null
           mostrar_filtros: boolean | null
           mostrar_ordenacao: boolean | null
@@ -1474,7 +1490,22 @@ export type Database = {
           pix_tipo: string | null
           politica_privacidade: string | null
           politica_troca: string | null
+          popup_ativo: boolean | null
+          popup_cupom: string | null
+          popup_delay_segundos: number | null
+          popup_imagem_url: string | null
+          popup_texto: string | null
+          popup_titulo: string | null
+          produtos_destaque_ids: Json | null
           produtos_por_pagina: number | null
+          produtos_relacionados_ativo: boolean | null
+          rodape_coluna1_links: Json | null
+          rodape_coluna1_titulo: string | null
+          rodape_coluna2_links: Json | null
+          rodape_coluna2_titulo: string | null
+          rodape_endereco: string | null
+          rodape_exibir_mapa: boolean | null
+          secoes_homepage: Json | null
           selos_confianca: string[] | null
           slug: string
           taxa_entrega: number | null
@@ -1483,6 +1514,7 @@ export type Database = {
           updated_at: string
           whatsapp: string | null
           whatsapp_posicao: string | null
+          zoom_imagem_ativo: boolean | null
         }
         Insert: {
           apenas_com_foto?: boolean | null
@@ -1495,11 +1527,19 @@ export type Database = {
           banner_posicao?: string | null
           banner_texto?: string | null
           banner_url?: string | null
+          banners_carousel?: Json | null
+          barra_frete_ativo?: boolean | null
           cep_origem?: string | null
+          colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          countdown_ativo?: boolean | null
+          countdown_data_fim?: string | null
+          countdown_produto_ids?: Json | null
+          countdown_subtitulo?: string | null
+          countdown_titulo?: string | null
           created_at?: string
           css_personalizado?: string | null
           descricao?: string | null
@@ -1510,6 +1550,8 @@ export type Database = {
           fonte_titulos?: string | null
           frete_gratis_acima?: number | null
           google_analytics_id?: string | null
+          header_sticky?: boolean | null
+          header_transparente_hero?: boolean | null
           hero_cta_link?: string | null
           hero_cta_texto?: string | null
           hero_imagem_url?: string | null
@@ -1521,12 +1563,18 @@ export type Database = {
           instagram?: string | null
           layout_produtos?: string | null
           logo_url?: string | null
+          lookbook_ativo?: boolean | null
+          lookbook_imagens?: Json | null
+          lookbook_titulo?: string | null
+          mais_vendidos_ids?: Json | null
           mensagem_whatsapp?: string | null
           mercadopago_access_token?: string | null
           mercadopago_public_key?: string | null
+          metodos_entrega?: Json | null
           metodos_pagamento?: string[] | null
           mostrar_busca?: boolean | null
           mostrar_categorias?: boolean | null
+          mostrar_codigo_produto?: boolean | null
           mostrar_estoque?: boolean | null
           mostrar_filtros?: boolean | null
           mostrar_ordenacao?: boolean | null
@@ -1543,7 +1591,22 @@ export type Database = {
           pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
+          popup_ativo?: boolean | null
+          popup_cupom?: string | null
+          popup_delay_segundos?: number | null
+          popup_imagem_url?: string | null
+          popup_texto?: string | null
+          popup_titulo?: string | null
+          produtos_destaque_ids?: Json | null
           produtos_por_pagina?: number | null
+          produtos_relacionados_ativo?: boolean | null
+          rodape_coluna1_links?: Json | null
+          rodape_coluna1_titulo?: string | null
+          rodape_coluna2_links?: Json | null
+          rodape_coluna2_titulo?: string | null
+          rodape_endereco?: string | null
+          rodape_exibir_mapa?: boolean | null
+          secoes_homepage?: Json | null
           selos_confianca?: string[] | null
           slug: string
           taxa_entrega?: number | null
@@ -1552,6 +1615,7 @@ export type Database = {
           updated_at?: string
           whatsapp?: string | null
           whatsapp_posicao?: string | null
+          zoom_imagem_ativo?: boolean | null
         }
         Update: {
           apenas_com_foto?: boolean | null
@@ -1564,11 +1628,19 @@ export type Database = {
           banner_posicao?: string | null
           banner_texto?: string | null
           banner_url?: string | null
+          banners_carousel?: Json | null
+          barra_frete_ativo?: boolean | null
           cep_origem?: string | null
+          colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          countdown_ativo?: boolean | null
+          countdown_data_fim?: string | null
+          countdown_produto_ids?: Json | null
+          countdown_subtitulo?: string | null
+          countdown_titulo?: string | null
           created_at?: string
           css_personalizado?: string | null
           descricao?: string | null
@@ -1579,6 +1651,8 @@ export type Database = {
           fonte_titulos?: string | null
           frete_gratis_acima?: number | null
           google_analytics_id?: string | null
+          header_sticky?: boolean | null
+          header_transparente_hero?: boolean | null
           hero_cta_link?: string | null
           hero_cta_texto?: string | null
           hero_imagem_url?: string | null
@@ -1590,12 +1664,18 @@ export type Database = {
           instagram?: string | null
           layout_produtos?: string | null
           logo_url?: string | null
+          lookbook_ativo?: boolean | null
+          lookbook_imagens?: Json | null
+          lookbook_titulo?: string | null
+          mais_vendidos_ids?: Json | null
           mensagem_whatsapp?: string | null
           mercadopago_access_token?: string | null
           mercadopago_public_key?: string | null
+          metodos_entrega?: Json | null
           metodos_pagamento?: string[] | null
           mostrar_busca?: boolean | null
           mostrar_categorias?: boolean | null
+          mostrar_codigo_produto?: boolean | null
           mostrar_estoque?: boolean | null
           mostrar_filtros?: boolean | null
           mostrar_ordenacao?: boolean | null
@@ -1612,7 +1692,22 @@ export type Database = {
           pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
+          popup_ativo?: boolean | null
+          popup_cupom?: string | null
+          popup_delay_segundos?: number | null
+          popup_imagem_url?: string | null
+          popup_texto?: string | null
+          popup_titulo?: string | null
+          produtos_destaque_ids?: Json | null
           produtos_por_pagina?: number | null
+          produtos_relacionados_ativo?: boolean | null
+          rodape_coluna1_links?: Json | null
+          rodape_coluna1_titulo?: string | null
+          rodape_coluna2_links?: Json | null
+          rodape_coluna2_titulo?: string | null
+          rodape_endereco?: string | null
+          rodape_exibir_mapa?: boolean | null
+          secoes_homepage?: Json | null
           selos_confianca?: string[] | null
           slug?: string
           taxa_entrega?: number | null
@@ -1621,6 +1716,7 @@ export type Database = {
           updated_at?: string
           whatsapp?: string | null
           whatsapp_posicao?: string | null
+          zoom_imagem_ativo?: boolean | null
         }
         Relationships: [
           {
@@ -4348,10 +4444,19 @@ export type Database = {
           banner_posicao: string | null
           banner_texto: string | null
           banner_url: string | null
+          banners_carousel: Json | null
+          barra_frete_ativo: boolean | null
+          colecoes_destaque: Json | null
           colunas_desktop: number | null
           colunas_mobile: number | null
           cor_primaria: string | null
           cor_secundaria: string | null
+          countdown_ativo: boolean | null
+          countdown_data_fim: string | null
+          countdown_produto_ids: Json | null
+          countdown_subtitulo: string | null
+          countdown_titulo: string | null
+          created_at: string | null
           css_personalizado: string | null
           descricao: string | null
           email_contato: string | null
@@ -4361,6 +4466,8 @@ export type Database = {
           fonte_titulos: string | null
           frete_gratis_acima: number | null
           google_analytics_id: string | null
+          header_sticky: boolean | null
+          header_transparente_hero: boolean | null
           hero_cta_link: string | null
           hero_cta_texto: string | null
           hero_imagem_url: string | null
@@ -4372,11 +4479,17 @@ export type Database = {
           instagram: string | null
           layout_produtos: string | null
           logo_url: string | null
+          lookbook_ativo: boolean | null
+          lookbook_imagens: Json | null
+          lookbook_titulo: string | null
+          mais_vendidos_ids: Json | null
           mensagem_whatsapp: string | null
           mercadopago_public_key: string | null
+          metodos_entrega: Json | null
           metodos_pagamento: string[] | null
           mostrar_busca: boolean | null
           mostrar_categorias: boolean | null
+          mostrar_codigo_produto: boolean | null
           mostrar_estoque: boolean | null
           mostrar_filtros: boolean | null
           mostrar_ordenacao: boolean | null
@@ -4393,14 +4506,31 @@ export type Database = {
           pix_tipo: string | null
           politica_privacidade: string | null
           politica_troca: string | null
+          popup_ativo: boolean | null
+          popup_cupom: string | null
+          popup_delay_segundos: number | null
+          popup_imagem_url: string | null
+          popup_texto: string | null
+          popup_titulo: string | null
+          produtos_destaque_ids: Json | null
           produtos_por_pagina: number | null
+          produtos_relacionados_ativo: boolean | null
+          rodape_coluna1_links: Json | null
+          rodape_coluna1_titulo: string | null
+          rodape_coluna2_links: Json | null
+          rodape_coluna2_titulo: string | null
+          rodape_endereco: string | null
+          rodape_exibir_mapa: boolean | null
+          secoes_homepage: Json | null
           selos_confianca: string[] | null
           slug: string | null
           taxa_entrega: number | null
           tempo_estimado_entrega: string | null
           texto_rodape: string | null
+          updated_at: string | null
           whatsapp: string | null
           whatsapp_posicao: string | null
+          zoom_imagem_ativo: boolean | null
         }
         Insert: {
           apenas_com_foto?: boolean | null
@@ -4413,10 +4543,19 @@ export type Database = {
           banner_posicao?: string | null
           banner_texto?: string | null
           banner_url?: string | null
+          banners_carousel?: Json | null
+          barra_frete_ativo?: boolean | null
+          colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          countdown_ativo?: boolean | null
+          countdown_data_fim?: string | null
+          countdown_produto_ids?: Json | null
+          countdown_subtitulo?: string | null
+          countdown_titulo?: string | null
+          created_at?: string | null
           css_personalizado?: string | null
           descricao?: string | null
           email_contato?: string | null
@@ -4426,6 +4565,8 @@ export type Database = {
           fonte_titulos?: string | null
           frete_gratis_acima?: number | null
           google_analytics_id?: string | null
+          header_sticky?: boolean | null
+          header_transparente_hero?: boolean | null
           hero_cta_link?: string | null
           hero_cta_texto?: string | null
           hero_imagem_url?: string | null
@@ -4437,11 +4578,17 @@ export type Database = {
           instagram?: string | null
           layout_produtos?: string | null
           logo_url?: string | null
+          lookbook_ativo?: boolean | null
+          lookbook_imagens?: Json | null
+          lookbook_titulo?: string | null
+          mais_vendidos_ids?: Json | null
           mensagem_whatsapp?: string | null
           mercadopago_public_key?: string | null
+          metodos_entrega?: Json | null
           metodos_pagamento?: string[] | null
           mostrar_busca?: boolean | null
           mostrar_categorias?: boolean | null
+          mostrar_codigo_produto?: boolean | null
           mostrar_estoque?: boolean | null
           mostrar_filtros?: boolean | null
           mostrar_ordenacao?: boolean | null
@@ -4458,14 +4605,31 @@ export type Database = {
           pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
+          popup_ativo?: boolean | null
+          popup_cupom?: string | null
+          popup_delay_segundos?: number | null
+          popup_imagem_url?: string | null
+          popup_texto?: string | null
+          popup_titulo?: string | null
+          produtos_destaque_ids?: Json | null
           produtos_por_pagina?: number | null
+          produtos_relacionados_ativo?: boolean | null
+          rodape_coluna1_links?: Json | null
+          rodape_coluna1_titulo?: string | null
+          rodape_coluna2_links?: Json | null
+          rodape_coluna2_titulo?: string | null
+          rodape_endereco?: string | null
+          rodape_exibir_mapa?: boolean | null
+          secoes_homepage?: Json | null
           selos_confianca?: string[] | null
           slug?: string | null
           taxa_entrega?: number | null
           tempo_estimado_entrega?: string | null
           texto_rodape?: string | null
+          updated_at?: string | null
           whatsapp?: string | null
           whatsapp_posicao?: string | null
+          zoom_imagem_ativo?: boolean | null
         }
         Update: {
           apenas_com_foto?: boolean | null
@@ -4478,10 +4642,19 @@ export type Database = {
           banner_posicao?: string | null
           banner_texto?: string | null
           banner_url?: string | null
+          banners_carousel?: Json | null
+          barra_frete_ativo?: boolean | null
+          colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          countdown_ativo?: boolean | null
+          countdown_data_fim?: string | null
+          countdown_produto_ids?: Json | null
+          countdown_subtitulo?: string | null
+          countdown_titulo?: string | null
+          created_at?: string | null
           css_personalizado?: string | null
           descricao?: string | null
           email_contato?: string | null
@@ -4491,6 +4664,8 @@ export type Database = {
           fonte_titulos?: string | null
           frete_gratis_acima?: number | null
           google_analytics_id?: string | null
+          header_sticky?: boolean | null
+          header_transparente_hero?: boolean | null
           hero_cta_link?: string | null
           hero_cta_texto?: string | null
           hero_imagem_url?: string | null
@@ -4502,11 +4677,17 @@ export type Database = {
           instagram?: string | null
           layout_produtos?: string | null
           logo_url?: string | null
+          lookbook_ativo?: boolean | null
+          lookbook_imagens?: Json | null
+          lookbook_titulo?: string | null
+          mais_vendidos_ids?: Json | null
           mensagem_whatsapp?: string | null
           mercadopago_public_key?: string | null
+          metodos_entrega?: Json | null
           metodos_pagamento?: string[] | null
           mostrar_busca?: boolean | null
           mostrar_categorias?: boolean | null
+          mostrar_codigo_produto?: boolean | null
           mostrar_estoque?: boolean | null
           mostrar_filtros?: boolean | null
           mostrar_ordenacao?: boolean | null
@@ -4523,14 +4704,31 @@ export type Database = {
           pix_tipo?: string | null
           politica_privacidade?: string | null
           politica_troca?: string | null
+          popup_ativo?: boolean | null
+          popup_cupom?: string | null
+          popup_delay_segundos?: number | null
+          popup_imagem_url?: string | null
+          popup_texto?: string | null
+          popup_titulo?: string | null
+          produtos_destaque_ids?: Json | null
           produtos_por_pagina?: number | null
+          produtos_relacionados_ativo?: boolean | null
+          rodape_coluna1_links?: Json | null
+          rodape_coluna1_titulo?: string | null
+          rodape_coluna2_links?: Json | null
+          rodape_coluna2_titulo?: string | null
+          rodape_endereco?: string | null
+          rodape_exibir_mapa?: boolean | null
+          secoes_homepage?: Json | null
           selos_confianca?: string[] | null
           slug?: string | null
           taxa_entrega?: number | null
           tempo_estimado_entrega?: string | null
           texto_rodape?: string | null
+          updated_at?: string | null
           whatsapp?: string | null
           whatsapp_posicao?: string | null
+          zoom_imagem_ativo?: boolean | null
         }
         Relationships: [
           {
