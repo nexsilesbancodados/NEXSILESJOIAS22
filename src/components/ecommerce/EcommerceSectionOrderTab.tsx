@@ -58,10 +58,20 @@ export function EcommerceSectionOrderTab() {
     }
   }, [config]);
 
+  const saveToDb = async (updatedSections: Section[]) => {
+    if (!config?.id) return;
+    const { error } = await supabase.from('ecommerce_config' as any).update({ secoes_homepage: updatedSections as any }).eq('id', config.id);
+    if (error) {
+      toast.error('Erro ao salvar: ' + error.message);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-config-sections'] });
+    }
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!config?.id) throw new Error('Configure a loja primeiro');
-      const { error } = await supabase.from('ecommerce_config' as any).update({ secoes_homepage: sections }).eq('id', config.id);
+      const { error } = await supabase.from('ecommerce_config' as any).update({ secoes_homepage: sections as any }).eq('id', config.id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ecommerce-config-sections'] }); toast.success('Ordem das seções salva!'); },
@@ -73,11 +83,15 @@ export function EcommerceSectionOrderTab() {
     if (newIdx < 0 || newIdx >= sections.length) return;
     const arr = [...sections];
     [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-    setSections(arr.map((s, i) => ({ ...s, ordem: i })));
+    const reordered = arr.map((s, i) => ({ ...s, ordem: i }));
+    setSections(reordered);
+    saveToDb(reordered);
   };
 
   const handleToggle = (idx: number) => {
-    setSections(prev => prev.map((s, i) => i === idx ? { ...s, visivel: !s.visivel } : s));
+    const updated = sections.map((s, i) => i === idx ? { ...s, visivel: !s.visivel } : s);
+    setSections(updated);
+    saveToDb(updated);
   };
 
   if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
