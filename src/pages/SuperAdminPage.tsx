@@ -11,13 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Shield, Users, DollarSign, Crown, Search, Ban, CheckCircle, Edit,
   TrendingUp, Calendar, AlertTriangle, RefreshCw, Loader2, Eye, Trash2,
-  ChevronDown, ChevronRight, UserCheck
+  ChevronDown, ChevronRight, UserCheck, Activity, BarChart3, Clock,
+  ArrowUpRight, ArrowDownRight, Zap, CreditCard, Sparkles
 } from 'lucide-react';
 
 interface Funcionario {
@@ -44,6 +47,45 @@ interface AssinaturaRow {
   funcionarios?: Funcionario[];
 }
 
+// Stat card with gradient accent
+function StatCard({ icon: Icon, label, value, subtitle, color }: {
+  icon: any; label: string; value: string | number; subtitle?: string; color: string;
+}) {
+  const colorMap: Record<string, string> = {
+    primary: 'from-primary/20 to-primary/5 border-primary/20',
+    emerald: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/20',
+    amber: 'from-amber-500/20 to-amber-500/5 border-amber-500/20',
+    red: 'from-red-500/20 to-red-500/5 border-red-500/20',
+    blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/20',
+    violet: 'from-violet-500/20 to-violet-500/5 border-violet-500/20',
+  };
+  const iconColorMap: Record<string, string> = {
+    primary: 'text-primary',
+    emerald: 'text-emerald-400',
+    amber: 'text-amber-400',
+    red: 'text-red-400',
+    blue: 'text-blue-400',
+    violet: 'text-violet-400',
+  };
+
+  return (
+    <Card className={`bg-gradient-to-br ${colorMap[color]} border overflow-hidden relative group hover:scale-[1.02] transition-transform duration-200`}>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+            <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
+            {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
+          </div>
+          <div className={`w-10 h-10 rounded-xl bg-background/50 flex items-center justify-center ${iconColorMap[color]}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SuperAdminPage() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
@@ -54,6 +96,7 @@ export default function SuperAdminPage() {
   const [detailDialog, setDetailDialog] = useState<AssinaturaRow | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<AssinaturaRow | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState('overview');
 
   const isSuperAdmin = profile?.is_super_admin === true;
 
@@ -104,9 +147,7 @@ export default function SuperAdminPage() {
       toast.success('Assinatura atualizada com sucesso!');
       setEditDialog(null);
     },
-    onError: (err: any) => {
-      toast.error('Erro ao atualizar: ' + err.message);
-    },
+    onError: (err: any) => toast.error('Erro ao atualizar: ' + err.message),
   });
 
   const deleteAssinatura = useMutation({
@@ -127,9 +168,7 @@ export default function SuperAdminPage() {
       toast.success('Assinatura excluída com sucesso!');
       setDeleteDialog(null);
     },
-    onError: (err: any) => {
-      toast.error('Erro ao excluir: ' + err.message);
-    },
+    onError: (err: any) => toast.error('Erro ao excluir: ' + err.message),
   });
 
   const stats = useMemo(() => {
@@ -141,6 +180,18 @@ export default function SuperAdminPage() {
     const semPlano = assinaturas.filter((a: any) => !a.has_subscription);
     const totalFuncionarios = assinaturas.reduce((sum: number, a: any) => sum + (a.funcionarios?.length || 0), 0);
 
+    // Users expiring within 7 days
+    const expirandoEm7Dias = assinaturas.filter((a: any) => {
+      if (!a.data_vencimento) return false;
+      const days = differenceInDays(new Date(a.data_vencimento), new Date());
+      return days >= 0 && days <= 7 && a.status === 'ativo';
+    });
+
+    // Conversion rate
+    const taxaConversao = assinaturas.length > 0
+      ? ((ativos.length / assinaturas.length) * 100).toFixed(1)
+      : '0';
+
     return {
       totalUsers: assinaturas.length,
       totalFuncionarios,
@@ -150,6 +201,8 @@ export default function SuperAdminPage() {
       trials: trials.length,
       receitaMensal,
       usersWithoutSub: semPlano.length,
+      expirandoEm7Dias: expirandoEm7Dias.length,
+      taxaConversao,
     };
   }, [assinaturas]);
 
@@ -167,6 +220,16 @@ export default function SuperAdminPage() {
       return matchSearch && matchStatus;
     });
   }, [assinaturas, search, statusFilter]);
+
+  // Group by plan for the overview
+  const planDistribution = useMemo(() => {
+    const map: Record<string, number> = {};
+    assinaturas.forEach((a: any) => {
+      const plano = a.plano || 'sem_plano';
+      map[plano] = (map[plano] || 0) + 1;
+    });
+    return Object.entries(map).map(([plano, count]) => ({ plano, count }));
+  }, [assinaturas]);
 
   const openEdit = (a: AssinaturaRow) => {
     setEditForm({
@@ -220,280 +283,367 @@ export default function SuperAdminPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'ativo': return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Ativo</Badge>;
-      case 'expirado': return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">Expirado</Badge>;
-      case 'cancelado': return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Bloqueado</Badge>;
-      case 'pendente': return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Pendente</Badge>;
-      case 'sem_plano': return <Badge variant="outline" className="text-muted-foreground">Sem Plano</Badge>;
+      case 'ativo': return <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/25 hover:bg-emerald-500/20">Ativo</Badge>;
+      case 'expirado': return <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/25 hover:bg-amber-500/20">Expirado</Badge>;
+      case 'cancelado': return <Badge className="bg-red-500/15 text-red-500 border-red-500/25 hover:bg-red-500/20">Bloqueado</Badge>;
+      case 'pendente': return <Badge className="bg-blue-500/15 text-blue-500 border-blue-500/25 hover:bg-blue-500/20">Pendente</Badge>;
+      case 'sem_plano': return <Badge variant="outline" className="text-muted-foreground border-dashed">Sem Plano</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
 
   const getDaysRemaining = (date: string) => {
     const days = differenceInDays(new Date(date), new Date());
-    if (days < 0) return <span className="text-destructive font-medium">Expirado há {Math.abs(days)}d</span>;
-    if (days <= 7) return <span className="text-amber-400 font-medium">{days}d restantes</span>;
-    return <span className="text-muted-foreground">{days}d restantes</span>;
+    if (days < 0) return <span className="text-red-400 text-[11px] font-medium flex items-center gap-0.5"><ArrowDownRight className="w-3 h-3" /> Expirado há {Math.abs(days)}d</span>;
+    if (days <= 7) return <span className="text-amber-400 text-[11px] font-medium flex items-center gap-0.5"><Clock className="w-3 h-3" /> {days}d restantes</span>;
+    return <span className="text-muted-foreground text-[11px]">{days}d restantes</span>;
+  };
+
+  const getPlanLabel = (plano: string | null) => {
+    if (!plano || plano === 'sem_plano') return '—';
+    if (plano === 'nexsiles_max') return 'Max';
+    return 'Nexsiles';
+  };
+
+  const getUserInitials = (nome: string | null | undefined) => {
+    if (!nome) return '?';
+    return nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Super Admin</h1>
-          <p className="text-sm text-muted-foreground">Gestão de assinaturas e faturamento</p>
-        </div>
-        <Button variant="outline" size="sm" className="ml-auto gap-2" onClick={() => refetch()}>
-          <RefreshCw className="w-4 h-4" />
-          Atualizar
-        </Button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <Users className="w-5 h-5 mx-auto mb-1 text-primary" />
-            <p className="text-2xl font-bold text-foreground">{stats.totalUsers}</p>
-            <p className="text-xs text-muted-foreground">Responsáveis</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <UserCheck className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-            <p className="text-2xl font-bold text-foreground">{stats.totalFuncionarios}</p>
-            <p className="text-xs text-muted-foreground">Funcionários</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <CheckCircle className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
-            <p className="text-2xl font-bold text-foreground">{stats.ativos}</p>
-            <p className="text-xs text-muted-foreground">Ativos</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <AlertTriangle className="w-5 h-5 mx-auto mb-1 text-amber-400" />
-            <p className="text-2xl font-bold text-foreground">{stats.expirados}</p>
-            <p className="text-xs text-muted-foreground">Expirados</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <Ban className="w-5 h-5 mx-auto mb-1 text-destructive" />
-            <p className="text-2xl font-bold text-foreground">{stats.bloqueados}</p>
-            <p className="text-xs text-muted-foreground">Bloqueados</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <DollarSign className="w-5 h-5 mx-auto mb-1 text-emerald-400" />
-            <p className="text-2xl font-bold text-foreground">R$ {stats.receitaMensal.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground">Receita/mês</p>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 text-center">
-            <TrendingUp className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-            <p className="text-2xl font-bold text-foreground">{stats.usersWithoutSub}</p>
-            <p className="text-xs text-muted-foreground">Sem Plano</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters */}
-      <Card className="glass-card">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, email ou ID..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
+    <div className="min-h-screen bg-background">
+      {/* Hero Header */}
+      <div className="border-b border-border bg-gradient-to-r from-card via-card to-muted/30">
+        <div className="p-6 pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
+                <Shield className="w-7 h-7 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Painel Administrativo</h1>
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5" />
+                  Gestão centralizada de assinaturas e usuários
+                </p>
+              </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="ativo">Ativos</SelectItem>
-                <SelectItem value="expirado">Expirados</SelectItem>
-                <SelectItem value="cancelado">Bloqueados</SelectItem>
-                <SelectItem value="pendente">Pendentes</SelectItem>
-                <SelectItem value="sem_plano">Sem Plano</SelectItem>
-              </SelectContent>
-            </Select>
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4" />
+              Atualizar
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Subscriptions Table */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Crown className="w-5 h-5 text-primary" />
-            Assinaturas ({filtered.length})
-          </CardTitle>
-          <CardDescription>Gerencie todas as assinaturas do sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Nenhuma assinatura encontrada.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium w-8"></th>
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium">Usuário</th>
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium">Plano</th>
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium">Status</th>
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium">Vencimento</th>
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium">Valor</th>
-                    <th className="text-left py-3 px-2 text-muted-foreground font-medium">Pagamento</th>
-                    <th className="text-right py-3 px-2 text-muted-foreground font-medium">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((a: AssinaturaRow) => {
-                    const hasEmployees = (a.funcionarios?.length || 0) > 0;
-                    const isExpanded = expandedRows.has(a.user_id);
+        {/* Tabs */}
+        <div className="px-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="bg-transparent border-0 p-0 h-auto gap-0">
+              <TabsTrigger
+                value="overview"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 pb-3 text-sm"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Visão Geral
+              </TabsTrigger>
+              <TabsTrigger
+                value="users"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 pb-3 text-sm"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Usuários
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </div>
 
+      <div className="p-6 space-y-6">
+        {/* ── Overview Tab ── */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Main Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <StatCard icon={Users} label="Total Usuários" value={stats.totalUsers} subtitle={`${stats.totalFuncionarios} funcionários`} color="primary" />
+              <StatCard icon={CheckCircle} label="Ativos" value={stats.ativos} subtitle={`${stats.taxaConversao}% conversão`} color="emerald" />
+              <StatCard icon={DollarSign} label="Receita Mensal" value={`R$ ${stats.receitaMensal.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`} subtitle="Recorrente" color="blue" />
+              <StatCard icon={AlertTriangle} label="Atenção" value={stats.expirandoEm7Dias} subtitle="Expiram em 7 dias" color="amber" />
+              <StatCard icon={TrendingUp} label="Sem Plano" value={stats.usersWithoutSub} subtitle="Potenciais conversões" color="violet" />
+            </div>
+
+            {/* Secondary Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-border/50">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{stats.trials}</p>
+                    <p className="text-xs text-muted-foreground">Em Trial</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{stats.expirados}</p>
+                    <p className="text-xs text-muted-foreground">Expirados</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <Ban className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{stats.bloqueados}</p>
+                    <p className="text-xs text-muted-foreground">Bloqueados</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <CreditCard className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">
+                      R$ {(stats.receitaMensal * 12).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Projeção Anual</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Plan Distribution */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Crown className="w-4 h-4 text-primary" />
+                  Distribuição por Plano
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {planDistribution.map(({ plano, count }) => {
+                    const pct = assinaturas.length > 0 ? (count / assinaturas.length) * 100 : 0;
+                    const label = plano === 'nexsiles_max' ? 'Nexsiles Max' : plano === 'nexsiles' ? 'Nexsiles' : 'Sem Plano';
                     return (
-                      <>
-                        <tr key={a.user_id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-2">
-                            {hasEmployees && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => toggleExpand(a.user_id)}
-                              >
-                                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                              </Button>
-                            )}
-                          </td>
-                          <td className="py-3 px-2">
-                            <div>
-                              <p className="font-medium text-foreground">{a.profiles?.nome || '—'}</p>
-                              <p className="text-xs text-muted-foreground">{a.profiles?.email || a.user_id.substring(0, 8)}</p>
-                              {hasEmployees && (
-                                <p className="text-xs text-primary mt-0.5">{a.funcionarios!.length} funcionário(s)</p>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2">
-                            {a.plano ? (
-                              <Badge variant="outline" className="capitalize">
-                                {a.plano === 'nexsiles_max' ? 'Max' : 'Nexsiles'}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">—</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-2">{getStatusBadge(a.status)}</td>
-                          <td className="py-3 px-2">
-                            <div>
-                              <p className="text-foreground text-xs">
-                                {a.data_vencimento ? format(new Date(a.data_vencimento), 'dd/MM/yyyy') : '—'}
-                              </p>
-                              {a.data_vencimento && getDaysRemaining(a.data_vencimento)}
-                            </div>
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className="text-foreground font-medium">
-                              {a.valor_mensal > 0 ? `R$ ${a.valor_mensal.toFixed(2)}` : 'Cortesia'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className="text-muted-foreground capitalize text-xs">
-                              {a.metodo_pagamento || '—'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setDetailDialog(a)}
-                                title="Ver detalhes"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => openEdit(a)}
-                                title="Editar"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              {a.has_subscription && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => setDeleteDialog(a)}
-                                  title="Excluir assinatura"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleBlock(a)}
-                                title={a.status === 'cancelado' ? 'Desbloquear' : 'Bloquear'}
-                              >
-                                {a.status === 'cancelado' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Ban className="w-4 h-4" />}
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                        {/* Employee rows */}
-                        {hasEmployees && isExpanded && a.funcionarios!.map((f) => (
-                          <tr key={f.user_id} className="bg-muted/20 border-b border-border/30">
-                            <td className="py-2 px-2"></td>
-                            <td className="py-2 px-2" colSpan={7}>
-                              <div className="flex items-center gap-3 pl-4">
-                                <UserCheck className="w-4 h-4 text-muted-foreground shrink-0" />
-                                <div className="flex items-center gap-4">
-                                  <span className="font-medium text-foreground text-sm">{f.nome}</span>
-                                  <span className="text-xs text-muted-foreground">{f.email}</span>
-                                  <Badge variant="secondary" className="text-xs">{f.cargo}</Badge>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </>
+                      <div key={plano} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-foreground capitalize">{label}</span>
+                          <span className="text-muted-foreground">{count} ({pct.toFixed(0)}%)</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  Ações Rápidas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Button
+                    variant="outline"
+                    className="h-auto py-3 flex-col gap-1.5 text-xs"
+                    onClick={() => { setActiveTab('users'); setStatusFilter('expirado'); }}
+                  >
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    Ver Expirados
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto py-3 flex-col gap-1.5 text-xs"
+                    onClick={() => { setActiveTab('users'); setStatusFilter('sem_plano'); }}
+                  >
+                    <Users className="w-4 h-4 text-muted-foreground" />
+                    Sem Plano
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto py-3 flex-col gap-1.5 text-xs"
+                    onClick={() => { setActiveTab('users'); setStatusFilter('cancelado'); }}
+                  >
+                    <Ban className="w-4 h-4 text-red-400" />
+                    Bloqueados
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-auto py-3 flex-col gap-1.5 text-xs"
+                    onClick={() => { setActiveTab('users'); setStatusFilter('todos'); }}
+                  >
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    Todos Usuários
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ── Users Tab ── */}
+        {activeTab === 'users' && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, email ou ID..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 bg-card"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px] bg-card">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos ({assinaturas.length})</SelectItem>
+                  <SelectItem value="ativo">Ativos ({stats.ativos})</SelectItem>
+                  <SelectItem value="expirado">Expirados ({stats.expirados})</SelectItem>
+                  <SelectItem value="cancelado">Bloqueados ({stats.bloqueados})</SelectItem>
+                  <SelectItem value="pendente">Pendentes</SelectItem>
+                  <SelectItem value="sem_plano">Sem Plano ({stats.usersWithoutSub})</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Users List */}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <Card className="border-dashed border-2">
+                <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                  <Users className="w-10 h-10 mb-3 opacity-40" />
+                  <p className="font-medium">Nenhum usuário encontrado</p>
+                  <p className="text-xs mt-1">Tente alterar os filtros de busca</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground px-1">{filtered.length} resultado(s)</p>
+                {filtered.map((a: AssinaturaRow) => {
+                  const hasEmployees = (a.funcionarios?.length || 0) > 0;
+                  const isExpanded = expandedRows.has(a.user_id);
+
+                  return (
+                    <Card key={a.user_id} className="border-border/50 overflow-hidden hover:border-border transition-colors">
+                      <CardContent className="p-0">
+                        <div className="flex items-center gap-4 p-4">
+                          {/* Avatar */}
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-bold text-primary">{getUserInitials(a.profiles?.nome)}</span>
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-sm text-foreground truncate">{a.profiles?.nome || 'Sem nome'}</p>
+                              {getStatusBadge(a.status)}
+                              {a.trial_ativo && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-400">Trial</Badge>}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{a.profiles?.email || a.user_id.substring(0, 12) + '...'}</p>
+                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              {a.plano && (
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                  <Crown className="w-3 h-3" /> {getPlanLabel(a.plano)}
+                                </span>
+                              )}
+                              {a.valor_mensal > 0 && (
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3" /> R$ {a.valor_mensal.toFixed(2)}
+                                </span>
+                              )}
+                              {a.data_vencimento && getDaysRemaining(a.data_vencimento)}
+                              {hasEmployees && (
+                                <button
+                                  onClick={() => toggleExpand(a.user_id)}
+                                  className="text-[11px] text-primary flex items-center gap-0.5 hover:underline"
+                                >
+                                  <UserCheck className="w-3 h-3" /> {a.funcionarios!.length} func.
+                                  {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetailDialog(a)} title="Ver detalhes">
+                              <Eye className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(a)} title="Editar">
+                              <Edit className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                            {a.has_subscription && (
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteDialog(a)} title="Excluir assinatura">
+                                <Trash2 className="w-4 h-4 text-red-400" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleBlock(a)}
+                              title={a.status === 'cancelado' ? 'Desbloquear' : 'Bloquear'}
+                            >
+                              {a.status === 'cancelado'
+                                ? <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                : <Ban className="w-4 h-4 text-red-400" />}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Expanded employees */}
+                        {hasEmployees && isExpanded && (
+                          <div className="border-t border-border/50 bg-muted/20 px-4 py-3 space-y-2">
+                            {a.funcionarios!.map((f) => (
+                              <div key={f.user_id} className="flex items-center gap-3 pl-12">
+                                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                                  <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-foreground">{f.nome}</p>
+                                  <p className="text-xs text-muted-foreground">{f.email}</p>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">{f.cargo}</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Edit Dialog */}
       <Dialog open={!!editDialog} onOpenChange={(open) => !open && setEditDialog(null)}>
@@ -557,63 +707,96 @@ export default function SuperAdminPage() {
 
       {/* Detail Dialog */}
       <Dialog open={!!detailDialog} onOpenChange={(open) => !open && setDetailDialog(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Detalhes da Assinatura</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-primary" />
+              Detalhes do Usuário
+            </DialogTitle>
           </DialogHeader>
           {detailDialog && (
-            <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div><span className="text-muted-foreground">Nome:</span></div>
-                <div className="font-medium">{detailDialog.profiles?.nome || '—'}</div>
-                <div><span className="text-muted-foreground">Email:</span></div>
-                <div className="font-medium">{detailDialog.profiles?.email || '—'}</div>
-                <div><span className="text-muted-foreground">User ID:</span></div>
-                <div className="font-mono text-xs">{detailDialog.user_id}</div>
-                <div><span className="text-muted-foreground">Plano:</span></div>
-                <div className="font-medium capitalize">{detailDialog.plano || '—'}</div>
-                <div><span className="text-muted-foreground">Status:</span></div>
-                <div>{getStatusBadge(detailDialog.status)}</div>
-                <div><span className="text-muted-foreground">Valor:</span></div>
-                <div className="font-medium">R$ {detailDialog.valor_mensal?.toFixed(2)}</div>
-                <div><span className="text-muted-foreground">Início:</span></div>
-                <div>{detailDialog.data_inicio ? format(new Date(detailDialog.data_inicio), 'dd/MM/yyyy HH:mm') : '—'}</div>
-                <div><span className="text-muted-foreground">Vencimento:</span></div>
-                <div>{detailDialog.data_vencimento ? format(new Date(detailDialog.data_vencimento), 'dd/MM/yyyy HH:mm') : '—'}</div>
-                <div><span className="text-muted-foreground">Pagamento:</span></div>
-                <div className="capitalize">{detailDialog.metodo_pagamento || '—'}</div>
-                <div><span className="text-muted-foreground">Trial:</span></div>
-                <div>{detailDialog.trial_ativo ? 'Sim' : 'Não'}</div>
-                <div><span className="text-muted-foreground">Criado em:</span></div>
-                <div>{detailDialog.created_at ? format(new Date(detailDialog.created_at), 'dd/MM/yyyy HH:mm') : '—'}</div>
+            <div className="space-y-4">
+              {/* User header */}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center">
+                  <span className="text-sm font-bold text-primary">{getUserInitials(detailDialog.profiles?.nome)}</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">{detailDialog.profiles?.nome || '—'}</p>
+                  <p className="text-xs text-muted-foreground">{detailDialog.profiles?.email || '—'}</p>
+                </div>
+                <div className="ml-auto">{getStatusBadge(detailDialog.status)}</div>
               </div>
 
-              {/* Funcionarios section in detail */}
-              {detailDialog.funcionarios && detailDialog.funcionarios.length > 0 && (
-                <div className="pt-3 border-t border-border">
-                  <p className="font-medium text-foreground mb-2 flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-primary" />
-                    Funcionários ({detailDialog.funcionarios.length})
-                  </p>
-                  <div className="space-y-2">
-                    {detailDialog.funcionarios.map((f) => (
-                      <div key={f.user_id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{f.nome}</p>
-                          <p className="text-xs text-muted-foreground">{f.email}</p>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">{f.cargo}</Badge>
-                      </div>
-                    ))}
-                  </div>
+              <Separator />
+
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">User ID</p>
+                  <p className="font-mono text-xs text-foreground break-all">{detailDialog.user_id}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Plano</p>
+                  <p className="font-medium text-foreground capitalize">{getPlanLabel(detailDialog.plano)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Valor Mensal</p>
+                  <p className="font-medium text-foreground">R$ {detailDialog.valor_mensal?.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Pagamento</p>
+                  <p className="font-medium text-foreground capitalize">{detailDialog.metodo_pagamento || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Início</p>
+                  <p className="text-foreground">{detailDialog.data_inicio ? format(new Date(detailDialog.data_inicio), 'dd/MM/yyyy HH:mm') : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Vencimento</p>
+                  <p className="text-foreground">{detailDialog.data_vencimento ? format(new Date(detailDialog.data_vencimento), 'dd/MM/yyyy HH:mm') : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Trial</p>
+                  <p className="text-foreground">{detailDialog.trial_ativo ? '✓ Ativo' : '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Cadastro</p>
+                  <p className="text-foreground">{detailDialog.created_at ? format(new Date(detailDialog.created_at), 'dd/MM/yyyy HH:mm') : '—'}</p>
+                </div>
+              </div>
+
+              {/* Funcionarios section */}
+              {detailDialog.funcionarios && detailDialog.funcionarios.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="font-medium text-foreground mb-2 flex items-center gap-2 text-sm">
+                      <UserCheck className="w-4 h-4 text-primary" />
+                      Funcionários ({detailDialog.funcionarios.length})
+                    </p>
+                    <div className="space-y-2">
+                      {detailDialog.funcionarios.map((f) => (
+                        <div key={f.user_id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30">
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            <UserCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{f.nome}</p>
+                            <p className="text-xs text-muted-foreground truncate">{f.email}</p>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">{f.cargo}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteDialog} onOpenChange={(open) => !open && setDeleteDialog(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
