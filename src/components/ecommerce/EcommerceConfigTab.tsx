@@ -24,7 +24,7 @@ import {
   Mail, FileText, Clock, CreditCard, Megaphone, Tag,
   LayoutGrid, Facebook, Shield, Star, BarChart, DollarSign,
   Type, Columns, MousePointer, Code, Layers, ImagePlus,
-  Percent, Timer, BadgeCheck, Grid3X3, List, SlidersHorizontal
+  Percent, Timer, BadgeCheck, Grid3X3, List, SlidersHorizontal, Plus
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { QRCodeSVG } from 'qrcode.react';
@@ -159,7 +159,6 @@ export function EcommerceConfigTab() {
     mensagem_whatsapp: 'Olá! Vi sua loja e gostaria de mais informações.',
     mostrar_estoque: false,
     produtos_por_pagina: '12',
-    // New fields
     fonte_titulos: 'Cormorant Garamond',
     fonte_corpo: 'Inter',
     layout_produtos: 'grid',
@@ -193,6 +192,22 @@ export function EcommerceConfigTab() {
     pix_nome: '',
     pix_tipo: 'cpf',
     pix_cidade: 'SAO PAULO',
+    // Marketing fields
+    banners_carousel: [] as any[],
+    countdown_ativo: false,
+    countdown_titulo: '',
+    countdown_subtitulo: '',
+    countdown_data_fim: '',
+    popup_ativo: false,
+    popup_titulo: '',
+    popup_texto: '',
+    popup_imagem_url: '',
+    popup_cupom: '',
+    popup_delay_segundos: '5',
+    lookbook_ativo: false,
+    lookbook_titulo: '',
+    lookbook_imagens: [] as any[],
+    colecoes_destaque: [] as any[],
   });
   const [showMpToken, setShowMpToken] = useState(false);
 
@@ -263,6 +278,22 @@ export function EcommerceConfigTab() {
         pix_nome: config.pix_nome || '',
         pix_tipo: config.pix_tipo || 'cpf',
         pix_cidade: config.pix_cidade || 'SAO PAULO',
+        // Marketing
+        banners_carousel: config.banners_carousel || [],
+        countdown_ativo: config.countdown_ativo || false,
+        countdown_titulo: config.countdown_titulo || '',
+        countdown_subtitulo: config.countdown_subtitulo || '',
+        countdown_data_fim: config.countdown_data_fim || '',
+        popup_ativo: config.popup_ativo || false,
+        popup_titulo: config.popup_titulo || '',
+        popup_texto: config.popup_texto || '',
+        popup_imagem_url: config.popup_imagem_url || '',
+        popup_cupom: config.popup_cupom || '',
+        popup_delay_segundos: config.popup_delay_segundos?.toString() || '5',
+        lookbook_ativo: config.lookbook_ativo || false,
+        lookbook_titulo: config.lookbook_titulo || '',
+        lookbook_imagens: config.lookbook_imagens || [],
+        colecoes_destaque: config.colecoes_destaque || [],
       });
     }
   }, [config]);
@@ -340,6 +371,22 @@ export function EcommerceConfigTab() {
         pix_nome: form.pix_nome || null,
         pix_tipo: form.pix_tipo || 'cpf',
         pix_cidade: form.pix_cidade || 'SAO PAULO',
+        // Marketing
+        banners_carousel: form.banners_carousel,
+        countdown_ativo: form.countdown_ativo,
+        countdown_titulo: form.countdown_titulo || null,
+        countdown_subtitulo: form.countdown_subtitulo || null,
+        countdown_data_fim: form.countdown_data_fim || null,
+        popup_ativo: form.popup_ativo,
+        popup_titulo: form.popup_titulo || null,
+        popup_texto: form.popup_texto || null,
+        popup_imagem_url: form.popup_imagem_url || null,
+        popup_cupom: form.popup_cupom || null,
+        popup_delay_segundos: parseInt(form.popup_delay_segundos) || 5,
+        lookbook_ativo: form.lookbook_ativo,
+        lookbook_titulo: form.lookbook_titulo || null,
+        lookbook_imagens: form.lookbook_imagens,
+        colecoes_destaque: form.colecoes_destaque,
       };
 
       if (config?.id) {
@@ -487,10 +534,11 @@ export function EcommerceConfigTab() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid grid-cols-6 w-full">
+            <TabsList className="grid grid-cols-7 w-full">
               <TabsTrigger value="geral" className="text-xs gap-1"><Store className="w-3 h-3" /> Geral</TabsTrigger>
               <TabsTrigger value="aparencia" className="text-xs gap-1"><Palette className="w-3 h-3" /> Visual</TabsTrigger>
               <TabsTrigger value="hero" className="text-xs gap-1"><ImagePlus className="w-3 h-3" /> Hero</TabsTrigger>
+              <TabsTrigger value="marketing" className="text-xs gap-1"><Megaphone className="w-3 h-3" /> Marketing</TabsTrigger>
               <TabsTrigger value="vendas" className="text-xs gap-1"><CreditCard className="w-3 h-3" /> Vendas</TabsTrigger>
               <TabsTrigger value="avancado" className="text-xs gap-1"><Settings2 className="w-3 h-3" /> Avançado</TabsTrigger>
               <TabsTrigger value="politicas" className="text-xs gap-1"><Shield className="w-3 h-3" /> Legal</TabsTrigger>
@@ -833,6 +881,103 @@ export function EcommerceConfigTab() {
                   ))}
                 </div>
                 <p className="text-[10px] text-muted-foreground">{form.selos_confianca.length} selo(s) ativo(s) · Exibidos abaixo do Hero</p>
+              </SectionCard>
+            </TabsContent>
+
+            {/* TAB: Marketing */}
+            <TabsContent value="marketing" className="space-y-5">
+              {/* Banners Carousel */}
+              <SectionCard icon={Layers} title="Banners Carousel" description="Banners rotativos no topo da loja">
+                {form.banners_carousel.map((banner: any, idx: number) => (
+                  <div key={idx} className="p-3 border rounded-lg space-y-2 relative">
+                    <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, banners_carousel: p.banners_carousel.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                    <p className="text-xs font-medium text-muted-foreground">Banner {idx + 1}</p>
+                    <ImageUpload value={banner.image || ''} onChange={(url) => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], image: url }; setForm(p => ({ ...p, banners_carousel: arr })); }} label="Imagem" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="Título" value={banner.title || ''} onChange={e => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], title: e.target.value }; setForm(p => ({ ...p, banners_carousel: arr })); }} className="h-8 text-xs" />
+                      <Input placeholder="Subtítulo" value={banner.subtitle || ''} onChange={e => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], subtitle: e.target.value }; setForm(p => ({ ...p, banners_carousel: arr })); }} className="h-8 text-xs" />
+                    </div>
+                    <Input placeholder="Texto do botão (CTA)" value={banner.cta || ''} onChange={e => { const arr = [...form.banners_carousel]; arr[idx] = { ...arr[idx], cta: e.target.value }; setForm(p => ({ ...p, banners_carousel: arr })); }} className="h-8 text-xs" />
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, banners_carousel: [...p.banners_carousel, { image: '', title: '', subtitle: '', cta: 'Ver Coleção' }] }))}>
+                  <Plus className="w-3 h-3 mr-1" /> Adicionar Banner
+                </Button>
+                <p className="text-[10px] text-muted-foreground">{form.banners_carousel.length} banner(s) · Rotação automática a cada 5s</p>
+              </SectionCard>
+
+              {/* Coleções em Destaque */}
+              <SectionCard icon={Grid3X3} title="Coleções em Destaque" description="Cards de categorias com imagem de destaque">
+                {form.colecoes_destaque.map((col: any, idx: number) => (
+                  <div key={idx} className="p-3 border rounded-lg space-y-2 relative">
+                    <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, colecoes_destaque: p.colecoes_destaque.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="Nome (ex: Anéis)" value={col.nome || ''} onChange={e => { const arr = [...form.colecoes_destaque]; arr[idx] = { ...arr[idx], nome: e.target.value }; setForm(p => ({ ...p, colecoes_destaque: arr })); }} className="h-8 text-xs" />
+                      <Input placeholder="Subtítulo" value={col.subtitulo || ''} onChange={e => { const arr = [...form.colecoes_destaque]; arr[idx] = { ...arr[idx], subtitulo: e.target.value }; setForm(p => ({ ...p, colecoes_destaque: arr })); }} className="h-8 text-xs" />
+                    </div>
+                    <ImageUpload value={col.imagem || ''} onChange={(url) => { const arr = [...form.colecoes_destaque]; arr[idx] = { ...arr[idx], imagem: url }; setForm(p => ({ ...p, colecoes_destaque: arr })); }} label="Imagem" />
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, colecoes_destaque: [...p.colecoes_destaque, { nome: '', subtitulo: '', imagem: '' }] }))}>
+                  <Plus className="w-3 h-3 mr-1" /> Adicionar Coleção
+                </Button>
+              </SectionCard>
+
+              {/* Countdown */}
+              <SectionCard icon={Timer} title="Contagem Regressiva" description="Timer de promoção por tempo limitado">
+                <ToggleRow icon={Timer} title="Ativar Countdown" description="Exibe timer regressivo na loja" checked={form.countdown_ativo} onChange={v => setForm(p => ({ ...p, countdown_ativo: v }))} iconColor="text-amber-500" />
+                {form.countdown_ativo && (
+                  <div className="space-y-3 mt-2">
+                    <Input placeholder="Título (ex: Black Friday)" value={form.countdown_titulo} onChange={e => setForm(p => ({ ...p, countdown_titulo: e.target.value }))} className="h-9 text-sm" />
+                    <Input placeholder="Subtítulo" value={form.countdown_subtitulo} onChange={e => setForm(p => ({ ...p, countdown_subtitulo: e.target.value }))} className="h-9 text-sm" />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Data/hora de término</Label>
+                      <Input type="datetime-local" value={form.countdown_data_fim} onChange={e => setForm(p => ({ ...p, countdown_data_fim: e.target.value }))} className="h-9 text-sm" />
+                    </div>
+                  </div>
+                )}
+              </SectionCard>
+
+              {/* Popup */}
+              <SectionCard icon={Megaphone} title="Popup de Boas-Vindas" description="Captura de leads com desconto">
+                <ToggleRow icon={Megaphone} title="Ativar Popup" description="Exibe popup ao entrar na loja" checked={form.popup_ativo} onChange={v => setForm(p => ({ ...p, popup_ativo: v }))} iconColor="text-purple-500" />
+                {form.popup_ativo && (
+                  <div className="space-y-3 mt-2">
+                    <Input placeholder="Título" value={form.popup_titulo} onChange={e => setForm(p => ({ ...p, popup_titulo: e.target.value }))} className="h-9 text-sm" />
+                    <Textarea placeholder="Texto do popup" value={form.popup_texto} onChange={e => setForm(p => ({ ...p, popup_texto: e.target.value }))} className="text-sm" rows={2} />
+                    <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} label="Imagem do Popup" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Cupom de desconto</Label>
+                        <Input placeholder="BEMVINDO10" value={form.popup_cupom} onChange={e => setForm(p => ({ ...p, popup_cupom: e.target.value }))} className="h-9 text-sm" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Delay (segundos)</Label>
+                        <Input type="number" value={form.popup_delay_segundos} onChange={e => setForm(p => ({ ...p, popup_delay_segundos: e.target.value }))} className="h-9 text-sm" min="1" max="60" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </SectionCard>
+
+              {/* Lookbook */}
+              <SectionCard icon={Image} title="Lookbook" description="Galeria de fotos estilo editorial">
+                <ToggleRow icon={Image} title="Ativar Lookbook" description="Seção de fotos inspiracionais" checked={form.lookbook_ativo} onChange={v => setForm(p => ({ ...p, lookbook_ativo: v }))} iconColor="text-pink-500" />
+                {form.lookbook_ativo && (
+                  <div className="space-y-3 mt-2">
+                    <Input placeholder="Título da seção" value={form.lookbook_titulo} onChange={e => setForm(p => ({ ...p, lookbook_titulo: e.target.value }))} className="h-9 text-sm" />
+                    {form.lookbook_imagens.map((img: any, idx: number) => (
+                      <div key={idx} className="p-2 border rounded-lg relative">
+                        <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, lookbook_imagens: p.lookbook_imagens.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                        <ImageUpload value={img.url || ''} onChange={(url) => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], url }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} label={`Imagem ${idx + 1}`} />
+                        <Input placeholder="Legenda (opcional)" value={img.legenda || ''} onChange={e => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], legenda: e.target.value }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} className="h-8 text-xs mt-2" />
+                      </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, lookbook_imagens: [...p.lookbook_imagens, { url: '', legenda: '' }] }))}>
+                      <Plus className="w-3 h-3 mr-1" /> Adicionar Imagem
+                    </Button>
+                  </div>
+                )}
               </SectionCard>
             </TabsContent>
 
