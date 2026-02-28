@@ -81,7 +81,7 @@ export default function LojaVirtualPage() {
       if (!organization?.id) return { pedidos: 0, estoqueBaixo: 0 };
       const [pedidosRes, estoqueRes] = await Promise.all([
         db.from('ecommerce_pedidos').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).eq('status', 'pendente'),
-        db.from('pecas').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).eq('disponivel_loja', true).lte('quantidade', 3),
+        db.from('pecas').select('id', { count: 'exact', head: true }).eq('organization_id', organization.id).eq('disponivel_loja', true).lte('estoque', 3),
       ]);
       return { pedidos: pedidosRes.count || 0, estoqueBaixo: estoqueRes.count || 0 };
     },
