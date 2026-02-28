@@ -208,6 +208,13 @@ export function EcommerceConfigTab() {
     lookbook_titulo: '',
     lookbook_imagens: [] as any[],
     colecoes_destaque: [] as any[],
+    // Rodapé columns
+    rodape_coluna1_titulo: '',
+    rodape_coluna1_links: [] as { label: string; url: string }[],
+    rodape_coluna2_titulo: '',
+    rodape_coluna2_links: [] as { label: string; url: string }[],
+    rodape_endereco: '',
+    rodape_exibir_mapa: false,
   });
   const [showMpToken, setShowMpToken] = useState(false);
 
@@ -294,6 +301,13 @@ export function EcommerceConfigTab() {
         lookbook_titulo: config.lookbook_titulo || '',
         lookbook_imagens: config.lookbook_imagens || [],
         colecoes_destaque: config.colecoes_destaque || [],
+        // Rodapé columns
+        rodape_coluna1_titulo: config.rodape_coluna1_titulo || '',
+        rodape_coluna1_links: config.rodape_coluna1_links || [],
+        rodape_coluna2_titulo: config.rodape_coluna2_titulo || '',
+        rodape_coluna2_links: config.rodape_coluna2_links || [],
+        rodape_endereco: config.rodape_endereco || '',
+        rodape_exibir_mapa: config.rodape_exibir_mapa || false,
       });
     }
   }, [config]);
@@ -387,6 +401,13 @@ export function EcommerceConfigTab() {
         lookbook_titulo: form.lookbook_titulo || null,
         lookbook_imagens: form.lookbook_imagens,
         colecoes_destaque: form.colecoes_destaque,
+        // Rodapé columns
+        rodape_coluna1_titulo: form.rodape_coluna1_titulo || null,
+        rodape_coluna1_links: form.rodape_coluna1_links.length > 0 ? form.rodape_coluna1_links : null,
+        rodape_coluna2_titulo: form.rodape_coluna2_titulo || null,
+        rodape_coluna2_links: form.rodape_coluna2_links.length > 0 ? form.rodape_coluna2_links : null,
+        rodape_endereco: form.rodape_endereco || null,
+        rodape_exibir_mapa: form.rodape_exibir_mapa,
       };
 
       if (config?.id) {
@@ -1169,8 +1190,45 @@ export function EcommerceConfigTab() {
                 <p className="text-[10px] text-muted-foreground">⚠️ CSS avançado — pode afetar o layout. Use com cautela.</p>
               </SectionCard>
 
-              <SectionCard icon={FileText} title="Rodapé" description="Texto exibido no final da loja">
-                <Textarea value={form.texto_rodape} onChange={e => setForm(p => ({ ...p, texto_rodape: e.target.value }))} placeholder="© 2025 Sua Loja. Todos os direitos reservados." rows={3} className="text-sm resize-none" />
+              <SectionCard icon={FileText} title="Rodapé" description="Texto e colunas de links do rodapé">
+                <Textarea value={form.texto_rodape} onChange={e => setForm(p => ({ ...p, texto_rodape: e.target.value }))} placeholder="© 2025 Sua Loja. Todos os direitos reservados." rows={2} className="text-sm resize-none" />
+                <Separator />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Endereço / Localização</Label>
+                  <Input value={form.rodape_endereco} onChange={e => setForm(p => ({ ...p, rodape_endereco: e.target.value }))} placeholder="Rua das Joias, 123 - São Paulo/SP" className="h-9 text-sm" />
+                </div>
+                <Separator />
+                {/* Coluna 1 */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Coluna 1 — Links</Label>
+                  <Input value={form.rodape_coluna1_titulo} onChange={e => setForm(p => ({ ...p, rodape_coluna1_titulo: e.target.value }))} placeholder="Título da coluna (ex: Institucional)" className="h-8 text-xs" />
+                  {form.rodape_coluna1_links.map((link: any, idx: number) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input value={link.label} onChange={e => { const arr = [...form.rodape_coluna1_links]; arr[idx] = { ...arr[idx], label: e.target.value }; setForm(p => ({ ...p, rodape_coluna1_links: arr })); }} placeholder="Texto" className="h-7 text-xs flex-1" />
+                      <Input value={link.url} onChange={e => { const arr = [...form.rodape_coluna1_links]; arr[idx] = { ...arr[idx], url: e.target.value }; setForm(p => ({ ...p, rodape_coluna1_links: arr })); }} placeholder="Link" className="h-7 text-xs flex-1 font-mono" />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, rodape_coluna1_links: p.rodape_coluna1_links.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, rodape_coluna1_links: [...p.rodape_coluna1_links, { label: '', url: '' }] }))}>
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar link
+                  </Button>
+                </div>
+                <Separator />
+                {/* Coluna 2 */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Coluna 2 — Links</Label>
+                  <Input value={form.rodape_coluna2_titulo} onChange={e => setForm(p => ({ ...p, rodape_coluna2_titulo: e.target.value }))} placeholder="Título da coluna (ex: Atendimento)" className="h-8 text-xs" />
+                  {form.rodape_coluna2_links.map((link: any, idx: number) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input value={link.label} onChange={e => { const arr = [...form.rodape_coluna2_links]; arr[idx] = { ...arr[idx], label: e.target.value }; setForm(p => ({ ...p, rodape_coluna2_links: arr })); }} placeholder="Texto" className="h-7 text-xs flex-1" />
+                      <Input value={link.url} onChange={e => { const arr = [...form.rodape_coluna2_links]; arr[idx] = { ...arr[idx], url: e.target.value }; setForm(p => ({ ...p, rodape_coluna2_links: arr })); }} placeholder="Link" className="h-7 text-xs flex-1 font-mono" />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, rodape_coluna2_links: p.rodape_coluna2_links.filter((_: any, i: number) => i !== idx) }))}>×</Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setForm(p => ({ ...p, rodape_coluna2_links: [...p.rodape_coluna2_links, { label: '', url: '' }] }))}>
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar link
+                  </Button>
+                </div>
               </SectionCard>
             </TabsContent>
 
