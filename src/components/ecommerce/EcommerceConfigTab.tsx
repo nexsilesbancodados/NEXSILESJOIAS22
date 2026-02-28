@@ -427,6 +427,12 @@ export function EcommerceConfigTab() {
         rodape_coluna2_links: form.rodape_coluna2_links.length > 0 ? form.rodape_coluna2_links : null,
         rodape_endereco: form.rodape_endereco || null,
         rodape_exibir_mapa: form.rodape_exibir_mapa,
+        header_sticky: form.header_sticky,
+        header_transparente_hero: form.header_transparente_hero,
+        mostrar_codigo_produto: form.mostrar_codigo_produto,
+        zoom_imagem_ativo: form.zoom_imagem_ativo,
+        produtos_relacionados_ativo: form.produtos_relacionados_ativo,
+        barra_frete_ativo: form.barra_frete_ativo,
       };
 
       if (config?.id) {
