@@ -1198,6 +1198,70 @@ export type Database = {
         }
         Relationships: []
       }
+      comissoes_revendedoras: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string | null
+          id: string
+          mes_referencia: string
+          organization_id: string
+          percentual_comissao: number | null
+          revendedora_id: string
+          status: string | null
+          updated_at: string | null
+          valor_comissao: number | null
+          valor_vendas: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          id?: string
+          mes_referencia: string
+          organization_id: string
+          percentual_comissao?: number | null
+          revendedora_id: string
+          status?: string | null
+          updated_at?: string | null
+          valor_comissao?: number | null
+          valor_vendas?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          id?: string
+          mes_referencia?: string
+          organization_id?: string
+          percentual_comissao?: number | null
+          revendedora_id?: string
+          status?: string | null
+          updated_at?: string | null
+          valor_comissao?: number | null
+          valor_vendas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_revendedoras_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_revendedoras_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_revendedoras_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracoes: {
         Row: {
           chave: string
@@ -2329,6 +2393,7 @@ export type Database = {
           registro_id: string | null
           tabela: string
           user_id: string | null
+          usuario_nome: string | null
         }
         Insert: {
           acao: string
@@ -2341,6 +2406,7 @@ export type Database = {
           registro_id?: string | null
           tabela: string
           user_id?: string | null
+          usuario_nome?: string | null
         }
         Update: {
           acao?: string
@@ -2353,6 +2419,7 @@ export type Database = {
           registro_id?: string | null
           tabela?: string
           user_id?: string | null
+          usuario_nome?: string | null
         }
         Relationships: [
           {
