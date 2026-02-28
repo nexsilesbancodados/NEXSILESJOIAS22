@@ -3694,11 +3694,13 @@ export type Database = {
           email: string
           expires_at: string | null
           id: string
+          last_resend_at: string | null
           mercadopago_preference_id: string | null
           name: string
           payment_status: string
           phone: string | null
           plan: string
+          resend_count: number | null
           updated_at: string
         }
         Insert: {
@@ -3708,11 +3710,13 @@ export type Database = {
           email: string
           expires_at?: string | null
           id?: string
+          last_resend_at?: string | null
           mercadopago_preference_id?: string | null
           name: string
           payment_status?: string
           phone?: string | null
           plan: string
+          resend_count?: number | null
           updated_at?: string
         }
         Update: {
@@ -3722,11 +3726,13 @@ export type Database = {
           email?: string
           expires_at?: string | null
           id?: string
+          last_resend_at?: string | null
           mercadopago_preference_id?: string | null
           name?: string
           payment_status?: string
           phone?: string | null
           plan?: string
+          resend_count?: number | null
           updated_at?: string
         }
         Relationships: []
