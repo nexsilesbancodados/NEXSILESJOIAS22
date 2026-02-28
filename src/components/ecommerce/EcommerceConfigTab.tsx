@@ -185,6 +185,7 @@ export function EcommerceConfigTab() {
     parcelamento_max: '12',
     mostrar_parcelamento: true,
     tempo_estimado_entrega: '',
+    cep_origem: '',
     badges_produto: [] as string[],
     mercadopago_access_token: '',
     mercadopago_public_key: '',
@@ -254,6 +255,7 @@ export function EcommerceConfigTab() {
         parcelamento_max: config.parcelamento_max?.toString() || '12',
         mostrar_parcelamento: config.mostrar_parcelamento !== false,
         tempo_estimado_entrega: config.tempo_estimado_entrega || '',
+        cep_origem: config.cep_origem || '',
         badges_produto: config.badges_produto || [],
         mercadopago_access_token: config.mercadopago_access_token || '',
         mercadopago_public_key: config.mercadopago_public_key || '',
@@ -330,6 +332,7 @@ export function EcommerceConfigTab() {
         parcelamento_max: parseInt(form.parcelamento_max) || 12,
         mostrar_parcelamento: form.mostrar_parcelamento,
         tempo_estimado_entrega: form.tempo_estimado_entrega || null,
+        cep_origem: form.cep_origem || null,
         badges_produto: form.badges_produto,
         mercadopago_access_token: form.mercadopago_access_token || null,
         mercadopago_public_key: form.mercadopago_public_key || null,
@@ -852,6 +855,11 @@ export function EcommerceConfigTab() {
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">Frete grátis acima de <strong>R$ {parseFloat(form.frete_gratis_acima).toFixed(2)}</strong></p>
                   </div>
                 )}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium flex items-center gap-1"><Package className="w-3 h-3" /> CEP de Origem</Label>
+                  <Input value={form.cep_origem} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 8); setForm(p => ({ ...p, cep_origem: v.length > 5 ? v.slice(0,5) + '-' + v.slice(5) : v })); }} placeholder="00000-000" className="h-9 text-sm" maxLength={9} />
+                  <p className="text-[10px] text-muted-foreground">Seu CEP para cálculo de frete dinâmico</p>
+                </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium flex items-center gap-1"><Timer className="w-3 h-3" /> Prazo estimado de entrega</Label>
                   <Input value={form.tempo_estimado_entrega} onChange={e => setForm(p => ({ ...p, tempo_estimado_entrega: e.target.value }))} placeholder="Ex: 3 a 7 dias úteis" className="h-9 text-sm" />

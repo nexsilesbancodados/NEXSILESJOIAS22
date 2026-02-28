@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
@@ -152,7 +152,7 @@ const menuItems = [
   { icon: DollarSign, label: 'Histórico Preços', path: '/historico-precos', color: 'from-yellow-500 to-amber-600' },
   { icon: Truck, label: 'Entregas', path: '/entregas', color: 'from-sky-500 to-blue-600' },
   { icon: Star, label: 'Fidelidade', path: '/fidelidade', color: 'from-amber-500 to-yellow-600' },
-  { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600' },
+  { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600', whatsappStatus: true },
   { icon: GraduationCap, label: 'Tutorial', path: '/tutorial', color: 'from-emerald-500 to-green-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
   { icon: ShoppingBag, label: 'Loja Virtual', path: '/loja-virtual', color: 'from-rose-500 to-pink-600', superAdminOnly: true },
@@ -166,13 +166,15 @@ const CollapsedMenuItem = memo(({
   isActive, 
   pendingRomaneios, 
   onClick,
-  onMouseEnter
+  onMouseEnter,
+  whatsappConnected
 }: { 
   item: typeof menuItems[0]; 
   isActive: boolean; 
   pendingRomaneios: number;
   onClick: () => void;
   onMouseEnter: () => void;
+  whatsappConnected?: boolean | null;
 }) => (
   <Tooltip>
     <TooltipTrigger asChild>
@@ -200,6 +202,12 @@ const CollapsedMenuItem = memo(({
             {pendingRomaneios > 9 ? '9+' : pendingRomaneios}
           </span>
         )}
+        {(item as any).whatsappStatus && whatsappConnected !== null && (
+          <span className={cn(
+            "absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card z-20",
+            whatsappConnected ? 'bg-emerald-500' : 'bg-destructive animate-pulse'
+          )} />
+        )}
       </button>
     </TooltipTrigger>
     <TooltipContent side="right" sideOffset={8} className="bg-card border-border shadow-xl">
@@ -221,13 +229,15 @@ const ExpandedMenuItem = memo(({
   isActive, 
   pendingRomaneios, 
   onClick,
-  onMouseEnter
+  onMouseEnter,
+  whatsappConnected
 }: { 
   item: typeof menuItems[0]; 
   isActive: boolean; 
   pendingRomaneios: number;
   onClick: () => void;
   onMouseEnter: () => void;
+  whatsappConnected?: boolean | null;
 }) => (
   <button
     onClick={onClick}
@@ -271,6 +281,12 @@ const ExpandedMenuItem = memo(({
         {pendingRomaneios}
       </span>
     )}
+    {(item as any).whatsappStatus && whatsappConnected !== null && (
+      <span className={cn(
+        "relative z-10 w-2.5 h-2.5 rounded-full shrink-0",
+        whatsappConnected ? 'bg-emerald-500' : 'bg-destructive animate-pulse'
+      )} title={whatsappConnected ? 'WhatsApp conectado' : 'WhatsApp desconectado'} />
+    )}
     
     <ChevronRight 
       className={cn(
@@ -296,6 +312,25 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
   const { isAdmin, profile } = useAuth();
   const { canAccessPath } = usePermissions();
   const { data: romaneios = [] } = useRomaneios();
+  const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(null);
+  
+  // Fetch WhatsApp connection status
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const { data } = await db.from('agente_ia_config').select('whatsapp_instancia').limit(1).maybeSingle();
+      setWhatsappConnected(!!data?.whatsapp_instancia);
+    };
+    fetchStatus();
+
+    // Realtime subscription
+    const channel = supabase.channel('whatsapp-status')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agente_ia_config' }, (payload: any) => {
+        setWhatsappConnected(!!payload.new?.whatsapp_instancia);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
   
   const pendingRomaneios = useMemo(() => 
     romaneios.filter((r) => r.status === 'pendente').length,
@@ -432,6 +467,7 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
                 pendingRomaneios={pendingRomaneios}
                 onClick={() => handleNavigation(item.path)}
                 onMouseEnter={() => handlePrefetch(item.path)}
+                whatsappConnected={whatsappConnected}
               />
             ) : (
               <CollapsedMenuItem
@@ -441,6 +477,7 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
                 pendingRomaneios={pendingRomaneios}
                 onClick={() => handleNavigation(item.path)}
                 onMouseEnter={() => handlePrefetch(item.path)}
+                whatsappConnected={whatsappConnected}
               />
             )
           ))}

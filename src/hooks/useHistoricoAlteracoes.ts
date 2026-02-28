@@ -93,7 +93,7 @@ export function useHistoricoAlteracoes(options: UseHistoricoOptions = {}) {
         entidade_id: item.registro_id,
         descricao: generateDescricao(item.tabela, item.acao),
         usuario_id: item.user_id,
-        usuario_nome: null,
+        usuario_nome: item.usuario_nome || null,
         valor: null,
       })) as HistoricoAlteracao[];
     },
