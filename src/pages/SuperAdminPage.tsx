@@ -20,7 +20,8 @@ import {
   Shield, Users, DollarSign, Crown, Search, Ban, CheckCircle, Edit,
   TrendingUp, Calendar, AlertTriangle, RefreshCw, Loader2, Eye, Trash2,
   ChevronDown, ChevronRight, UserCheck, Activity, BarChart3, Clock,
-  ArrowUpRight, ArrowDownRight, Zap, CreditCard, Sparkles
+  ArrowUpRight, ArrowDownRight, Zap, CreditCard, Sparkles, Store,
+  ShoppingBag, Package, Globe
 } from 'lucide-react';
 
 interface Funcionario {
@@ -96,9 +97,24 @@ export default function SuperAdminPage() {
   const [detailDialog, setDetailDialog] = useState<AssinaturaRow | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<AssinaturaRow | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('platform');
 
   const isSuperAdmin = profile?.is_super_admin === true;
+
+  // Platform-wide stats (stores & sales)
+  const { data: platformStats, isLoading: platformLoading } = useQuery({
+    queryKey: ['super-admin-platform-stats'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas?stats=platform`,
+        { headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' } }
+      );
+      if (!res.ok) throw new Error('Erro ao buscar stats');
+      return await res.json();
+    },
+    enabled: !!profile?.is_super_admin,
+  });
 
   const { data: assinaturas = [], isLoading, refetch } = useQuery({
     queryKey: ['super-admin-assinaturas'],
@@ -340,11 +356,18 @@ export default function SuperAdminPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-transparent border-0 p-0 h-auto gap-0">
               <TabsTrigger
+                value="platform"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 pb-3 text-sm"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Plataforma
+              </TabsTrigger>
+              <TabsTrigger
                 value="overview"
                 className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 pb-3 text-sm"
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
-                Visão Geral
+                Assinaturas
               </TabsTrigger>
               <TabsTrigger
                 value="users"
@@ -359,6 +382,111 @@ export default function SuperAdminPage() {
       </div>
 
       <div className="p-6 space-y-6">
+        {/* ── Platform Tab ── */}
+        {activeTab === 'platform' && (
+          <div className="space-y-6 animate-fade-in">
+            {platformLoading ? (
+              <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+            ) : platformStats ? (
+              <>
+                {/* Main Platform KPIs */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <StatCard icon={Globe} label="Organizações" value={platformStats.totalOrgs} subtitle="Cadastradas" color="primary" />
+                  <StatCard icon={Store} label="Lojas Ativas" value={platformStats.totalLojasAtivas} subtitle={`de ${platformStats.totalLojas} criadas`} color="emerald" />
+                  <StatCard icon={ShoppingBag} label="Vendas (Total)" value={platformStats.totalVendas} subtitle={`${platformStats.vendasMesCount} este mês`} color="blue" />
+                  <StatCard icon={DollarSign} label="Volume Total" value={`R$ ${Number(platformStats.volumeTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} subtitle="Todas as lojas" color="amber" />
+                  <StatCard icon={Package} label="Peças Cadastradas" value={platformStats.totalPecas} subtitle="Na plataforma" color="violet" />
+                </div>
+
+                {/* Month & E-commerce */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Vendas Este Mês</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-foreground">R$ {Number(platformStats.volumeMes).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{platformStats.vendasMesCount} vendas realizadas</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2"><CreditCard className="w-4 h-4 text-primary" /> E-commerce (Pedidos Online)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-foreground">R$ {Number(platformStats.volumeEcom).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{platformStats.totalPedidosEcom} pedidos online</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2"><Activity className="w-4 h-4 text-primary" /> Ticket Médio</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-foreground">
+                        R$ {platformStats.totalVendas > 0 ? (platformStats.volumeTotal / platformStats.totalVendas).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Por venda (PDV + online)</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Top Organizations by Sales */}
+                <Card className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-primary" />
+                      Ranking de Organizações por Vendas
+                    </CardTitle>
+                    <CardDescription className="text-xs">Volume total de vendas por loja (sem acesso ao saldo individual)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {platformStats.topOrgs.length > 0 ? (
+                      <div className="space-y-3">
+                        {platformStats.topOrgs.map((org: any, idx: number) => {
+                          const maxTotal = platformStats.topOrgs[0]?.total || 1;
+                          const pct = (org.total / maxTotal) * 100;
+                          return (
+                            <div key={org.id} className="space-y-1.5">
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center">{idx + 1}</span>
+                                  <span className="font-medium text-foreground truncate max-w-[200px]">{org.name}</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span>{org.count} vendas</span>
+                                  <span className="font-semibold text-foreground">R$ {org.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                </div>
+                              </div>
+                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">Nenhuma venda registrada ainda</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50 bg-muted/30">
+                  <CardContent className="p-4 flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Modo somente leitura</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Esta visão mostra apenas métricas agregadas. Você não tem acesso ao saldo financeiro individual de nenhuma loja — apenas ao volume total de vendas da plataforma.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8">Não foi possível carregar os dados da plataforma.</p>
+            )}
+          </div>
+        )}
+
         {/* ── Overview Tab ── */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">

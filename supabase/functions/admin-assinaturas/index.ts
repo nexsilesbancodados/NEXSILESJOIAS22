@@ -49,6 +49,71 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method === 'GET') {
+      const url = new URL(req.url);
+      const statsOnly = url.searchParams.get('stats');
+
+      // Platform stats endpoint
+      if (statsOnly === 'platform') {
+        const { count: totalOrgs } = await adminClient.from('organizations').select('*', { count: 'exact', head: true });
+        const { count: totalLojasAtivas } = await adminClient.from('ecommerce_config').select('*', { count: 'exact', head: true }).eq('ativo', true);
+        const { count: totalLojas } = await adminClient.from('ecommerce_config').select('*', { count: 'exact', head: true });
+        const { count: totalPecas } = await adminClient.from('pecas').select('*', { count: 'exact', head: true });
+        
+        // Total sales all-time
+        const { data: vendasTotal } = await adminClient.from('vendas').select('valor_total');
+        const volumeTotal = (vendasTotal || []).reduce((s: number, v: any) => s + (v.valor_total || 0), 0);
+        const totalVendas = (vendasTotal || []).length;
+        
+        // Sales this month
+        const mesInicio = new Date();
+        mesInicio.setDate(1);
+        mesInicio.setHours(0, 0, 0, 0);
+        const { data: vendasMes } = await adminClient.from('vendas').select('valor_total').gte('created_at', mesInicio.toISOString());
+        const volumeMes = (vendasMes || []).reduce((s: number, v: any) => s + (v.valor_total || 0), 0);
+        const vendasMesCount = (vendasMes || []).length;
+
+        // Ecommerce orders
+        const { count: totalPedidosEcom } = await adminClient.from('ecommerce_pedidos').select('*', { count: 'exact', head: true });
+        const { data: pedidosEcomTotal } = await adminClient.from('ecommerce_pedidos').select('valor_total');
+        const volumeEcom = (pedidosEcomTotal || []).reduce((s: number, v: any) => s + (v.valor_total || 0), 0);
+
+        // Top orgs by sales
+        const { data: orgVendas } = await adminClient.from('vendas').select('organization_id, valor_total');
+        const orgMap = new Map<string, { count: number; total: number }>();
+        (orgVendas || []).forEach((v: any) => {
+          const entry = orgMap.get(v.organization_id) || { count: 0, total: 0 };
+          entry.count++;
+          entry.total += v.valor_total || 0;
+          orgMap.set(v.organization_id, entry);
+        });
+        
+        // Get org names
+        const orgIds = [...orgMap.keys()];
+        const { data: orgs } = await adminClient.from('organizations').select('id, name').in('id', orgIds.length > 0 ? orgIds : ['00000000-0000-0000-0000-000000000000']);
+        const orgNameMap = new Map((orgs || []).map((o: any) => [o.id, o.name]));
+        
+        const topOrgs = [...orgMap.entries()]
+          .map(([id, data]) => ({ id, name: orgNameMap.get(id) || 'Desconhecida', ...data }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 10);
+
+        return new Response(JSON.stringify({
+          totalOrgs: totalOrgs || 0,
+          totalLojas: totalLojas || 0,
+          totalLojasAtivas: totalLojasAtivas || 0,
+          totalPecas: totalPecas || 0,
+          totalVendas,
+          volumeTotal,
+          vendasMesCount,
+          volumeMes,
+          totalPedidosEcom: totalPedidosEcom || 0,
+          volumeEcom,
+          topOrgs,
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Fetch all subscriptions
       const { data: assinaturas, error } = await adminClient
         .from('assinaturas')
