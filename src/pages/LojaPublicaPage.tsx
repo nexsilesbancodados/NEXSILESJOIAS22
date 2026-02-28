@@ -799,7 +799,11 @@ export default function LojaPublicaPage() {
                         <span style={{ color: textMuted }}>Frete</span><span style={{ color: textDark }}>{valorFrete === 0 ? 'Grátis' : formatCurrency(valorFrete)}</span>
                       </div>
                       {config.frete_gratis_acima && subtotal < config.frete_gratis_acima && (
-                        <p className="text-xs" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>Frete grátis acima de {formatCurrency(config.frete_gratis_acima)}</p>
+                        <ProgressoFrete
+                          subtotal={subtotal - cupomDesconto}
+                          freteGratisAcima={config.frete_gratis_acima}
+                          corPrimaria={roseGold}
+                        />
                       )}
                       <div className="border-t pt-2 mt-2" style={{ borderColor: '#F0E6E0' }}>
                         <div className="flex justify-between font-semibold text-lg">
@@ -1008,6 +1012,16 @@ export default function LojaPublicaPage() {
           </section>
         );
       })()}
+
+      {/* Lookbook Section */}
+      <LookbookSection
+        ativo={(config as any).lookbook_ativo || false}
+        titulo={(config as any).lookbook_titulo}
+        imagens={(config as any).lookbook_imagens || []}
+        pecas={pecas}
+        corPrimaria={roseGold}
+        fontTitulos={fontTitulos}
+      />
 
       {/* Products Section */}
       <section id="produtos" className="max-w-7xl mx-auto px-4 py-10 sm:py-14">
@@ -1349,6 +1363,14 @@ export default function LojaPublicaPage() {
                     />
                   </div>
                 )}
+
+                {/* Produtos Relacionados */}
+                <ProdutosRelacionados
+                  pecaAtual={selectedPeca}
+                  todasPecas={pecas}
+                  corPrimaria={roseGold}
+                  onSelect={(p: any) => setSelectedPeca(p as Peca)}
+                />
               </div>
             </div>
           )}
@@ -1625,6 +1647,8 @@ export default function LojaPublicaPage() {
               {checkoutStep === 'confirmacao' && 'Pedido Confirmado!'}
             </DialogTitle>
           </DialogHeader>
+
+          <CheckoutProgress currentStep={checkoutStep as any} corPrimaria={roseGold} />
 
           {checkoutStep === 'dados' && (
             <div className="space-y-4" style={{ fontFamily: "'Inter', sans-serif" }}>
