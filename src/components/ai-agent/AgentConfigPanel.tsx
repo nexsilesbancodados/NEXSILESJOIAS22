@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Save, Bot, CreditCard, MessageSquare, Settings2, Wrench, Clock, Shield, Zap, Sparkles, Crown, Bell, Phone, Mail } from 'lucide-react';
 import { useAgentConfig, AgentConfig, AlertasConfig } from '@/hooks/useAgentConfig';
 import { WhatsAppQRConnect } from './WhatsAppQRConnect';
+import { NotificationSettings } from './NotificationSettings';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface AgentConfigPanelProps {
@@ -232,7 +233,7 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="geral" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="geral" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
             <span className="hidden sm:inline">Geral</span>
@@ -252,6 +253,10 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
           <TabsTrigger value="horario" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Horário</span>
+          </TabsTrigger>
+          <TabsTrigger value="notificacoes" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            <span className="hidden sm:inline">Alertas</span>
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
@@ -890,6 +895,11 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Aba Notificações */}
+        <TabsContent value="notificacoes" className="space-y-6 mt-6">
+          <NotificationSettings />
         </TabsContent>
 
         {/* Aba WhatsApp */}

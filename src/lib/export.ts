@@ -73,16 +73,25 @@ export function exportToPDF<T extends Record<string, unknown>>(
   data: T[],
   columns: ExportColumn[],
   filename: string,
-  title?: string
+  title?: string,
+  options?: { subtitle?: string; brandColor?: [number, number, number] }
 ) {
   const doc = new jsPDF();
+  const color = options?.brandColor || [212, 175, 55];
   
-  // Add title
+  // Header bar
+  doc.setFillColor(color[0], color[1], color[2]);
+  doc.rect(0, 0, 210, 8, 'F');
+
+  // Title
   if (title) {
     doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
     doc.text(title, 14, 22);
     doc.setFontSize(10);
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
+    doc.setTextColor(120, 120, 120);
+    const sub = options?.subtitle || `Gerado em: ${new Date().toLocaleString('pt-BR')}`;
+    doc.text(sub, 14, 30);
   }
 
   const tableData = data.map(row => 
@@ -101,14 +110,23 @@ export function exportToPDF<T extends Record<string, unknown>>(
       cellPadding: 2,
     },
     headStyles: {
-      fillColor: [212, 175, 55], // Gold color
-      textColor: [0, 0, 0],
+      fillColor: color,
+      textColor: [255, 255, 255],
       fontStyle: 'bold',
     },
     alternateRowStyles: {
       fillColor: [245, 245, 245],
     },
   });
+
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(180, 180, 180);
+    doc.text(`Nexsiles • Página ${i}/${pageCount}`, 14, doc.internal.pageSize.height - 10);
+  }
 
   doc.save(`${filename}.pdf`);
 }
