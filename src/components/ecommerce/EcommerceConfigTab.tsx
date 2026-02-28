@@ -24,7 +24,8 @@ import {
   Mail, FileText, Clock, CreditCard, Megaphone, Tag,
   LayoutGrid, Facebook, Shield, Star, BarChart, DollarSign,
   Type, Columns, MousePointer, Code, Layers, ImagePlus,
-  Percent, Timer, BadgeCheck, Grid3X3, List, SlidersHorizontal, Plus
+  Percent, Timer, BadgeCheck, Grid3X3, List, SlidersHorizontal, Plus,
+  RefreshCw
 } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { QRCodeSVG } from 'qrcode.react';
@@ -421,6 +422,11 @@ export function EcommerceConfigTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ecommerce-config'] });
       toast.success('Configurações salvas!');
+      // Auto-reload the live preview iframe
+      setTimeout(() => {
+        const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
+        if (iframe) iframe.src = iframe.src;
+      }, 500);
     },
     onError: (e: any) => toast.error(e.message || 'Erro ao salvar'),
   });
@@ -551,9 +557,28 @@ export function EcommerceConfigTab() {
         )}
       </AnimatePresence>
 
-      {/* Main Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3">
+      {/* Preview Mode Toggle */}
+      <div className="flex items-center gap-3 p-3 rounded-xl border bg-card/80">
+        <div className="flex items-center gap-2 flex-1">
+          <Eye className="w-4 h-4 text-primary" />
+          <span className="text-xs font-medium text-foreground">Preview ao Vivo</span>
+          <span className="text-[10px] text-muted-foreground">— Veja sua loja em tempo real enquanto edita</span>
+        </div>
+        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted">
+          <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'mobile' ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}><Smartphone className="w-3.5 h-3.5 text-foreground" /></button>
+          <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'desktop' ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}><Monitor className="w-3.5 h-3.5 text-foreground" /></button>
+        </div>
+        {lojaUrl && (
+          <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => window.open(lojaUrl, '_blank')}>
+            <ExternalLink className="w-3 h-3" /> Abrir Loja
+          </Button>
+        )}
+      </div>
+
+      {/* Main Layout - Split View */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6" style={{ minHeight: '75vh' }}>
+        {/* Left: Config Forms */}
+        <div className="space-y-4 overflow-y-auto max-h-[80vh] pr-1 scrollbar-thin">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid grid-cols-7 w-full">
               <TabsTrigger value="geral" className="text-xs gap-1"><Store className="w-3 h-3" /> Geral</TabsTrigger>
@@ -1246,116 +1271,68 @@ export function EcommerceConfigTab() {
           </Tabs>
         </div>
 
-        {/* Right: Live Preview */}
-        <div className="lg:col-span-2">
+        {/* Right: Live Store Preview (iframe) */}
+        <div className="hidden xl:block">
           <div className="sticky top-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-muted-foreground">Preview ao Vivo</p>
-              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted">
-                <button onClick={() => setPreviewDevice('mobile')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'mobile' ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}><Smartphone className="w-3.5 h-3.5 text-foreground" /></button>
-                <button onClick={() => setPreviewDevice('desktop')} className={`p-1.5 rounded-md transition-colors ${previewDevice === 'desktop' ? 'bg-card shadow-sm' : 'hover:bg-card/50'}`}><Monitor className="w-3.5 h-3.5 text-foreground" /></button>
-              </div>
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5" /> Preview da Loja Real
+              </p>
+              {lojaUrl && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs h-6 gap-1 text-muted-foreground"
+                  onClick={() => {
+                    const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
+                    if (iframe) iframe.src = iframe.src; // force reload
+                  }}
+                >
+                  <RefreshCw className="w-3 h-3" /> Recarregar
+                </Button>
+              )}
             </div>
 
-            <motion.div layout className={`mx-auto rounded-[2rem] border-[6px] border-gray-800 dark:border-gray-600 bg-white overflow-hidden shadow-2xl transition-all duration-300 ${previewDevice === 'mobile' ? 'w-[280px]' : 'w-full max-w-[400px]'}`} style={{ height: previewDevice === 'mobile' ? 560 : 480 }}>
-              <div className="h-6 flex items-center justify-between px-4 bg-gray-800 dark:bg-gray-600">
-                <span className="text-[8px] text-white/70">9:41</span>
-                <div className="flex gap-1"><div className="w-3 h-1.5 rounded-sm bg-white/50" /><div className="w-1.5 h-1.5 rounded-full bg-white/50" /></div>
-              </div>
-
-              {form.banner_ativo && form.banner_texto && (
-                <div className="py-1 px-2 text-center" style={{ backgroundColor: form.banner_cor }}>
-                  <p className="text-[7px] text-white font-medium truncate">{form.banner_texto}</p>
-                </div>
-              )}
-
-              <div className="px-3 py-2.5 flex items-center justify-between" style={{ background: `linear-gradient(135deg, ${form.cor_primaria}15, ${form.cor_secundaria}10)` }}>
-                <div className="flex items-center gap-2">
-                  {form.logo_url ? (
-                    <img src={form.logo_url} alt="" className="w-6 h-6 rounded object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: form.cor_primaria + '20' }}><Store className="w-3 h-3" style={{ color: form.cor_primaria }} /></div>
-                  )}
-                  <span className="text-[10px] font-semibold tracking-wide" style={{ color: '#1a1a1a', fontFamily: form.fonte_titulos }}>{form.nome_loja?.toUpperCase() || 'SUA LOJA'}</span>
-                </div>
-                <div className="flex gap-2">
-                  {form.mostrar_busca && <Search className="w-3.5 h-3.5" style={{ color: '#666' }} />}
-                  <Heart className="w-3.5 h-3.5" style={{ color: '#666' }} />
-                  <ShoppingBag className="w-3.5 h-3.5" style={{ color: '#666' }} />
-                </div>
-              </div>
-
-              {/* Hero */}
-              <div className="h-24 flex items-center justify-center relative overflow-hidden" style={{ background: form.hero_imagem_url ? undefined : `linear-gradient(135deg, ${form.cor_primaria}, ${form.cor_secundaria})` }}>
-                {form.hero_imagem_url && <img src={form.hero_imagem_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
-                <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${form.hero_overlay_opacity})` }} />
-                <div className="text-center relative z-10">
-                  <p className="text-white text-[9px] uppercase tracking-[0.15em] opacity-80" style={{ fontFamily: form.fonte_corpo }}>{form.hero_subtitulo || 'Nova Coleção'}</p>
-                  <p className="text-white text-sm font-bold tracking-wide mt-0.5" style={{ fontFamily: form.fonte_titulos }}>{form.hero_titulo || form.nome_loja || 'Sua Loja'}</p>
-                  <div className="mt-1.5 px-3 py-0.5 bg-white/20 rounded-full"><span className="text-white text-[8px] uppercase tracking-wider" style={{ fontFamily: form.fonte_corpo }}>{form.hero_cta_texto || 'Ver Coleção'}</span></div>
-                </div>
-              </div>
-
-              {/* Selos */}
-              {form.selos_confianca.length > 0 && (
-                <div className="flex gap-1 px-2 py-1.5 overflow-hidden bg-gray-50 border-b border-gray-100 justify-center">
-                  {form.selos_confianca.slice(0, 4).map(s => {
-                    const selo = SELOS_OPCOES.find(o => o.id === s);
-                    return selo ? <span key={s} className="text-[6px] flex items-center gap-0.5 text-gray-500"><span>{selo.icon}</span>{selo.label}</span> : null;
-                  })}
-                </div>
-              )}
-
-              {form.mostrar_categorias && (
-                <div className="flex gap-2 px-3 py-2 overflow-hidden">
-                  {['Todos', 'Anéis', 'Brincos', 'Colares'].map((cat, i) => (
-                    <div key={cat} className="px-2.5 py-0.5 rounded-full text-[8px] font-medium whitespace-nowrap border"
-                      style={i === 0 ? { backgroundColor: form.cor_primaria, color: 'white', borderColor: form.cor_primaria } : { borderColor: '#e5e5e5', color: '#888' }}>
-                      {cat}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className={`grid gap-2 px-3 pb-3`} style={{ gridTemplateColumns: `repeat(${previewDevice === 'mobile' ? form.colunas_mobile : Math.min(parseInt(form.colunas_desktop), 3)}, 1fr)` }}>
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="rounded-lg overflow-hidden border border-gray-100">
-                    <div className="h-16 bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center relative">
-                      <Package className="w-5 h-5 text-gray-300" />
-                      <button className="absolute top-1 right-1"><Heart className="w-2.5 h-2.5 text-gray-300" /></button>
-                      {form.badges_produto.length > 0 && n === 1 && (
-                        <span className="absolute top-1 left-1 text-[5px] px-1 py-0.5 rounded text-white font-bold" style={{ backgroundColor: BADGES_PRODUTO_OPCOES.find(b => b.id === form.badges_produto[0])?.color || '#10B981' }}>
-                          {BADGES_PRODUTO_OPCOES.find(b => b.id === form.badges_produto[0])?.label}
-                        </span>
-                      )}
-                    </div>
-                    <div className="p-1.5">
-                      <div className="h-1.5 w-14 bg-gray-200 rounded-full mb-1" />
-                      {form.mostrar_preco_original && <p className="text-[6px] text-gray-400 line-through">R$ {(69.9 * n).toFixed(2)}</p>}
-                      <p className="text-[8px] font-bold" style={{ color: form.cor_primaria, fontFamily: form.fonte_corpo }}>R$ {(49.9 * n).toFixed(2)}</p>
-                      {form.mostrar_parcelamento && <p className="text-[5px] text-gray-400">{form.parcelamento_max}x R$ {(49.9 * n / parseInt(form.parcelamento_max)).toFixed(2)}</p>}
-                      {form.mostrar_estoque && <p className="text-[5px] text-gray-400 mt-0.5">{Math.floor(Math.random() * 10 + 1)} em estoque</p>}
+            {lojaUrl ? (
+              <motion.div 
+                layout 
+                className={`mx-auto rounded-[1.5rem] border-[5px] border-foreground/10 bg-background overflow-hidden shadow-2xl transition-all duration-300 ${previewDevice === 'mobile' ? 'w-[375px]' : 'w-full'}`} 
+                style={{ height: previewDevice === 'mobile' ? '667px' : '600px' }}
+              >
+                <div className="h-7 flex items-center justify-between px-4 bg-foreground/5 border-b border-border/50">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400/60" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400/60" />
+                  </div>
+                  <div className="flex-1 mx-4">
+                    <div className="bg-background/80 rounded-md px-3 py-0.5 text-center">
+                      <span className="text-[9px] text-muted-foreground font-mono truncate block">{lojaUrl}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {form.metodos_pagamento.length > 0 && (
-                <div className="flex gap-1 px-3 pb-2 justify-center flex-wrap">
-                  {form.metodos_pagamento.slice(0, 3).map(m => (
-                    <span key={m} className="text-[5px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase">{METODOS_PAGAMENTO.find(mp => mp.id === m)?.icon} {m}</span>
-                  ))}
+                  <div className="w-10" />
                 </div>
-              )}
+                <iframe 
+                  id="store-preview-iframe"
+                  src={lojaUrl} 
+                  className="w-full border-0"
+                  style={{ height: previewDevice === 'mobile' ? '640px' : '573px' }}
+                  title="Preview da Loja"
+                />
+              </motion.div>
+            ) : (
+              <Card className="border-dashed border-2">
+                <CardContent className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <Globe className="w-10 h-10 mb-3 opacity-40" />
+                  <p className="font-medium text-sm">Nenhum preview disponível</p>
+                  <p className="text-xs mt-1">Defina um slug para sua loja para ver o preview</p>
+                </CardContent>
+              </Card>
+            )}
 
-              {form.mostrar_whatsapp_float && form.whatsapp && (
-                <div className={`absolute bottom-10 ${form.whatsapp_posicao === 'esquerda' ? 'left-4' : 'right-4'}`}>
-                  <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg"><Phone className="w-4 h-4 text-white" /></div>
-                </div>
-              )}
-            </motion.div>
-
-            <p className="text-[10px] text-center text-muted-foreground">Pré-visualização ilustrativa · Altere e veja em tempo real</p>
+            <p className="text-[10px] text-center text-muted-foreground">
+              Salve as alterações para atualizar o preview · Clique em "Recarregar" para ver
+            </p>
           </div>
         </div>
       </div>
