@@ -807,12 +807,10 @@ function CompleteStep({ onGoTo }: CompleteStepProps) {
 
 // ============ HOOK ============
 
-const SUPER_ADMIN_EMAILS = ['beneloahsemijoias@gmail.com'];
-
 export function useSetupWizard() {
   const [showWizard, setShowWizard] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   useEffect(() => {
     const checkWizardStatus = async () => {
@@ -822,7 +820,7 @@ export function useSetupWizard() {
       }
 
       // Super admins skip onboarding wizard
-      if (user.email && SUPER_ADMIN_EMAILS.includes(user.email)) {
+      if (profile?.is_super_admin === true) {
         setShowWizard(false);
         setIsLoading(false);
         return;
@@ -868,7 +866,7 @@ export function useSetupWizard() {
 
     const timer = setTimeout(checkWizardStatus, 500);
     return () => clearTimeout(timer);
-  }, [user?.id]);
+  }, [user?.id, profile?.is_super_admin]);
 
   const resetWizard = async () => {
     if (!user?.id) return;

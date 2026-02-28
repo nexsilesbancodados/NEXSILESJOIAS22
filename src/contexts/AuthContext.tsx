@@ -15,6 +15,7 @@ interface Profile {
   avatar_url?: string;
   ativo?: boolean;
   senha_portal?: string;
+  is_super_admin?: boolean;
   created_at?: string;
   updated_at?: string;
 }
