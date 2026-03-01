@@ -183,7 +183,7 @@ export default function LandingPage() {
             initial="enter" animate="center" exit="exit"
             transition={{ duration: 0.7, ease: 'easeInOut' }}
             className="absolute inset-0">
-            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroSlides[heroIndex].img})` }} />
+            <img src={heroSlides[heroIndex].img} alt="" className="absolute inset-0 w-full h-full object-cover object-center" />
             <div className="absolute inset-0 bg-gradient-to-r from-rose-950/85 via-rose-900/60 to-transparent" />
           </motion.div>
         </AnimatePresence>
