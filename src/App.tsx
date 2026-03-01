@@ -270,8 +270,8 @@ function AppRoutes() {
                   <RealtimeNotifications />
                   <CriticalDataPrefetcher />
                   <ReadOnlyBanner />
-                  <SubscriptionGuard>
                   <MainLayout>
+                  <SubscriptionGuard>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<DashboardPage />} />
@@ -302,8 +302,8 @@ function AppRoutes() {
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
-                  </MainLayout>
                   </SubscriptionGuard>
+                  </MainLayout>
                 </SubscriptionProvider>
               </OrganizationGuard>
             </ProtectedRoute>
