@@ -110,7 +110,7 @@ const TESTIMONIALS = [
 ];
 
 const PASSOS = [
-  { num: '01', titulo: 'Crie sua conta', desc: 'Cadastro gratuito em menos de 2 minutos. Sem cartão.', icon: Smartphone },
+  { num: '01', titulo: 'Crie sua conta', desc: 'Cadastro rápido em menos de 2 minutos. Comece agora.', icon: Smartphone },
   { num: '02', titulo: 'Configure seu negócio', desc: 'Importe peças, adicione revendedoras e personalize.', icon: Package },
   { num: '03', titulo: 'Comece a lucrar', desc: 'Venda, gerencie e acompanhe tudo de qualquer lugar.', icon: TrendingUp },
 ];
@@ -154,7 +154,7 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-3">
             <Button variant="ghost" className="text-rose-700 hover:text-rose-800 hover:bg-rose-50" onClick={goToAuth}>Entrar</Button>
             <Button className="bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200" onClick={goToAuth}>
-              Teste 3 Dias Grátis <ArrowRight className="w-4 h-4 ml-1" />
+              Assinar Agora <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
           <button className="md:hidden p-2 -mr-2 text-rose-700" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -169,7 +169,7 @@ export default function LandingPage() {
             <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-rose-700 text-base">Depoimentos</a>
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1 border-rose-300 text-rose-700" onClick={goToAuth}>Entrar</Button>
-              <Button className="flex-1 bg-rose-500 text-white" onClick={goToAuth}>Teste Grátis</Button>
+              <Button className="flex-1 bg-rose-500 text-white" onClick={goToAuth}>Assinar Agora</Button>
             </div>
           </motion.div>
         )}
@@ -195,7 +195,7 @@ export default function LandingPage() {
         <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-12 lg:px-24 max-w-4xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} key={`text-${heroIndex}`}>
             <Badge className="mb-4 bg-rose-500/20 text-white border-rose-400/30 backdrop-blur-sm px-3 py-1.5 text-xs sm:text-sm font-semibold">
-              <Rocket className="w-3.5 h-3.5 mr-1.5" /> 3 Dias Grátis — Sem Cartão
+              <Rocket className="w-3.5 h-3.5 mr-1.5" /> A plataforma #1 para semijoias
             </Badge>
             <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 sm:mb-5 leading-[1.1] drop-shadow-lg"
                 style={{ fontFamily: "'Cormorant Garamond', serif" }}>
@@ -207,7 +207,7 @@ export default function LandingPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
               <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-sm sm:text-lg px-6 py-5 sm:px-10 sm:py-7 rounded-full shadow-xl shadow-rose-500/30 font-bold"
                 onClick={goToAuth}>
-                Começar Teste Grátis <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
+                Quero Assinar Agora <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
               </Button>
               <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-7 rounded-full backdrop-blur-sm"
                 onClick={scrollToPlanos}>
@@ -215,9 +215,9 @@ export default function LandingPage() {
               </Button>
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] sm:text-sm text-white/70">
-              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> Sem cartão de crédito</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> Pagamento seguro</span>
               <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> Acesso imediato</span>
-              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> Cancele quando quiser</span>
+              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" /> Suporte dedicado</span>
             </div>
           </motion.div>
         </div>
@@ -364,7 +364,7 @@ export default function LandingPage() {
           </div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-8 sm:mt-12">
             <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white rounded-full px-8 py-6 shadow-xl font-bold text-base" onClick={goToAuth}>
-              Testar Tudo Grátis por 3 Dias <ArrowRight className="w-5 h-5 ml-1" />
+              Escolher Meu Plano <ArrowRight className="w-5 h-5 ml-1" />
             </Button>
           </motion.div>
         </div>
@@ -403,7 +403,7 @@ export default function LandingPage() {
           </div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-12 sm:mt-16">
             <Button size="lg" className="bg-white text-rose-500 hover:bg-rose-50 text-base sm:text-lg px-8 py-6 rounded-full shadow-xl font-bold" onClick={goToAuth}>
-              Criar Minha Conta Grátis <ArrowRight className="w-5 h-5 ml-1" />
+              Quero Começar Agora <ArrowRight className="w-5 h-5 ml-1" />
             </Button>
           </motion.div>
         </div>
@@ -415,7 +415,7 @@ export default function LandingPage() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-6 sm:mb-10">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Planos & Preços</Badge>
             <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Invista no seu negócio</h2>
-            <p className="text-rose-600/50 text-sm sm:text-base max-w-xl mx-auto mb-6">Teste grátis por 3 dias. Sem cartão. Cancele quando quiser.</p>
+            <p className="text-rose-600/50 text-sm sm:text-base max-w-xl mx-auto mb-6">Escolha o plano ideal e comece a transformar seu negócio hoje.</p>
             
           </motion.div>
 
@@ -452,7 +452,7 @@ export default function LandingPage() {
                         ))}
                       </ul>
                       <Button className={`w-full text-sm rounded-full ${plano.destaque ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg' : 'bg-rose-50 hover:bg-rose-100 text-rose-700'}`} onClick={goToAuth}>
-                        Testar 3 Dias Grátis
+                        Assinar {plano.nome}
                       </Button>
                     </CardContent>
                   </Card>
@@ -494,7 +494,7 @@ export default function LandingPage() {
                         ))}
                       </ul>
                       <Button className={`w-full rounded-full font-semibold ${plano.destaque ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg' : 'bg-rose-50 hover:bg-rose-100 text-rose-700'}`} onClick={goToAuth}>
-                        Testar 3 Dias Grátis
+                        Assinar {plano.nome}
                       </Button>
                     </CardContent>
                   </Card>
@@ -567,16 +567,16 @@ export default function LandingPage() {
               <Gem className="w-3 h-3 mr-1.5" /> Oferta por tempo limitado
             </Badge>
             <h2 className="text-2xl sm:text-5xl font-extrabold mb-4 sm:mb-6" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-              Comece hoje e ganhe 3 dias grátis
+              Não perca mais vendas.<br />Comece agora.
             </h2>
             <p className="text-sm sm:text-lg text-white/80 mb-6 sm:mb-10 max-w-xl mx-auto">
-              Junte-se a centenas de empreendedoras que já transformaram seus negócios com o Nexsiles. Sem risco, sem cartão.
+              Junte-se a centenas de empreendedoras que já transformaram seus negócios com o Nexsiles. Escolha seu plano e comece hoje.
             </p>
             <Button size="lg" className="w-full sm:w-auto bg-white text-rose-500 hover:bg-rose-50 text-base sm:text-lg px-10 py-6 sm:py-7 rounded-full shadow-2xl font-bold"
               onClick={goToAuth}>
-              Começar Meu Teste Grátis Agora <ArrowRight className="w-5 h-5 ml-1" />
+              Escolher Meu Plano Agora <ArrowRight className="w-5 h-5 ml-1" />
             </Button>
-            <p className="text-white/50 text-xs mt-4">Cadastro em menos de 2 minutos • Sem cartão de crédito</p>
+            <p className="text-white/50 text-xs mt-4">Cadastro rápido • Acesso imediato • Pagamento seguro</p>
           </motion.div>
         </div>
       </section>
@@ -614,7 +614,7 @@ export default function LandingPage() {
       {/* Mobile sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-50 p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-white via-white/95 to-transparent sm:hidden">
         <Button className="w-full bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-full text-sm font-bold shadow-xl shadow-rose-200/50" onClick={goToAuth}>
-          Teste Grátis 3 Dias — Sem Cartão <ArrowRight className="w-4 h-4 ml-1" />
+          Assinar Agora — A partir de R$ 129/mês <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
       </div>
     </div>
