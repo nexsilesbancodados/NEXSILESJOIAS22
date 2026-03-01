@@ -204,6 +204,8 @@ function AppRoutes() {
         </Routes>
       </Suspense>
     );
+  }
+
   // Subdomínio admin.* → acesso direto ao painel administrativo (sem landing)
   if (isAdminSubdomain) {
     return (
