@@ -166,13 +166,15 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    await sendEmailBrevo(
+    console.log("Sending email to:", pedido.cliente_email, "from:", "noreply@nexsales.online");
+    const brevoResult = await sendEmailBrevo(
       brevoKey,
       { email: pedido.cliente_email, name: pedido.cliente_nome },
       { email: "noreply@nexsales.online", name: nomeLoja },
       `✅ Pedido #${pedido.numero_pedido} confirmado! - ${nomeLoja}`,
       html
     );
+    console.log("Brevo API response:", JSON.stringify(brevoResult));
 
     await supabase.from("email_logs").insert({
       organization_id: pedido.organization_id,
