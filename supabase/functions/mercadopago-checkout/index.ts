@@ -95,7 +95,7 @@ serve(async (req: Request) => {
       },
       auto_return: "approved",
       external_reference: externalRef,
-      notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+      notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?source_news=webhooks`,
       statement_descriptor: "NEXSILES",
       binary_mode: false,
       metadata: {

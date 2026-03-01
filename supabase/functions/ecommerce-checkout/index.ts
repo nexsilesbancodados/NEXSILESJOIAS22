@@ -227,13 +227,13 @@ serve(async (req: Request) => {
       external_reference: externalRef,
 
       // ===== NOTIFICATION URL (webhook - obrigatório) =====
-      notification_url: `${supabaseUrl}/functions/v1/ecommerce-webhook`,
+      notification_url: `${supabaseUrl}/functions/v1/ecommerce-webhook?source_news=webhooks`,
 
       // ===== STATEMENT DESCRIPTOR (fatura do cartão) =====
       statement_descriptor: (ecomConfig?.nome_loja || "LOJA ONLINE").substring(0, 22).replace(/[^a-zA-Z0-9 ]/g, ""),
 
       // ===== BINARY MODE (aprovação instantânea) =====
-      binary_mode: true,
+      binary_mode: false,
 
       // ===== INSTALLMENTS (parcelas) =====
       payment_methods: {
