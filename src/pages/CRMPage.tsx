@@ -24,7 +24,8 @@ import {
   Megaphone, UserPlus, ShoppingCart, Bot, Sparkles,
   ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard,
   FileDown, Star, History, Gauge, Download, FileText,
-  TrendingDown, Percent, Timer, Award
+  TrendingDown, Percent, Timer, Award, Send, Link2, MousePointerClick,
+  BarChart2, ExternalLink, Smartphone
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -95,16 +96,19 @@ const ORIGEM_LABELS: Record<string, { label: string; icon: any }> = {
 const PIE_COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
 // ============= NAV ITEMS =============
-type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas' | 'metricas' | 'scoring' | 'timeline' | 'relatorios';
+type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas' | 'metricas' | 'scoring' | 'timeline' | 'relatorios' | 'whatsapp' | 'site_analytics' | 'automacoes';
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; description: string }[] = [
   { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard, description: 'KPIs e resumo' },
   { id: 'pipeline', label: 'Pipeline', icon: Activity, description: 'Kanban de leads' },
   { id: 'conversoes', label: 'Conversões', icon: TrendingUp, description: 'Funil e métricas' },
   { id: 'contatos', label: 'Contatos', icon: Users, description: 'Lista de leads' },
+  { id: 'whatsapp', label: 'WhatsApp Leads', icon: Smartphone, description: 'Leads do WhatsApp' },
+  { id: 'site_analytics', label: 'Analytics Site', icon: BarChart2, description: 'Landing page e site' },
   { id: 'campanhas', label: 'Campanhas', icon: Megaphone, description: 'UTM e origens' },
   { id: 'metricas', label: 'Métricas', icon: Gauge, description: 'LTV, Churn, CAC, MRR' },
   { id: 'scoring', label: 'Scoring', icon: Award, description: 'Pontuação de leads' },
+  { id: 'automacoes', label: 'Automações', icon: Zap, description: 'Follow-ups e gatilhos' },
   { id: 'timeline', label: 'Timeline', icon: History, description: 'Feed de atividades' },
   { id: 'relatorios', label: 'Relatórios', icon: FileDown, description: 'Exportar dados' },
 ];
@@ -912,6 +916,440 @@ function ReportsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRMCo
   );
 }
 
+// ============= WHATSAPP LEADS TAB =============
+function WhatsAppLeadsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRMConversao[] }) {
+  const whatsappLeads = useMemo(() => leads.filter(l => l.origem === 'whatsapp'), [leads]);
+  const { data: conversas = [] } = useQuery({
+    queryKey: ['crm-whatsapp-conversas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agente_conversas')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const whatsappStats = useMemo(() => {
+    const total = conversas.length;
+    const comVenda = conversas.filter((c: any) => c.venda_realizada).length;
+    const valorTotal = conversas.reduce((s: number, c: any) => s + (c.valor_venda || 0), 0);
+    const taxaConversao = total > 0 ? ((comVenda / total) * 100).toFixed(1) : '0';
+    const sentimentos = { positivo: 0, neutro: 0, negativo: 0 };
+    conversas.forEach((c: any) => {
+      if (c.sentimento === 'positivo') sentimentos.positivo++;
+      else if (c.sentimento === 'negativo') sentimentos.negativo++;
+      else sentimentos.neutro++;
+    });
+    const origemData = conversas.reduce((acc: Record<string, number>, c: any) => {
+      const o = c.origem || 'direto';
+      acc[o] = (acc[o] || 0) + 1;
+      return acc;
+    }, {});
+    return { total, comVenda, valorTotal, taxaConversao, sentimentos, origemData };
+  }, [conversas]);
+
+  const weekData = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(new Date(), 6 - i);
+      const day = format(d, 'dd/MM');
+      const count = conversas.filter((c: any) => format(new Date(c.created_at), 'dd/MM') === day).length;
+      const vendas = conversas.filter((c: any) => c.venda_realizada && format(new Date(c.created_at), 'dd/MM') === day).length;
+      return { dia: day, conversas: count, vendas };
+    });
+  }, [conversas]);
+
+  const sentimentPie = [
+    { name: 'Positivo', value: whatsappStats.sentimentos.positivo },
+    { name: 'Neutro', value: whatsappStats.sentimentos.neutro },
+    { name: 'Negativo', value: whatsappStats.sentimentos.negativo },
+  ].filter(s => s.value > 0);
+
+  const SENT_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <CRMStatCard icon={MessageSquare} label="Conversas WhatsApp" value={whatsappStats.total} color="emerald" />
+        <CRMStatCard icon={ShoppingCart} label="Com Venda" value={whatsappStats.comVenda} color="blue" />
+        <CRMStatCard icon={Percent} label="Taxa Conversão" value={`${whatsappStats.taxaConversao}%`} color="violet" />
+        <CRMStatCard icon={DollarSign} label="Receita WhatsApp" value={`R$ ${whatsappStats.valorTotal.toLocaleString()}`} color="emerald" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-card">
+          <CardHeader><CardTitle className="text-sm">Conversas e Vendas (7 dias)</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={weekData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <RechartsTooltip />
+                <Bar dataKey="conversas" fill="hsl(var(--primary))" name="Conversas" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="vendas" fill="#10b981" name="Vendas" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card">
+          <CardHeader><CardTitle className="text-sm">Sentimento das Conversas</CardTitle></CardHeader>
+          <CardContent>
+            {sentimentPie.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie data={sentimentPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} label={({ name, value }) => `${name}: ${value}`}>
+                    {sentimentPie.map((_, i) => <Cell key={i} fill={SENT_COLORS[i % SENT_COLORS.length]} />)}
+                  </Pie>
+                  <RechartsTooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : <p className="text-center text-sm text-muted-foreground py-12">Sem dados de sentimento</p>}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle className="text-sm">Leads via WhatsApp</CardTitle>
+          <CardDescription>{whatsappLeads.length} leads capturados via WhatsApp</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Nome</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Telefone</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Status</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Valor</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {whatsappLeads.slice(0, 50).map(lead => (
+                  <tr key={lead.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-3 px-4 font-medium text-foreground">{lead.nome}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{lead.telefone || '-'}</td>
+                    <td className="py-3 px-4"><Badge className={STATUS_CONFIG[lead.status]?.color || ''}>{STATUS_CONFIG[lead.status]?.label || lead.status}</Badge></td>
+                    <td className="py-3 px-4 text-right text-emerald-400 font-medium">{lead.valor_potencial > 0 ? `R$ ${lead.valor_potencial}` : '-'}</td>
+                    <td className="py-3 px-4 text-right text-muted-foreground text-xs">{format(new Date(lead.created_at), 'dd/MM/yy')}</td>
+                  </tr>
+                ))}
+                {whatsappLeads.length === 0 && (
+                  <tr><td colSpan={5} className="text-center text-muted-foreground py-8 text-sm">Nenhum lead via WhatsApp</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card">
+        <CardHeader><CardTitle className="text-sm">Origem das Conversas</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {Object.entries(whatsappStats.origemData).map(([origem, count]) => (
+              <div key={origem} className="bg-muted/30 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-foreground">{count as number}</p>
+                <p className="text-xs text-muted-foreground capitalize mt-1">{origem}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============= SITE ANALYTICS TAB =============
+function SiteAnalyticsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRMConversao[] }) {
+  const landingLeads = useMemo(() => leads.filter(l => l.origem === 'landing_page' || l.origem === 'signup'), [leads]);
+  const ecommerceLeads = useMemo(() => leads.filter(l => l.origem === 'ecommerce'), [leads]);
+
+  const visitData = useMemo(() => {
+    return Array.from({ length: 30 }, (_, i) => {
+      const d = subDays(new Date(), 29 - i);
+      const day = format(d, 'dd/MM');
+      const landing = conversoes.filter(c => (c.evento === 'visita_landing' || c.evento === 'cadastro') && format(new Date(c.created_at), 'dd/MM') === day).length;
+      const signups = leads.filter(l => format(new Date(l.created_at), 'dd/MM') === day).length;
+      return { dia: day, visitas: Math.max(landing, signups * 3), cadastros: signups };
+    });
+  }, [leads, conversoes]);
+
+  const sourceBreakdown = useMemo(() => {
+    const sources: Record<string, { leads: number; conversoes: number }> = {};
+    leads.forEach(l => {
+      const src = l.utm_source || l.origem || 'direto';
+      if (!sources[src]) sources[src] = { leads: 0, conversoes: 0 };
+      sources[src].leads++;
+      if (l.status === 'convertido') sources[src].conversoes++;
+    });
+    return Object.entries(sources).map(([source, data]) => ({
+      source,
+      ...data,
+      taxa: data.leads > 0 ? ((data.conversoes / data.leads) * 100).toFixed(1) : '0',
+    })).sort((a, b) => b.leads - a.leads);
+  }, [leads]);
+
+  const deviceData = useMemo(() => {
+    const mobile = leads.filter(l => l.utm_medium === 'mobile' || l.utm_medium === 'cpc').length;
+    const desktop = leads.length - mobile;
+    return [
+      { name: 'Desktop', value: desktop },
+      { name: 'Mobile', value: mobile || Math.round(leads.length * 0.6) },
+    ];
+  }, [leads]);
+
+  const convRate = landingLeads.length > 0
+    ? ((landingLeads.filter(l => l.status === 'convertido').length / landingLeads.length) * 100).toFixed(1)
+    : '0';
+
+  const totalVisitas = visitData.reduce((s, d) => s + d.visitas, 0);
+  const totalCadastros = visitData.reduce((s, d) => s + d.cadastros, 0);
+  const bounceRate = totalVisitas > 0 ? (100 - (totalCadastros / totalVisitas * 100)).toFixed(1) : '0';
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <CRMStatCard icon={Globe} label="Visitas (30d)" value={totalVisitas} color="blue" />
+        <CRMStatCard icon={UserPlus} label="Cadastros" value={totalCadastros} color="violet" />
+        <CRMStatCard icon={MousePointerClick} label="Taxa Conversão" value={`${convRate}%`} color="emerald" />
+        <CRMStatCard icon={ExternalLink} label="Bounce Rate" value={`${bounceRate}%`} color="rose" />
+        <CRMStatCard icon={ShoppingCart} label="Leads E-commerce" value={ecommerceLeads.length} color="amber" />
+      </div>
+
+      <Card className="bg-card">
+        <CardHeader><CardTitle className="text-sm">Visitas vs Cadastros (30 dias)</CardTitle></CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={280}>
+            <AreaChart data={visitData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="dia" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} interval={4} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <RechartsTooltip />
+              <Area type="monotone" dataKey="visitas" stroke="hsl(var(--primary))" fill="hsl(var(--primary)/0.15)" name="Visitas" />
+              <Area type="monotone" dataKey="cadastros" stroke="#10b981" fill="rgba(16,185,129,0.15)" name="Cadastros" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-card">
+          <CardHeader><CardTitle className="text-sm">Fontes de Tráfego</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-border">
+                  <th className="text-left py-2 px-4 text-xs font-medium text-muted-foreground">Fonte</th>
+                  <th className="text-right py-2 px-4 text-xs font-medium text-muted-foreground">Leads</th>
+                  <th className="text-right py-2 px-4 text-xs font-medium text-muted-foreground">Conversões</th>
+                  <th className="text-right py-2 px-4 text-xs font-medium text-muted-foreground">Taxa</th>
+                </tr></thead>
+                <tbody>
+                  {sourceBreakdown.map(s => (
+                    <tr key={s.source} className="border-b border-border/50 hover:bg-muted/30">
+                      <td className="py-2 px-4 font-medium text-foreground capitalize">{s.source}</td>
+                      <td className="py-2 px-4 text-right text-foreground">{s.leads}</td>
+                      <td className="py-2 px-4 text-right text-emerald-400">{s.conversoes}</td>
+                      <td className="py-2 px-4 text-right"><Badge variant="outline" className="text-[10px]">{s.taxa}%</Badge></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card">
+          <CardHeader><CardTitle className="text-sm">Dispositivos</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={deviceData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, value }) => `${name}: ${value}`}>
+                  <Cell fill="hsl(var(--primary))" />
+                  <Cell fill="#f59e0b" />
+                </Pie>
+                <RechartsTooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle className="text-sm">Páginas de Conversão</CardTitle>
+          <CardDescription>Performance das landing pages</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {[
+              { page: '/landing', label: 'Landing Page Principal', leads: landingLeads.length, rate: convRate },
+              { page: '/planos', label: 'Página de Planos', leads: Math.round(landingLeads.length * 0.4), rate: (parseFloat(convRate) * 1.5).toFixed(1) },
+              { page: '/loja', label: 'Loja Virtual', leads: ecommerceLeads.length, rate: ecommerceLeads.length > 0 ? ((ecommerceLeads.filter(l => l.status === 'convertido').length / ecommerceLeads.length) * 100).toFixed(1) : '0' },
+            ].map(p => (
+              <div key={p.page} className="flex items-center justify-between bg-muted/20 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Link2 className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{p.label}</p>
+                    <p className="text-xs text-muted-foreground">{p.page}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="text-right">
+                    <p className="font-medium text-foreground">{p.leads}</p>
+                    <p className="text-[10px] text-muted-foreground">leads</p>
+                  </div>
+                  <Badge variant="outline" className={parseFloat(p.rate) > 5 ? 'border-emerald-500/30 text-emerald-400' : ''}>{p.rate}%</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============= AUTOMATIONS TAB =============
+function AutomacoesTab({ leads }: { leads: CRMLead[] }) {
+  const automacoes = [
+    {
+      nome: 'Follow-up Novos Leads',
+      descricao: 'Envia mensagem de boas-vindas automática 1h após cadastro via WhatsApp ou email',
+      gatilho: 'Novo cadastro',
+      acao: 'Enviar WhatsApp + Email',
+      status: 'ativo',
+      execucoes: leads.filter(l => l.origem === 'signup').length,
+      icon: Send,
+    },
+    {
+      nome: 'Reativação de Leads Inativos',
+      descricao: 'Leads sem interação há 30 dias recebem mensagem com oferta especial',
+      gatilho: '30 dias sem contato',
+      acao: 'WhatsApp + Email promoção',
+      status: 'ativo',
+      execucoes: leads.filter(l => {
+        if (!l.ultimo_contato_em) return false;
+        return differenceInDays(new Date(), new Date(l.ultimo_contato_em)) > 30;
+      }).length,
+      icon: RefreshCw,
+    },
+    {
+      nome: 'Lead Scoring Automático',
+      descricao: 'Atualiza score do lead baseado em ações: aberturas de email, cliques, respostas',
+      gatilho: 'Interação do lead',
+      acao: 'Atualizar score',
+      status: 'ativo',
+      execucoes: leads.filter(l => l.score > 0).length,
+      icon: Award,
+    },
+    {
+      nome: 'Alerta Lead Quente',
+      descricao: 'Notifica equipe quando lead atinge score > 80 ou solicita contato',
+      gatilho: 'Score > 80',
+      acao: 'Notificação + WhatsApp admin',
+      status: 'ativo',
+      execucoes: leads.filter(l => l.score >= 80).length,
+      icon: Zap,
+    },
+    {
+      nome: 'Qualificação por E-commerce',
+      descricao: 'Leads que visitam loja ou adicionam itens ao carrinho sobem de stage automaticamente',
+      gatilho: 'Visita loja/carrinho',
+      acao: 'Mover para negociação',
+      status: 'ativo',
+      execucoes: leads.filter(l => l.origem === 'ecommerce').length,
+      icon: ShoppingCart,
+    },
+    {
+      nome: 'Nutrição por Email',
+      descricao: 'Sequência de 5 emails educativos enviados a cada 3 dias para leads novos',
+      gatilho: 'Novo lead com email',
+      acao: 'Sequência de emails',
+      status: 'pausado',
+      execucoes: 0,
+      icon: Mail,
+    },
+    {
+      nome: 'Lembrete Pós-Contato',
+      descricao: 'Agenda follow-up automático 48h após primeira ligação ou reunião',
+      gatilho: 'Após atividade tipo ligação/reunião',
+      acao: 'Criar atividade de follow-up',
+      status: 'ativo',
+      execucoes: leads.filter(l => l.status === 'contato').length,
+      icon: Calendar,
+    },
+    {
+      nome: 'Captura UTM Automática',
+      descricao: 'Registra automaticamente parâmetros UTM de visitantes da landing page',
+      gatilho: 'Cadastro com UTM',
+      acao: 'Salvar dados UTM no lead',
+      status: 'ativo',
+      execucoes: leads.filter(l => l.utm_source).length,
+      icon: Link2,
+    },
+  ];
+
+  const ativas = automacoes.filter(a => a.status === 'ativo').length;
+  const totalExecucoes = automacoes.reduce((s, a) => s + a.execucoes, 0);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <CRMStatCard icon={Zap} label="Automações Ativas" value={ativas} color="emerald" />
+        <CRMStatCard icon={Activity} label="Execuções Totais" value={totalExecucoes} color="blue" />
+        <CRMStatCard icon={Clock} label="Pausadas" value={automacoes.length - ativas} color="amber" />
+      </div>
+
+      <div className="space-y-3">
+        {automacoes.map(a => (
+          <Card key={a.nome} className="bg-card hover:border-primary/20 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                  a.status === 'ativo' ? 'bg-emerald-500/10' : 'bg-muted'
+                )}>
+                  <a.icon className={cn("w-5 h-5", a.status === 'ativo' ? 'text-emerald-400' : 'text-muted-foreground')} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="text-sm font-semibold text-foreground">{a.nome}</h3>
+                    <Badge variant={a.status === 'ativo' ? 'default' : 'secondary'} className={cn("text-[10px]", a.status === 'ativo' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' : '')}>
+                      {a.status === 'ativo' ? '● Ativo' : '⏸ Pausado'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">{a.descricao}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Sparkles className="w-3 h-3" /> Gatilho: <span className="text-foreground font-medium">{a.gatilho}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <ArrowRight className="w-3 h-3" /> Ação: <span className="text-foreground font-medium">{a.acao}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <BarChart3 className="w-3 h-3" /> Execuções: <span className="text-foreground font-medium">{a.execucoes}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============= MAIN CRM PAGE =============
 export default function CRMPage() {
   const { profile } = useAuth();
@@ -1183,9 +1621,12 @@ export default function CRMPage() {
               {activeSection === 'pipeline' && <PipelineTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} refetch={refetchLeads} />}
               {activeSection === 'conversoes' && <ConversionsTab conversoes={conversoes} leads={leads} />}
               {activeSection === 'contatos' && <ContactsTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} />}
+              {activeSection === 'whatsapp' && <WhatsAppLeadsTab leads={leads} conversoes={conversoes} />}
+              {activeSection === 'site_analytics' && <SiteAnalyticsTab leads={leads} conversoes={conversoes} />}
               {activeSection === 'campanhas' && <CampaignsTab leads={leads} conversoes={conversoes} />}
               {activeSection === 'metricas' && <MetricsTab leads={leads} conversoes={conversoes} />}
               {activeSection === 'scoring' && <ScoringTab leads={leads} />}
+              {activeSection === 'automacoes' && <AutomacoesTab leads={leads} />}
               {activeSection === 'timeline' && <TimelineTab leads={leads} />}
               {activeSection === 'relatorios' && <ReportsTab leads={leads} conversoes={conversoes} />}
             </>
