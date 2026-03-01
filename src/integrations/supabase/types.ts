@@ -1303,6 +1303,163 @@ export type Database = {
           },
         ]
       }
+      crm_atividades: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          lead_id: string
+          realizado_por: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lead_id: string
+          realizado_por?: string | null
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          lead_id?: string
+          realizado_por?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_atividades_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_conversoes: {
+        Row: {
+          created_at: string
+          evento: string
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string
+          evento: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string
+          evento?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_conversoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          convertido_em: string | null
+          created_at: string
+          email: string | null
+          empresa: string | null
+          id: string
+          nome: string
+          notas: string | null
+          origem: string
+          plano_interesse: string | null
+          score: number | null
+          status: string
+          tags: string[] | null
+          telefone: string | null
+          ultimo_contato_em: string | null
+          updated_at: string
+          user_id_convertido: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          valor_potencial: number | null
+        }
+        Insert: {
+          convertido_em?: string | null
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          id?: string
+          nome: string
+          notas?: string | null
+          origem?: string
+          plano_interesse?: string | null
+          score?: number | null
+          status?: string
+          tags?: string[] | null
+          telefone?: string | null
+          ultimo_contato_em?: string | null
+          updated_at?: string
+          user_id_convertido?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          valor_potencial?: number | null
+        }
+        Update: {
+          convertido_em?: string | null
+          created_at?: string
+          email?: string | null
+          empresa?: string | null
+          id?: string
+          nome?: string
+          notas?: string | null
+          origem?: string
+          plano_interesse?: string | null
+          score?: number | null
+          status?: string
+          tags?: string[] | null
+          telefone?: string | null
+          ultimo_contato_em?: string | null
+          updated_at?: string
+          user_id_convertido?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          valor_potencial?: number | null
+        }
+        Relationships: []
+      }
       cupons: {
         Row: {
           ativo: boolean

@@ -158,6 +158,7 @@ const menuItems = [
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
   { icon: ShoppingBag, label: 'Loja Virtual', path: '/loja-virtual', color: 'from-rose-500 to-pink-600', superAdminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
+  { icon: TrendingUp, label: 'CRM', path: '/crm', color: 'from-indigo-500 to-violet-600', superAdminOnly: true },
   { icon: Shield, label: 'Super Admin', path: '/super-admin', color: 'from-red-500 to-orange-600', superAdminOnly: true },
 ];
 
