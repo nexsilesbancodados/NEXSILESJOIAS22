@@ -63,7 +63,7 @@ const PLANOS = [
     nome: 'E-commerce',
     tier: 'E-COMMERCE',
     preco: 129,
-    precoAnual: 103,
+    
     destaque: false,
     icon: Store,
     desc: 'Ideal para quem quer apenas vender online',
@@ -73,7 +73,7 @@ const PLANOS = [
     nome: 'Bronze',
     tier: 'BRONZE',
     preco: 189,
-    precoAnual: 151,
+    
     destaque: false,
     icon: Sparkles,
     desc: 'Gestão completa sem Loja Virtual e IA',
@@ -83,7 +83,7 @@ const PLANOS = [
     nome: 'Prata',
     tier: 'PRATA',
     preco: 239,
-    precoAnual: 191,
+    
     destaque: true,
     icon: Bot,
     desc: 'O mais vendido! Gestão + IA integrada',
@@ -93,7 +93,7 @@ const PLANOS = [
     nome: 'Diamante',
     tier: 'DIAMANTE',
     preco: 299,
-    precoAnual: 239,
+    
     destaque: false,
     icon: Crown,
     desc: 'Acesso completo — Gestão + IA + Loja Virtual',
@@ -121,7 +121,7 @@ export default function LandingPage() {
   const planosRef = useRef<HTMLDivElement>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroDir, setHeroDir] = useState(0);
-  const [planoPeriodo, setPlanoPeriodo] = useState<'mensal' | 'anual'>('mensal');
+  
 
   const heroSlides = [
     { img: heroSlide1, title: 'O sistema nº1 para semijoias no Brasil', subtitle: 'Estoque, PDV, revendedoras, loja virtual e IA — tudo num só lugar. Já usado por centenas de empreendedoras.' },
@@ -417,23 +417,12 @@ export default function LandingPage() {
             <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Invista no seu negócio</h2>
             <p className="text-rose-600/50 text-sm sm:text-base max-w-xl mx-auto mb-6">Teste grátis por 3 dias. Sem cartão. Cancele quando quiser.</p>
             
-            {/* Period Toggle */}
-            <div className="inline-flex items-center gap-2 bg-rose-50 rounded-full p-1 border border-rose-100">
-              <button onClick={() => setPlanoPeriodo('mensal')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${planoPeriodo === 'mensal' ? 'bg-rose-500 text-white shadow-md' : 'text-rose-600 hover:bg-rose-100'}`}>
-                Mensal
-              </button>
-              <button onClick={() => setPlanoPeriodo('anual')}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${planoPeriodo === 'anual' ? 'bg-rose-500 text-white shadow-md' : 'text-rose-600 hover:bg-rose-100'}`}>
-                Anual <Badge className="bg-emerald-500 text-white border-0 text-[9px] px-1.5">-20%</Badge>
-              </button>
-            </div>
           </motion.div>
 
           {/* Mobile: scroll */}
           <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 lg:hidden scrollbar-hide">
             {PLANOS.map((plano) => {
-              const preco = planoPeriodo === 'anual' ? plano.precoAnual : plano.preco;
+              const preco = plano.preco;
               return (
                 <div key={plano.nome} className="snap-center flex-shrink-0 w-[280px]">
                   <Card className={`relative h-full bg-white border-rose-100 ${plano.destaque ? 'border-rose-400 shadow-xl shadow-rose-200/40 ring-2 ring-rose-400' : ''}`}>
@@ -453,7 +442,7 @@ export default function LandingPage() {
                         <span className="text-xs text-rose-400">R$</span>
                         <span className="text-3xl font-extrabold text-rose-950 mx-1">{preco}</span>
                         <span className="text-xs text-rose-400">/mês</span>
-                        {planoPeriodo === 'anual' && <p className="text-[10px] text-emerald-500 font-medium mt-1">Economia de R$ {(plano.preco - plano.precoAnual) * 12}/ano</p>}
+                        
                       </div>
                       <ul className="space-y-2 mb-6 flex-1">
                         {plano.recursos.map((r) => (
@@ -476,7 +465,7 @@ export default function LandingPage() {
           {/* Desktop: grid */}
           <div className="hidden lg:grid lg:grid-cols-4 gap-5">
             {PLANOS.map((plano, i) => {
-              const preco = planoPeriodo === 'anual' ? plano.precoAnual : plano.preco;
+              const preco = plano.preco;
               return (
                 <motion.div key={plano.nome} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.15}>
                   <Card className={`relative h-full bg-white border-rose-100 ${plano.destaque ? 'border-rose-400 shadow-xl shadow-rose-200/40 ring-2 ring-rose-400 scale-105' : ''}`}>
@@ -496,11 +485,6 @@ export default function LandingPage() {
                         <span className="text-sm text-rose-400">R$</span>
                         <span className="text-4xl font-extrabold text-rose-950 mx-1">{preco}</span>
                         <span className="text-sm text-rose-400">/mês</span>
-                        {planoPeriodo === 'anual' && (
-                          <p className="text-xs text-emerald-500 font-semibold mt-1">
-                            <s className="text-rose-300 font-normal">R$ {plano.preco}</s> → Economize R$ {(plano.preco - plano.precoAnual) * 12}/ano
-                          </p>
-                        )}
                       </div>
                       <ul className="space-y-2.5 mb-8 flex-1">
                         {plano.recursos.map((r) => (
