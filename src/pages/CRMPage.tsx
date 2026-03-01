@@ -25,8 +25,10 @@ import {
   ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard,
   FileDown, Star, History, Gauge, Download, FileText,
   TrendingDown, Percent, Timer, Award, Send, Link2, MousePointerClick,
-  BarChart2, ExternalLink, Smartphone
+  BarChart2, ExternalLink, Smartphone, Settings, Bell, Shield, Palette,
+  ToggleLeft, Save, AlertTriangle, Hash
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -96,7 +98,7 @@ const ORIGEM_LABELS: Record<string, { label: string; icon: any }> = {
 const PIE_COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
 // ============= NAV ITEMS =============
-type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas' | 'metricas' | 'scoring' | 'timeline' | 'relatorios' | 'whatsapp' | 'site_analytics' | 'automacoes';
+type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas' | 'metricas' | 'scoring' | 'timeline' | 'relatorios' | 'whatsapp' | 'site_analytics' | 'automacoes' | 'configuracoes';
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; description: string }[] = [
   { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard, description: 'KPIs e resumo' },
@@ -111,6 +113,7 @@ const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; des
   { id: 'automacoes', label: 'Automações', icon: Zap, description: 'Follow-ups e gatilhos' },
   { id: 'timeline', label: 'Timeline', icon: History, description: 'Feed de atividades' },
   { id: 'relatorios', label: 'Relatórios', icon: FileDown, description: 'Exportar dados' },
+  { id: 'configuracoes', label: 'Configurações', icon: Settings, description: 'Regras e preferências' },
 ];
 
 // ============= SUB-COMPONENTS =============
@@ -1350,6 +1353,312 @@ function AutomacoesTab({ leads }: { leads: CRMLead[] }) {
   );
 }
 
+// ============= CONFIGURAÇÕES TAB =============
+function ConfiguracoesTab() {
+  const [config, setConfig] = useState({
+    // Pipeline
+    pipeline_stages: ['novo', 'contato', 'qualificado', 'negociacao', 'proposta', 'convertido', 'perdido'],
+    novo_stage_name: '',
+    // Scoring
+    scoring_ativo: true,
+    score_minimo_quente: 80,
+    score_email: 10,
+    score_telefone: 10,
+    score_empresa: 15,
+    score_utm_pago: 20,
+    score_valor_alto: 15,
+    // Automações
+    auto_follow_up: true,
+    follow_up_horas: 24,
+    auto_reativacao: true,
+    reativacao_dias: 30,
+    auto_scoring: true,
+    alerta_lead_quente: true,
+    // Notificações
+    notif_novo_lead: true,
+    notif_conversao: true,
+    notif_lead_quente: true,
+    notif_lead_perdido: false,
+    notif_email: true,
+    notif_whatsapp: false,
+    // Origens
+    origens_custom: ['signup', 'whatsapp', 'landing_page', 'indicacao', 'ecommerce', 'instagram', 'google_ads'],
+    nova_origem: '',
+    // Tags
+    tags_padrao: ['vip', 'b2b', 'b2c', 'parceiro', 'revendedor', 'atacado', 'varejo'],
+    nova_tag: '',
+    // Geral
+    moeda: 'BRL',
+    timezone: 'America/Sao_Paulo',
+    dias_inatividade: 30,
+    limite_leads_export: 5000,
+  });
+
+  const handleSave = () => {
+    toast.success('Configurações salvas com sucesso!');
+  };
+
+  const addStage = () => {
+    if (config.novo_stage_name.trim() && !config.pipeline_stages.includes(config.novo_stage_name.trim().toLowerCase())) {
+      setConfig(c => ({ ...c, pipeline_stages: [...c.pipeline_stages, c.novo_stage_name.trim().toLowerCase()], novo_stage_name: '' }));
+    }
+  };
+
+  const removeStage = (s: string) => {
+    if (['novo', 'convertido', 'perdido'].includes(s)) return toast.error('Não é possível remover stages obrigatórios');
+    setConfig(c => ({ ...c, pipeline_stages: c.pipeline_stages.filter(st => st !== s) }));
+  };
+
+  const addOrigem = () => {
+    if (config.nova_origem.trim() && !config.origens_custom.includes(config.nova_origem.trim().toLowerCase())) {
+      setConfig(c => ({ ...c, origens_custom: [...c.origens_custom, c.nova_origem.trim().toLowerCase()], nova_origem: '' }));
+    }
+  };
+
+  const addTag = () => {
+    if (config.nova_tag.trim() && !config.tags_padrao.includes(config.nova_tag.trim().toLowerCase())) {
+      setConfig(c => ({ ...c, tags_padrao: [...c.tags_padrao, c.nova_tag.trim().toLowerCase()], nova_tag: '' }));
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Pipeline */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Stages do Pipeline</CardTitle>
+          </div>
+          <CardDescription>Configure as etapas do funil de vendas</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {config.pipeline_stages.map(stage => (
+              <Badge key={stage} variant="outline" className="gap-1 capitalize py-1.5 px-3">
+                {stage}
+                {!['novo', 'convertido', 'perdido'].includes(stage) && (
+                  <button onClick={() => removeStage(stage)} className="ml-1 hover:text-destructive"><XCircle className="w-3 h-3" /></button>
+                )}
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input placeholder="Nome do novo stage" value={config.novo_stage_name} onChange={e => setConfig(c => ({ ...c, novo_stage_name: e.target.value }))} className="max-w-xs" />
+            <Button size="sm" variant="outline" onClick={addStage}><Plus className="w-4 h-4 mr-1" /> Adicionar</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Lead Scoring */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Award className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Lead Scoring</CardTitle>
+          </div>
+          <CardDescription>Defina os pesos das regras de pontuação</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label>Scoring automático ativo</Label>
+            <Switch checked={config.scoring_ativo} onCheckedChange={v => setConfig(c => ({ ...c, scoring_ativo: v }))} />
+          </div>
+          <Separator />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Score mínimo "Lead Quente"</Label>
+              <Input type="number" value={config.score_minimo_quente} onChange={e => setConfig(c => ({ ...c, score_minimo_quente: +e.target.value }))} />
+            </div>
+            {[
+              { key: 'score_email', label: 'Possui email' },
+              { key: 'score_telefone', label: 'Possui telefone' },
+              { key: 'score_empresa', label: 'Possui empresa' },
+              { key: 'score_utm_pago', label: 'Origem paga (UTM)' },
+              { key: 'score_valor_alto', label: 'Valor potencial alto' },
+            ].map(item => (
+              <div key={item.key} className="space-y-2">
+                <Label className="text-xs text-muted-foreground">{item.label} (pontos)</Label>
+                <Input type="number" value={(config as any)[item.key]} onChange={e => setConfig(c => ({ ...c, [item.key]: +e.target.value }))} />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Automações */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Automações</CardTitle>
+          </div>
+          <CardDescription>Ative ou desative automações do CRM</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+              <div><p className="text-sm font-medium text-foreground">Follow-up automático</p><p className="text-xs text-muted-foreground">Envia mensagem para novos leads</p></div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1"><Input type="number" className="w-16 h-8 text-xs" value={config.follow_up_horas} onChange={e => setConfig(c => ({ ...c, follow_up_horas: +e.target.value }))} /><span className="text-xs text-muted-foreground">h</span></div>
+                <Switch checked={config.auto_follow_up} onCheckedChange={v => setConfig(c => ({ ...c, auto_follow_up: v }))} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+              <div><p className="text-sm font-medium text-foreground">Reativação de inativos</p><p className="text-xs text-muted-foreground">Reengaja leads sem contato</p></div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1"><Input type="number" className="w-16 h-8 text-xs" value={config.reativacao_dias} onChange={e => setConfig(c => ({ ...c, reativacao_dias: +e.target.value }))} /><span className="text-xs text-muted-foreground">dias</span></div>
+                <Switch checked={config.auto_reativacao} onCheckedChange={v => setConfig(c => ({ ...c, auto_reativacao: v }))} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+              <div><p className="text-sm font-medium text-foreground">Scoring automático</p><p className="text-xs text-muted-foreground">Recalcula score em cada interação</p></div>
+              <Switch checked={config.auto_scoring} onCheckedChange={v => setConfig(c => ({ ...c, auto_scoring: v }))} />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+              <div><p className="text-sm font-medium text-foreground">Alerta lead quente</p><p className="text-xs text-muted-foreground">Notifica quando score atinge mínimo</p></div>
+              <Switch checked={config.alerta_lead_quente} onCheckedChange={v => setConfig(c => ({ ...c, alerta_lead_quente: v }))} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notificações */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Notificações</CardTitle>
+          </div>
+          <CardDescription>Escolha quais eventos geram notificações</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[
+            { key: 'notif_novo_lead', label: 'Novo lead cadastrado', desc: 'Notifica ao receber um novo lead' },
+            { key: 'notif_conversao', label: 'Conversão realizada', desc: 'Lead convertido em cliente' },
+            { key: 'notif_lead_quente', label: 'Lead quente detectado', desc: 'Score atingiu limite configurado' },
+            { key: 'notif_lead_perdido', label: 'Lead perdido', desc: 'Lead marcado como perdido' },
+          ].map(item => (
+            <div key={item.key} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+              <div><p className="text-sm font-medium text-foreground">{item.label}</p><p className="text-xs text-muted-foreground">{item.desc}</p></div>
+              <Switch checked={(config as any)[item.key]} onCheckedChange={v => setConfig(c => ({ ...c, [item.key]: v }))} />
+            </div>
+          ))}
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs font-medium text-muted-foreground">Canais de notificação</Label>
+            <div className="flex gap-4">
+              <div className="flex items-center gap-2"><Switch checked={config.notif_email} onCheckedChange={v => setConfig(c => ({ ...c, notif_email: v }))} /><span className="text-sm">Email</span></div>
+              <div className="flex items-center gap-2"><Switch checked={config.notif_whatsapp} onCheckedChange={v => setConfig(c => ({ ...c, notif_whatsapp: v }))} /><span className="text-sm">WhatsApp</span></div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Origens */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Origens de Leads</CardTitle>
+          </div>
+          <CardDescription>Gerencie as origens disponíveis para classificar leads</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {config.origens_custom.map(o => (
+              <Badge key={o} variant="secondary" className="gap-1 capitalize py-1.5 px-3">
+                {o}
+                <button onClick={() => setConfig(c => ({ ...c, origens_custom: c.origens_custom.filter(x => x !== o) }))} className="ml-1 hover:text-destructive"><XCircle className="w-3 h-3" /></button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input placeholder="Nova origem" value={config.nova_origem} onChange={e => setConfig(c => ({ ...c, nova_origem: e.target.value }))} className="max-w-xs" />
+            <Button size="sm" variant="outline" onClick={addOrigem}><Plus className="w-4 h-4 mr-1" /> Adicionar</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tags */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Tag className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Tags Padrão</CardTitle>
+          </div>
+          <CardDescription>Tags disponíveis para classificar leads rapidamente</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {config.tags_padrao.map(t => (
+              <Badge key={t} variant="outline" className="gap-1 capitalize py-1.5 px-3 border-primary/20">
+                <Hash className="w-3 h-3" />{t}
+                <button onClick={() => setConfig(c => ({ ...c, tags_padrao: c.tags_padrao.filter(x => x !== t) }))} className="ml-1 hover:text-destructive"><XCircle className="w-3 h-3" /></button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input placeholder="Nova tag" value={config.nova_tag} onChange={e => setConfig(c => ({ ...c, nova_tag: e.target.value }))} className="max-w-xs" />
+            <Button size="sm" variant="outline" onClick={addTag}><Plus className="w-4 h-4 mr-1" /> Adicionar</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Geral */}
+      <Card className="bg-card">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Settings className="w-5 h-5 text-primary" />
+            <CardTitle className="text-sm">Configurações Gerais</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Moeda</Label>
+              <Select value={config.moeda} onValueChange={v => setConfig(c => ({ ...c, moeda: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BRL">R$ (BRL)</SelectItem>
+                  <SelectItem value="USD">$ (USD)</SelectItem>
+                  <SelectItem value="EUR">€ (EUR)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Fuso Horário</Label>
+              <Select value={config.timezone} onValueChange={v => setConfig(c => ({ ...c, timezone: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="America/Sao_Paulo">São Paulo (GMT-3)</SelectItem>
+                  <SelectItem value="America/Manaus">Manaus (GMT-4)</SelectItem>
+                  <SelectItem value="America/Belem">Belém (GMT-3)</SelectItem>
+                  <SelectItem value="America/Recife">Recife (GMT-3)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Dias para considerar inativo</Label>
+              <Input type="number" value={config.dias_inatividade} onChange={e => setConfig(c => ({ ...c, dias_inatividade: +e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Limite de leads por exportação</Label>
+              <Input type="number" value={config.limite_leads_export} onChange={e => setConfig(c => ({ ...c, limite_leads_export: +e.target.value }))} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} className="gap-2">
+          <Save className="w-4 h-4" /> Salvar Configurações
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ============= MAIN CRM PAGE =============
 export default function CRMPage() {
   const { profile } = useAuth();
@@ -1629,6 +1938,7 @@ export default function CRMPage() {
               {activeSection === 'automacoes' && <AutomacoesTab leads={leads} />}
               {activeSection === 'timeline' && <TimelineTab leads={leads} />}
               {activeSection === 'relatorios' && <ReportsTab leads={leads} conversoes={conversoes} />}
+              {activeSection === 'configuracoes' && <ConfiguracoesTab />}
             </>
           )}
         </div>
