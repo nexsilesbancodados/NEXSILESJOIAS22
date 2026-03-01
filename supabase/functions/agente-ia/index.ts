@@ -1020,22 +1020,28 @@ Por favor, responda com um número de 0 a 10.`;
         }
 
         try {
-          const resendKey = Deno.env.get('RESEND_API_KEY');
-          if (!resendKey) return "⚠️ Serviço de e-mail não configurado (RESEND_API_KEY).";
+          const brevoKey = Deno.env.get('BREVO_API_KEY');
+          if (!brevoKey) return "⚠️ Serviço de e-mail não configurado (BREVO_API_KEY).";
 
-          const { Resend } = await import("npm:resend@2.0.0");
-          const resend = new Resend(resendKey);
-
-          const { data: emailResult, error: emailError } = await resend.emails.send({
-            from: `NexSiles <contato@nexsiles.com.br>`,
-            to: [email],
-            subject: assunto,
-            html: corpoHtml,
-            text: corpoTexto || undefined,
+          const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+              "api-key": brevoKey,
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+            body: JSON.stringify({
+              sender: { name: "NexSiles", email: "contato@nexsiles.com.br" },
+              to: [{ email }],
+              subject: assunto,
+              htmlContent: corpoHtml,
+              textContent: corpoTexto || undefined,
+            }),
           });
 
-          if (emailError) {
-            console.error('Email send error:', emailError);
+          if (!brevoRes.ok) {
+            const errBody = await brevoRes.text();
+            console.error('Email send error:', errBody);
             await supabase.from('email_logs').insert({
               organization_id: organizationId,
               template_id: template.id,
@@ -1043,9 +1049,9 @@ Por favor, responda com um número de 0 a 10.`;
               destinatario_nome: clienteNome,
               assunto,
               status: 'erro',
-              erro_mensagem: emailError.message,
+              erro_mensagem: errBody,
             });
-            return `❌ Erro ao enviar e-mail: ${emailError.message}`;
+            return `❌ Erro ao enviar e-mail: ${errBody}`;
           }
 
           await supabase.from('email_logs').insert({
