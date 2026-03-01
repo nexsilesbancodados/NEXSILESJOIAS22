@@ -1213,37 +1213,21 @@ serve(async (req) => {
       .eq('organization_id', organizationId)
       .maybeSingle();
 
-    // Determine which AI provider to use
-    const geminiApiKey = config?.gemini_api_key as string | null;
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    // DeepSeek AI provider (único)
+    const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY');
     
-    let useGemini = !!geminiApiKey;
-    let aiBaseUrl = useGemini 
-      ? 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
-      : 'https://ai.gateway.lovable.dev/v1/chat/completions';
-    let aiHeaders: Record<string, string> = useGemini
-      ? { 'Authorization': `Bearer ${geminiApiKey}`, 'Content-Type': 'application/json' }
-      : { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' };
-    let aiModel = useGemini ? 'gemini-2.5-flash' : 'google/gemini-3-flash-preview';
-
-    // Helper to fallback to Lovable AI Gateway
-    const fallbackToLovable = () => {
-      if (LOVABLE_API_KEY) {
-        console.log('Falling back to Lovable AI Gateway');
-        useGemini = false;
-        aiBaseUrl = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-        aiHeaders = { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' };
-        aiModel = 'google/gemini-3-flash-preview';
-        return true;
-      }
-      return false;
-    };
-
-    if (!useGemini && !LOVABLE_API_KEY) {
-      throw new Error("Nenhuma chave de IA configurada. Configure a chave Gemini nas configurações do agente.");
+    if (!DEEPSEEK_API_KEY) {
+      throw new Error("DEEPSEEK_API_KEY não configurada. Adicione a chave nas configurações do Supabase.");
     }
 
-    console.log('Using AI provider:', useGemini ? 'Gemini Direct' : 'Lovable AI Gateway');
+    const aiBaseUrl = 'https://api.deepseek.com/chat/completions';
+    const aiHeaders: Record<string, string> = {
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      'Content-Type': 'application/json'
+    };
+    const aiModel = 'deepseek-chat';
+
+    console.log('Using AI provider: DeepSeek');
 
     // Check if agent is active
     if (config?.ativo === false) {
@@ -1690,13 +1674,8 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
 
     let aiResponse = await makeAiCall();
 
-    // If Gemini Direct fails with 429/500, fallback to Lovable AI Gateway
-    if (!aiResponse.ok && useGemini && (aiResponse.status === 429 || aiResponse.status >= 500)) {
-      console.warn(`Gemini Direct failed with ${aiResponse.status}, attempting fallback...`);
-      if (fallbackToLovable()) {
-        aiResponse = await makeAiCall();
-      }
-    }
+
+
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
@@ -1795,7 +1774,7 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
         method: 'POST',
         headers: aiHeaders,
         body: JSON.stringify({
-          model: useGemini ? 'gemini-2.5-flash-lite' : 'google/gemini-2.5-flash-lite',
+          model: 'deepseek-chat',
           messages: [
             { role: 'system', content: 'Classify the sentiment of the user message as exactly one word: positivo, neutro, or negativo. Reply with only that one word.' },
             { role: 'user', content: lastUserMessage.content }
