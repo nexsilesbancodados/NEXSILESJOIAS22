@@ -14,17 +14,12 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const brevoKey = Deno.env.get('BREVO_API_KEY');
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const now = new Date();
     const lembretesSent: string[] = [];
 
-    // Fetch agendamentos that need reminders
-    // Get all agendamentos where:
-    // - status is 'agendado' or 'confirmado'
-    // - lembrete_enviado is false or null
-    // - data_hora is in the future but within lembrete_horas_antes hours
-    // First get agendamentos
     const { data: agendamentos, error } = await supabase
       .from('agendamentos')
       .select('*')
@@ -32,7 +27,6 @@ serve(async (req) => {
       .or('lembrete_enviado.is.null,lembrete_enviado.eq.false')
       .gt('data_hora', now.toISOString());
 
-    // Build a map of org_id -> whatsapp_instancia
     const orgIds = [...new Set((agendamentos || []).map((a: any) => a.organization_id).filter(Boolean))];
     const configMap: Record<string, string> = {};
     if (orgIds.length > 0) {
@@ -64,14 +58,13 @@ serve(async (req) => {
       const dataHora = new Date(agendamento.data_hora);
       const diffHours = (dataHora.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-      // Only send if within the reminder window
       if (diffHours > horasAntes || diffHours < 0) {
         continue;
       }
 
       const telefone = agendamento.cliente_telefone;
-      if (!telefone) {
-        console.log(`Agendamento ${agendamento.id}: sem telefone, pulando`);
+      if (!telefone && !agendamento.cliente_email) {
+        console.log(`Agendamento ${agendamento.id}: sem contato, pulando`);
         continue;
       }
 
@@ -90,8 +83,8 @@ serve(async (req) => {
 
       let sent = false;
 
-      // Try sending via Evolution API
-      if (evolutionUrl && evolutionKey) {
+      // Try sending via Evolution API (WhatsApp)
+      if (telefone && evolutionUrl && evolutionKey) {
         try {
           let tel = telefone.replace(/\D/g, '');
           if (!tel.startsWith('55')) tel = '55' + tel;
@@ -121,45 +114,46 @@ serve(async (req) => {
         }
       }
 
-      // Try sending via email if Resend is configured
-      if (!sent && agendamento.cliente_email) {
-        const resendKey = Deno.env.get('RESEND_API_KEY');
-        if (resendKey) {
-          try {
-            const emailResponse = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${resendKey}`
-              },
-              body: JSON.stringify({
-                from: 'NexSiles <contato@nexsiles.com.br>',
-                to: agendamento.cliente_email,
-                subject: `📅 Lembrete: ${agendamento.titulo} - ${dataFormatada}`,
-                html: `
-                  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h1 style="color: #333;">📅 Lembrete de Agendamento</h1>
-                    <p>Olá, <strong>${agendamento.cliente_nome}</strong>!</p>
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #9b87f5;">
-                      <h2 style="margin: 0 0 10px;">${agendamento.titulo}</h2>
-                      <p style="margin: 5px 0;">🗓️ <strong>${dataFormatada}</strong></p>
-                      <p style="margin: 5px 0;">⏰ <strong>${horaFormatada}</strong></p>
-                      ${agendamento.duracao_minutos ? `<p style="margin: 5px 0;">⏱️ Duração: ${agendamento.duracao_minutos} minutos</p>` : ''}
-                      ${agendamento.descricao ? `<p style="margin: 5px 0;">📝 ${agendamento.descricao}</p>` : ''}
-                    </div>
-                    <p>Aguardamos você! 😊</p>
+      // Try sending via Brevo email
+      if (!sent && agendamento.cliente_email && brevoKey) {
+        try {
+          const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+              "api-key": brevoKey,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              sender: { name: "NexSiles", email: "contato@nexsiles.com.br" },
+              to: [{ email: agendamento.cliente_email, name: agendamento.cliente_nome }],
+              subject: `📅 Lembrete: ${agendamento.titulo} - ${dataFormatada}`,
+              htmlContent: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                  <h1 style="color: #333;">📅 Lembrete de Agendamento</h1>
+                  <p>Olá, <strong>${agendamento.cliente_nome}</strong>!</p>
+                  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #9b87f5;">
+                    <h2 style="margin: 0 0 10px;">${agendamento.titulo}</h2>
+                    <p style="margin: 5px 0;">🗓️ <strong>${dataFormatada}</strong></p>
+                    <p style="margin: 5px 0;">⏰ <strong>${horaFormatada}</strong></p>
+                    ${agendamento.duracao_minutos ? `<p style="margin: 5px 0;">⏱️ Duração: ${agendamento.duracao_minutos} minutos</p>` : ''}
+                    ${agendamento.descricao ? `<p style="margin: 5px 0;">📝 ${agendamento.descricao}</p>` : ''}
                   </div>
-                `
-              })
-            });
+                  <p>Aguardamos você! 😊</p>
+                </div>
+              `
+            })
+          });
 
-            if (emailResponse.ok) {
-              sent = true;
-              console.log(`Lembrete enviado por email para ${agendamento.cliente_email}`);
-            }
-          } catch (e) {
-            console.error('Resend error:', e);
+          if (res.ok) {
+            sent = true;
+            console.log(`Lembrete enviado por email para ${agendamento.cliente_email}`);
+          } else {
+            const err = await res.text();
+            console.error('Brevo error:', err);
           }
+        } catch (e) {
+          console.error('Brevo error:', e);
         }
       }
 
