@@ -9,9 +9,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import heroBackground from '@/assets/landing-hero-bg.jpg';
 import dashboardMockup from '@/assets/landing-dashboard-mockup.jpg';
 import mobileMockup from '@/assets/landing-mobile-mockup.jpg';
+import fullBg from '@/assets/landing-fullbg.jpg';
 import logo from '@/assets/logo.png';
 
 const fadeUp = {
@@ -81,7 +81,13 @@ export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[hsl(224,30%,8%)] text-white overflow-x-hidden">
+    <div className="min-h-screen text-white overflow-x-hidden relative">
+      {/* Fixed full background */}
+      <div className="fixed inset-0 z-0">
+        <img src={fullBg} alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-[hsl(224,30%,8%)]/70" />
+      </div>
+      <div className="relative z-10">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-[hsl(224,30%,8%)]/80 border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
@@ -116,10 +122,6 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="relative min-h-screen flex items-center justify-center pt-16">
-        <div className="absolute inset-0">
-          <img src={heroBackground} alt="" className="w-full h-full object-cover opacity-40" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[hsl(224,30%,8%)]/60 via-[hsl(224,30%,8%)]/30 to-[hsl(224,30%,8%)]" />
-        </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <Badge className="mb-6 bg-purple-500/20 text-purple-300 border-purple-500/30 px-4 py-1.5 text-sm">
@@ -178,7 +180,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 bg-[hsl(224,30%,6%)]">
+      <section id="features" className="py-24 bg-[hsl(224,30%,8%)]/60 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
             <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30">Funcionalidades</Badge>
@@ -241,7 +243,7 @@ export default function LandingPage() {
       </section>
 
       {/* Planos */}
-      <section id="planos" className="py-24 bg-[hsl(224,30%,6%)]">
+      <section id="planos" className="py-24 bg-[hsl(224,30%,8%)]/60 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
             <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30">Planos</Badge>
@@ -340,7 +342,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12 bg-[hsl(224,30%,5%)]">
+      <footer className="border-t border-white/5 py-12 bg-[hsl(224,30%,8%)]/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
@@ -356,6 +358,7 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }
