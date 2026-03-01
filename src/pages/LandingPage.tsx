@@ -24,6 +24,11 @@ import stepsBg from '@/assets/landing-steps-bg.jpg';
 import featuresBg from '@/assets/landing-features-bg.jpg';
 import ctaBg from '@/assets/landing-cta-bg.jpg';
 import logo from '@/assets/logo.png';
+import testimonialCarla from '@/assets/testimonial-carla.jpg';
+import testimonialFernanda from '@/assets/testimonial-fernanda.jpg';
+import testimonialJuliana from '@/assets/testimonial-juliana.jpg';
+import testimonialAmanda from '@/assets/testimonial-amanda.jpg';
+import testimonialPatricia from '@/assets/testimonial-patricia.jpg';
 import dashboardInsights from '@/assets/landing-dashboard-insights.png';
 import dashboardCharts from '@/assets/landing-dashboard-charts.png';
 import pecasMockup from '@/assets/landing-pecas-mockup.png';
@@ -62,11 +67,11 @@ const PLANOS = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Carla M.', role: 'Loja de semijoias', text: 'Parei de perder horas controlando estoque no caderno. Agora sei exatamente quanto lucro.', img: personaLojista, color: 'from-rose-400 to-pink-500' },
-  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Minhas revendedoras acompanham comissões sozinhas.', img: personaRevendedora, color: 'from-pink-400 to-rose-500' },
-  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A IA no WhatsApp atende de madrugada! Vendas aumentaram 40%.', img: personaCliente, color: 'from-amber-400 to-rose-400' },
-  { name: 'Amanda L.', role: 'Atacadista', text: 'Reduzi 80% das mensagens no WhatsApp com o portal!', img: personaLojista, color: 'from-rose-500 to-fuchsia-400' },
-  { name: 'Patrícia K.', role: 'Loja + E-commerce', text: 'Gerencio loja física e virtual num só lugar!', img: personaRevendedora, color: 'from-pink-500 to-amber-400' },
+  { name: 'Carla M.', role: 'Loja de semijoias', text: 'Parei de perder horas controlando estoque no caderno. Agora sei exatamente quanto lucro.', img: testimonialCarla, color: 'from-rose-400 to-pink-500' },
+  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Minhas revendedoras acompanham comissões sozinhas.', img: testimonialFernanda, color: 'from-pink-400 to-rose-500' },
+  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A IA no WhatsApp atende de madrugada! Vendas aumentaram 40%.', img: testimonialJuliana, color: 'from-amber-400 to-rose-400' },
+  { name: 'Amanda L.', role: 'Atacadista', text: 'Reduzi 80% das mensagens no WhatsApp com o portal!', img: testimonialAmanda, color: 'from-rose-500 to-fuchsia-400' },
+  { name: 'Patrícia K.', role: 'Loja + E-commerce', text: 'Gerencio loja física e virtual num só lugar!', img: testimonialPatricia, color: 'from-pink-500 to-amber-400' },
 ];
 
 const PASSOS = [
