@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import dashboardMockup from '@/assets/landing-dashboard-mockup.jpg';
 import mobileMockup from '@/assets/landing-mobile-mockup.jpg';
 import fullBg from '@/assets/landing-fullbg.jpg';
+import heroHeaderBg from '@/assets/landing-hero-header.jpg';
 import logo from '@/assets/logo.png';
 
 const fadeUp = {
@@ -132,6 +133,11 @@ export default function LandingPage() {
 
         {/* Hero - Mobile optimized */}
         <section className="relative min-h-[100svh] flex items-center justify-center pt-14">
+          {/* Hero background image */}
+          <div className="absolute inset-0 z-0">
+            <img src={heroHeaderBg} alt="" className="w-full h-full object-cover" loading="eager" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[hsl(224,30%,8%)]/60 via-[hsl(224,30%,8%)]/70 to-[hsl(224,30%,8%)]/95" />
+          </div>
           <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 text-center">
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
               <Badge className="mb-4 sm:mb-6 bg-purple-500/20 text-purple-300 border-purple-500/30 px-3 py-1 text-xs sm:text-sm">
