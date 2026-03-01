@@ -41,6 +41,23 @@ export interface NotificacaoAssinatura {
 }
 
 export const PLANOS = {
+  ecommerce_premium: {
+    nome: 'E-commerce Premium',
+    tier: 'E-COMMERCE',
+    descricao: 'Sua loja virtual completa, sem complicação',
+    recursos: [
+      'Loja virtual com domínio',
+      'Gestão de estoque',
+      'Checkout Pix, Cartão, Boleto',
+      'Carrinho com cupons',
+      'Gestão de pedidos online',
+      'Cálculo de frete automático',
+      'SEO otimizado',
+      'Catálogo digital',
+    ],
+    valor: 149.00,
+    badges: ['Loja Virtual'],
+  },
   nexsiles: {
     nome: 'Nexsiles',
     tier: 'PRATA',
