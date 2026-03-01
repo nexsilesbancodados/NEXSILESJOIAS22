@@ -125,6 +125,7 @@ export function MercadoPagoCheckout({
             creditCard: 'all',
             debitCard: 'all',
             bankTransfer: 'all',
+            ticket: 'all',
             maxInstallments: 12,
           },
         },
