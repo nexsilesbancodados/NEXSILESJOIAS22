@@ -724,7 +724,7 @@ export default function LojaPublicaPage() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ backgroundColor: `${warmWhite}F2`, borderColor: '#F0E6E0' }}>
+      <header className={`${(config as any).header_sticky !== false ? 'sticky top-0' : 'relative'} z-40 border-b backdrop-blur-md`} style={{ backgroundColor: (config as any).header_transparente_hero ? 'transparent' : `${warmWhite}F2`, borderColor: (config as any).header_transparente_hero ? 'transparent' : '#F0E6E0' }}>
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           {/* Search with autocomplete */}
           {mostrarBusca && <SearchAutocomplete
@@ -1209,8 +1209,12 @@ export default function LojaPublicaPage() {
         </AnimatePresence>
 
         {/* Product Grid */}
-        <div className="gap-4 sm:gap-6" style={{ display: 'grid', gridTemplateColumns: `repeat(${colunasMobile}, minmax(0, 1fr))` }}
-          ref={(el) => { if (el && window.innerWidth >= 640) el.style.gridTemplateColumns = `repeat(${Math.min(colunasDesktop, 3)}, minmax(0, 1fr))`; if (el && window.innerWidth >= 1024) el.style.gridTemplateColumns = `repeat(${colunasDesktop}, minmax(0, 1fr))`; }}>
+        <style>{`
+          #loja-product-grid { grid-template-columns: repeat(${colunasMobile}, minmax(0, 1fr)); }
+          @media (min-width: 640px) { #loja-product-grid { grid-template-columns: repeat(${Math.min(colunasDesktop, 3)}, minmax(0, 1fr)); } }
+          @media (min-width: 1024px) { #loja-product-grid { grid-template-columns: repeat(${colunasDesktop}, minmax(0, 1fr)); } }
+        `}</style>
+        <div id="loja-product-grid" className="gap-4 sm:gap-6" style={{ display: 'grid' }}>
           {filteredPecas.map((peca, index) => (
             <motion.div key={peca.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.03 }}
               className="group cursor-pointer" onClick={() => setSelectedPeca(peca)}>
@@ -1258,6 +1262,7 @@ export default function LojaPublicaPage() {
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
                   {[peca.categoria, peca.material].filter(Boolean).join(' · ') || ''}
                 </p>
+                {(config as any).mostrar_codigo_produto && <p className="text-[10px] font-mono mb-0.5" style={{ color: textMuted }}>{peca.codigo}</p>}
                 <h4 className="text-sm sm:text-base font-light leading-snug" style={{ color: textDark }}>{peca.nome}</h4>
                 <p className="text-sm font-semibold mt-1" style={{ color: roseGold, fontFamily: "'Inter', sans-serif" }}>{formatCurrency(peca.preco_venda)}</p>
                 {mostrarParcelamento && <p className="text-[10px] mt-0.5" style={{ color: textMuted, fontFamily: `'${fontCorpo}', sans-serif` }}>ou {parcelamentoMax}x de {formatCurrency(peca.preco_venda / parcelamentoMax)}</p>}

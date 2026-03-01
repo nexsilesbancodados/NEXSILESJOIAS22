@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ImageUpload } from '@/components/ImageUpload';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
@@ -485,14 +485,43 @@ export function EcommerceConfigTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ecommerce-config'] });
-      toast.success('Alterações publicadas!');
+      if (!isAutoSaveRef.current) {
+        toast.success('Alterações publicadas!');
+      }
+      isAutoSaveRef.current = false;
       setTimeout(() => {
         const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
         if (iframe) iframe.src = iframe.src;
       }, 500);
     },
-    onError: (e: any) => toast.error(e.message || 'Erro ao salvar'),
+    onError: (e: any) => {
+      isAutoSaveRef.current = false;
+      toast.error(e.message || 'Erro ao salvar');
+    },
   });
+
+  // Auto-save with debounce
+  const isAutoSaveRef = useRef(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLoadRef = useRef(true);
+
+  useEffect(() => {
+    // Skip auto-save on initial load (when config populates the form)
+    if (initialLoadRef.current) {
+      initialLoadRef.current = false;
+      return;
+    }
+    // Only auto-save if we have a config already (not creating new)
+    if (!config?.id) return;
+    
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      isAutoSaveRef.current = true;
+      saveMutation.mutate();
+    }, 2000);
+
+    return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+  }, [form]);
 
   const lojaUrl = form.slug ? `${window.location.origin}/loja/${form.slug}` : '';
 

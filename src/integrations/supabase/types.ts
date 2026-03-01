@@ -4621,6 +4621,7 @@ export type Database = {
           banner_url: string | null
           banners_carousel: Json | null
           barra_frete_ativo: boolean | null
+          cep_origem: string | null
           colecoes_destaque: Json | null
           colunas_desktop: number | null
           colunas_mobile: number | null
@@ -4720,6 +4721,7 @@ export type Database = {
           banner_url?: string | null
           banners_carousel?: Json | null
           barra_frete_ativo?: boolean | null
+          cep_origem?: string | null
           colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
@@ -4819,6 +4821,7 @@ export type Database = {
           banner_url?: string | null
           banners_carousel?: Json | null
           barra_frete_ativo?: boolean | null
+          cep_origem?: string | null
           colecoes_destaque?: Json | null
           colunas_desktop?: number | null
           colunas_mobile?: number | null
