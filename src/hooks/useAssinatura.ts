@@ -42,7 +42,7 @@ export interface NotificacaoAssinatura {
 
 export const PLANOS = {
   ecommerce_premium: {
-    nome: 'E-commerce Premium',
+    nome: 'E-commerce',
     tier: 'E-COMMERCE',
     descricao: 'Sua loja virtual completa, sem complicação',
     recursos: [
@@ -59,8 +59,8 @@ export const PLANOS = {
     badges: ['Loja Virtual'],
   },
   nexsiles: {
-    nome: 'Nexsiles',
-    tier: 'PRATA',
+    nome: 'Bronze',
+    tier: 'BRONZE',
     descricao: 'Gestão completa para seu negócio de semijoias',
     recursos: [
       'Dashboard inteligente',
@@ -71,15 +71,17 @@ export const PLANOS = {
       'Relatórios completos',
       'Sistema de fidelidade',
       'Integração WhatsApp',
+      'Gestão de clientes',
+      'Romaneios e entregas',
     ],
     valor: 189.00,
   },
   nexsiles_ysis: {
-    nome: 'Nexsiles Ysis',
-    tier: 'OURO',
-    descricao: 'Vendas potencializadas com inteligência artificial',
+    nome: 'Prata',
+    tier: 'PRATA',
+    descricao: 'Tudo do Bronze + Atendente de IA 24/7',
     recursos: [
-      'Tudo do plano Prata',
+      'Tudo do plano Bronze',
       'Assistente IA WhatsApp',
       'Chatbot integrado 24/7',
       'Respostas automáticas',
@@ -88,19 +90,19 @@ export const PLANOS = {
       'Atendimento automático',
       'Relatórios de IA',
     ],
-    valor: 249.00,
+    valor: 239.00,
     badges: ['IA 24/7'],
   },
   nexsiles_commerce: {
-    nome: 'Nexsiles Commerce',
+    nome: 'Diamante',
     tier: 'DIAMANTE',
-    descricao: 'Loja virtual + IA + gestão total',
+    descricao: 'Tudo do Bronze e Prata + Loja Virtual completa',
     recursos: [
-      'Tudo do plano Ouro',
+      'Tudo do plano Prata',
       'Loja virtual com domínio',
       'Checkout Pix, Cartão, Boleto',
       'Carrinho com cupons',
-      'Gestão de pedidos',
+      'Gestão de pedidos online',
       'Cálculo de frete',
       'SEO otimizado',
       'Campanhas e promoções',
