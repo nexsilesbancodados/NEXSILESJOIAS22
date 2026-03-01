@@ -24,7 +24,7 @@ export function useReadOnlyGuard(options: UseReadOnlyGuardOptions = {}) {
       }
       
       if (redirectToLanding) {
-window.open('https://www.nexsiles.com.br/', '_top');
+        navigate('/planos');
       }
       
       return false;
@@ -47,7 +47,7 @@ window.open('https://www.nexsiles.com.br/', '_top');
   // Redirect immediately if in read-only mode and user tries to access protected area
   const redirectIfReadOnly = useCallback(() => {
     if (isReadOnly) {
-      window.open('https://www.nexsiles.com.br/', '_top');
+      navigate('/planos');
       return true;
     }
     return false;

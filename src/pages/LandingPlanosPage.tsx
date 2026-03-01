@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 
 const LandingPlanosPage = () => {
   useEffect(() => {
-    window.location.href = 'https://www.nexsiles.com.br/';
+    window.location.href = '/planos';
   }, []);
 
   return (
