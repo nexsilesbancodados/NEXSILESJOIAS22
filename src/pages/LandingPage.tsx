@@ -152,7 +152,6 @@ export default function LandingPage() {
             <a href="#depoimentos" className="hover:text-rose-600 transition-colors">Depoimentos</a>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" className="text-rose-700 hover:text-rose-800 hover:bg-rose-50" onClick={goToAuth}>Entrar</Button>
             <Button className="bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200" onClick={goToAuth}>
               Assinar Agora <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
@@ -168,7 +167,6 @@ export default function LandingPage() {
             <a href="#planos" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-rose-700 text-base">Planos</a>
             <a href="#depoimentos" onClick={() => setMobileMenuOpen(false)} className="block py-2 text-rose-700 text-base">Depoimentos</a>
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1 border-rose-300 text-rose-700" onClick={goToAuth}>Entrar</Button>
               <Button className="flex-1 bg-rose-500 text-white" onClick={goToAuth}>Assinar Agora</Button>
             </div>
           </motion.div>
