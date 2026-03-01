@@ -128,6 +128,7 @@ export function useActivateSubscription() {
         dataVencimento.setDate(dataVencimento.getDate() + 30);
 
         const planoValores: Record<string, number> = {
+          ecommerce_premium: 149,
           nexsiles: 189,
           nexsiles_ysis: 249,
           nexsiles_commerce: 299,
@@ -172,7 +173,7 @@ export function useActivateSubscription() {
         localStorage.removeItem('pending_access_code');
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
         
-        const planoNomes: Record<string, string> = { nexsiles: 'Nexsiles', nexsiles_ysis: 'Nexsiles Ysis', nexsiles_commerce: 'Nexsiles Commerce' };
+        const planoNomes: Record<string, string> = { ecommerce_premium: 'E-commerce Premium', nexsiles: 'Nexsiles', nexsiles_ysis: 'Nexsiles Ysis', nexsiles_commerce: 'Nexsiles Commerce' };
         const planoNome = planoNomes[codeData.plano] || codeData.plano;
 
         // Send welcome email
