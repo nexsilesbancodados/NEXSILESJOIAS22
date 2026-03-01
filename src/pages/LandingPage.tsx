@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGSAPScrollEffects } from '@/hooks/useGSAPScrollEffects';
 import {
   BarChart3, ShoppingCart, Users, Package, Zap, Shield, Star,
   MessageSquare, TrendingUp, Smartphone, ArrowRight, Check,
@@ -124,11 +125,13 @@ export default function LandingPage() {
     planosRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useGSAPScrollEffects();
+
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif", background: 'linear-gradient(180deg, #FFF0F0 0%, #FFE4E6 15%, #FFF5F5 30%, #FECDD3 50%, #FFF1F2 70%, #FFE4E6 85%, #FFF5F5 100%)', backgroundAttachment: 'fixed' }}>
       
       {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/90 border-b border-rose-100 shadow-sm">
+      <nav data-gsap-navbar className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/90 border-b border-rose-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center gap-2">
             <img src={logo} alt="Nexsiles" className="h-7 w-auto" />
@@ -247,7 +250,7 @@ export default function LandingPage() {
 
           {/* Devices Mockup */}
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.1} className="mb-10 sm:mb-16">
-            <div className="relative mx-auto max-w-3xl">
+            <div className="relative mx-auto max-w-3xl" data-gsap-scale>
               <div className="absolute inset-0 bg-gradient-to-b from-rose-200/30 via-rose-100/20 to-transparent rounded-[40px] blur-2xl scale-110" />
               <img src={devicesMockup} alt="Nexsiles no computador e celular" className="relative w-full rounded-2xl sm:rounded-3xl" loading="lazy" />
             </div>
@@ -332,7 +335,7 @@ export default function LandingPage() {
             <h2 className="text-2xl sm:text-4xl font-bold mb-3">Veja como é fácil começar</h2>
             <p className="text-white/70 text-sm sm:text-base">3 passos simples para transformar sua gestão.</p>
           </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8" data-gsap-stagger>
             {PASSOS.map((p, i) => (
               <motion.div key={p.num} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.2}
                 className="text-center relative">
@@ -366,7 +369,7 @@ export default function LandingPage() {
           </motion.div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
             className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-rose-100 shadow-2xl shadow-rose-200/30">
-            <img src={dashboardMockup} alt="Dashboard Nexsiles" className="w-full" loading="lazy" />
+            <img src={dashboardMockup} alt="Dashboard Nexsiles" className="w-full" loading="lazy" data-parallax="-0.15" />
             <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
           </motion.div>
         </div>
@@ -383,7 +386,7 @@ export default function LandingPage() {
             <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Tudo em um só sistema</h2>
             <p className="text-rose-600/50 text-sm sm:text-base max-w-2xl mx-auto">Módulos integrados para gerir seu negócio de ponta a ponta.</p>
           </motion.div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5" data-gsap-stagger>
             {FEATURES.map((f, i) => (
               <motion.div key={f.title} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} custom={i * 0.15}>
                 <Card className="bg-white border-rose-100 hover:border-rose-300 hover:shadow-lg hover:shadow-rose-100/50 transition-all duration-300 h-full">
@@ -407,7 +410,7 @@ export default function LandingPage() {
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
               className="flex justify-center order-1 lg:order-2">
-              <div className="relative w-56 sm:w-72 lg:w-80">
+              <div className="relative w-56 sm:w-72 lg:w-80" data-gsap-rotate>
                 <img src={mobileMockup} alt="Loja Virtual Nexsiles - Mobile" className="w-full rounded-2xl sm:rounded-3xl shadow-2xl shadow-rose-200/40" loading="lazy" />
                 <div className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 bg-rose-500 text-white rounded-xl sm:rounded-2xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-lg">
                   <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold">
@@ -609,7 +612,7 @@ export default function LandingPage() {
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-5 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <h2 className="text-2xl sm:text-5xl font-extrabold mb-4 sm:mb-6">Pronta para organizar seu negócio?</h2>
+            <h2 className="text-2xl sm:text-5xl font-extrabold mb-4 sm:mb-6" data-gsap-reveal>Pronta para organizar seu negócio?</h2>
             <p className="text-sm sm:text-lg text-white/70 mb-6 sm:mb-10 max-w-xl mx-auto">
               Experimente gratuitamente por 3 dias e descubra como o Nexsiles pode multiplicar seus lucros.
             </p>
