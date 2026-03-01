@@ -155,6 +155,7 @@ function AppRoutes() {
   const isCatalogoSubdomain = hostname.startsWith('catalogo.');
   const isPortalSubdomain = hostname.startsWith('portal.');
   const isMaletaSubdomain = hostname.startsWith('maleta.');
+  const isAdminSubdomain = hostname.startsWith('admin.');
   
   // Subdomínio loja.* → renderiza loja pública
   if (isLojaSubdomain) {
@@ -200,6 +201,91 @@ function AppRoutes() {
         <Routes>
           <Route path="/:maletaId" element={<MaletaPublicaPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  // Subdomínio admin.* → acesso direto ao painel administrativo (sem landing)
+  if (isAdminSubdomain) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/planos" element={
+            <ProtectedRoute>
+              <OrganizationGuard>
+                <SubscriptionActivator />
+                <SubscriptionProvider>
+                  <MainLayout><PlanosPage /></MainLayout>
+                </SubscriptionProvider>
+              </OrganizationGuard>
+            </ProtectedRoute>
+          } />
+          <Route path="/atendimento" element={
+            <ProtectedRoute>
+              <OrganizationGuard>
+                <SubscriptionActivator />
+                <SubscriptionProvider>
+                  <PlanRouteGuard path="/atendimento"><AtendimentoPage /></PlanRouteGuard>
+                </SubscriptionProvider>
+              </OrganizationGuard>
+            </ProtectedRoute>
+          } />
+          <Route path="/loja-virtual" element={
+            <ProtectedRoute>
+              <OrganizationGuard>
+                <SubscriptionActivator />
+                <SubscriptionProvider>
+                  <PlanRouteGuard path="/loja-virtual"><LojaVirtualPage /></PlanRouteGuard>
+                </SubscriptionProvider>
+              </OrganizationGuard>
+            </ProtectedRoute>
+          } />
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <OrganizationGuard>
+                <SubscriptionActivator />
+                <SubscriptionProvider>
+                  <RealtimeNotifications />
+                  <CriticalDataPrefetcher />
+                  <ReadOnlyBanner />
+                  <MainLayout>
+                    <SubscriptionGuard>
+                      <Suspense fallback={<PageLoader />}>
+                        <Routes>
+                          <Route path="/" element={<DashboardPage />} />
+                          <Route path="/pecas" element={<PecasPage />} />
+                          <Route path="/etiquetas" element={<EtiquetasPage />} />
+                          <Route path="/banhos" element={<BanhosPage />} />
+                          <Route path="/pdv" element={<PDVPage />} />
+                          <Route path="/catalogos" element={<CatalogosPage />} />
+                          <Route path="/revendedoras" element={<RevendedorasPage />} />
+                          <Route path="/revendedoras/desempenho" element={<DesempenhoRevendedorasPage />} />
+                          <Route path="/fornecedores" element={<FornecedoresPage />} />
+                          <Route path="/romaneios" element={<RomaneiosPage />} />
+                          <Route path="/relatorios" element={<RelatoriosPage />} />
+                          <Route path="/historico" element={<HistoricoPage />} />
+                          <Route path="/clientes" element={<ClientesPage />} />
+                          <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+                          <Route path="/funcionarios" element={<FuncionariosPage />} />
+                          <Route path="/campanhas" element={<CampanhasPage />} />
+                          <Route path="/tutorial" element={<TutorialPage />} />
+                          <Route path="/super-admin" element={<SuperAdminPage />} />
+                          <Route path="/crm" element={<CRMPage />} />
+                          <Route path="/fiado" element={<FiadoPage />} />
+                          <Route path="/entregas" element={<EntregasPage />} />
+                          <Route path="/fidelidade" element={<FidelidadePage />} />
+                          <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
+                          <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Suspense>
+                    </SubscriptionGuard>
+                  </MainLayout>
+                </SubscriptionProvider>
+              </OrganizationGuard>
+            </ProtectedRoute>
+          } />
         </Routes>
       </Suspense>
     );
