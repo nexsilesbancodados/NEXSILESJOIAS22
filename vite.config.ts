@@ -9,7 +9,12 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   preview: {
-    allowedHosts: ['nexsales.store', 'nexsiles-nexsiles.uqxoid.easypanel.host'],
+    allowedHosts: [
+      'nexsales.store',
+      'nexsiles.com.br',
+      '.nexsiles.com.br',
+      'nexsiles-nexsiles.uqxoid.easypanel.host',
+    ],
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
