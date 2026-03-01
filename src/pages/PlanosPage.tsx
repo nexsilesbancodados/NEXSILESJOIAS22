@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
+
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -148,7 +148,7 @@ export default function PlanosPage() {
   // If user has an active subscription, show simplified status view
   if (assinatura && isAtivo) {
     return (
-      <MainLayout>
+      <>
         <div className="min-h-screen">
           <PageHeader
             icon={Crown}
@@ -286,12 +286,12 @@ export default function PlanosPage() {
             />
           </div>
         </div>
-      </MainLayout>
+      </>
     );
   }
 
   return (
-    <MainLayout>
+    <>
       <div className="min-h-screen">
         <PageHeader
           icon={Crown}
@@ -666,6 +666,6 @@ export default function PlanosPage() {
           planoNome={selectedPlan === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
         />
       </div>
-    </MainLayout>
+    </>
   );
 }
