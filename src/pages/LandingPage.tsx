@@ -337,17 +337,17 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-5">
             {[
-              { img: dashboardInsights, label: '💡 Insights' },
-              { img: pecasMockup, label: '💎 Estoque' },
-              { img: pdvMockup, label: '🛒 PDV' },
-              { img: dashboardCharts, label: '📈 Gráficos' },
-              { img: lojaMockup, label: '🏪 Loja' },
-              { img: devicesMockup, label: '📱 Mobile' },
+              { img: dashboardInsights, label: '💡 Insights', pos: 'object-left-top' },
+              { img: pecasMockup, label: '💎 Estoque', pos: 'object-left-top' },
+              { img: pdvMockup, label: '🛒 PDV', pos: 'object-right-top' },
+              { img: dashboardCharts, label: '📈 Gráficos', pos: 'object-top' },
+              { img: lojaMockup, label: '🏪 Loja', pos: 'object-top' },
+              { img: devicesMockup, label: '📱 Mobile', pos: 'object-top' },
             ].map((item, i) => (
               <motion.div key={item.label} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-30px" }} variants={scaleIn} custom={i * 0.08}
                 className="lp-screenshot-card group">
                 <div className="aspect-[16/10] overflow-hidden">
-                  <img src={item.img} alt={item.label} className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+                  <img src={item.img} alt={item.label} className={`w-full h-full object-cover ${item.pos} transition-transform duration-700 group-hover:scale-110`} loading="lazy" />
                 </div>
                 <div className="lp-screenshot-label">
                   <span>{item.label}</span>
