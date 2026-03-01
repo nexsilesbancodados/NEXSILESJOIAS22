@@ -9,13 +9,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { PlanoKey } from '@/hooks/useAssinatura';
 
 const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY || '';
 
 interface MercadoPagoCheckoutProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  plano: 'nexsiles' | 'nexsiles_max';
+  plano: PlanoKey;
   periodo: 'mensal' | 'anual';
   valor: number;
   planoNome: string;
@@ -58,17 +59,9 @@ export function MercadoPagoCheckout({
 
   const loadMercadoPagoScript = useCallback((): Promise<void> => {
     return new Promise((resolve, reject) => {
-      if ((window as any).MercadoPago) {
-        resolve();
-        return;
-      }
-
+      if ((window as any).MercadoPago) { resolve(); return; }
       const existingScript = document.querySelector('script[src*="sdk.mercadopago.com"]');
-      if (existingScript) {
-        existingScript.addEventListener('load', () => resolve());
-        return;
-      }
-
+      if (existingScript) { existingScript.addEventListener('load', () => resolve()); return; }
       const script = document.createElement('script');
       script.src = 'https://sdk.mercadopago.com/js/v2';
       script.async = true;
@@ -81,30 +74,18 @@ export function MercadoPagoCheckout({
   const initializeBrick = useCallback(async (prefId: string) => {
     try {
       await loadMercadoPagoScript();
-
-      const mp = new (window as any).MercadoPago(MP_PUBLIC_KEY, {
-        locale: 'pt-BR',
-      });
+      const mp = new (window as any).MercadoPago(MP_PUBLIC_KEY, { locale: 'pt-BR' });
       mpInstanceRef.current = mp;
-
       const bricksBuilder = mp.bricks();
 
-      // Unmount existing brick
       if (brickControllerRef.current) {
         await brickControllerRef.current.unmount();
         brickControllerRef.current = null;
       }
-
-      // Clear container
-      if (brickContainerRef.current) {
-        brickContainerRef.current.innerHTML = '';
-      }
+      if (brickContainerRef.current) brickContainerRef.current.innerHTML = '';
 
       const controller = await bricksBuilder.create('payment', 'mp-brick-container', {
-        initialization: {
-          amount: valor,
-          preferenceId: prefId,
-        },
+        initialization: { amount: valor, preferenceId: prefId },
         customization: {
           visual: {
             style: {
@@ -130,9 +111,7 @@ export function MercadoPagoCheckout({
           },
         },
         callbacks: {
-          onReady: () => {
-            setStatus('ready');
-          },
+          onReady: () => setStatus('ready'),
           onSubmit: async ({ selectedPaymentMethod, formData }: any) => {
             setStatus('processing');
             try {
@@ -145,33 +124,21 @@ export function MercadoPagoCheckout({
                     'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
                     'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc',
                   },
-                  body: JSON.stringify({
-                    ...formData,
-                    plano,
-                    periodo,
-                  }),
+                  body: JSON.stringify({ ...formData, plano, periodo }),
                 }
               );
-
               const result = await response.json();
 
               if (result.status === 'approved') {
                 setStatus('success');
                 toast.success('Pagamento aprovado! 🎉');
-                setTimeout(() => {
-                  onOpenChange(false);
-                  window.location.reload();
-                }, 3000);
+                setTimeout(() => { onOpenChange(false); window.location.reload(); }, 3000);
               } else if (result.status === 'pending' || result.status === 'in_process') {
                 setStatus('pending');
-                toast.info('Pagamento pendente', {
-                  description: 'Seu pagamento está sendo processado.'
-                });
+                toast.info('Pagamento pendente', { description: 'Seu pagamento está sendo processado.' });
               } else {
                 setStatus('error');
-                toast.error('Pagamento não aprovado', {
-                  description: result.status_detail || 'Tente novamente ou use outro método.'
-                });
+                toast.error('Pagamento não aprovado', { description: result.status_detail || 'Tente novamente.' });
                 setTimeout(() => setStatus('ready'), 3000);
               }
             } catch (err) {
@@ -181,13 +148,9 @@ export function MercadoPagoCheckout({
               setTimeout(() => setStatus('ready'), 3000);
             }
           },
-          onError: (error: any) => {
-            console.error('Brick error:', error);
-            setStatus('error');
-          },
+          onError: (error: any) => { console.error('Brick error:', error); setStatus('error'); },
         },
       });
-
       brickControllerRef.current = controller;
     } catch (err) {
       console.error('Error initializing brick:', err);
@@ -199,20 +162,12 @@ export function MercadoPagoCheckout({
     if (open) {
       setStatus('loading');
       createPreference().then((prefId) => {
-        if (prefId) {
-          // Small delay for DOM to be ready
-          setTimeout(() => initializeBrick(prefId), 300);
-        }
+        if (prefId) setTimeout(() => initializeBrick(prefId), 300);
       });
     }
-
     return () => {
       if (brickControllerRef.current) {
-        try {
-          brickControllerRef.current.unmount();
-        } catch (e) {
-          // Ignore unmount errors
-        }
+        try { brickControllerRef.current.unmount(); } catch (e) {}
         brickControllerRef.current = null;
       }
     };
@@ -223,33 +178,23 @@ export function MercadoPagoCheckout({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
-        {/* Header */}
         <div className="bg-gradient-to-r from-primary/10 to-warning/10 p-6 pb-4">
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
-              Checkout Seguro
+              <CreditCard className="w-5 h-5 text-primary" /> Checkout Seguro
             </DialogTitle>
-            <DialogDescription>
-              Finalize sua assinatura de forma rápida e segura
-            </DialogDescription>
+            <DialogDescription>Finalize sua assinatura de forma rápida e segura</DialogDescription>
           </DialogHeader>
-
-          {/* Order Summary */}
           <Card className="mt-4 border-border/50 bg-card/80 backdrop-blur">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-foreground">{planoNome}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {periodo === 'anual' ? 'Plano Anual' : 'Plano Mensal'}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{periodo === 'anual' ? 'Plano Anual' : 'Plano Mensal'}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-foreground">{valorFormatado}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {periodo === 'anual' ? '/ano' : '/mês'}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{periodo === 'anual' ? '/ano' : '/mês'}</p>
                 </div>
               </div>
               {periodo === 'anual' && (
@@ -263,65 +208,38 @@ export function MercadoPagoCheckout({
 
         <Separator />
 
-        {/* Payment Brick Container */}
         <div className="p-6 pt-4">
           <AnimatePresence mode="wait">
             {status === 'success' && (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-4 py-12"
-              >
+              <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4 py-12">
                 <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
                   <CheckCircle className="w-10 h-10 text-success" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground">Pagamento Aprovado!</h3>
-                <p className="text-muted-foreground text-center">
-                  Sua assinatura do {planoNome} foi ativada com sucesso.
-                </p>
+                <p className="text-muted-foreground text-center">Sua assinatura do {planoNome} foi ativada com sucesso.</p>
               </motion.div>
             )}
-
             {status === 'pending' && (
-              <motion.div
-                key="pending"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-4 py-12"
-              >
+              <motion.div key="pending" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4 py-12">
                 <div className="w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center">
                   <Clock className="w-10 h-10 text-warning" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground">Pagamento Pendente</h3>
-                <p className="text-muted-foreground text-center">
-                  Seu pagamento está sendo processado. Você receberá uma confirmação por e-mail.
-                </p>
+                <p className="text-muted-foreground text-center">Seu pagamento está sendo processado. Você receberá uma confirmação por e-mail.</p>
               </motion.div>
             )}
-
             {status === 'error' && !brickContainerRef.current?.innerHTML && (
-              <motion.div
-                key="error"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-4 py-12"
-              >
+              <motion.div key="error" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4 py-12">
                 <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
                   <XCircle className="w-10 h-10 text-destructive" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground">Erro no Pagamento</h3>
-                <p className="text-muted-foreground text-center">
-                  Não foi possível processar seu pagamento. Tente novamente.
-                </p>
-                <Button onClick={() => { setStatus('loading'); createPreference().then(p => p && initializeBrick(p)); }}>
-                  Tentar Novamente
-                </Button>
+                <p className="text-muted-foreground text-center">Não foi possível processar. Tente novamente.</p>
+                <Button onClick={() => { setStatus('loading'); createPreference().then(p => p && initializeBrick(p)); }}>Tentar Novamente</Button>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Loading state */}
           {status === 'loading' && (
             <div className="flex flex-col items-center gap-4 py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -329,7 +247,6 @@ export function MercadoPagoCheckout({
             </div>
           )}
 
-          {/* Processing overlay */}
           {status === 'processing' && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-50 rounded-lg">
               <Loader2 className="w-10 h-10 animate-spin text-primary" />
@@ -338,7 +255,6 @@ export function MercadoPagoCheckout({
             </div>
           )}
 
-          {/* MP Brick renders here */}
           <div
             id="mp-brick-container"
             ref={brickContainerRef}
@@ -349,15 +265,12 @@ export function MercadoPagoCheckout({
             )}
           />
 
-          {/* Security badges */}
           <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-border/50">
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Lock className="w-3.5 h-3.5" />
-              <span>SSL Seguro</span>
+              <Lock className="w-3.5 h-3.5" /><span>SSL Seguro</span>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Mercado Pago</span>
+              <Shield className="w-3.5 h-3.5" /><span>Mercado Pago</span>
             </div>
           </div>
         </div>
