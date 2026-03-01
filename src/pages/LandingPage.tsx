@@ -123,7 +123,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#FFF5F5]" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif", background: 'linear-gradient(180deg, #FFF0F0 0%, #FFE4E6 15%, #FFF5F5 30%, #FECDD3 50%, #FFF1F2 70%, #FFE4E6 85%, #FFF5F5 100%)', backgroundAttachment: 'fixed' }}>
       
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/90 border-b border-rose-100 shadow-sm">
@@ -235,7 +235,7 @@ export default function LandingPage() {
       </section>
 
       {/* Vantagens */}
-      <section id="vantagens" className="py-12 sm:py-24 bg-white">
+      <section id="vantagens" className="py-12 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-12">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Vantagens</Badge>
@@ -270,7 +270,7 @@ export default function LandingPage() {
       </section>
 
       {/* Quem Usa - Personas */}
-      <section className="py-12 sm:py-24 bg-rose-50/50">
+      <section className="py-12 sm:py-24">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Para Quem</Badge>
@@ -323,7 +323,7 @@ export default function LandingPage() {
       <section className="py-16 sm:py-24 relative overflow-hidden text-white">
         <div className="absolute inset-0">
           <img src={stepsBg} alt="" className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/90 to-pink-500/90" />
+          <div className="absolute inset-0 bg-rose-600/85" />
         </div>
         <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
@@ -355,7 +355,7 @@ export default function LandingPage() {
       </section>
 
       {/* Dashboard Screenshot */}
-      <section className="py-16 sm:py-24 bg-white">
+      <section className="py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Dashboard</Badge>
@@ -372,9 +372,8 @@ export default function LandingPage() {
 
       {/* Funcionalidades */}
       <section id="funcionalidades" className="py-16 sm:py-24 relative overflow-hidden">
-        <div className="absolute inset-0">
-          <img src={featuresBg} alt="" className="w-full h-full object-cover opacity-10" loading="lazy" />
-          <div className="absolute inset-0 bg-rose-50/80" />
+        <div className="absolute inset-0 pointer-events-none">
+          <img src={featuresBg} alt="" className="w-full h-full object-cover opacity-5" loading="lazy" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
@@ -401,7 +400,7 @@ export default function LandingPage() {
       </section>
 
       {/* Mobile + IA Section */}
-      <section className="py-16 sm:py-24 bg-white">
+      <section className="py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}
@@ -438,7 +437,7 @@ export default function LandingPage() {
       </section>
 
       {/* Planos */}
-      <section id="planos" ref={planosRef} className="py-16 sm:py-24 bg-rose-50/50">
+      <section id="planos" ref={planosRef} className="py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Planos</Badge>
@@ -540,8 +539,8 @@ export default function LandingPage() {
       </section>
 
       {/* Depoimentos */}
-      <section id="depoimentos" className="py-16 sm:py-24 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center opacity-5">
+      <section id="depoimentos" className="py-16 sm:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center opacity-3 pointer-events-none">
           <img src={testimonialsBg} alt="" className="w-full max-w-3xl object-contain" loading="lazy" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
