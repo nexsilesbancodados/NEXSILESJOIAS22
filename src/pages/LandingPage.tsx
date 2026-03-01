@@ -17,6 +17,7 @@ import personaHero from '@/assets/landing-persona-hero.jpg';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
+import devicesMockup from '@/assets/landing-devices-mockup.jpg';
 import personaLojista from '@/assets/landing-persona-lojista.jpg';
 import personaRevendedora from '@/assets/landing-persona-revendedora.jpg';
 import personaCliente from '@/assets/landing-persona-cliente.jpg';
@@ -236,11 +237,20 @@ export default function LandingPage() {
       {/* Vantagens */}
       <section id="vantagens" className="py-12 sm:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-12">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Vantagens</Badge>
             <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-2 sm:mb-3">Conheça algumas de nossas vantagens</h2>
             <p className="text-rose-600/50 text-xs sm:text-base max-w-2xl mx-auto">Por que centenas de empreendedoras escolhem o Nexsiles.</p>
           </motion.div>
+
+          {/* Devices Mockup */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.1} className="mb-10 sm:mb-16">
+            <div className="relative mx-auto max-w-3xl">
+              <div className="absolute inset-0 bg-gradient-to-b from-rose-200/30 via-rose-100/20 to-transparent rounded-[40px] blur-2xl scale-110" />
+              <img src={devicesMockup} alt="Nexsiles no computador e celular" className="relative w-full rounded-2xl sm:rounded-3xl" loading="lazy" />
+            </div>
+          </motion.div>
+
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {VANTAGENS.map((v, i) => (
               <motion.div key={v.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.15}>
