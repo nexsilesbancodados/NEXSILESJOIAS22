@@ -1,18 +1,18 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { format, subDays, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,9 +21,11 @@ import {
   ArrowRight, ArrowUpRight, ArrowDownRight, Eye, Edit, Trash2,
   Phone, Mail, Globe, Tag, Calendar, MessageSquare, CheckCircle,
   XCircle, Clock, Zap, DollarSign, Activity, Loader2, RefreshCw,
-  Megaphone, UserPlus, ShoppingCart, Bot, Sparkles
+  Megaphone, UserPlus, ShoppingCart, Bot, Sparkles,
+  ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
+import { cn } from '@/lib/utils';
 
 // Types
 interface CRMLead {
@@ -90,6 +92,17 @@ const ORIGEM_LABELS: Record<string, { label: string; icon: any }> = {
 
 const PIE_COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
+// ============= NAV ITEMS =============
+type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas';
+
+const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; description: string }[] = [
+  { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard, description: 'KPIs e resumo' },
+  { id: 'pipeline', label: 'Pipeline', icon: Activity, description: 'Kanban de leads' },
+  { id: 'conversoes', label: 'Conversões', icon: TrendingUp, description: 'Funil e métricas' },
+  { id: 'contatos', label: 'Contatos', icon: Users, description: 'Lista de leads' },
+  { id: 'campanhas', label: 'Campanhas', icon: Megaphone, description: 'UTM e origens' },
+];
+
 // ============= SUB-COMPONENTS =============
 
 function CRMStatCard({ icon: Icon, label, value, change, color }: {
@@ -135,6 +148,50 @@ function CRMStatCard({ icon: Icon, label, value, change, color }: {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+// ============= OVERVIEW TAB =============
+function OverviewTab({ leads, conversoes, stats }: { leads: CRMLead[]; conversoes: CRMConversao[]; stats: any }) {
+  const chartData = useMemo(() => {
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = subDays(new Date(), 6 - i);
+      const day = format(d, 'dd/MM');
+      const leadsCount = leads.filter(l => format(new Date(l.created_at), 'dd/MM') === day).length;
+      const convsCount = conversoes.filter(c => format(new Date(c.created_at), 'dd/MM') === day).length;
+      return { dia: day, leads: leadsCount, conversoes: convsCount };
+    });
+    return last7;
+  }, [leads, conversoes]);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <CRMStatCard icon={Users} label="Total Leads" value={stats.total} color="blue" />
+        <CRMStatCard icon={UserPlus} label="Novos" value={stats.novos} color="violet" />
+        <CRMStatCard icon={MessageSquare} label="Negociação" value={stats.emNegociacao} color="amber" />
+        <CRMStatCard icon={CheckCircle} label="Convertidos" value={stats.convertidos} color="emerald" />
+        <CRMStatCard icon={DollarSign} label="Pipeline" value={`R$ ${stats.valorPipeline.toLocaleString()}`} color="rose" />
+      </div>
+
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-sm">Leads vs Conversões (7 dias)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="dia" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <RechartsTooltip />
+              <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" fill="hsl(var(--primary)/0.2)" />
+              <Area type="monotone" dataKey="conversoes" stroke="#10b981" fill="rgba(16,185,129,0.2)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
@@ -201,7 +258,6 @@ function PipelineTab({ leads, onEditLead, onViewLead, refetch }: {
                           <span className="text-[10px] text-muted-foreground">{lead.score}</span>
                         </div>
                       )}
-                      {/* Quick move buttons */}
                       <div className="flex gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {stages.filter(s => s !== stage).slice(0, 3).map(s => (
                           <button
@@ -251,159 +307,74 @@ function ConversionsTab({ conversoes, leads }: { conversoes: CRMConversao[]; lea
     return rates;
   }, [funnelData]);
 
-  // Time series for conversions
-  const timeSeriesData = useMemo(() => {
+  const timelineData = useMemo(() => {
     const last30 = Array.from({ length: 30 }, (_, i) => {
-      const date = subDays(new Date(), 29 - i);
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const dayConversoes = conversoes.filter(c => c.created_at.startsWith(dateStr));
-      const dayLeads = leads.filter(l => l.created_at.startsWith(dateStr));
+      const d = subDays(new Date(), 29 - i);
+      const day = format(d, 'dd/MM');
       return {
-        date: format(date, 'dd/MM'),
-        leads: dayLeads.length || dayConversoes.filter(c => c.evento === 'cadastro').length,
-        conversoes: dayConversoes.filter(c => c.evento === 'pagamento').length,
+        dia: day,
+        cadastros: conversoes.filter(c => c.evento === 'cadastro' && format(new Date(c.created_at), 'dd/MM') === day).length,
+        pagamentos: conversoes.filter(c => c.evento === 'pagamento' && format(new Date(c.created_at), 'dd/MM') === day).length,
       };
     });
     return last30;
-  }, [conversoes, leads]);
-
-  // Source breakdown
-  const sourceData = useMemo(() => {
-    const map: Record<string, number> = {};
-    leads.forEach(l => {
-      const src = l.utm_source || l.origem || 'direto';
-      map[src] = (map[src] || 0) + 1;
-    });
-    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [leads]);
-
-  const totalLeads = leads.length;
-  const convertidos = leads.filter(l => l.status === 'convertido').length;
-  const taxaGeral = totalLeads > 0 ? ((convertidos / totalLeads) * 100).toFixed(1) : '0';
-  const valorTotal = leads.filter(l => l.status === 'convertido').reduce((s, l) => s + (l.valor_potencial || 0), 0);
+  }, [conversoes]);
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <CRMStatCard icon={Users} label="Total Leads" value={totalLeads} color="blue" />
-        <CRMStatCard icon={Target} label="Taxa Conversão" value={`${taxaGeral}%`} color="emerald" />
-        <CRMStatCard icon={DollarSign} label="Receita Convertida" value={`R$ ${valorTotal.toLocaleString()}`} color="violet" />
-        <CRMStatCard icon={TrendingUp} label="Convertidos" value={convertidos} color="amber" />
-      </div>
-
       {/* Funnel */}
-      <Card className="border-border/50">
+      <Card className="bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Funil de Conversão</CardTitle>
+          <CardTitle className="text-sm">Funil de Conversão</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {funnelData.map((stage, i) => {
-              const maxVal = funnelData[0].value || 1;
-              const pct = (stage.value / maxVal) * 100;
-              return (
-                <div key={stage.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-foreground">{stage.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-foreground">{stage.value}</span>
-                      {i > 0 && conversionRates[i - 1] && (
-                        <Badge variant="outline" className="text-[10px]">
-                          {conversionRates[i - 1].rate}%
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="h-6 bg-muted rounded-lg overflow-hidden">
-                    <div
-                      className="h-full rounded-lg transition-all duration-500"
-                      style={{
-                        width: `${pct}%`,
-                        background: `linear-gradient(90deg, ${PIE_COLORS[i]}, ${PIE_COLORS[i]}88)`,
-                      }}
-                    />
+            {funnelData.map((stage, i) => (
+              <div key={stage.name}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-medium text-foreground">{stage.name}</span>
+                  <span className="text-sm font-bold text-foreground">{stage.value}</span>
+                </div>
+                <div className="h-8 bg-muted rounded-lg overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-lg flex items-center justify-end pr-3 transition-all"
+                    style={{ width: `${funnelData[0].value > 0 ? (stage.value / funnelData[0].value) * 100 : 0}%` }}
+                  >
+                    {funnelData[0].value > 0 && (
+                      <span className="text-[10px] font-medium text-primary-foreground">
+                        {((stage.value / funnelData[0].value) * 100).toFixed(0)}%
+                      </span>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+                {i < conversionRates.length && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                    <ArrowRight className="w-3 h-3" />
+                    <span>Taxa: <strong className="text-foreground">{conversionRates[i].rate}%</strong></span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Time series */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base">Leads vs Conversões (30 dias)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={timeSeriesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <RechartsTooltip
-                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                  />
-                  <Area type="monotone" dataKey="leads" stackId="1" fill="#8b5cf6" stroke="#8b5cf6" fillOpacity={0.3} name="Leads" />
-                  <Area type="monotone" dataKey="conversoes" stackId="2" fill="#10b981" stroke="#10b981" fillOpacity={0.3} name="Conversões" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Source breakdown */}
-        <Card className="border-border/50">
-          <CardHeader>
-            <CardTitle className="text-base">Origem dos Leads</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={sourceData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>
-                    {sourceData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2 justify-center">
-              {sourceData.map((s, i) => (
-                <div key={s.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                  <span className="text-muted-foreground">{s.name} ({s.value})</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Conversion rates between stages */}
-      <Card className="border-border/50">
+      {/* Timeline */}
+      <Card className="bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Taxas entre Etapas</CardTitle>
+          <CardTitle className="text-sm">Cadastros vs Pagamentos (30 dias)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            {conversionRates.map((cr) => (
-              <div key={cr.from + cr.to} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
-                <span className="text-xs text-muted-foreground">{cr.from}</span>
-                <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">{cr.to}</span>
-                <Badge className="bg-primary/15 text-primary border-primary/25 text-xs">{cr.rate}%</Badge>
-              </div>
-            ))}
-          </div>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={timelineData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="dia" tick={{ fontSize: 9, fill: 'hsl(var(--muted-foreground))' }} interval={4} />
+              <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+              <RechartsTooltip />
+              <Bar dataKey="cadastros" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="pagamentos" fill="#10b981" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
     </div>
@@ -415,207 +386,175 @@ function ContactsTab({ leads, onEditLead, onViewLead }: {
   leads: CRMLead[]; onEditLead: (l: CRMLead) => void; onViewLead: (l: CRMLead) => void;
 }) {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('todos');
-  const [origemFilter, setOrigemFilter] = useState('todos');
+  const [filterOrigem, setFilterOrigem] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all');
 
-  const filtered = useMemo(() => {
+  const filteredLeads = useMemo(() => {
     return leads.filter(l => {
-      const matchSearch = !search ||
-        l.nome.toLowerCase().includes(search.toLowerCase()) ||
-        l.email?.toLowerCase().includes(search.toLowerCase()) ||
-        l.telefone?.includes(search);
-      const matchStatus = statusFilter === 'todos' || l.status === statusFilter;
-      const matchOrigem = origemFilter === 'todos' || l.origem === origemFilter;
-      return matchSearch && matchStatus && matchOrigem;
+      const matchSearch = !search || l.nome.toLowerCase().includes(search.toLowerCase()) ||
+        (l.email && l.email.toLowerCase().includes(search.toLowerCase()));
+      const matchOrigem = filterOrigem === 'all' || l.origem === filterOrigem;
+      const matchStatus = filterStatus === 'all' || l.status === filterStatus;
+      return matchSearch && matchOrigem && matchStatus;
     });
-  }, [leads, search, statusFilter, origemFilter]);
+  }, [leads, search, filterOrigem, filterStatus]);
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar leads..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Buscar por nome ou email..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+        <Select value={filterOrigem} onValueChange={setFilterOrigem}>
+          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Origem" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos Status</SelectItem>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={origemFilter} onValueChange={setOrigemFilter}>
-          <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas Origens</SelectItem>
+            <SelectItem value="all">Todas origens</SelectItem>
             {Object.entries(ORIGEM_LABELS).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos status</SelectItem>
+            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="space-y-2">
-        {filtered.map(lead => {
-          const cfg = STATUS_CONFIG[lead.status] || STATUS_CONFIG.novo;
-          return (
-            <Card key={lead.id} className="border-border/50 hover:border-primary/20 transition-colors">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-primary">
-                    {lead.nome.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
-                    <Badge className={`${cfg.color} text-[10px]`}>{cfg.label}</Badge>
-                  </div>
-                  <div className="flex items-center gap-3 mt-0.5">
-                    {lead.email && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Mail className="w-3 h-3" /> {lead.email}
-                      </span>
-                    )}
-                    {lead.telefone && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Phone className="w-3 h-3" /> {lead.telefone}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-[10px]">
-                      {ORIGEM_LABELS[lead.origem]?.label || lead.origem}
-                    </Badge>
-                    {lead.utm_campaign && (
+      <Card className="bg-card">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Nome</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Email</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Origem</th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Status</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Score</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Valor</th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLeads.map(lead => (
+                  <tr key={lead.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4 font-medium text-foreground">{lead.nome}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{lead.email || '-'}</td>
+                    <td className="py-3 px-4">
                       <Badge variant="outline" className="text-[10px]">
-                        <Megaphone className="w-2.5 h-2.5 mr-0.5" /> {lead.utm_campaign}
+                        {ORIGEM_LABELS[lead.origem]?.label || lead.origem}
                       </Badge>
-                    )}
-                    {lead.plano_interesse && (
-                      <Badge variant="outline" className="text-[10px]">
-                        {lead.plano_interesse}
+                    </td>
+                    <td className="py-3 px-4">
+                      <Badge className={STATUS_CONFIG[lead.status]?.color || ''}>
+                        {STATUS_CONFIG[lead.status]?.label || lead.status}
                       </Badge>
-                    )}
-                    <span className="text-[10px] text-muted-foreground ml-auto">
-                      {format(new Date(lead.created_at), "dd/MM/yy HH:mm")}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onViewLead(lead)}>
-                    <Eye className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEditLead(lead)}>
-                    <Edit className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">
-            <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nenhum lead encontrado</p>
+                    </td>
+                    <td className="py-3 px-4 text-right text-foreground">{lead.score}</td>
+                    <td className="py-3 px-4 text-right text-emerald-400 font-medium">
+                      {lead.valor_potencial > 0 ? `R$ ${lead.valor_potencial}` : '-'}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => onViewLead(lead)} className="p-1.5 hover:bg-muted rounded-md"><Eye className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                        <button onClick={() => onEditLead(lead)} className="p-1.5 hover:bg-muted rounded-md"><Edit className="w-3.5 h-3.5 text-muted-foreground" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filteredLeads.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-12">Nenhum lead encontrado</p>
+            )}
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 // ============= CAMPAIGNS TAB =============
 function CampaignsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRMConversao[] }) {
+  const origemData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    leads.forEach(l => { counts[l.origem] = (counts[l.origem] || 0) + 1; });
+    return Object.entries(counts).map(([name, value]) => ({
+      name: ORIGEM_LABELS[name]?.label || name,
+      value,
+    }));
+  }, [leads]);
+
   const campaignData = useMemo(() => {
-    const map: Record<string, { leads: number; conversoes: number; valor: number; source: string; medium: string }> = {};
+    const campaigns: Record<string, { source: string; medium: string; leads: number; conversoes: number; valor: number }> = {};
     leads.forEach(l => {
-      const campaign = l.utm_campaign || 'sem_campanha';
-      if (!map[campaign]) map[campaign] = { leads: 0, conversoes: 0, valor: 0, source: l.utm_source || '-', medium: l.utm_medium || '-' };
-      map[campaign].leads++;
-      if (l.status === 'convertido') {
-        map[campaign].conversoes++;
-        map[campaign].valor += l.valor_potencial || 0;
+      if (l.utm_campaign) {
+        if (!campaigns[l.utm_campaign]) {
+          campaigns[l.utm_campaign] = { source: l.utm_source || '-', medium: l.utm_medium || '-', leads: 0, conversoes: 0, valor: 0 };
+        }
+        campaigns[l.utm_campaign].leads++;
+        if (l.status === 'convertido') {
+          campaigns[l.utm_campaign].conversoes++;
+          campaigns[l.utm_campaign].valor += l.valor_potencial || 0;
+        }
       }
     });
-    return Object.entries(map).map(([campaign, data]) => ({
+    return Object.entries(campaigns).map(([campaign, data]) => ({
       campaign,
       ...data,
       taxa: data.leads > 0 ? ((data.conversoes / data.leads) * 100).toFixed(1) : '0',
-    })).sort((a, b) => b.leads - a.leads);
-  }, [leads]);
-
-  const sourceBreakdown = useMemo(() => {
-    const map: Record<string, number> = {};
-    leads.forEach(l => {
-      const src = l.utm_source || 'direto';
-      map[src] = (map[src] || 0) + 1;
-    });
-    return Object.entries(map).map(([source, count]) => ({ source, count })).sort((a, b) => b.count - a.count);
-  }, [leads]);
-
-  const mediumBreakdown = useMemo(() => {
-    const map: Record<string, number> = {};
-    leads.forEach(l => {
-      const m = l.utm_medium || 'direto';
-      map[m] = (map[m] || 0) + 1;
-    });
-    return Object.entries(map).map(([medium, count]) => ({ medium, count })).sort((a, b) => b.count - a.count);
+    }));
   }, [leads]);
 
   return (
     <div className="space-y-6">
-      {/* Source & Medium breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-border/50">
+        <Card className="bg-card">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Globe className="w-4 h-4" /> Por Origem (utm_source)
-            </CardTitle>
+            <CardTitle className="text-sm">Leads por Origem</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sourceBreakdown} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis dataKey="source" type="category" tick={{ fontSize: 10 }} width={80} stroke="hsl(var(--muted-foreground))" />
-                  <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie data={origemData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={({ name, value }) => `${name}: ${value}`}>
+                  {origemData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <RechartsTooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="border-border/50">
+        <Card className="bg-card">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Megaphone className="w-4 h-4" /> Por Mídia (utm_medium)
-            </CardTitle>
+            <CardTitle className="text-sm">Performance por Source</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mediumBreakdown} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-                  <YAxis dataKey="medium" type="category" tick={{ fontSize: 10 }} width={80} stroke="hsl(var(--muted-foreground))" />
-                  <Bar dataKey="count" fill="#ec4899" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={origemData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <RechartsTooltip />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Campaign table */}
-      <Card className="border-border/50">
+      <Card className="bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Campanhas (utm_campaign)</CardTitle>
+          <CardTitle className="text-sm">Campanhas UTM</CardTitle>
+          <CardDescription>Rastreamento de campanhas de marketing</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -643,6 +582,9 @@ function CampaignsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRM
                     <td className="py-2 px-3 text-right text-foreground font-medium">R$ {c.valor.toLocaleString()}</td>
                   </tr>
                 ))}
+                {campaignData.length === 0 && (
+                  <tr><td colSpan={7} className="text-center text-muted-foreground py-8 text-sm">Nenhuma campanha com UTM rastreada</td></tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -655,8 +597,10 @@ function CampaignsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRM
 // ============= MAIN CRM PAGE =============
 export default function CRMPage() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('pipeline');
+  const [activeSection, setActiveSection] = useState<Section>('overview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [editDialog, setEditDialog] = useState<CRMLead | null>(null);
   const [viewDialog, setViewDialog] = useState<CRMLead | null>(null);
   const [newLeadDialog, setNewLeadDialog] = useState(false);
@@ -668,10 +612,6 @@ export default function CRMPage() {
 
   const isSuperAdmin = profile?.is_super_admin === true;
 
-  // All hooks must be above this guard
-
-
-  // Fetch leads
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
     queryKey: ['crm-leads'],
     queryFn: async () => {
@@ -685,7 +625,6 @@ export default function CRMPage() {
     enabled: isSuperAdmin,
   });
 
-  // Fetch conversoes
   const { data: conversoes = [] } = useQuery({
     queryKey: ['crm-conversoes'],
     queryFn: async () => {
@@ -699,7 +638,6 @@ export default function CRMPage() {
     enabled: isSuperAdmin,
   });
 
-  // Fetch activities for view dialog
   const { data: atividades = [] } = useQuery({
     queryKey: ['crm-atividades', viewDialog?.id],
     queryFn: async () => {
@@ -715,7 +653,6 @@ export default function CRMPage() {
     enabled: !!viewDialog?.id,
   });
 
-  // Create/Update lead mutation
   const saveLead = useMutation({
     mutationFn: async (isNew: boolean) => {
       const payload = {
@@ -733,7 +670,6 @@ export default function CRMPage() {
         utm_medium: editForm.utm_medium || null,
         utm_campaign: editForm.utm_campaign || null,
       };
-
       if (isNew) {
         const { error } = await supabase.from('crm_leads' as any).insert(payload as any);
         if (error) throw error;
@@ -751,7 +687,6 @@ export default function CRMPage() {
     onError: (err: any) => toast.error(err.message),
   });
 
-  // Add activity mutation
   const addActivity = useMutation({
     mutationFn: async ({ lead_id, titulo, tipo }: { lead_id: string; titulo: string; tipo: string }) => {
       const { error } = await supabase.from('crm_atividades' as any).insert({
@@ -765,7 +700,6 @@ export default function CRMPage() {
     },
   });
 
-  // Delete lead
   const deleteLead = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('crm_leads' as any).delete().eq('id', id);
@@ -799,7 +733,6 @@ export default function CRMPage() {
     setEditDialog(lead);
   };
 
-  // Stats
   const stats = useMemo(() => {
     const novos = leads.filter(l => l.status === 'novo').length;
     const emNegociacao = leads.filter(l => l.status === 'negociacao').length;
@@ -808,68 +741,135 @@ export default function CRMPage() {
       .reduce((s, l) => s + (l.valor_potencial || 0), 0);
     return { total: leads.length, novos, emNegociacao, convertidos, valorPipeline };
   }, [leads]);
+
   const [noteText, setNoteText] = useState('');
 
   if (!isSuperAdmin) return <Navigate to="/" replace />;
 
+  const activeNav = NAV_ITEMS.find(n => n.id === activeSection);
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Target className="w-6 h-6 text-primary" /> CRM
-          </h1>
-          <p className="text-sm text-muted-foreground">Pipeline de leads, conversões e campanhas</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => refetchLeads()} className="gap-1.5">
-            <RefreshCw className="w-3.5 h-3.5" /> Atualizar
-          </Button>
-          <Button size="sm" onClick={openNewLead} className="gap-1.5">
-            <Plus className="w-3.5 h-3.5" /> Novo Lead
-          </Button>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <CRMStatCard icon={Users} label="Total Leads" value={stats.total} color="blue" />
-        <CRMStatCard icon={UserPlus} label="Novos" value={stats.novos} color="violet" />
-        <CRMStatCard icon={MessageSquare} label="Negociação" value={stats.emNegociacao} color="amber" />
-        <CRMStatCard icon={CheckCircle} label="Convertidos" value={stats.convertidos} color="emerald" />
-        <CRMStatCard icon={DollarSign} label="Pipeline" value={`R$ ${stats.valorPipeline.toLocaleString()}`} color="rose" />
-      </div>
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="pipeline" className="gap-1.5"><Activity className="w-3.5 h-3.5" /> Pipeline</TabsTrigger>
-          <TabsTrigger value="conversoes" className="gap-1.5"><TrendingUp className="w-3.5 h-3.5" /> Conversões</TabsTrigger>
-          <TabsTrigger value="contatos" className="gap-1.5"><Users className="w-3.5 h-3.5" /> Contatos</TabsTrigger>
-          <TabsTrigger value="campanhas" className="gap-1.5"><Megaphone className="w-3.5 h-3.5" /> Campanhas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pipeline">
-          {leadsLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-          ) : (
-            <PipelineTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} refetch={refetchLeads} />
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar */}
+      <aside className={cn(
+        "flex flex-col border-r bg-card transition-all duration-300 ease-in-out flex-shrink-0",
+        sidebarCollapsed ? "w-[68px]" : "w-[240px]"
+      )}>
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b h-[60px]">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 flex-shrink-0" />
+          </button>
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Target className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-sm font-bold truncate">CRM</h1>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] text-muted-foreground">{stats.total} leads</span>
+                </div>
+              </div>
+            </div>
           )}
-        </TabsContent>
+        </div>
 
-        <TabsContent value="conversoes">
-          <ConversionsTab conversoes={conversoes} leads={leads} />
-        </TabsContent>
+        {/* Navigation */}
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
 
-        <TabsContent value="contatos">
-          <ContactsTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} />
-        </TabsContent>
+            const button = (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 rounded-lg transition-all duration-200 text-sm",
+                  sidebarCollapsed ? "justify-center p-2.5" : "px-3 py-2.5",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <Icon className="h-4 w-4 flex-shrink-0" />
+                {!sidebarCollapsed && (
+                  <span className="truncate">{item.label}</span>
+                )}
+              </button>
+            );
 
-        <TabsContent value="campanhas">
-          <CampaignsTab leads={leads} conversoes={conversoes} />
-        </TabsContent>
-      </Tabs>
+            if (sidebarCollapsed) {
+              return (
+                <Tooltip key={item.id} delayDuration={0}>
+                  <TooltipTrigger asChild>{button}</TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    <p className="font-medium">{item.label}</p>
+                    <p className="text-muted-foreground">{item.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+            return button;
+          })}
+        </nav>
+
+        {/* Collapse toggle */}
+        <div className="p-2 border-t">
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top bar */}
+        <header className="flex items-center justify-between px-6 h-[60px] border-b bg-card flex-shrink-0">
+          <div className="flex items-center gap-3">
+            {activeNav && (
+              <>
+                <activeNav.icon className="h-5 w-5 text-primary" />
+                <div>
+                  <h2 className="text-base font-semibold leading-tight">{activeNav.label}</h2>
+                  <p className="text-xs text-muted-foreground">{activeNav.description}</p>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetchLeads()} className="gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" /> Atualizar
+            </Button>
+            <Button size="sm" onClick={openNewLead} className="gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Novo Lead
+            </Button>
+          </div>
+        </header>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {leadsLoading ? (
+            <div className="flex justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <>
+              {activeSection === 'overview' && <OverviewTab leads={leads} conversoes={conversoes} stats={stats} />}
+              {activeSection === 'pipeline' && <PipelineTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} refetch={refetchLeads} />}
+              {activeSection === 'conversoes' && <ConversionsTab conversoes={conversoes} leads={leads} />}
+              {activeSection === 'contatos' && <ContactsTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} />}
+              {activeSection === 'campanhas' && <CampaignsTab leads={leads} conversoes={conversoes} />}
+            </>
+          )}
+        </div>
+      </main>
 
       {/* New/Edit Lead Dialog */}
       <Dialog open={newLeadDialog || !!editDialog} onOpenChange={(open) => { if (!open) { setNewLeadDialog(false); setEditDialog(null); } }}>
@@ -986,7 +986,7 @@ export default function CRMPage() {
                     </div>
                   )}
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Globe className="w-3.5 h-3.5" /> {ORIGEN_LABELS_SAFE(viewDialog.origem)}
+                    <Globe className="w-3.5 h-3.5" /> {ORIGEM_LABELS[viewDialog.origem]?.label || viewDialog.origem}
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="w-3.5 h-3.5" /> {format(new Date(viewDialog.created_at), "dd/MM/yyyy")}
@@ -1019,13 +1019,12 @@ export default function CRMPage() {
 
                 <Separator />
 
-                {/* Activities */}
                 <div>
                   <h4 className="text-sm font-semibold mb-3">Atividades</h4>
                   <div className="flex gap-2 mb-3">
-                    <Input 
-                      placeholder="Adicionar nota..." 
-                      value={noteText} 
+                    <Input
+                      placeholder="Adicionar nota..."
+                      value={noteText}
                       onChange={(e) => setNoteText(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && noteText.trim()) {
@@ -1075,8 +1074,4 @@ export default function CRMPage() {
       </Dialog>
     </div>
   );
-}
-
-function ORIGEN_LABELS_SAFE(origem: string): string {
-  return ORIGEM_LABELS[origem]?.label || origem;
 }
