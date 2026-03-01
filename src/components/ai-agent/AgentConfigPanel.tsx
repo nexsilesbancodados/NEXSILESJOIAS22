@@ -913,37 +913,18 @@ export function AgentConfigPanel({ organizationId }: AgentConfigPanelProps) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                🤖 Chave da IA (Gemini)
+                🤖 Inteligência Artificial
               </CardTitle>
               <CardDescription>
-                Insira sua chave de API do Google Gemini para que o agente responda automaticamente
+                O agente utiliza DeepSeek para processar mensagens automaticamente. Nenhuma configuração necessária.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="gemini_api_key">API Key do Gemini</Label>
-                <Input
-                  id="gemini_api_key"
-                  type="password"
-                  value={formData.gemini_api_key || ''}
-                  onChange={(e) => updateField('gemini_api_key', e.target.value)}
-                  placeholder="AIzaSy..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Obtenha sua chave em{' '}
-                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                    Google AI Studio
-                  </a>. 
-                  Ela será usada para o agente processar mensagens do WhatsApp.
+            <CardContent>
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <p className="text-sm text-primary">
+                  ✅ IA DeepSeek ativa e configurada
                 </p>
               </div>
-              {formData.gemini_api_key && (
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <p className="text-sm text-primary">
-                    ✅ Chave Gemini configurada
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
