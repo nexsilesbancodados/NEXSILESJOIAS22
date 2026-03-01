@@ -41,9 +41,9 @@ const VANTAGENS = [
 ];
 
 const PASSOS = [
-  { num: '01', titulo: 'Crie sua conta', desc: 'Cadastro rápido e gratuito em menos de 2 minutos.' },
-  { num: '02', titulo: 'Configure seu negócio', desc: 'Adicione produtos, revendedoras e personalize seu catálogo.' },
-  { num: '03', titulo: 'Comece a vender', desc: 'Gerencie vendas, estoque e revendedoras de forma profissional.' },
+  { num: '01', titulo: 'Crie sua conta', desc: 'Cadastro rápido e gratuito em menos de 2 minutos.', icon: Smartphone },
+  { num: '02', titulo: 'Configure seu negócio', desc: 'Adicione produtos, revendedoras e personalize seu catálogo.', icon: Package },
+  { num: '03', titulo: 'Comece a vender', desc: 'Gerencie vendas, estoque e revendedoras de forma profissional.', icon: TrendingUp },
 ];
 
 const FEATURES = [
@@ -325,32 +325,53 @@ export default function LandingPage() {
       </section>
 
       {/* Passos - Como Funciona */}
-      <section className="py-16 sm:py-24 relative overflow-hidden text-white">
+      <section className="py-16 sm:py-28 relative overflow-hidden text-white">
         <div className="absolute inset-0">
           <img src={stepsBg} alt="" className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 bg-rose-600/85" />
+          <div className="absolute inset-0 bg-rose-500/90" />
         </div>
-        <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3">Veja como é fácil começar</h2>
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-12 sm:mb-20">
+            <h2 className="text-2xl sm:text-5xl font-extrabold mb-3" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Veja como é fácil começar</h2>
             <p className="text-white/70 text-sm sm:text-base">3 passos simples para transformar sua gestão.</p>
           </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8" data-gsap-stagger>
-            {PASSOS.map((p, i) => (
-              <motion.div key={p.num} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.2}
-                className="text-center relative">
-                <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border-2 border-white/30">
-                  <span className="text-2xl font-extrabold">{p.num}</span>
-                </div>
-                <h3 className="text-lg font-bold mb-2">{p.titulo}</h3>
-                <p className="text-white/70 text-sm leading-relaxed">{p.desc}</p>
-                {i < 2 && (
-                  <div className="hidden sm:block absolute top-8 left-[60%] w-[80%] border-t-2 border-dashed border-white/20" />
-                )}
-              </motion.div>
-            ))}
+
+          {/* Steps with connectors */}
+          <div className="relative">
+            {/* Dashed connector line - desktop only */}
+            <div className="hidden sm:block absolute top-[60px] left-[16%] right-[16%] border-t-[3px] border-dashed border-white/25 z-0" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-6 relative z-10" data-gsap-stagger>
+              {PASSOS.map((p, i) => {
+                const isCenter = i === 1;
+                return (
+                  <div key={p.num} className="flex flex-col items-center text-center">
+                    {/* Icon card - center one is elevated */}
+                    <div className={`relative mb-6 ${isCenter ? 'sm:-mt-4' : ''}`}>
+                      {/* Number badge */}
+                      <div className={`absolute -top-3 -right-3 z-20 w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-sm shadow-lg ${
+                        isCenter ? 'bg-white text-rose-500' : 'bg-white/90 text-rose-500'
+                      }`}>
+                        {p.num}
+                      </div>
+                      {/* Icon container */}
+                      <div className={`w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] rounded-2xl flex items-center justify-center shadow-2xl transition-transform duration-300 ${
+                        isCenter
+                          ? 'bg-white/25 backdrop-blur-md border-2 border-white/40 ring-4 ring-white/10 sm:scale-110'
+                          : 'bg-white/15 backdrop-blur-sm border border-white/25'
+                      }`}>
+                        <p.icon className={`${isCenter ? 'w-12 h-12 sm:w-14 sm:h-14' : 'w-10 h-10 sm:w-12 sm:h-12'} text-white drop-shadow-lg`} strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-bold mb-2">{p.titulo}</h3>
+                    <p className="text-white/70 text-sm leading-relaxed max-w-[220px]">{p.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-10">
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-12 sm:mt-16">
             <Button size="lg" className="bg-white text-rose-500 hover:bg-rose-50 text-base sm:text-lg px-8 py-6 rounded-full shadow-xl font-bold"
               onClick={() => navigate('/auth')}>
               Criar Minha Conta Grátis <ArrowRight className="w-5 h-5 ml-1" />
