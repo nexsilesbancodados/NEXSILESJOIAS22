@@ -59,8 +59,10 @@ serve(async (req: Request) => {
     console.log("Processing payment for:", userEmail, "plan:", plano, "authenticated:", !!userId);
 
     const PLANOS_CONFIG: Record<string, { nome: string; valor_mensal: number; valor_anual: number }> = {
+      ecommerce_premium: { nome: "E-commerce Premium", valor_mensal: 149, valor_anual: 1490 },
       nexsiles: { nome: "Nexsiles", valor_mensal: 189, valor_anual: 1890 },
-      nexsiles_max: { nome: "Nexsiles Max", valor_mensal: 249, valor_anual: 2490 },
+      nexsiles_ysis: { nome: "Nexsiles Ysis", valor_mensal: 249, valor_anual: 2490 },
+      nexsiles_commerce: { nome: "Nexsiles Commerce", valor_mensal: 299, valor_anual: 2990 },
     };
 
     const planoConfig = PLANOS_CONFIG[plano];
