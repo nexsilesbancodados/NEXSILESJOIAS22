@@ -64,6 +64,14 @@ const FEATURES = [
     description: 'Compartilhe seus produtos online'
   },
   { 
+    name: 'Loja Virtual (E-commerce)', 
+    icon: Star,
+    nexsiles: true, 
+    nexsiles_max: true,
+    description: 'Venda online com checkout integrado',
+    highlight: true
+  },
+  { 
     name: 'Relatórios Básicos', 
     icon: BarChart3,
     nexsiles: true, 

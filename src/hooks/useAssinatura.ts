@@ -53,14 +53,16 @@ export const PLANOS = {
       'Catálogos digitais',
       'Relatórios completos',
       'Portal da revendedora',
+      'Loja Virtual (E-commerce)',
     ],
     valor: 189.00,
   },
   nexsiles_max: {
     nome: 'Nexsiles Max',
-    descricao: 'Tudo do Nexsiles + IA integrada',
+    descricao: 'Tudo do Nexsiles + IA e E-commerce avançado',
     recursos: [
       'Tudo do plano Nexsiles',
+      'Loja Virtual (E-commerce) completa',
       'Atendente de IA integrado',
       'Chatbot WhatsApp automatizado',
       'Recomendações inteligentes',

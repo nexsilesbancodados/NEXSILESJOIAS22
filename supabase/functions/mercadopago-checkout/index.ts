@@ -100,8 +100,8 @@ serve(async (req: Request) => {
       // ===== STATEMENT DESCRIPTOR =====
       statement_descriptor: "NEXSILES",
 
-      // ===== BINARY MODE =====
-      binary_mode: true,
+      // ===== BINARY MODE (desativado para suportar PIX/boleto que são pendentes) =====
+      binary_mode: false,
 
       // ===== METADATA =====
       metadata: {
