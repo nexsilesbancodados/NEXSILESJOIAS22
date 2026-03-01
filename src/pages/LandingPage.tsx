@@ -27,6 +27,11 @@ import featuresBg from '@/assets/landing-features-bg.jpg';
 import testimonialsBg from '@/assets/landing-testimonials-bg.jpg';
 import ctaBg from '@/assets/landing-cta-bg.jpg';
 import logo from '@/assets/logo.png';
+import dashboardInsights from '@/assets/landing-dashboard-insights.png';
+import dashboardCharts from '@/assets/landing-dashboard-charts.png';
+import pecasMockup from '@/assets/landing-pecas-mockup.png';
+import pdvMockup from '@/assets/landing-pdv-mockup.png';
+import lojaMockup from '@/assets/landing-loja-mockup.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -380,19 +385,48 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Dashboard Screenshot */}
+      {/* Dashboard & App Screenshots */}
       <section className="py-16 sm:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
-            <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Dashboard</Badge>
-            <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Novidades todo mês</h2>
-            <p className="text-rose-600/50 text-sm sm:text-base max-w-2xl mx-auto">Tudo o que você precisa num painel intuitivo e bonito.</p>
+            <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Conheça o Sistema</Badge>
+            <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Veja o Nexsiles em ação</h2>
+            <p className="text-rose-600/50 text-sm sm:text-base max-w-2xl mx-auto">Capturas reais do sistema. Sem promessas vazias — é isso que você vai usar.</p>
           </motion.div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}
-            className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-rose-100 shadow-2xl shadow-rose-200/30">
-            <img src={dashboardMockup} alt="Dashboard Nexsiles" className="w-full" loading="lazy" />
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+
+          {/* Main Dashboard Screenshot */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.1}
+            className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-rose-100 shadow-2xl shadow-rose-200/30 mb-8">
+            <img src={dashboardMockup} alt="Dashboard Nexsiles - Painel principal com vendas, estoque e revendedoras" className="w-full" loading="lazy" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white/60 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6">
+              <Badge className="bg-rose-500 text-white border-0 shadow-lg text-xs sm:text-sm">📊 Dashboard Principal</Badge>
+            </div>
           </motion.div>
+
+          {/* Secondary Screenshots Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {[
+              { img: dashboardInsights, label: '💡 Insights & Atividade', desc: 'Análises automáticas e ranking de revendedoras' },
+              { img: dashboardCharts, label: '📈 Gráficos & Relatórios', desc: 'Vendas por período e estoque por categoria' },
+              { img: pecasMockup, label: '💎 Gestão de Peças', desc: 'Estoque completo com filtros avançados' },
+              { img: pdvMockup, label: '🛒 PDV - Ponto de Venda', desc: 'Caixa rápido com busca e grid de produtos' },
+              { img: lojaMockup, label: '🏪 Loja Virtual', desc: 'Editor visual completo da sua loja online' },
+              { img: dashboardMockup, label: '⚡ Atalhos Rápidos', desc: 'Acesso direto às funções mais usadas' },
+            ].map((item, i) => (
+              <motion.div key={item.label} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-30px" }} variants={fadeUp} custom={i * 0.1}
+                className="group relative rounded-xl sm:rounded-2xl overflow-hidden border border-rose-100 shadow-lg hover:shadow-xl hover:shadow-rose-200/40 transition-all duration-300">
+                <div className="aspect-[16/10] overflow-hidden">
+                  <img src={item.img} alt={item.desc} className="w-full h-full object-cover object-top group-hover:scale-[1.03] transition-transform duration-500" loading="lazy" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-rose-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  <Badge className="bg-white/90 text-rose-700 border-0 text-[10px] sm:text-xs mb-1">{item.label}</Badge>
+                  <p className="text-white text-xs sm:text-sm font-medium">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </section>
 
