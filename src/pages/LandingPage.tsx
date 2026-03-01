@@ -17,6 +17,10 @@ import personaHero from '@/assets/landing-persona-hero.jpg';
 import personaLojista from '@/assets/landing-persona-lojista.jpg';
 import personaRevendedora from '@/assets/landing-persona-revendedora.jpg';
 import personaCliente from '@/assets/landing-persona-cliente.jpg';
+import stepsBg from '@/assets/landing-steps-bg.jpg';
+import featuresBg from '@/assets/landing-features-bg.jpg';
+import testimonialsBg from '@/assets/landing-testimonials-bg.jpg';
+import ctaBg from '@/assets/landing-cta-bg.jpg';
 import logo from '@/assets/logo.png';
 
 const fadeUp = {
@@ -85,9 +89,9 @@ const PLANOS = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Carla M.', role: 'Loja de semijoias', text: 'O Nexsiles facilitou muito minha gestão. Antes eu perdia horas no controle manual.' },
-  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Vejo peças, vendas e comissões em tempo real.' },
-  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A automação no WhatsApp me ajuda a atender fora do horário. Senti diferença nas vendas.' },
+  { name: 'Carla M.', role: 'Loja de semijoias', text: 'O Nexsiles facilitou muito minha gestão. Antes eu perdia horas no controle manual.', img: personaLojista },
+  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Vejo peças, vendas e comissões em tempo real.', img: personaRevendedora },
+  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A automação no WhatsApp me ajuda a atender fora do horário. Senti diferença nas vendas.', img: personaCliente },
 ];
 
 export default function LandingPage() {
@@ -281,8 +285,12 @@ export default function LandingPage() {
       </section>
 
       {/* Passos - Como Funciona */}
-      <section className="py-16 sm:py-24 bg-gradient-to-br from-rose-400 to-rose-500 text-white">
-        <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
+      <section className="py-16 sm:py-24 relative overflow-hidden text-white">
+        <div className="absolute inset-0">
+          <img src={stepsBg} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/90 to-pink-500/90" />
+        </div>
+        <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
             <h2 className="text-2xl sm:text-4xl font-bold mb-3">Veja como é fácil começar</h2>
             <p className="text-white/70 text-sm sm:text-base">3 passos simples para transformar sua gestão.</p>
@@ -328,8 +336,12 @@ export default function LandingPage() {
       </section>
 
       {/* Funcionalidades */}
-      <section id="funcionalidades" className="py-16 sm:py-24 bg-rose-50/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="funcionalidades" className="py-16 sm:py-24 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={featuresBg} alt="" className="w-full h-full object-cover opacity-10" loading="lazy" />
+          <div className="absolute inset-0 bg-rose-50/80" />
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Funcionalidades</Badge>
             <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Tudo em um só sistema</h2>
@@ -493,8 +505,11 @@ export default function LandingPage() {
       </section>
 
       {/* Depoimentos */}
-      <section id="depoimentos" className="py-16 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="depoimentos" className="py-16 sm:py-24 bg-white relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center opacity-5">
+          <img src={testimonialsBg} alt="" className="w-full max-w-3xl object-contain" loading="lazy" />
+        </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Depoimentos</Badge>
             <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">O que nossas clientes dizem</h2>
@@ -512,9 +527,12 @@ export default function LandingPage() {
                       ))}
                     </div>
                     <p className="text-rose-700/60 text-xs leading-relaxed mb-4">"{t.text}"</p>
-                    <div>
-                      <p className="font-semibold text-rose-950 text-sm">{t.name}</p>
-                      <p className="text-[11px] text-rose-500/50">{t.role}</p>
+                    <div className="flex items-center gap-2.5">
+                      <img src={t.img} alt={t.name} className="w-8 h-8 rounded-full object-cover border-2 border-rose-200" />
+                      <div>
+                        <p className="font-semibold text-rose-950 text-sm">{t.name}</p>
+                        <p className="text-[11px] text-rose-500/50">{t.role}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -533,9 +551,12 @@ export default function LandingPage() {
                       ))}
                     </div>
                     <p className="text-rose-700/60 text-sm leading-relaxed mb-6">"{t.text}"</p>
-                    <div>
-                      <p className="font-semibold text-rose-950">{t.name}</p>
-                      <p className="text-xs text-rose-500/50">{t.role}</p>
+                    <div className="flex items-center gap-3">
+                      <img src={t.img} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-rose-200" />
+                      <div>
+                        <p className="font-semibold text-rose-950">{t.name}</p>
+                        <p className="text-xs text-rose-500/50">{t.role}</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -546,10 +567,10 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Final */}
-      <section className="py-16 sm:py-24 relative overflow-hidden bg-gradient-to-br from-rose-400 via-rose-500 to-pink-500 text-white">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-pink-200 rounded-full blur-3xl" />
+      <section className="py-16 sm:py-24 relative overflow-hidden text-white">
+        <div className="absolute inset-0">
+          <img src={ctaBg} alt="" className="w-full h-full object-cover" loading="lazy" />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/85 via-rose-600/90 to-pink-600/85" />
         </div>
         <div className="relative z-10 max-w-4xl mx-auto px-5 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
