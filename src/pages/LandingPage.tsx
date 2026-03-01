@@ -13,6 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import dashboardMockup from '@/assets/landing-dashboard-mockup.jpg';
 import mobileMockup from '@/assets/landing-mobile-mockup.jpg';
 import heroWoman from '@/assets/landing-hero-woman.jpg';
+import personaHero from '@/assets/landing-persona-hero.jpg';
+import personaLojista from '@/assets/landing-persona-lojista.jpg';
+import personaRevendedora from '@/assets/landing-persona-revendedora.jpg';
+import personaCliente from '@/assets/landing-persona-cliente.jpg';
 import logo from '@/assets/logo.png';
 
 const fadeUp = {
@@ -177,7 +181,7 @@ export default function LandingPage() {
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1} className="order-1 lg:order-2 flex justify-center">
               <div className="relative">
                 <div className="w-64 sm:w-80 lg:w-[420px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-rose-300/30 border-4 border-white">
-                  <img src={heroWoman} alt="Semijoias premium" className="w-full h-full object-cover" loading="eager" />
+                  <img src={personaHero} alt="Semijoias premium rose gold" className="w-full h-full object-cover" loading="eager" />
                 </div>
                 {/* Floating badge */}
                 <div className="absolute -bottom-4 -left-4 sm:-bottom-5 sm:-left-5 bg-white rounded-2xl px-4 py-3 shadow-xl border border-rose-100">
@@ -220,6 +224,36 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-base sm:text-lg font-bold text-rose-950 mb-2">{v.title}</h3>
                     <p className="text-xs sm:text-sm text-rose-700/50 leading-relaxed">{v.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Quem Usa - Personas */}
+      <section className="py-16 sm:py-24 bg-rose-50/50">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
+            <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Para Quem</Badge>
+            <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Feito para quem vive de semijoias</h2>
+            <p className="text-rose-600/50 text-sm sm:text-base max-w-2xl mx-auto">De lojistas a revendedoras, o Nexsiles se adapta ao seu modelo de negócio.</p>
+          </motion.div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[
+              { img: personaLojista, name: 'Lojista', desc: 'Gerencie sua loja física com PDV, estoque inteligente e relatórios detalhados de lucratividade.' },
+              { img: personaRevendedora, name: 'Revendedora', desc: 'Acompanhe suas maletas, vendas e comissões em tempo real direto do celular.' },
+              { img: personaCliente, name: 'E-commerce', desc: 'Venda online com loja virtual completa, checkout integrado e gestão de pedidos.' },
+            ].map((persona, i) => (
+              <motion.div key={persona.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.2}>
+                <Card className="bg-white border-rose-100 hover:shadow-xl hover:shadow-rose-100/50 transition-all duration-300 overflow-hidden h-full group">
+                  <div className="aspect-square overflow-hidden">
+                    <img src={persona.img} alt={persona.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  </div>
+                  <CardContent className="p-5 text-center">
+                    <h3 className="text-lg font-bold text-rose-950 mb-2">{persona.name}</h3>
+                    <p className="text-sm text-rose-700/50 leading-relaxed">{persona.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
