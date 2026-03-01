@@ -140,7 +140,7 @@ export default function LandingPage() {
       
       {/* ═══ NAVBAR ═══ */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/90 border-b border-rose-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 flex items-center justify-between h-12 sm:h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 flex items-center justify-between h-12 sm:h-14 md:h-16">
           <div className="flex items-center gap-1.5">
             <img src={logo} alt="Nexsiles" className="h-6 sm:h-7 w-auto" />
             <span className="text-base sm:text-lg font-bold text-rose-700">Nexsiles</span>
@@ -193,19 +193,19 @@ export default function LandingPage() {
             <Badge className="mb-3 bg-rose-500/20 text-white border-rose-400/30 backdrop-blur-sm px-2.5 py-1 text-[10px] sm:text-sm font-semibold">
               <Rocket className="w-3 h-3 mr-1" /> A plataforma #1 para semijoias
             </Badge>
-            <h1 className="text-xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-2 sm:mb-5 leading-[1.1] drop-shadow-lg"
+            <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-6xl font-extrabold text-white mb-2 sm:mb-4 md:mb-5 leading-[1.1] drop-shadow-lg"
                 style={{ fontFamily: "'Cormorant Garamond', serif" }}>
               {heroSlides[heroIndex].title}
             </h1>
-            <p className="text-xs sm:text-xl text-white/85 max-w-xl mb-4 sm:mb-8 leading-relaxed">
+            <p className="text-xs sm:text-sm md:text-lg lg:text-xl text-white/85 max-w-xl mb-4 sm:mb-6 md:mb-8 leading-relaxed">
               {heroSlides[heroIndex].subtitle}
             </p>
             <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-4">
-              <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-lg px-5 py-4 sm:px-10 sm:py-7 rounded-full shadow-xl shadow-rose-500/30 font-bold"
+              <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-xs sm:text-sm md:text-base lg:text-lg px-5 py-3 sm:py-4 md:px-8 md:py-5 lg:px-10 lg:py-7 rounded-full shadow-xl shadow-rose-500/30 font-bold"
                 onClick={goToAuth}>
                 Quero Assinar Agora <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
-              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-xs sm:text-lg px-5 py-4 sm:px-8 sm:py-7 rounded-full backdrop-blur-sm"
+              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-xs sm:text-sm md:text-base lg:text-lg px-5 py-3 sm:py-4 md:px-8 md:py-5 lg:px-8 lg:py-7 rounded-full backdrop-blur-sm"
                 onClick={scrollToPlanos}>
                 Ver Planos e Preços
               </Button>
@@ -245,8 +245,8 @@ export default function LandingPage() {
             { num: '24h', label: 'Suporte' },
           ].map(s => (
             <div key={s.label} className="text-center">
-              <p className="text-base sm:text-2xl font-extrabold text-rose-600">{s.num} {s.suffix || ''}</p>
-              <p className="text-[8px] sm:text-xs text-rose-400">{s.label}</p>
+              <p className="text-sm sm:text-lg md:text-xl lg:text-2xl font-extrabold text-rose-600">{s.num} {s.suffix || ''}</p>
+              <p className="text-[8px] sm:text-[10px] md:text-xs text-rose-400">{s.label}</p>
             </div>
           ))}
         </div>
@@ -259,7 +259,7 @@ export default function LandingPage() {
             <Badge className="mb-2 bg-red-100 text-red-600 border-red-200 text-[10px] sm:text-xs">
               <AlertTriangle className="w-3 h-3 mr-1" /> Você se identifica?
             </Badge>
-            <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-rose-950 mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
               Se você controla semijoias assim, está <span className="text-red-500">perdendo dinheiro</span>
             </h2>
           </motion.div>
@@ -293,8 +293,8 @@ export default function LandingPage() {
             <Badge className="mb-2 bg-rose-100 text-rose-600 border-rose-200 text-[10px] sm:text-xs">
               <Eye className="w-3 h-3 mr-1" /> Veja com seus olhos
             </Badge>
-            <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-1.5">Isso é o que você vai usar</h2>
-            <p className="text-rose-600/50 text-[11px] sm:text-base">Capturas reais do sistema.</p>
+            <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-rose-950 mb-1.5">Isso é o que você vai usar</h2>
+            <p className="text-rose-600/50 text-[11px] sm:text-xs md:text-sm lg:text-base">Capturas reais do sistema.</p>
           </motion.div>
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.1}
@@ -306,7 +306,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:gap-5">
             {[
               { img: dashboardInsights, label: '💡 Insights' },
               { img: pecasMockup, label: '💎 Estoque' },
@@ -337,10 +337,10 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-5 sm:mb-14">
             <Badge className="mb-2 bg-rose-100 text-rose-600 border-rose-200 text-[10px] sm:text-xs">Funcionalidades</Badge>
-            <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-1.5">Tudo num só lugar</h2>
-            <p className="text-rose-600/50 text-[11px] sm:text-base">+20 módulos integrados.</p>
+            <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-rose-950 mb-1.5">Tudo num só lugar</h2>
+            <p className="text-rose-600/50 text-[11px] sm:text-xs md:text-sm lg:text-base">+20 módulos integrados.</p>
           </motion.div>
-          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 sm:gap-3 md:gap-4 lg:gap-5">
             {FEATURES.map((f, i) => (
               <motion.div key={f.title} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-30px" }} variants={fadeUp} custom={i * 0.05}>
                 <Card className="bg-white border-rose-100 h-full">
@@ -348,8 +348,8 @@ export default function LandingPage() {
                     <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-rose-50 flex items-center justify-center mb-1.5 sm:mb-3">
                       <f.icon className="w-4 h-4 sm:w-6 sm:h-6 text-rose-500" />
                     </div>
-                    <h3 className="text-[10px] sm:text-base font-bold text-rose-950 mb-0.5 leading-tight">{f.title}</h3>
-                    <p className="text-[8px] sm:text-sm text-rose-600/50 leading-snug hidden sm:block">{f.desc}</p>
+                    <h3 className="text-[10px] sm:text-xs md:text-sm lg:text-base font-bold text-rose-950 mb-0.5 leading-tight">{f.title}</h3>
+                    <p className="text-[8px] sm:text-[10px] md:text-xs lg:text-sm text-rose-600/50 leading-snug hidden sm:block">{f.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -371,8 +371,8 @@ export default function LandingPage() {
         </div>
         <div className="relative z-10 max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-20">
-            <h2 className="text-xl sm:text-5xl font-extrabold mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Comece em 2 minutos</h2>
-            <p className="text-white/70 text-xs sm:text-base">3 passos simples.</p>
+            <h2 className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-extrabold mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Comece em 2 minutos</h2>
+            <p className="text-white/70 text-xs sm:text-sm md:text-base">3 passos simples.</p>
           </motion.div>
           <div className="relative">
             <div className="hidden sm:block absolute top-[60px] left-[16%] right-[16%] border-t-[3px] border-dashed border-white/25 z-0" />
@@ -407,14 +407,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-5 sm:mb-10">
             <Badge className="mb-2 bg-rose-100 text-rose-600 border-rose-200 text-[10px] sm:text-xs">Planos & Preços</Badge>
-            <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-1.5">Invista no seu negócio</h2>
-            <p className="text-rose-600/50 text-[11px] sm:text-base max-w-xl mx-auto">Escolha o plano ideal e comece hoje.</p>
+            <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-rose-950 mb-1.5">Invista no seu negócio</h2>
+            <p className="text-rose-600/50 text-[11px] sm:text-xs md:text-sm lg:text-base max-w-xl mx-auto">Escolha o plano ideal e comece hoje.</p>
           </motion.div>
 
           {/* Mobile: scroll */}
           <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 lg:hidden scrollbar-hide">
             {PLANOS.map((plano) => (
-              <div key={plano.nome} className="snap-center flex-shrink-0 w-[240px]">
+              <div key={plano.nome} className="snap-center flex-shrink-0 w-[65vw] sm:w-[45vw] md:w-[40vw] max-w-[280px]">
                 <Card className={`relative h-full bg-white border-rose-100 ${plano.destaque ? 'border-rose-400 shadow-xl shadow-rose-200/40 ring-2 ring-rose-400' : ''}`}>
                   {plano.destaque && (
                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
@@ -504,13 +504,13 @@ export default function LandingPage() {
         <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-5 sm:mb-14">
             <Badge className="mb-2 bg-rose-100 text-rose-600 border-rose-200 text-[10px] sm:text-xs">Depoimentos</Badge>
-            <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-1.5">Quem usa, recomenda</h2>
+            <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold text-rose-950 mb-1.5">Quem usa, recomenda</h2>
           </motion.div>
 
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 lg:justify-center scrollbar-hide">
+          <div className="flex gap-2 sm:gap-3 overflow-x-auto snap-x snap-mandatory pb-3 lg:justify-center scrollbar-hide">
             {TESTIMONIALS.map((t, i) => (
               <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.1}
-                className="snap-center flex-shrink-0 w-[140px] sm:w-[200px]">
+                className="snap-center flex-shrink-0 w-[30vw] sm:w-[28vw] md:w-[22vw] lg:w-[200px] min-w-[120px] max-w-[200px]">
                 <div className="relative rounded-xl sm:rounded-2xl overflow-hidden aspect-[9/16] shadow-lg">
                   <img src={t.img} alt={t.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                   <div className={`absolute inset-0 bg-gradient-to-t ${t.color} opacity-40`} />
@@ -549,7 +549,7 @@ export default function LandingPage() {
             <Badge className="mb-3 bg-white/20 text-white border-white/30 text-[10px] sm:text-sm">
               <Gem className="w-3 h-3 mr-1" /> Oferta por tempo limitado
             </Badge>
-            <h2 className="text-xl sm:text-5xl font-extrabold mb-3 sm:mb-6" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+            <h2 className="text-lg sm:text-2xl md:text-4xl lg:text-5xl font-extrabold mb-3 sm:mb-6" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
               Não perca mais vendas.<br />Comece agora.
             </h2>
             <p className="text-xs sm:text-lg text-white/80 mb-5 sm:mb-10 max-w-xl mx-auto">
