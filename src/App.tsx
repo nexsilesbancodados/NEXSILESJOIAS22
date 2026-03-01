@@ -14,6 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QueryErrorHandler } from "@/components/QueryErrorHandler";
 import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
 import { OrganizationGuard } from "@/components/OrganizationGuard";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivateSubscription } from "@/hooks/useActivateSubscription";
 
@@ -269,6 +270,7 @@ function AppRoutes() {
                   <RealtimeNotifications />
                   <CriticalDataPrefetcher />
                   <ReadOnlyBanner />
+                  <SubscriptionGuard>
                   <MainLayout>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
@@ -301,6 +303,7 @@ function AppRoutes() {
                     </Routes>
                   </Suspense>
                   </MainLayout>
+                  </SubscriptionGuard>
                 </SubscriptionProvider>
               </OrganizationGuard>
             </ProtectedRoute>

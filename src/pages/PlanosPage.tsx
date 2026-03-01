@@ -138,8 +138,8 @@ export default function PlanosPage() {
   };
 
   const handleManageSubscription = () => {
-    // Redirect to external site for subscription management
-    window.open('https://www.nexsiles.com.br/', '_top');
+    setSelectedPlan(planoAtual as 'nexsiles' | 'nexsiles_max' || 'nexsiles');
+    setCheckoutOpen(true);
   };
 
   const planoAtual = assinatura?.plano;
@@ -237,9 +237,9 @@ export default function PlanosPage() {
 
                     {/* Action buttons */}
                     <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-                      {isExpirando && (
+                      {(isExpirando || isExpirado) && (
                         <Button
-onClick={() => window.open('https://www.nexsiles.com.br/', '_top')}
+                          onClick={() => handleSelectPlan(planoAtual as 'nexsiles' | 'nexsiles_max')}
                           className="gap-2 bg-gradient-to-r from-warning to-warning/80 hover:from-warning/90 hover:to-warning/70"
                         >
                           <Sparkles className="w-4 h-4" />
@@ -249,11 +249,21 @@ onClick={() => window.open('https://www.nexsiles.com.br/', '_top')}
                       {planoAtual === 'nexsiles' && (
                         <Button
                           variant={isExpirando ? "outline" : "default"}
-onClick={() => window.open('https://www.nexsiles.com.br/', '_top')}
+                          onClick={() => handleSelectPlan('nexsiles_max')}
                           className="gap-2"
                         >
                           <ArrowRight className="w-4 h-4" />
                           Fazer Upgrade para Max
+                        </Button>
+                      )}
+                      {planoAtual === 'nexsiles_max' && !isExpirando && !isExpirado && (
+                        <Button
+                          variant="outline"
+                          onClick={() => handleSelectPlan('nexsiles_max')}
+                          className="gap-2"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          Renovar Antecipado
                         </Button>
                       )}
                     </div>
@@ -261,6 +271,19 @@ onClick={() => window.open('https://www.nexsiles.com.br/', '_top')}
                 </CardContent>
               </Card>
             </motion.div>
+
+            {/* Checkout in-app */}
+            <MercadoPagoCheckout
+              open={checkoutOpen}
+              onOpenChange={setCheckoutOpen}
+              plano={selectedPlan}
+              periodo={isAnual ? 'anual' : 'mensal'}
+              valor={isAnual 
+                ? (selectedPlan === 'nexsiles_max' ? 2490 : 1890) 
+                : (selectedPlan === 'nexsiles_max' ? 249 : 189)
+              }
+              planoNome={selectedPlan === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}
+            />
           </div>
         </div>
       </MainLayout>
@@ -311,7 +334,7 @@ onClick={() => window.open('https://www.nexsiles.com.br/', '_top')}
                     </div>
                   </div>
                   <Button 
-                    onClick={() => window.open('https://www.nexsiles.com.br/', '_top')}
+                    onClick={() => handleSelectPlan(assinatura?.plano as 'nexsiles' | 'nexsiles_max' || 'nexsiles')}
                     className="gap-2 bg-gradient-to-r from-primary to-primary/80"
                   >
                     <Sparkles className="w-4 h-4" />
