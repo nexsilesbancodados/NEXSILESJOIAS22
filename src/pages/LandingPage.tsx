@@ -136,7 +136,7 @@ export default function LandingPage() {
   const goToAuth = () => navigate('/auth');
 
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif", background: 'linear-gradient(180deg, #FFF0F0 0%, #FFE4E6 15%, #FFF5F5 30%, #FECDD3 50%, #FFF1F2 70%, #FFE4E6 85%, #FFF5F5 100%)', backgroundAttachment: 'fixed', WebkitTextSizeAdjust: '100%' }}>
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif", background: 'linear-gradient(180deg, #FFF0F0 0%, #FFE4E6 15%, #FFF5F5 30%, #FECDD3 50%, #FFF1F2 70%, #FFE4E6 85%, #FFF5F5 100%)', backgroundAttachment: 'fixed', WebkitTextSizeAdjust: '100%' }}>
       
       {/* ═══ NAVBAR ═══ */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/90 border-b border-rose-100 shadow-sm">
@@ -412,7 +412,7 @@ export default function LandingPage() {
           </motion.div>
 
           {/* Mobile: scroll */}
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 -mx-3 px-3 lg:hidden scrollbar-hide">
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 lg:hidden scrollbar-hide">
             {PLANOS.map((plano) => (
               <div key={plano.nome} className="snap-center flex-shrink-0 w-[240px]">
                 <Card className={`relative h-full bg-white border-rose-100 ${plano.destaque ? 'border-rose-400 shadow-xl shadow-rose-200/40 ring-2 ring-rose-400' : ''}`}>
@@ -507,7 +507,7 @@ export default function LandingPage() {
             <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-1.5">Quem usa, recomenda</h2>
           </motion.div>
 
-          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 -mx-3 px-3 lg:justify-center scrollbar-hide">
+          <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3 lg:justify-center scrollbar-hide">
             {TESTIMONIALS.map((t, i) => (
               <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.1}
                 className="snap-center flex-shrink-0 w-[140px] sm:w-[200px]">
