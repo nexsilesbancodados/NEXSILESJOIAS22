@@ -55,6 +55,8 @@ const LojaPublicaPage = lazy(() => import("./pages/LojaPublicaPage"));
 const PedidosLojaPage = lazy(() => import("./pages/PedidosLojaPage"));
 const LojaVirtualPage = lazy(() => import("./pages/LojaVirtualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PoliticaPrivacidadePage = lazy(() => import("./pages/PoliticaPrivacidadePage"));
+const TermosDeUsoPage = lazy(() => import("./pages/TermosDeUsoPage"));
 
 // Detecta subdomínio loja.* e serve a loja pública
 function LojaSubdomainRedirect() {
@@ -206,6 +208,8 @@ function AppRoutes() {
       <Routes>
         {/* Landing Page - Public */}
         <Route path="/landing" element={<LandingPage />} />
+        <Route path="/politica-privacidade" element={<PoliticaPrivacidadePage />} />
+        <Route path="/termos-de-uso" element={<TermosDeUsoPage />} />
         
         {/* Auth pages - Public */}
         <Route path="/auth" element={<AuthPage />} />
