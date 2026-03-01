@@ -22,7 +22,9 @@ import {
   Phone, Mail, Globe, Tag, Calendar, MessageSquare, CheckCircle,
   XCircle, Clock, Zap, DollarSign, Activity, Loader2, RefreshCw,
   Megaphone, UserPlus, ShoppingCart, Bot, Sparkles,
-  ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard
+  ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard,
+  FileDown, Star, History, Gauge, Download, FileText,
+  TrendingDown, Percent, Timer, Award
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, FunnelChart, Funnel, LabelList } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -93,7 +95,7 @@ const ORIGEM_LABELS: Record<string, { label: string; icon: any }> = {
 const PIE_COLORS = ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
 // ============= NAV ITEMS =============
-type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas';
+type Section = 'overview' | 'pipeline' | 'conversoes' | 'contatos' | 'campanhas' | 'metricas' | 'scoring' | 'timeline' | 'relatorios';
 
 const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; description: string }[] = [
   { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard, description: 'KPIs e resumo' },
@@ -101,6 +103,10 @@ const NAV_ITEMS: { id: Section; label: string; icon: typeof LayoutDashboard; des
   { id: 'conversoes', label: 'Conversões', icon: TrendingUp, description: 'Funil e métricas' },
   { id: 'contatos', label: 'Contatos', icon: Users, description: 'Lista de leads' },
   { id: 'campanhas', label: 'Campanhas', icon: Megaphone, description: 'UTM e origens' },
+  { id: 'metricas', label: 'Métricas', icon: Gauge, description: 'LTV, Churn, CAC, MRR' },
+  { id: 'scoring', label: 'Scoring', icon: Award, description: 'Pontuação de leads' },
+  { id: 'timeline', label: 'Timeline', icon: History, description: 'Feed de atividades' },
+  { id: 'relatorios', label: 'Relatórios', icon: FileDown, description: 'Exportar dados' },
 ];
 
 // ============= SUB-COMPONENTS =============
@@ -593,6 +599,318 @@ function CampaignsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRM
     </div>
   );
 }
+// ============= METRICS TAB =============
+function MetricsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRMConversao[] }) {
+  const metrics = useMemo(() => {
+    const convertidos = leads.filter(l => l.status === 'convertido');
+    const perdidos = leads.filter(l => l.status === 'perdido');
+    const totalFinalizados = convertidos.length + perdidos.length;
+    const mrr = convertidos.reduce((s, l) => s + (l.valor_potencial || 0), 0);
+    const arr = mrr * 12;
+    const churnRate = totalFinalizados > 0 ? ((perdidos.length / totalFinalizados) * 100).toFixed(1) : '0';
+    const conversionRate = leads.length > 0 ? ((convertidos.length / leads.length) * 100).toFixed(1) : '0';
+    const totalMarketingLeads = leads.filter(l => l.utm_source).length;
+    const cac = convertidos.length > 0 ? Math.round(totalMarketingLeads * 15 / convertidos.length) : 0;
+    const avgValue = convertidos.length > 0 ? convertidos.reduce((s, l) => s + (l.valor_potencial || 0), 0) / convertidos.length : 0;
+    const ltv = avgValue * 12;
+    const avgDeal = convertidos.length > 0 ? Math.round(mrr / convertidos.length) : 0;
+    const avgTimeToConvert = convertidos.length > 0 ? Math.round(
+      convertidos.reduce((s, l) => s + Math.max(differenceInDays(new Date(l.updated_at), new Date(l.created_at)), 1), 0) / convertidos.length
+    ) : 0;
+    return { mrr, arr, churnRate, conversionRate, cac, ltv, avgDeal, avgTimeToConvert };
+  }, [leads]);
+
+  const cohortData = useMemo(() => {
+    const months: Record<string, { total: number; convertidos: number; perdidos: number }> = {};
+    leads.forEach(l => {
+      const month = format(new Date(l.created_at), 'MMM/yy', { locale: ptBR });
+      if (!months[month]) months[month] = { total: 0, convertidos: 0, perdidos: 0 };
+      months[month].total++;
+      if (l.status === 'convertido') months[month].convertidos++;
+      if (l.status === 'perdido') months[month].perdidos++;
+    });
+    return Object.entries(months).slice(-6).map(([month, data]) => ({ mes: month, ...data, taxa: data.total > 0 ? Math.round((data.convertidos / data.total) * 100) : 0 }));
+  }, [leads]);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <CRMStatCard icon={DollarSign} label="MRR" value={`R$ ${metrics.mrr.toLocaleString()}`} color="emerald" />
+        <CRMStatCard icon={TrendingUp} label="ARR" value={`R$ ${metrics.arr.toLocaleString()}`} color="blue" />
+        <CRMStatCard icon={TrendingDown} label="Churn Rate" value={`${metrics.churnRate}%`} color="rose" />
+        <CRMStatCard icon={Percent} label="Conversão" value={`${metrics.conversionRate}%`} color="violet" />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <CRMStatCard icon={Target} label="CAC" value={`R$ ${metrics.cac}`} color="amber" />
+        <CRMStatCard icon={Star} label="LTV" value={`R$ ${Math.round(metrics.ltv).toLocaleString()}`} color="primary" />
+        <CRMStatCard icon={DollarSign} label="Ticket Médio" value={`R$ ${metrics.avgDeal}`} color="emerald" />
+        <CRMStatCard icon={Timer} label="Tempo Conversão" value={`${metrics.avgTimeToConvert}d`} color="blue" />
+      </div>
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle className="text-sm">Razão LTV:CAC</CardTitle>
+          <CardDescription>Ideal &gt; 3:1</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="h-4 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-primary to-emerald-500 rounded-full transition-all" style={{ width: `${Math.min((metrics.cac > 0 ? metrics.ltv / metrics.cac : 0) / 5 * 100, 100)}%` }} />
+              </div>
+            </div>
+            <span className="text-2xl font-bold text-foreground">{metrics.cac > 0 ? (metrics.ltv / metrics.cac).toFixed(1) : '∞'}:1</span>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="bg-card">
+        <CardHeader><CardTitle className="text-sm">Cohort por Mês</CardTitle></CardHeader>
+        <CardContent>
+          {cohortData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={cohortData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                <RechartsTooltip />
+                <Bar dataKey="total" fill="hsl(var(--primary)/0.3)" name="Total" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="convertidos" fill="#10b981" name="Convertidos" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="perdidos" fill="#ef4444" name="Perdidos" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : <p className="text-center text-sm text-muted-foreground py-12">Sem dados</p>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============= SCORING TAB =============
+function ScoringTab({ leads }: { leads: CRMLead[] }) {
+  const scoredLeads = useMemo(() => {
+    return leads.map(l => {
+      let s = 0;
+      if (l.email) s += 10;
+      if (l.telefone) s += 10;
+      if (l.empresa) s += 5;
+      if (l.utm_source) s += 15;
+      if (l.plano_interesse) s += 20;
+      if (l.valor_potencial > 0) s += 15;
+      if (l.valor_potencial > 500) s += 10;
+      if (l.tags?.length > 0) s += 5;
+      if (l.status === 'contato') s += 10;
+      if (l.status === 'negociacao') s += 25;
+      if (l.status === 'qualificado') s += 35;
+      if (l.status === 'convertido') s += 50;
+      const days = differenceInDays(new Date(), new Date(l.created_at));
+      if (days <= 7) s += 15; else if (days <= 30) s += 5;
+      return { ...l, autoScore: Math.min(s, 100) };
+    }).sort((a, b) => b.autoScore - a.autoScore);
+  }, [leads]);
+
+  const dist = useMemo(() => {
+    const r = [
+      { range: '0-20', label: 'Frio', count: 0 }, { range: '21-40', label: 'Morno', count: 0 },
+      { range: '41-60', label: 'Quente', count: 0 }, { range: '61-80', label: 'Muito Quente', count: 0 },
+      { range: '81-100', label: 'On Fire', count: 0 },
+    ];
+    scoredLeads.forEach(l => {
+      if (l.autoScore <= 20) r[0].count++; else if (l.autoScore <= 40) r[1].count++;
+      else if (l.autoScore <= 60) r[2].count++; else if (l.autoScore <= 80) r[3].count++; else r[4].count++;
+    });
+    return r;
+  }, [scoredLeads]);
+
+  const getScoreColor = (s: number) => s >= 80 ? 'text-red-500' : s >= 60 ? 'text-orange-500' : s >= 40 ? 'text-amber-500' : 'text-muted-foreground';
+  const getScoreBg = (s: number) => s >= 80 ? 'bg-red-500' : s >= 60 ? 'bg-orange-500' : s >= 40 ? 'bg-amber-500' : 'bg-muted-foreground';
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-card">
+        <CardHeader>
+          <CardTitle className="text-sm flex items-center gap-2"><Award className="w-4 h-4 text-primary" /> Regras de Pontuação</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            {[{ rule: 'Tem email', pts: '+10' }, { rule: 'Tem telefone', pts: '+10' }, { rule: 'Empresa', pts: '+5' }, { rule: 'UTM (pago)', pts: '+15' },
+              { rule: 'Plano interesse', pts: '+20' }, { rule: 'Valor > R$0', pts: '+15' }, { rule: 'Valor > R$500', pts: '+10' }, { rule: 'Tags', pts: '+5' },
+              { rule: 'Em contato', pts: '+10' }, { rule: 'Negociação', pts: '+25' }, { rule: 'Qualificado', pts: '+35' }, { rule: 'Recente (<7d)', pts: '+15' },
+            ].map(r => (
+              <div key={r.rule} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                <span className="text-muted-foreground">{r.rule}</span>
+                <Badge variant="secondary" className="text-[10px]">{r.pts}</Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      <div className="grid grid-cols-5 gap-3">
+        {dist.map(s => (
+          <Card key={s.range} className="bg-card text-center">
+            <CardContent className="p-3">
+              <p className="text-lg font-bold text-foreground">{s.count}</p>
+              <p className="text-[10px] text-muted-foreground uppercase">{s.label}</p>
+              <p className="text-[10px] text-muted-foreground">{s.range} pts</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card className="bg-card">
+        <CardHeader><CardTitle className="text-sm">Top Leads por Score</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border">
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Score</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Nome</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Status</th>
+                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Origem</th>
+                <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Valor</th>
+              </tr></thead>
+              <tbody>
+                {scoredLeads.slice(0, 20).map(lead => (
+                  <tr key={lead.id} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                          <span className={`text-xs font-bold ${getScoreColor(lead.autoScore)}`}>{lead.autoScore}</span>
+                        </div>
+                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${getScoreBg(lead.autoScore)}`} style={{ width: `${lead.autoScore}%` }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-medium text-foreground">{lead.nome}</td>
+                    <td className="py-3 px-4"><Badge className={STATUS_CONFIG[lead.status]?.color || ''}>{STATUS_CONFIG[lead.status]?.label || lead.status}</Badge></td>
+                    <td className="py-3 px-4 text-muted-foreground">{ORIGEM_LABELS[lead.origem]?.label || lead.origem}</td>
+                    <td className="py-3 px-4 text-right text-emerald-400 font-medium">{lead.valor_potencial > 0 ? `R$ ${lead.valor_potencial}` : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============= TIMELINE TAB =============
+function TimelineTab({ leads }: { leads: CRMLead[] }) {
+  const { data: allActivities = [], isLoading } = useQuery({
+    queryKey: ['crm-all-atividades'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('crm_atividades' as any).select('*').order('created_at', { ascending: false }).limit(100);
+      if (error) throw error;
+      return (data || []) as unknown as CRMAtividade[];
+    },
+  });
+  const getLeadName = (id: string) => leads.find(l => l.id === id)?.nome || 'Lead';
+  const getIcon = (tipo: string) => {
+    switch (tipo) { case 'nota': return MessageSquare; case 'ligacao': return Phone; case 'email': return Mail; case 'reuniao': return Calendar; default: return Clock; }
+  };
+
+  return (
+    <Card className="bg-card">
+      <CardHeader>
+        <CardTitle className="text-sm flex items-center gap-2"><History className="w-4 h-4 text-primary" /> Feed de Atividades</CardTitle>
+        <CardDescription>Últimas 100 atividades</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        : allActivities.length === 0 ? <p className="text-center text-sm text-muted-foreground py-12">Nenhuma atividade</p>
+        : (
+          <div className="relative">
+            <div className="absolute left-[19px] top-0 bottom-0 w-px bg-border" />
+            <div className="space-y-4">
+              {allActivities.map(a => {
+                const Icon = getIcon(a.tipo);
+                return (
+                  <div key={a.id} className="flex items-start gap-4 relative">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0 z-10 border-2 border-background">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 bg-muted/20 rounded-lg p-3 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{a.titulo}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            <span className="text-primary font-medium">{getLeadName(a.lead_id)}</span>
+                            {a.realizado_por && <> · {a.realizado_por}</>}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{format(new Date(a.created_at), "dd/MM HH:mm")}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============= REPORTS TAB =============
+function ReportsTab({ leads, conversoes }: { leads: CRMLead[]; conversoes: CRMConversao[] }) {
+  const exportCSV = (data: any[], filename: string) => {
+    if (data.length === 0) { toast.error('Sem dados'); return; }
+    const headers = Object.keys(data[0]);
+    const csv = [headers.join(','), ...data.map(row => headers.map(h => {
+      const v = row[h]; if (v == null) return '';
+      const s = String(v); return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(','))].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    toast.success(`${filename} exportado!`);
+  };
+
+  const leadsExport = leads.map(l => ({
+    Nome: l.nome, Email: l.email || '', Telefone: l.telefone || '', Empresa: l.empresa || '',
+    Status: STATUS_CONFIG[l.status]?.label || l.status, Origem: ORIGEM_LABELS[l.origem]?.label || l.origem,
+    Valor: l.valor_potencial, Score: l.score, Tags: l.tags?.join('; ') || '',
+    UTM_Source: l.utm_source || '', UTM_Campaign: l.utm_campaign || '',
+    Criado: format(new Date(l.created_at), 'dd/MM/yyyy HH:mm'),
+  }));
+
+  const conversoesExport = conversoes.map(c => ({
+    Evento: c.evento, Valor: c.valor || 0, UTM_Source: c.utm_source || '', UTM_Campaign: c.utm_campaign || '',
+    Data: format(new Date(c.created_at), 'dd/MM/yyyy HH:mm'),
+  }));
+
+  const reports = [
+    { title: 'Leads Completo', desc: 'Todos os leads', icon: Users, count: leads.length, action: () => exportCSV(leadsExport, 'crm_leads') },
+    { title: 'Conversões', desc: 'Eventos do funil', icon: TrendingUp, count: conversoes.length, action: () => exportCSV(conversoesExport, 'crm_conversoes') },
+    { title: 'Leads Quentes', desc: 'Em negociação/qualificados', icon: Zap, count: leads.filter(l => ['negociacao', 'qualificado'].includes(l.status)).length, action: () => exportCSV(leadsExport.filter((_, i) => ['negociacao', 'qualificado'].includes(leads[i]?.status)), 'crm_quentes') },
+    { title: 'Convertidos', desc: 'Leads que viraram clientes', icon: CheckCircle, count: leads.filter(l => l.status === 'convertido').length, action: () => exportCSV(leadsExport.filter((_, i) => leads[i]?.status === 'convertido'), 'crm_convertidos') },
+    { title: 'Perdidos', desc: 'Leads não convertidos', icon: XCircle, count: leads.filter(l => l.status === 'perdido').length, action: () => exportCSV(leadsExport.filter((_, i) => leads[i]?.status === 'perdido'), 'crm_perdidos') },
+    { title: 'Por Campanha', desc: 'Agrupado por UTM', icon: Megaphone, count: new Set(leads.map(l => l.utm_campaign).filter(Boolean)).size, action: () => exportCSV(leadsExport.filter(l => l.UTM_Campaign), 'crm_campanhas') },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {reports.map(r => (
+        <Card key={r.title} className="bg-card hover:border-primary/30 transition-colors group">
+          <CardContent className="p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><r.icon className="w-5 h-5 text-primary" /></div>
+              <Badge variant="secondary">{r.count}</Badge>
+            </div>
+            <h3 className="text-sm font-semibold text-foreground mb-1">{r.title}</h3>
+            <p className="text-xs text-muted-foreground mb-4">{r.desc}</p>
+            <Button size="sm" variant="outline" className="w-full gap-1.5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors" onClick={r.action}>
+              <Download className="w-3.5 h-3.5" /> Exportar CSV
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 // ============= MAIN CRM PAGE =============
 export default function CRMPage() {
@@ -866,6 +1184,10 @@ export default function CRMPage() {
               {activeSection === 'conversoes' && <ConversionsTab conversoes={conversoes} leads={leads} />}
               {activeSection === 'contatos' && <ContactsTab leads={leads} onEditLead={openEditLead} onViewLead={setViewDialog} />}
               {activeSection === 'campanhas' && <CampaignsTab leads={leads} conversoes={conversoes} />}
+              {activeSection === 'metricas' && <MetricsTab leads={leads} conversoes={conversoes} />}
+              {activeSection === 'scoring' && <ScoringTab leads={leads} />}
+              {activeSection === 'timeline' && <TimelineTab leads={leads} />}
+              {activeSection === 'relatorios' && <ReportsTab leads={leads} conversoes={conversoes} />}
             </>
           )}
         </div>
