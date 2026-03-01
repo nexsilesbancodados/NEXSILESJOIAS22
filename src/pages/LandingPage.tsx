@@ -1,17 +1,21 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 import {
   BarChart3, ShoppingCart, Users, Package, Shield, Star,
   MessageSquare, TrendingUp, Smartphone, ArrowRight, Check,
   Sparkles, Store, Bot, Crown, Menu, X,
   Gem, ChevronLeft, ChevronRight,
-  AlertTriangle, XCircle, CheckCircle, Timer, Lock, Eye, Rocket, Play, Zap, Heart
+  AlertTriangle, XCircle, CheckCircle, Timer, Lock, Eye, Rocket, Play, Zap, Heart, Loader2, Mail
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import dashboardMockup from '@/assets/landing-dashboard-mockup.jpg';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
@@ -65,10 +69,10 @@ const FEATURES = [
 ];
 
 const PLANOS = [
-  { nome: 'E-commerce', tier: 'E-COMMERCE', preco: 129, destaque: false, icon: Store, desc: 'Apenas venda online', gradient: 'from-rose-400 to-pink-500', recursos: ['Loja virtual completa', 'Checkout PIX, Cartão, Boleto', 'Gestão de estoque', 'Carrinho com cupons', 'Cálculo de frete automático', 'SEO otimizado', 'Catálogo digital'] },
-  { nome: 'Bronze', tier: 'BRONZE', preco: 189, destaque: false, icon: Sparkles, desc: 'Gestão completa', gradient: 'from-amber-400 to-orange-500', recursos: ['Dashboard inteligente', 'PDV completo', 'Estoque ilimitado', 'Revendedoras & Maletas', 'Catálogos digitais', 'Relatórios completos', 'Programa de fidelidade', 'WhatsApp'] },
-  { nome: 'Prata', tier: 'PRATA', preco: 239, destaque: true, icon: Bot, desc: 'Mais vendido! Gestão + IA', gradient: 'from-rose-500 to-pink-600', recursos: ['Tudo do Bronze', 'Assistente IA WhatsApp', 'Chatbot 24h', 'Respostas automáticas', 'Sugestões de vendas IA', 'Estoque inteligente', 'Atendimento automático', 'Relatórios com IA'] },
-  { nome: 'Diamante', tier: 'DIAMANTE', preco: 299, destaque: false, icon: Crown, desc: 'Tudo incluído', gradient: 'from-violet-400 to-purple-600', recursos: ['Tudo do Prata', 'Loja virtual completa', 'Checkout integrado', 'Carrinho com cupons', 'Gestão de pedidos', 'Cálculo de frete', 'SEO otimizado', 'Campanhas'] },
+  { nome: 'E-commerce', tier: 'E-COMMERCE', preco: 129, destaque: false, icon: Store, desc: 'Apenas venda online', gradient: 'from-rose-400 to-pink-500', slug: 'ecommerce', recursos: ['Loja virtual completa', 'Checkout PIX, Cartão, Boleto', 'Gestão de estoque', 'Carrinho com cupons', 'Cálculo de frete automático', 'SEO otimizado', 'Catálogo digital'] },
+  { nome: 'Bronze', tier: 'BRONZE', preco: 189, destaque: false, icon: Sparkles, desc: 'Gestão completa', gradient: 'from-amber-400 to-orange-500', slug: 'bronze', recursos: ['Dashboard inteligente', 'PDV completo', 'Estoque ilimitado', 'Revendedoras & Maletas', 'Catálogos digitais', 'Relatórios completos', 'Programa de fidelidade', 'WhatsApp'] },
+  { nome: 'Prata', tier: 'PRATA', preco: 239, destaque: true, icon: Bot, desc: 'Mais vendido! Gestão + IA', gradient: 'from-rose-500 to-pink-600', slug: 'prata', recursos: ['Tudo do Bronze', 'Assistente IA WhatsApp', 'Chatbot 24h', 'Respostas automáticas', 'Sugestões de vendas IA', 'Estoque inteligente', 'Atendimento automático', 'Relatórios com IA'] },
+  { nome: 'Diamante', tier: 'DIAMANTE', preco: 299, destaque: false, icon: Crown, desc: 'Tudo incluído', gradient: 'from-violet-400 to-purple-600', slug: 'diamante', recursos: ['Tudo do Prata', 'Loja virtual completa', 'Checkout integrado', 'Carrinho com cupons', 'Gestão de pedidos', 'Cálculo de frete', 'SEO otimizado', 'Campanhas'] },
 ];
 
 const TESTIMONIALS = [
@@ -91,6 +95,10 @@ export default function LandingPage() {
   const planosRef = useRef<HTMLDivElement>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroDir, setHeroDir] = useState(0);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutPlano, setCheckoutPlano] = useState<typeof PLANOS[0] | null>(null);
+  const [checkoutEmail, setCheckoutEmail] = useState('');
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const heroSlides = [
     { img: heroSlide1, title: 'O sistema nº1 para semijoias no Brasil', subtitle: 'Estoque, PDV, revendedoras, loja virtual e IA — tudo num só lugar.' },
@@ -102,7 +110,40 @@ export default function LandingPage() {
   useEffect(() => { const t = setInterval(nextHero, 5000); return () => clearInterval(t); }, [nextHero]);
 
   const scrollToPlanos = () => planosRef.current?.scrollIntoView({ behavior: 'smooth' });
-  const goToAuth = () => navigate('/auth');
+
+  const openCheckout = (plano: typeof PLANOS[0]) => {
+    setCheckoutPlano(plano);
+    setCheckoutEmail('');
+    setCheckoutOpen(true);
+  };
+
+  const handleCheckout = async () => {
+    if (!checkoutEmail || !checkoutPlano) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(checkoutEmail)) {
+      toast.error('Digite um e-mail válido');
+      return;
+    }
+    setCheckoutLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('mercadopago-checkout-public', {
+        body: { email: checkoutEmail, plano: checkoutPlano.slug, periodo: 'mensal' },
+      });
+      if (error) throw error;
+      if (data?.initPoint) {
+        window.location.href = data.initPoint;
+      } else if (data?.sandboxInitPoint) {
+        window.location.href = data.sandboxInitPoint;
+      } else {
+        toast.error('Erro ao gerar link de pagamento');
+      }
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      toast.error(err?.message || 'Erro ao processar pagamento');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <div className="lp-root">
@@ -125,7 +166,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <Button className="lp-btn-primary" onClick={goToAuth}>
+            <Button className="lp-btn-primary" onClick={scrollToPlanos}>
               Começar agora <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           </div>
@@ -148,7 +189,7 @@ export default function LandingPage() {
                     {id === 'problema' ? 'Por que?' : id}
                   </a>
                 ))}
-                <Button className="w-full lp-btn-primary mt-3" onClick={goToAuth}>Começar agora</Button>
+                <Button className="w-full lp-btn-primary mt-3" onClick={scrollToPlanos}>Começar agora</Button>
               </div>
             </motion.div>
           )}
@@ -185,7 +226,7 @@ export default function LandingPage() {
               {heroSlides[heroIndex].subtitle}
             </p>
             <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Button className="lp-btn-hero-primary lp-touch" onClick={goToAuth}>
+              <Button className="lp-btn-hero-primary lp-touch" onClick={scrollToPlanos}>
                 Quero Assinar Agora <ArrowRight className="w-4 h-4 ml-1.5" />
               </Button>
               <Button variant="outline" className="lp-btn-hero-outline lp-touch" onClick={scrollToPlanos}>
@@ -266,7 +307,7 @@ export default function LandingPage() {
             </div>
             <h3 className="lp-solution-title">A solução existe — e é simples.</h3>
             <p className="lp-solution-text">O Nexsiles resolve tudo em um só sistema.</p>
-            <Button className="lp-btn-success lp-touch" onClick={goToAuth}>
+            <Button className="lp-btn-success lp-touch" onClick={scrollToPlanos}>
               Quero Resolver Agora <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </motion.div>
@@ -341,7 +382,7 @@ export default function LandingPage() {
             ))}
           </div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-8 sm:mt-12">
-            <Button className="lp-btn-primary lp-btn-lg lp-touch" onClick={goToAuth}>
+            <Button className="lp-btn-primary lp-btn-lg lp-touch" onClick={scrollToPlanos}>
               Escolher Meu Plano <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           </motion.div>
@@ -378,7 +419,7 @@ export default function LandingPage() {
             </div>
           </div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-8 sm:mt-14">
-            <Button className="lp-btn-white lp-btn-lg lp-touch" onClick={goToAuth}>
+            <Button className="lp-btn-white lp-btn-lg lp-touch" onClick={scrollToPlanos}>
               Quero Começar Agora <ArrowRight className="w-4 h-4 ml-1.5" />
             </Button>
           </motion.div>
@@ -425,7 +466,7 @@ export default function LandingPage() {
                         <li className="lp-plan-more">+{plano.recursos.length - 4} recursos</li>
                       )}
                     </ul>
-                    <Button className={`w-full lp-touch rounded-full text-xs font-semibold ${plano.destaque ? 'lp-btn-primary' : 'lp-btn-outline-rose'}`} onClick={goToAuth}>
+                    <Button className={`w-full lp-touch rounded-full text-xs font-semibold ${plano.destaque ? 'lp-btn-primary' : 'lp-btn-outline-rose'}`} onClick={() => openCheckout(plano)}>
                       Assinar
                     </Button>
                   </div>
@@ -463,7 +504,7 @@ export default function LandingPage() {
                         </li>
                       ))}
                     </ul>
-                    <Button className={`w-full rounded-full font-semibold lp-touch ${plano.destaque ? 'lp-btn-primary' : 'lp-btn-outline-rose'}`} onClick={goToAuth}>
+                    <Button className={`w-full rounded-full font-semibold lp-touch ${plano.destaque ? 'lp-btn-primary' : 'lp-btn-outline-rose'}`} onClick={() => openCheckout(plano)}>
                       Assinar {plano.nome}
                     </Button>
                   </div>
@@ -534,7 +575,7 @@ export default function LandingPage() {
             <p className="lp-cta-text">
               Junte-se a centenas de empreendedoras que já transformaram seus negócios.
             </p>
-            <Button className="lp-btn-white lp-btn-xl lp-touch" onClick={goToAuth}>
+            <Button className="lp-btn-white lp-btn-xl lp-touch" onClick={scrollToPlanos}>
               Escolher Meu Plano Agora <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <p className="lp-cta-disclaimer">Cadastro rápido • Acesso imediato • Pagamento seguro</p>
@@ -573,7 +614,7 @@ export default function LandingPage() {
 
       {/* Mobile sticky CTA */}
       <div className="lp-sticky-cta sm:hidden">
-        <Button className="w-full lp-btn-primary py-3 rounded-full text-xs font-bold shadow-2xl lp-touch" onClick={goToAuth}>
+        <Button className="w-full lp-btn-primary py-3 rounded-full text-xs font-bold shadow-2xl lp-touch" onClick={scrollToPlanos}>
           Assinar Agora — A partir de R$ 129/mês <ArrowRight className="w-3.5 h-3.5 ml-1" />
         </Button>
       </div>
@@ -589,6 +630,49 @@ export default function LandingPage() {
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
         </svg>
       </a>
+
+      {/* ═══ CHECKOUT DIALOG ═══ */}
+      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              Assinar {checkoutPlano?.nome}
+            </DialogTitle>
+            <DialogDescription>
+              Plano {checkoutPlano?.nome} por <strong>R$ {checkoutPlano?.preco}/mês</strong>. Insira seu e-mail para continuar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="email"
+                placeholder="seu@email.com"
+                value={checkoutEmail}
+                onChange={(e) => setCheckoutEmail(e.target.value)}
+                className="pl-10"
+                onKeyDown={(e) => e.key === 'Enter' && handleCheckout()}
+                autoFocus
+              />
+            </div>
+            <Button
+              className="w-full lp-btn-primary rounded-full font-semibold"
+              onClick={handleCheckout}
+              disabled={checkoutLoading || !checkoutEmail}
+            >
+              {checkoutLoading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processando...</>
+              ) : (
+                <>Ir para Pagamento <ArrowRight className="w-4 h-4 ml-2" /></>
+              )}
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              <Lock className="w-3 h-3 inline mr-1" />
+              Pagamento seguro via Mercado Pago
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

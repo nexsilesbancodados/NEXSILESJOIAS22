@@ -8,24 +8,30 @@ const corsHeaders = {
 
 interface CheckoutRequest {
   email: string;
-  plano: "nexsiles" | "nexsiles_max" | "teste";
+  plano: "ecommerce" | "bronze" | "prata" | "diamante" | "teste";
   periodo: "mensal" | "anual";
 }
 
-// Chaves públicas do Mercado Pago
-const MERCADOPAGO_PUBLIC_KEY = "APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc";
-const MERCADOPAGO_CLIENT_ID = "6130575203030867";
-
-const PLANOS = {
-  nexsiles: {
-    nome: "Nexsiles",
+const PLANOS: Record<string, { nome: string; valor_mensal: number; valor_anual: number }> = {
+  ecommerce: {
+    nome: "E-commerce",
+    valor_mensal: 129.0,
+    valor_anual: 1290.0,
+  },
+  bronze: {
+    nome: "Bronze",
     valor_mensal: 189.0,
     valor_anual: 1890.0,
   },
-  nexsiles_max: {
-    nome: "Nexsiles Max",
-    valor_mensal: 249.0,
-    valor_anual: 2490.0,
+  prata: {
+    nome: "Prata",
+    valor_mensal: 239.0,
+    valor_anual: 2390.0,
+  },
+  diamante: {
+    nome: "Diamante",
+    valor_mensal: 299.0,
+    valor_anual: 2990.0,
   },
   teste: {
     nome: "Teste",
