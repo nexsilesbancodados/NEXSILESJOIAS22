@@ -42,6 +42,7 @@ const DesempenhoRevendedorasPage = lazy(() => import("./pages/DesempenhoRevended
 const CampanhasPage = lazy(() => import("./pages/CampanhasPage"));
 const PlanosPage = lazy(() => import("./pages/PlanosPage"));
 const LandingPlanosPage = lazy(() => import("./pages/LandingPlanosPage"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 const AtendimentoPage = lazy(() => import("./pages/AtendimentoPage"));
 const TutorialPage = lazy(() => import("./pages/TutorialPage"));
@@ -203,12 +204,12 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Landing Page - Public */}
+        <Route path="/landing" element={<LandingPage />} />
+        
         {/* Auth pages - Public */}
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        
-        {/* Landing - iframe do site */}
-        <Route path="/landing" element={<LandingPlanosPage />} />
 
         {/* Catálogo Público - Public page */}
         <Route path="/catalogo/:catalogoId" element={<CatalogoPublicoPage />} />
