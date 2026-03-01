@@ -365,44 +365,46 @@ export default function LandingPage() {
             <p className="text-rose-600/50 lp-small max-w-xl mx-auto">Escolha o plano ideal e comece hoje.</p>
           </motion.div>
 
-          {/* Mobile/Tablet: horizontal scroll */}
-          <div className="flex lp-gap overflow-x-auto snap-x snap-mandatory pb-3 lg:hidden lp-scroll-hide">
+          {/* Mobile/Tablet: vertical grid */}
+          <div className="grid grid-cols-2 gap-3 lg:hidden">
             {PLANOS.map((plano) => (
-              <div key={plano.nome} className="snap-center flex-shrink-0" style={{ width: 'clamp(200px, 60vw, 280px)' }}>
+              <div key={plano.nome}>
                 <Card className={`relative h-full bg-white border-rose-100 ${plano.destaque ? 'border-rose-400 shadow-xl shadow-rose-200/40 ring-2 ring-rose-400' : ''}`}>
                   {plano.destaque && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10">
                       <Badge className="bg-rose-500 text-white border-0 px-2 lp-xs shadow-lg whitespace-nowrap"><Star className="w-2.5 h-2.5 mr-0.5" /> Mais Vendido</Badge>
                     </div>
                   )}
-                  <CardContent className="flex flex-col h-full" style={{ padding: 'clamp(0.75rem, 2vw, 1rem)', paddingTop: 'clamp(1rem, 2.5vw, 1.25rem)' }}>
+                  <CardContent className="flex flex-col h-full p-3 pt-4">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <plano.icon className="w-3.5 h-3.5 text-rose-500" />
                       <Badge variant="outline" className="lp-xs border-rose-200 text-rose-500 px-1.5 py-0">{plano.tier}</Badge>
                     </div>
                     <h3 className="lp-small font-bold text-rose-950 mb-0.5">{plano.nome}</h3>
-                    <p className="lp-xs text-rose-500/50 mb-2">{plano.desc}</p>
-                    <div className="mb-3">
+                    <p className="lp-xs text-rose-500/50 mb-1 line-clamp-1">{plano.desc}</p>
+                    <div className="mb-2">
                       <span className="lp-xs text-rose-400">R$</span>
-                      <span className="font-extrabold text-rose-950 mx-0.5" style={{ fontSize: 'clamp(1.25rem, 4vw, 1.75rem)' }}>{plano.preco}</span>
+                      <span className="font-extrabold text-rose-950 mx-0.5 text-lg">{plano.preco}</span>
                       <span className="lp-xs text-rose-400">/mês</span>
                     </div>
-                    <ul className="space-y-1.5 mb-4 flex-1">
-                      {plano.recursos.map((r) => (
-                        <li key={r} className="flex items-start gap-1.5 lp-xs text-rose-700/60">
-                          <Check className="w-3 h-3 text-rose-500 flex-shrink-0" />{r}
+                    <ul className="space-y-1 mb-3 flex-1">
+                      {plano.recursos.slice(0, 4).map((r) => (
+                        <li key={r} className="flex items-start gap-1 lp-xs text-rose-700/60">
+                          <Check className="w-3 h-3 text-rose-500 flex-shrink-0 mt-0.5" /><span className="line-clamp-1">{r}</span>
                         </li>
                       ))}
+                      {plano.recursos.length > 4 && (
+                        <li className="lp-xs text-rose-400/60">+{plano.recursos.length - 4} recursos</li>
+                      )}
                     </ul>
-                    <Button className={`w-full lp-xs lp-touch rounded-full ${plano.destaque ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg' : 'bg-rose-50 hover:bg-rose-100 text-rose-700'}`} onClick={goToAuth}>
-                      Assinar {plano.nome}
+                    <Button className={`w-full lp-xs lp-touch rounded-full text-xs ${plano.destaque ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg' : 'bg-rose-50 hover:bg-rose-100 text-rose-700'}`} onClick={goToAuth}>
+                      Assinar
                     </Button>
                   </CardContent>
                 </Card>
               </div>
             ))}
           </div>
-          <p className="text-center lp-xs text-rose-400/50 mt-1.5 lg:hidden">← Deslize para ver todos →</p>
 
           {/* Desktop: grid */}
           <div className="hidden lg:grid lg:grid-cols-4 gap-5">
