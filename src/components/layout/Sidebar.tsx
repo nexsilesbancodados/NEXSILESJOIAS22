@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
+import { SUPORTE_WHATSAPP_URL } from '@/lib/constants';
 
 const db = supabase;
 import { useAuth } from '@/contexts/AuthContext';
@@ -516,7 +517,15 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-border/50">
+        <div className="p-3 border-t border-border/50 space-y-2">
+          <a
+            href={SUPORTE_WHATSAPP_URL}
+            target="_top"
+            className="flex items-center justify-center gap-2 text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {isExpanded && <span>Suporte WhatsApp</span>}
+          </a>
           <div className="flex items-center justify-center gap-2">
             <Sparkles className="w-4 h-4 text-primary/50" />
             {isExpanded && (
