@@ -227,7 +227,7 @@ serve(async (req) => {
             );
             
             await resend.emails.send({
-              from: "Nexsiles <suporte@nexsales.online>",
+              from: "NexSiles <contato@nexsiles.com.br>",
               to: [userEmail],
               subject: `⚠️ Seu plano expirou - Nexsiles`,
               html: emailHtml,
@@ -281,7 +281,7 @@ serve(async (req) => {
             );
             
             await resend.emails.send({
-              from: "Nexsiles <suporte@nexsales.online>",
+              from: "NexSiles <contato@nexsiles.com.br>",
               to: [userEmail],
               subject: `🔔 Seu plano vence HOJE! - Nexsiles`,
               html: emailHtml,
@@ -338,7 +338,7 @@ serve(async (req) => {
             );
             
             await resend.emails.send({
-              from: "Nexsiles <suporte@nexsales.online>",
+              from: "NexSiles <contato@nexsiles.com.br>",
               to: [userEmail],
               subject: `⏰ Seu plano vence em ${diffDays} dia${diffDays > 1 ? "s" : ""} - Nexsiles`,
               html: emailHtml,

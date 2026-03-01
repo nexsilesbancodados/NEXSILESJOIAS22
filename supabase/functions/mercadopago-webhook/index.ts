@@ -212,7 +212,7 @@ serve(async (req: Request) => {
                 </div>
                 <div class="footer">
                   <p>© 2026 Nexsiles. Todos os direitos reservados.</p>
-                  <p>Dúvidas? Entre em contato: suporte@nexsales.online</p>
+                  <p>Dúvidas? Entre em contato: contato@nexsiles.com.br</p>
                 </div>
               </div>
             </body>
@@ -222,7 +222,7 @@ serve(async (req: Request) => {
           await sendEmailBrevo(
             brevoKey,
             { email: payerEmail },
-            { email: "suporte@nexsales.online", name: "Nexsiles" },
+            { email: "contato@nexsiles.com.br", name: "NexSiles" },
             `🎉 Seu código de acesso ao ${planoNome}`,
             html
           );

@@ -128,7 +128,7 @@ serve(async (req) => {
 
     if (logError) console.error("Error creating log:", logError);
 
-    const fromEmail = remetente_email || "noreply@nexsales.online";
+    const fromEmail = remetente_email || "contato@nexsiles.com.br";
     const fromName = remetente_nome || "NexSiles";
 
     try {

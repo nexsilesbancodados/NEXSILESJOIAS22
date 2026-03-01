@@ -44,7 +44,7 @@ async function sendWhatsApp(phone: string, message: string, instanceName: string
 async function sendEmail(resend: Resend, to: string, subject: string, html: string): Promise<boolean> {
   try {
     const { error } = await resend.emails.send({
-      from: 'Nexsiles <noreply@nexsales.online>',
+      from: 'NexSiles <contato@nexsiles.com.br>',
       to: [to],
       subject,
       html,

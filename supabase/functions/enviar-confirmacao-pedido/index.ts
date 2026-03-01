@@ -166,11 +166,11 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    console.log("Sending email to:", pedido.cliente_email, "from:", "noreply@nexsales.online");
+    console.log("Sending email to:", pedido.cliente_email, "from:", "contato@nexsiles.com.br");
     const brevoResult = await sendEmailBrevo(
       brevoKey,
       { email: pedido.cliente_email, name: pedido.cliente_nome },
-      { email: "noreply@nexsales.online", name: nomeLoja },
+      { email: "contato@nexsiles.com.br", name: nomeLoja },
       `✅ Pedido #${pedido.numero_pedido} confirmado! - ${nomeLoja}`,
       html
     );
