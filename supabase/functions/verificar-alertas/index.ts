@@ -17,16 +17,13 @@ const defaultConfig: AlertConfig = {
   dias_romaneio_pendente: 7,
 };
 
-// Helper to send WhatsApp via Evolution API
 async function sendWhatsApp(phone: string, message: string, instanceName: string): Promise<boolean> {
   const evolutionUrl = Deno.env.get('EVOLUTION_API_URL');
   const evolutionKey = Deno.env.get('EVOLUTION_API_KEY');
   if (!evolutionUrl || !evolutionKey) return false;
-
   try {
     let tel = phone.replace(/\D/g, '');
     if (!tel.startsWith('55')) tel = '55' + tel;
-
     const response = await fetch(`${evolutionUrl}/message/sendText/${instanceName}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': evolutionKey },
@@ -39,7 +36,6 @@ async function sendWhatsApp(phone: string, message: string, instanceName: string
   }
 }
 
-// Helper to send email via Brevo
 async function sendEmailBrevo(apiKey: string, to: string, toName: string, subject: string, html: string): Promise<boolean> {
   try {
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -84,83 +80,89 @@ Deno.serve(async (req) => {
     const whatsappSent: string[] = [];
     const emailsSent: string[] = [];
     const today = new Date();
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+    const todayISO = todayStart.toISOString();
 
     console.log('Iniciando verificação de alertas com automações...');
 
-    // Pre-load all org configs for WhatsApp instances
-    const { data: allConfigs } = await supabase
-      .from('agente_ia_config')
-      .select('organization_id, whatsapp_instancia, dono_email, dono_nome, dono_whatsapp');
+    // Pre-load configs and owners in parallel
+    const [configsRes, membershipsRes, existingNotifsRes] = await Promise.all([
+      supabase.from('agente_ia_config').select('organization_id, whatsapp_instancia, dono_email, dono_nome, dono_whatsapp'),
+      supabase.from('memberships').select('organization_id, user_id, role').eq('role', 'owner'),
+      supabase.from('notificacoes').select('tipo, mensagem').gte('created_at', todayISO),
+    ]);
     
     const configMap = new Map<string, any>();
-    for (const c of allConfigs || []) {
+    for (const c of configsRes.data || []) {
       if (c.organization_id) configMap.set(c.organization_id, c);
     }
 
-    // Get owner emails per org
-    const { data: allMemberships } = await supabase
-      .from('memberships')
-      .select('organization_id, user_id, role')
-      .eq('role', 'owner');
-
     const ownerMap = new Map<string, string>();
-    for (const m of allMemberships || []) {
+    for (const m of membershipsRes.data || []) {
       ownerMap.set(m.organization_id, m.user_id);
     }
 
-    // ═══════════════════════════════════════════
-    // 1. ESTOQUE BAIXO - Notificação + Email ao dono
-    // ═══════════════════════════════════════════
+    // Build a set of existing notifications for today to avoid N+1 queries
+    const existingNotifSet = new Set<string>();
+    for (const n of existingNotifsRes.data || []) {
+      existingNotifSet.add(`${n.tipo}::${n.mensagem}`);
+    }
+
+    function hasNotifToday(tipo: string, keyword: string): boolean {
+      for (const key of existingNotifSet) {
+        if (key.startsWith(`${tipo}::`) && key.toLowerCase().includes(keyword.toLowerCase())) return true;
+      }
+      return false;
+    }
+
+    // ═══ 1. ESTOQUE BAIXO ═══
     const { data: lowStockPieces } = await supabase
       .from('pecas')
       .select('id, nome, codigo, estoque, estoque_minimo, organization_id')
       .eq('ativo', true);
 
     const orgStockAlerts = new Map<string, Array<{ nome: string; codigo: string; estoque: number }>>();
+    const notifInserts: any[] = [];
 
     for (const peca of lowStockPieces || []) {
       const minimo = peca.estoque_minimo || defaultConfig.estoque_minimo;
       const estoqueAtual = peca.estoque || 0;
       
       if (estoqueAtual <= minimo && peca.organization_id) {
-        const todayStart = new Date(today);
-        todayStart.setHours(0, 0, 0, 0);
-        
-        const { data: existingNotif } = await supabase
-          .from('notificacoes')
-          .select('id')
-          .eq('tipo', 'estoque_baixo')
-          .ilike('mensagem', `%${peca.nome}%`)
-          .gte('created_at', todayStart.toISOString())
-          .limit(1);
+        if (hasNotifToday('estoque_baixo', peca.nome)) continue;
 
-        if (!existingNotif?.length) {
-          const ownerId = ownerMap.get(peca.organization_id);
-          if (ownerId) {
-            await supabase.from('notificacoes').insert({
-              user_id: ownerId,
-              titulo: '⚠️ Estoque Baixo',
-              mensagem: `A peça "${peca.nome}" (${peca.codigo || 'S/C'}) está com apenas ${estoqueAtual} unidades.`,
-              tipo: 'estoque_baixo',
-              link: '/pecas',
-            });
-          }
-
-          if (!orgStockAlerts.has(peca.organization_id)) {
-            orgStockAlerts.set(peca.organization_id, []);
-          }
-          orgStockAlerts.get(peca.organization_id)!.push({
-            nome: peca.nome,
-            codigo: peca.codigo || 'S/C',
-            estoque: estoqueAtual,
+        const ownerId = ownerMap.get(peca.organization_id);
+        if (ownerId) {
+          const msg = `A peça "${peca.nome}" (${peca.codigo || 'S/C'}) está com apenas ${estoqueAtual} unidades.`;
+          notifInserts.push({
+            user_id: ownerId,
+            titulo: '⚠️ Estoque Baixo',
+            mensagem: msg,
+            tipo: 'estoque_baixo',
+            link: '/pecas',
           });
-
-          alertsCreated.push(`Estoque baixo: ${peca.nome}`);
+          existingNotifSet.add(`estoque_baixo::${msg}`);
         }
+
+        if (!orgStockAlerts.has(peca.organization_id)) {
+          orgStockAlerts.set(peca.organization_id, []);
+        }
+        orgStockAlerts.get(peca.organization_id)!.push({
+          nome: peca.nome,
+          codigo: peca.codigo || 'S/C',
+          estoque: estoqueAtual,
+        });
+        alertsCreated.push(`Estoque baixo: ${peca.nome}`);
       }
     }
 
-    // Send grouped stock alert emails per org via Brevo
+    // Batch insert notifications
+    if (notifInserts.length > 0) {
+      await supabase.from('notificacoes').insert(notifInserts);
+    }
+
+    // Send grouped stock alert emails per org
     if (brevoKey) {
       for (const [orgId, pecas] of orgStockAlerts) {
         const ownerId = ownerMap.get(orgId);
@@ -189,14 +191,10 @@ Deno.serve(async (req) => {
               </tr></thead>
               <tbody>${pecasHtml}</tbody>
             </table>
-            <div style="text-align:center;margin-top:20px;">
-              <a href="https://nexsiles2567.lovable.app/pecas" style="display:inline-block;background:#8B5CF6;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Ver Peças</a>
-            </div>
           </div>`
         );
         if (sent) emailsSent.push(`Estoque baixo → ${profile.email}`);
 
-        // Also send WhatsApp to owner if configured
         const config = configMap.get(orgId);
         if (config?.whatsapp_instancia && config?.dono_whatsapp) {
           const msg = `⚠️ *ALERTA DE ESTOQUE BAIXO*\n\n${pecas.map(p => `• ${p.nome} (${p.codigo}): *${p.estoque} un.*`).join('\n')}\n\nAcesse o sistema para repor o estoque! 📦`;
@@ -206,10 +204,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ═══════════════════════════════════════════
-    // 2. ANIVERSÁRIOS - Notificação + WhatsApp automático ao aniversariante
-    // ═══════════════════════════════════════════
+    // ═══ 2. ANIVERSÁRIOS ═══
     const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const birthdayNotifs: any[] = [];
 
     // 2a. Clientes
     const { data: clientes } = await supabase
@@ -222,42 +219,30 @@ Deno.serve(async (req) => {
       if (!cliente.data_nascimento || !cliente.organization_id) continue;
       const birthDate = new Date(cliente.data_nascimento);
       const birthMonthDay = `${String(birthDate.getMonth() + 1).padStart(2, '0')}-${String(birthDate.getDate()).padStart(2, '0')}`;
-      
       if (birthMonthDay !== todayMonthDay) continue;
-
-      const todayStart = new Date(today); todayStart.setHours(0, 0, 0, 0);
-      const { data: existingNotif } = await supabase
-        .from('notificacoes')
-        .select('id')
-        .eq('tipo', 'aniversario')
-        .ilike('mensagem', `%${cliente.nome}%`)
-        .gte('created_at', todayStart.toISOString())
-        .limit(1);
-
-      if (existingNotif?.length) continue;
+      if (hasNotifToday('aniversario', cliente.nome)) continue;
 
       const ownerId = ownerMap.get(cliente.organization_id);
       if (ownerId) {
-        await supabase.from('notificacoes').insert({
+        const msg = `Hoje é aniversário de ${cliente.nome}! Mensagem de parabéns enviada automaticamente.`;
+        birthdayNotifs.push({
           user_id: ownerId,
           titulo: '🎂 Aniversário de Cliente',
-          mensagem: `Hoje é aniversário de ${cliente.nome}! Mensagem de parabéns enviada automaticamente.`,
+          mensagem: msg,
           tipo: 'aniversario',
           link: '/clientes',
         });
+        existingNotifSet.add(`aniversario::${msg}`);
       }
 
-      // AUTO WhatsApp birthday message to the client
       const tel = cliente.whatsapp || cliente.telefone;
       const config = configMap.get(cliente.organization_id);
       if (tel && config?.whatsapp_instancia) {
-        const msg = `🎂 *Feliz Aniversário, ${cliente.nome}!* 🎉\n\nDesejamos um dia repleto de alegrias e realizações! ✨\n\nComo presente especial, você ganha *10% de desconto* na sua próxima compra! 🎁\n\nVálido por 7 dias. Aproveite! 💎`;
-        const sent = await sendWhatsApp(tel, msg, config.whatsapp_instancia);
+        const msgW = `🎂 *Feliz Aniversário, ${cliente.nome}!* 🎉\n\nDesejamos um dia repleto de alegrias! ✨\n\nComo presente, você ganha *10% de desconto* na próxima compra! 🎁\n\nVálido por 7 dias. 💎`;
+        const sent = await sendWhatsApp(tel, msgW, config.whatsapp_instancia);
         if (sent) whatsappSent.push(`Aniversário → ${cliente.nome}`);
-        await new Promise(r => setTimeout(r, 500));
       }
 
-      // AUTO Email birthday message via Brevo
       if (brevoKey && cliente.email) {
         const sent = await sendEmailBrevo(brevoKey, cliente.email, cliente.nome,
           `🎂 Feliz Aniversário, ${cliente.nome}! 🎉`,
@@ -277,7 +262,6 @@ Deno.serve(async (req) => {
         );
         if (sent) emailsSent.push(`Aniversário → ${cliente.nome}`);
       }
-
       alertsCreated.push(`Aniversário: ${cliente.nome}`);
     }
 
@@ -292,46 +276,37 @@ Deno.serve(async (req) => {
       if (!rev.data_nascimento || !rev.organization_id) continue;
       const birthDate = new Date(rev.data_nascimento);
       const birthMonthDay = `${String(birthDate.getMonth() + 1).padStart(2, '0')}-${String(birthDate.getDate()).padStart(2, '0')}`;
-      
       if (birthMonthDay !== todayMonthDay) continue;
-
-      const todayStart = new Date(today); todayStart.setHours(0, 0, 0, 0);
-      const { data: existingNotif } = await supabase
-        .from('notificacoes')
-        .select('id')
-        .eq('tipo', 'aniversario')
-        .ilike('mensagem', `%${rev.nome}%`)
-        .gte('created_at', todayStart.toISOString())
-        .limit(1);
-
-      if (existingNotif?.length) continue;
+      if (hasNotifToday('aniversario', rev.nome)) continue;
 
       const ownerId = ownerMap.get(rev.organization_id);
       if (ownerId) {
-        await supabase.from('notificacoes').insert({
+        const msg = `Hoje é aniversário de ${rev.nome}! Parabéns enviados automaticamente.`;
+        birthdayNotifs.push({
           user_id: ownerId,
           titulo: '🎉 Aniversário de Revendedora',
-          mensagem: `Hoje é aniversário de ${rev.nome}! Parabéns enviados automaticamente.`,
+          mensagem: msg,
           tipo: 'aniversario',
           link: '/revendedoras',
         });
+        existingNotifSet.add(`aniversario::${msg}`);
       }
 
       const tel = rev.whatsapp || rev.telefone;
       const config = configMap.get(rev.organization_id);
       if (tel && config?.whatsapp_instancia) {
-        const msg = `🎉 *Feliz Aniversário, ${rev.nome}!* 🎂\n\nParabéns pelo seu dia! Agradecemos por fazer parte da nossa equipe. Você é essencial! 💖\n\nQue venham muitas realizações! ✨`;
-        const sent = await sendWhatsApp(tel, msg, config.whatsapp_instancia);
+        const msgW = `🎉 *Feliz Aniversário, ${rev.nome}!* 🎂\n\nParabéns pelo seu dia! Você é essencial! 💖✨`;
+        const sent = await sendWhatsApp(tel, msgW, config.whatsapp_instancia);
         if (sent) whatsappSent.push(`Aniversário Rev → ${rev.nome}`);
-        await new Promise(r => setTimeout(r, 500));
       }
-
       alertsCreated.push(`Aniversário Rev: ${rev.nome}`);
     }
 
-    // ═══════════════════════════════════════════
-    // 3. MALETAS VENCENDO - Notificação + WhatsApp à revendedora
-    // ═══════════════════════════════════════════
+    if (birthdayNotifs.length > 0) {
+      await supabase.from('notificacoes').insert(birthdayNotifs);
+    }
+
+    // ═══ 3. MALETAS VENCENDO ═══
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + defaultConfig.dias_maleta_vencendo);
     
@@ -343,17 +318,10 @@ Deno.serve(async (req) => {
       .lte('data_devolucao', futureDate.toISOString().split('T')[0])
       .gte('data_devolucao', today.toISOString().split('T')[0]);
 
+    const maletaNotifs: any[] = [];
     for (const maleta of maletas || []) {
-      const todayStart = new Date(today); todayStart.setHours(0, 0, 0, 0);
-      const { data: existingNotif } = await supabase
-        .from('notificacoes')
-        .select('id')
-        .eq('tipo', 'maleta_vencendo')
-        .ilike('mensagem', `%${maleta.codigo || maleta.nome}%`)
-        .gte('created_at', todayStart.toISOString())
-        .limit(1);
-
-      if (existingNotif?.length) continue;
+      const keyword = maleta.codigo || maleta.nome;
+      if (hasNotifToday('maleta_vencendo', keyword)) continue;
 
       const revData = maleta.revendedoras as any;
       const revNome = revData?.nome || 'Revendedora';
@@ -363,52 +331,51 @@ Deno.serve(async (req) => {
 
       const ownerId = maleta.organization_id ? ownerMap.get(maleta.organization_id) : null;
       if (ownerId) {
-        await supabase.from('notificacoes').insert({
+        const msg = `A maleta ${keyword} com ${revNome} vence em ${diasRestantes} dia(s).`;
+        maletaNotifs.push({
           user_id: ownerId,
           titulo: '📦 Maleta Vencendo',
-          mensagem: `A maleta ${maleta.codigo || maleta.nome} com ${revNome} vence em ${diasRestantes} dia(s).`,
+          mensagem: msg,
           tipo: 'maleta_vencendo',
           link: '/revendedoras',
         });
+        existingNotifSet.add(`maleta_vencendo::${msg}`);
       }
 
-      // Auto WhatsApp to revendedora
       const revTel = revData?.whatsapp || revData?.telefone;
       const config = maleta.organization_id ? configMap.get(maleta.organization_id) : null;
       if (revTel && config?.whatsapp_instancia) {
         const dataFormatada = new Date(maleta.data_devolucao!).toLocaleDateString('pt-BR');
-        const msg = `📦 *Lembrete de Devolução de Maleta*\n\nOlá, ${revNome}!\n\nA maleta *"${maleta.codigo || maleta.nome}"* tem devolução prevista para *${dataFormatada}* (${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}).\n\nPor favor, organize os itens e entre em contato para agendar a devolução. 😊\n\nObrigado pela parceria! 💎`;
-        const sent = await sendWhatsApp(revTel, msg, config.whatsapp_instancia);
-        if (sent) whatsappSent.push(`Maleta vencendo → ${revNome}`);
-        await new Promise(r => setTimeout(r, 500));
+        const msgW = `📦 *Lembrete de Devolução*\n\nOlá, ${revNome}!\n\nA maleta *"${keyword}"* vence em *${dataFormatada}* (${diasRestantes} dia${diasRestantes > 1 ? 's' : ''}).\n\nOrganize os itens para devolução. 😊💎`;
+        const sent = await sendWhatsApp(revTel, msgW, config.whatsapp_instancia);
+        if (sent) whatsappSent.push(`Maleta → ${revNome}`);
       }
 
-      // Auto Email to revendedora via Brevo
       if (brevoKey && revData?.email) {
         const dataFormatada = new Date(maleta.data_devolucao!).toLocaleDateString('pt-BR');
         const sent = await sendEmailBrevo(brevoKey, revData.email, revNome,
-          `📦 Maleta "${maleta.codigo || maleta.nome}" vence em ${diasRestantes} dia(s)`,
+          `📦 Maleta "${keyword}" vence em ${diasRestantes} dia(s)`,
           `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
             <h2 style="color:#d69e2e;">📦 Lembrete de Devolução</h2>
             <p>Olá, <strong>${revNome}</strong>!</p>
             <div style="background:#fffff0;padding:20px;border-radius:8px;border-left:4px solid #d69e2e;margin:20px 0;">
-              <p><strong>Maleta:</strong> ${maleta.codigo || maleta.nome}</p>
-              <p><strong>Data de devolução:</strong> ${dataFormatada}</p>
+              <p><strong>Maleta:</strong> ${keyword}</p>
+              <p><strong>Devolução:</strong> ${dataFormatada}</p>
               <p><strong>Dias restantes:</strong> ${diasRestantes}</p>
             </div>
-            <p>Por favor, organize os itens e entre em contato para agendar a devolução.</p>
             <p>Obrigado pela parceria! 💎</p>
           </div>`
         );
         if (sent) emailsSent.push(`Maleta → ${revNome}`);
       }
-
-      alertsCreated.push(`Maleta vencendo: ${maleta.codigo || maleta.nome}`);
+      alertsCreated.push(`Maleta vencendo: ${keyword}`);
     }
 
-    // ═══════════════════════════════════════════
-    // 4. ROMANEIOS PENDENTES - Notificação
-    // ═══════════════════════════════════════════
+    if (maletaNotifs.length > 0) {
+      await supabase.from('notificacoes').insert(maletaNotifs);
+    }
+
+    // ═══ 4. ROMANEIOS PENDENTES ═══
     const oldDate = new Date();
     oldDate.setDate(oldDate.getDate() - defaultConfig.dias_romaneio_pendente);
     
@@ -418,30 +385,27 @@ Deno.serve(async (req) => {
       .eq('status', 'pendente')
       .lte('created_at', oldDate.toISOString());
 
+    const romaneioNotifs: any[] = [];
     for (const romaneio of romaneios || []) {
-      const todayStart = new Date(today); todayStart.setHours(0, 0, 0, 0);
-      const { data: existingNotif } = await supabase
-        .from('notificacoes')
-        .select('id')
-        .eq('tipo', 'romaneio_pendente')
-        .ilike('mensagem', `%${romaneio.numero}%`)
-        .gte('created_at', todayStart.toISOString())
-        .limit(1);
+      if (hasNotifToday('romaneio_pendente', String(romaneio.numero))) continue;
 
-      if (!existingNotif?.length) {
-        const revNome = (romaneio.revendedoras as any)?.nome || 'revendedora';
-        const ownerId = romaneio.organization_id ? ownerMap.get(romaneio.organization_id) : null;
-        if (ownerId) {
-          await supabase.from('notificacoes').insert({
-            user_id: ownerId,
-            titulo: '📋 Romaneio Pendente',
-            mensagem: `O romaneio ${romaneio.numero} de ${revNome} está pendente há mais de ${defaultConfig.dias_romaneio_pendente} dias.`,
-            tipo: 'romaneio_pendente',
-            link: '/romaneios',
-          });
-        }
-        alertsCreated.push(`Romaneio pendente: ${romaneio.numero}`);
+      const revNome = (romaneio.revendedoras as any)?.nome || 'revendedora';
+      const ownerId = romaneio.organization_id ? ownerMap.get(romaneio.organization_id) : null;
+      if (ownerId) {
+        const msg = `O romaneio ${romaneio.numero} de ${revNome} está pendente há mais de ${defaultConfig.dias_romaneio_pendente} dias.`;
+        romaneioNotifs.push({
+          user_id: ownerId,
+          titulo: '📋 Romaneio Pendente',
+          mensagem: msg,
+          tipo: 'romaneio_pendente',
+          link: '/romaneios',
+        });
       }
+      alertsCreated.push(`Romaneio pendente: ${romaneio.numero}`);
+    }
+
+    if (romaneioNotifs.length > 0) {
+      await supabase.from('notificacoes').insert(romaneioNotifs);
     }
 
     console.log(`Verificação concluída. ${alertsCreated.length} alertas, ${whatsappSent.length} WhatsApp, ${emailsSent.length} emails.`);
