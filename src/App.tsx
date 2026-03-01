@@ -156,7 +156,25 @@ function AppRoutes() {
   const isPortalSubdomain = hostname.startsWith('portal.');
   const isMaletaSubdomain = hostname.startsWith('maleta.');
   const isAdminSubdomain = hostname.startsWith('admin.');
+  const isLpSubdomain = hostname.startsWith('lp.');
   
+  // Subdomínio lp.* → landing page direta
+  if (isLpSubdomain) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/politica-privacidade" element={<PoliticaPrivacidadePage />} />
+          <Route path="/termos-de-uso" element={<TermosDeUsoPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/planos-landing" element={<LandingPlanosPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   // Subdomínio loja.* → renderiza loja pública
   if (isLojaSubdomain) {
     return (
