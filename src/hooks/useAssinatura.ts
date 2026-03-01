@@ -55,7 +55,7 @@ export const PLANOS = {
       'SEO otimizado',
       'Catálogo digital',
     ],
-    valor: 149.00,
+    valor: 129.00,
     badges: ['Loja Virtual'],
   },
   nexsiles: {
