@@ -93,9 +93,11 @@ const PLANOS = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'Carla M.', role: 'Loja de semijoias', text: 'O Nexsiles facilitou muito minha gestão. Antes eu perdia horas no controle manual.', img: personaLojista },
-  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Vejo peças, vendas e comissões em tempo real.', img: personaRevendedora },
-  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A automação no WhatsApp me ajuda a atender fora do horário. Senti diferença nas vendas.', img: personaCliente },
+  { name: 'Carla M.', role: 'Loja de semijoias', text: 'O Nexsiles facilitou muito minha gestão. Antes eu perdia horas no controle manual.', img: personaLojista, color: 'from-rose-400 to-pink-500' },
+  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Vejo peças, vendas e comissões em tempo real.', img: personaRevendedora, color: 'from-pink-400 to-rose-500' },
+  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A automação no WhatsApp me ajuda a atender fora do horário. Senti diferença nas vendas.', img: personaCliente, color: 'from-amber-400 to-rose-400' },
+  { name: 'Amanda L.', role: 'Atacadista', text: 'Minhas revendedoras adoram o portal! Reduzi 80% das mensagens de dúvidas sobre estoque.', img: personaLojista, color: 'from-rose-500 to-fuchsia-400' },
+  { name: 'Patrícia K.', role: 'Loja + E-commerce', text: 'Consigo gerenciar minha loja física e virtual ao mesmo tempo. Incrível como tudo se integra!', img: personaRevendedora, color: 'from-pink-500 to-amber-400' },
 ];
 
 export default function LandingPage() {
@@ -540,9 +542,6 @@ export default function LandingPage() {
 
       {/* Depoimentos */}
       <section id="depoimentos" className="py-16 sm:py-24 relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center opacity-3 pointer-events-none">
-          <img src={testimonialsBg} alt="" className="w-full max-w-3xl object-contain" loading="lazy" />
-        </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Depoimentos</Badge>
@@ -550,53 +549,55 @@ export default function LandingPage() {
             <p className="text-rose-500/40 text-xs sm:text-sm">Relatos reais. Resultados podem variar.</p>
           </motion.div>
 
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 md:hidden scrollbar-hide">
-            {TESTIMONIALS.map((t) => (
-              <div key={t.name} className="snap-center flex-shrink-0 w-[280px]">
-                <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100 h-full">
-                  <CardContent className="p-5">
-                    <div className="flex gap-0.5 mb-3">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
-                    <p className="text-rose-700/60 text-xs leading-relaxed mb-4">"{t.text}"</p>
-                    <div className="flex items-center gap-2.5">
-                      <img src={t.img} alt={t.name} className="w-8 h-8 rounded-full object-cover border-2 border-rose-200" />
-                      <div>
-                        <p className="font-semibold text-rose-950 text-sm">{t.name}</p>
-                        <p className="text-[11px] text-rose-500/50">{t.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            ))}
-          </div>
-
-          <div className="hidden md:grid md:grid-cols-3 gap-6">
+          {/* Stories Format */}
+          <div className="flex gap-4 sm:gap-5 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 lg:justify-center scrollbar-hide">
             {TESTIMONIALS.map((t, i) => (
-              <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.3}>
-                <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100 h-full">
-                  <CardContent className="p-6">
-                    <div className="flex gap-1 mb-4">
+              <motion.div
+                key={t.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                custom={i * 0.1}
+                className="snap-center flex-shrink-0 w-[180px] sm:w-[200px]"
+              >
+                {/* Story Card */}
+                <div className="relative rounded-2xl overflow-hidden aspect-[9/16] shadow-xl group cursor-pointer">
+                  {/* Background Image */}
+                  <img src={t.img} alt={t.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  
+                  {/* Gradient Overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-t ${t.color} opacity-40`} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  
+                  {/* Top - Instagram-style header */}
+                  <div className="absolute top-0 left-0 right-0 p-3">
+                    <div className="w-full h-1 rounded-full bg-white/30 overflow-hidden">
+                      <div className="h-full bg-white rounded-full w-full" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-2.5">
+                      <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${t.color} p-[2px]`}>
+                        <img src={t.img} alt="" className="w-full h-full rounded-full object-cover border border-white" />
+                      </div>
+                      <span className="text-white text-[10px] font-semibold truncate">{t.name}</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom - Review Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
+                    <div className="flex gap-0.5 mb-2">
                       {Array.from({ length: 5 }).map((_, j) => (
-                        <Star key={j} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                        <Star key={j} className="w-3 h-3 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <p className="text-rose-700/60 text-sm leading-relaxed mb-6">"{t.text}"</p>
-                    <div className="flex items-center gap-3">
-                      <img src={t.img} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-rose-200" />
-                      <div>
-                        <p className="font-semibold text-rose-950">{t.name}</p>
-                        <p className="text-xs text-rose-500/50">{t.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <p className="text-white text-[11px] sm:text-xs leading-relaxed mb-2 line-clamp-4">"{t.text}"</p>
+                    <p className="text-white/50 text-[9px] sm:text-[10px]">{t.role}</p>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
+          <p className="text-center text-[10px] text-rose-400/40 mt-2 lg:hidden">← Deslize →</p>
         </div>
       </section>
 
