@@ -342,20 +342,40 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
 
   const isSuperAdmin = profile?.is_super_admin === true;
 
-  // Paths allowed for ecommerce_premium plan
+  // Paths allowed for ecommerce_premium plan (only virtual store)
   const ecommercePremiumPaths = ['/', '/pecas', '/loja-virtual', '/configuracoes', '/planos', '/pedidos-loja', '/etiquetas'];
+
+  // Paths restricted from Bronze plan (no loja virtual, no AI agent)
+  const bronzeRestrictedPaths = ['/loja-virtual', '/atendimento'];
+  
+  // Paths restricted from Prata plan (no loja virtual)
+  const prataRestrictedPaths = ['/loja-virtual'];
 
   // Filter menu items based on admin status, permissions and plan
   const filteredMenuItems = useMemo(() => 
     menuItems.filter((item) => {
       const isEcommercePlan = planKey === 'ecommerce_premium';
-      // For ecommerce_premium plan, show Loja Virtual even if not superAdmin
+      const isBronzePlan = planKey === 'nexsiles';
+      const isPrataPlan = planKey === 'nexsiles_ysis';
+      const isDiamantePlan = planKey === 'nexsiles_commerce';
+
+      // For plans that include Loja Virtual (ecommerce, diamante), show it even if not superAdmin
+      const hasLojaVirtual = isEcommercePlan || isDiamantePlan;
+      
       if ((item as any).superAdminOnly && !isSuperAdmin) {
-        if (!(isEcommercePlan && item.path === '/loja-virtual')) return false;
+        if (!(hasLojaVirtual && item.path === '/loja-virtual')) return false;
       }
       if ((item as any).adminOnly && !isAdmin) return false;
+      
       // Restrict ecommerce_premium to only relevant paths
       if (isEcommercePlan && !ecommercePremiumPaths.includes(item.path)) return false;
+      
+      // Bronze: block loja virtual and atendimento IA
+      if (isBronzePlan && bronzeRestrictedPaths.includes(item.path)) return false;
+      
+      // Prata: block loja virtual
+      if (isPrataPlan && prataRestrictedPaths.includes(item.path)) return false;
+      
       return canAccessPath(item.path);
     }),
     [isAdmin, canAccessPath, isSuperAdmin, planKey]
