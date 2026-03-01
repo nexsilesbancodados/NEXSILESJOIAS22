@@ -1,5 +1,4 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Resend } from 'https://esm.sh/resend@4.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,19 +39,31 @@ async function sendWhatsApp(phone: string, message: string, instanceName: string
   }
 }
 
-// Helper to send email via Resend
-async function sendEmail(resend: Resend, to: string, subject: string, html: string): Promise<boolean> {
+// Helper to send email via Brevo
+async function sendEmailBrevo(apiKey: string, to: string, toName: string, subject: string, html: string): Promise<boolean> {
   try {
-    const { error } = await resend.emails.send({
-      from: 'NexSiles <contato@nexsiles.com.br>',
-      to: [to],
-      subject,
-      html,
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: "NexSiles", email: "contato@nexsiles.com.br" },
+        to: [{ email: to, name: toName || to }],
+        subject,
+        htmlContent: html,
+      }),
     });
-    if (error) { console.error('Resend error:', error); return false; }
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`Brevo error [${res.status}]: ${err}`);
+      return false;
+    }
     return true;
   } catch (e) {
-    console.error('Email send error:', e);
+    console.error('Brevo send error:', e);
     return false;
   }
 }
@@ -65,10 +76,9 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const brevoKey = Deno.env.get('BREVO_API_KEY');
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
     const alertsCreated: string[] = [];
     const whatsappSent: string[] = [];
@@ -125,7 +135,6 @@ Deno.serve(async (req) => {
           .limit(1);
 
         if (!existingNotif?.length) {
-          // Get owner user_id for this org
           const ownerId = ownerMap.get(peca.organization_id);
           if (ownerId) {
             await supabase.from('notificacoes').insert({
@@ -137,7 +146,6 @@ Deno.serve(async (req) => {
             });
           }
 
-          // Accumulate for grouped email
           if (!orgStockAlerts.has(peca.organization_id)) {
             orgStockAlerts.set(peca.organization_id, []);
           }
@@ -152,8 +160,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Send grouped stock alert emails per org
-    if (resend) {
+    // Send grouped stock alert emails per org via Brevo
+    if (brevoKey) {
       for (const [orgId, pecas] of orgStockAlerts) {
         const ownerId = ownerMap.get(orgId);
         if (!ownerId) continue;
@@ -168,7 +176,7 @@ Deno.serve(async (req) => {
             <td style="padding:8px;border-bottom:1px solid #fee2e2;text-align:center;color:#dc2626;font-weight:bold;">${p.estoque}</td>
           </tr>`).join('');
 
-        const sent = await sendEmail(resend, profile.email,
+        const sent = await sendEmailBrevo(brevoKey, profile.email, profile.nome || 'Admin',
           `⚠️ ${pecas.length} peça(s) com estoque baixo`,
           `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
             <h2 style="color:#dc2626;">⚠️ Alerta de Estoque Baixo</h2>
@@ -228,7 +236,6 @@ Deno.serve(async (req) => {
 
       if (existingNotif?.length) continue;
 
-      // Create in-app notification for owner
       const ownerId = ownerMap.get(cliente.organization_id);
       if (ownerId) {
         await supabase.from('notificacoes').insert({
@@ -250,9 +257,9 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 500));
       }
 
-      // AUTO Email birthday message
-      if (resend && cliente.email) {
-        const sent = await sendEmail(resend, cliente.email,
+      // AUTO Email birthday message via Brevo
+      if (brevoKey && cliente.email) {
+        const sent = await sendEmailBrevo(brevoKey, cliente.email, cliente.nome,
           `🎂 Feliz Aniversário, ${cliente.nome}! 🎉`,
           `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
             <div style="background:linear-gradient(135deg,#8B5CF6,#EC4899);padding:40px;border-radius:16px;text-align:center;color:white;">
@@ -310,7 +317,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Auto WhatsApp
       const tel = rev.whatsapp || rev.telefone;
       const config = configMap.get(rev.organization_id);
       if (tel && config?.whatsapp_instancia) {
@@ -355,7 +361,6 @@ Deno.serve(async (req) => {
         (new Date(maleta.data_devolucao!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // In-app notification to owner
       const ownerId = maleta.organization_id ? ownerMap.get(maleta.organization_id) : null;
       if (ownerId) {
         await supabase.from('notificacoes').insert({
@@ -378,10 +383,10 @@ Deno.serve(async (req) => {
         await new Promise(r => setTimeout(r, 500));
       }
 
-      // Auto Email to revendedora
-      if (resend && revData?.email) {
+      // Auto Email to revendedora via Brevo
+      if (brevoKey && revData?.email) {
         const dataFormatada = new Date(maleta.data_devolucao!).toLocaleDateString('pt-BR');
-        await sendEmail(resend, revData.email,
+        const sent = await sendEmailBrevo(brevoKey, revData.email, revNome,
           `📦 Maleta "${maleta.codigo || maleta.nome}" vence em ${diasRestantes} dia(s)`,
           `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
             <h2 style="color:#d69e2e;">📦 Lembrete de Devolução</h2>
@@ -395,7 +400,7 @@ Deno.serve(async (req) => {
             <p>Obrigado pela parceria! 💎</p>
           </div>`
         );
-        emailsSent.push(`Maleta → ${revNome}`);
+        if (sent) emailsSent.push(`Maleta → ${revNome}`);
       }
 
       alertsCreated.push(`Maleta vencendo: ${maleta.codigo || maleta.nome}`);

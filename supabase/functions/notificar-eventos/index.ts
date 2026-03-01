@@ -1,8 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,12 +7,37 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function sendEmailBrevo(apiKey: string, to: string, toName: string, subject: string, htmlContent: string) {
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "NexSiles", email: "contato@nexsiles.com.br" },
+      to: [{ email: to, name: toName || to }],
+      subject,
+      htmlContent,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error [${res.status}]: ${err}`);
+  }
+  return await res.json();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    const brevoKey = Deno.env.get("BREVO_API_KEY");
+    if (!brevoKey) throw new Error("BREVO_API_KEY não configurada");
+
     const { tipo, dados } = await req.json();
 
     const authHeader = req.headers.get("Authorization")!;
@@ -251,14 +273,8 @@ serve(async (req) => {
           </div>`;
     }
 
-    const emailResponse = await resend.emails.send({
-      from: "NexSiles <contato@nexsiles.com.br>",
-      to: [ownerProfile.email],
-      subject,
-      html,
-    });
-
-    console.log("Email notification sent:", emailResponse);
+    const emailResponse = await sendEmailBrevo(brevoKey, ownerProfile.email, ownerProfile.nome || 'Admin', subject, html);
+    console.log("Email notification sent via Brevo:", emailResponse);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
