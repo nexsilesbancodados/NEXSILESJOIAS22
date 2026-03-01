@@ -141,63 +141,61 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[100svh] flex items-center pt-14 overflow-hidden">
+      <section className="relative min-h-[100svh] flex items-center pt-14 pb-20 sm:pb-0 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50" />
-        {/* Decorative circles */}
-        <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-rose-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-200/20 rounded-full blur-3xl" />
+        <div className="absolute top-20 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-rose-200/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-pink-200/20 rounded-full blur-3xl" />
         
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
             {/* Text */}
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="text-center lg:text-left order-2 lg:order-1">
-              <Badge className="mb-4 bg-rose-100 text-rose-600 border-rose-200 px-3 py-1 text-xs sm:text-sm font-medium">
+              <Badge className="mb-3 sm:mb-4 bg-rose-100 text-rose-600 border-rose-200 px-2.5 py-0.5 text-[11px] sm:text-sm font-medium">
                 <Gem className="w-3 h-3 mr-1" /> Sistema para Semijoias
               </Badge>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-rose-950 leading-[1.1] mb-4 sm:mb-6">
-                Complete sua venda e <span className="text-rose-500">multiplique seus lucros</span> com gestão inteligente
+              <h1 className="text-[1.65rem] leading-[1.15] sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-rose-950 mb-3 sm:mb-6">
+                Complete sua venda e <span className="text-rose-500">multiplique seus lucros</span>
               </h1>
-              <p className="text-base sm:text-lg text-rose-800/60 max-w-lg mx-auto lg:mx-0 mb-6 sm:mb-8 leading-relaxed">
-                O sistema completo para quem vende semijoias. Dashboard, PDV, estoque, revendedoras, loja virtual e WhatsApp — tudo em um só lugar.
+              <p className="text-sm sm:text-lg text-rose-800/60 max-w-lg mx-auto lg:mx-0 mb-5 sm:mb-8 leading-relaxed">
+                Dashboard, PDV, estoque, revendedoras, loja virtual e WhatsApp — tudo em um só lugar.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-base sm:text-lg px-8 py-6 rounded-full shadow-xl shadow-rose-200/50"
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3 justify-center lg:justify-start">
+                <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-6 rounded-full shadow-xl shadow-rose-200/50"
                   onClick={() => navigate('/auth')}>
-                  Começar Grátis <ArrowRight className="w-5 h-5 ml-1" />
+                  Começar Grátis <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
                 </Button>
-                <Button size="lg" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-50 text-base sm:text-lg px-8 py-6 rounded-full"
+                <Button size="lg" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-50 text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-6 rounded-full"
                   onClick={scrollToPlanos}>
                   Ver Planos
                 </Button>
               </div>
-              <div className="mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-x-5 gap-y-2 text-xs sm:text-sm text-rose-600/50">
-                <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-500" /> Sem cartão</span>
-                <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-500" /> 3 dias grátis</span>
-                <span className="flex items-center gap-1"><Check className="w-3.5 h-3.5 text-emerald-500" /> Cancele quando quiser</span>
+              <div className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1.5 text-[11px] sm:text-sm text-rose-600/50">
+                <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> Sem cartão</span>
+                <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> 3 dias grátis</span>
+                <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> Cancele quando quiser</span>
               </div>
             </motion.div>
 
             {/* Hero Image */}
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1} className="order-1 lg:order-2 flex justify-center">
               <div className="relative">
-                <div className="w-64 sm:w-80 lg:w-[420px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-rose-300/30 border-4 border-white">
+                <div className="w-52 sm:w-80 lg:w-[420px] aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-rose-300/30 border-[3px] sm:border-4 border-white">
                   <img src={personaHero} alt="Semijoias premium rose gold" className="w-full h-full object-cover" loading="eager" />
                 </div>
-                {/* Floating badge */}
-                <div className="absolute -bottom-4 -left-4 sm:-bottom-5 sm:-left-5 bg-white rounded-2xl px-4 py-3 shadow-xl border border-rose-100">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <div className="absolute -bottom-3 -left-3 sm:-bottom-5 sm:-left-5 bg-white rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-rose-100">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-rose-400 font-medium">Vendas</p>
-                      <p className="text-sm font-bold text-rose-950">+340%</p>
+                      <p className="text-[9px] sm:text-[10px] text-rose-400 font-medium">Vendas</p>
+                      <p className="text-xs sm:text-sm font-bold text-rose-950">+340%</p>
                     </div>
                   </div>
                 </div>
-                <div className="absolute -top-3 -right-3 sm:-top-4 sm:-right-4 bg-rose-500 text-white rounded-2xl px-3 py-2 shadow-lg">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold">
-                    <Bot className="w-3.5 h-3.5" /> IA Integrada
+                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 bg-rose-500 text-white rounded-xl sm:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-lg">
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold">
+                    <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> IA Integrada
                   </div>
                 </div>
               </div>
@@ -207,23 +205,23 @@ export default function LandingPage() {
       </section>
 
       {/* Vantagens */}
-      <section id="vantagens" className="py-16 sm:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
+      <section id="vantagens" className="py-12 sm:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-8 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Vantagens</Badge>
-            <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Conheça algumas de nossas vantagens</h2>
-            <p className="text-rose-600/50 text-sm sm:text-base max-w-2xl mx-auto">Por que centenas de empreendedoras escolhem o Nexsiles.</p>
+            <h2 className="text-xl sm:text-4xl font-bold text-rose-950 mb-2 sm:mb-3">Conheça algumas de nossas vantagens</h2>
+            <p className="text-rose-600/50 text-xs sm:text-base max-w-2xl mx-auto">Por que centenas de empreendedoras escolhem o Nexsiles.</p>
           </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {VANTAGENS.map((v, i) => (
-              <motion.div key={v.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.2}>
+              <motion.div key={v.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.15}>
                 <Card className="bg-gradient-to-br from-rose-50 to-pink-50 border-rose-100 hover:shadow-lg hover:shadow-rose-100/50 transition-all duration-300 h-full">
-                  <CardContent className="p-5 sm:p-6 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto mb-4">
-                      <v.icon className="w-7 h-7 text-rose-500" />
+                  <CardContent className="p-3 sm:p-6 text-center">
+                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-rose-100 flex items-center justify-center mx-auto mb-2 sm:mb-4">
+                      <v.icon className="w-5 h-5 sm:w-7 sm:h-7 text-rose-500" />
                     </div>
-                    <h3 className="text-base sm:text-lg font-bold text-rose-950 mb-2">{v.title}</h3>
-                    <p className="text-xs sm:text-sm text-rose-700/50 leading-relaxed">{v.desc}</p>
+                    <h3 className="text-xs sm:text-lg font-bold text-rose-950 mb-1 sm:mb-2">{v.title}</h3>
+                    <p className="text-[10px] sm:text-sm text-rose-700/50 leading-relaxed hidden sm:block">{v.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -233,14 +231,34 @@ export default function LandingPage() {
       </section>
 
       {/* Quem Usa - Personas */}
-      <section className="py-16 sm:py-24 bg-rose-50/50">
+      <section className="py-12 sm:py-24 bg-rose-50/50">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-10 sm:mb-16">
             <Badge className="mb-3 bg-rose-100 text-rose-600 border-rose-200">Para Quem</Badge>
             <h2 className="text-2xl sm:text-4xl font-bold text-rose-950 mb-3">Feito para quem vive de semijoias</h2>
             <p className="text-rose-600/50 text-sm sm:text-base max-w-2xl mx-auto">De lojistas a revendedoras, o Nexsiles se adapta ao seu modelo de negócio.</p>
           </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-3 -mx-4 px-4 sm:hidden scrollbar-hide">
+            {[
+              { img: personaLojista, name: 'Lojista', desc: 'PDV, estoque e relatórios de lucratividade.' },
+              { img: personaRevendedora, name: 'Revendedora', desc: 'Maletas, vendas e comissões em tempo real.' },
+              { img: personaCliente, name: 'E-commerce', desc: 'Loja virtual com checkout integrado.' },
+            ].map((persona) => (
+              <div key={persona.name} className="snap-center flex-shrink-0 w-[220px]">
+                <Card className="bg-white border-rose-100 overflow-hidden h-full">
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img src={persona.img} alt={persona.name} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <CardContent className="p-3 text-center">
+                    <h3 className="text-sm font-bold text-rose-950 mb-1">{persona.name}</h3>
+                    <p className="text-[11px] text-rose-700/50 leading-relaxed">{persona.desc}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-[10px] text-rose-400/40 mt-1 sm:hidden">← Deslize →</p>
+          <div className="hidden sm:grid sm:grid-cols-3 gap-6">
             {[
               { img: personaLojista, name: 'Lojista', desc: 'Gerencie sua loja física com PDV, estoque inteligente e relatórios detalhados de lucratividade.' },
               { img: personaRevendedora, name: 'Revendedora', desc: 'Acompanhe suas maletas, vendas e comissões em tempo real direto do celular.' },
@@ -581,10 +599,10 @@ export default function LandingPage() {
       </footer>
 
       {/* Mobile sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-gradient-to-t from-white via-white/95 to-transparent sm:hidden">
-        <Button className="w-full bg-rose-500 hover:bg-rose-600 text-white py-5 rounded-full text-base font-semibold shadow-xl shadow-rose-200/50"
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-white via-white/95 to-transparent sm:hidden">
+        <Button className="w-full bg-rose-500 hover:bg-rose-600 text-white py-4 rounded-full text-sm font-semibold shadow-xl shadow-rose-200/50"
           onClick={() => navigate('/auth')}>
-          Experimente 3 Dias Grátis <ArrowRight className="w-4 h-4 ml-1" />
+          Teste Grátis 3 Dias <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
       </div>
     </div>
