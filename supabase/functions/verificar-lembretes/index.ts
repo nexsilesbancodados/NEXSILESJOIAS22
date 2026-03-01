@@ -133,7 +133,7 @@ serve(async (req) => {
                 'Authorization': `Bearer ${resendKey}`
               },
               body: JSON.stringify({
-                from: 'NexSales <noreply@nexsales.online>',
+                from: 'NexSiles <contato@nexsiles.com.br>',
                 to: agendamento.cliente_email,
                 subject: `📅 Lembrete: ${agendamento.titulo} - ${dataFormatada}`,
                 html: `

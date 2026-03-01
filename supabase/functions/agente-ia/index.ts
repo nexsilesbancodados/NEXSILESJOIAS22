@@ -1027,7 +1027,7 @@ Por favor, responda com um número de 0 a 10.`;
           const resend = new Resend(resendKey);
 
           const { data: emailResult, error: emailError } = await resend.emails.send({
-            from: `NexSiles <noreply@nexsales.online>`,
+            from: `NexSiles <contato@nexsiles.com.br>`,
             to: [email],
             subject: assunto,
             html: corpoHtml,

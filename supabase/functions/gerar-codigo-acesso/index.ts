@@ -83,7 +83,7 @@ const handler = async (req: Request): Promise<Response> => {
         const planoNome = plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles';
         
         await resend.emails.send({
-          from: "Nexsiles <suporte@nexsales.online>",
+          from: "NexSiles <contato@nexsiles.com.br>",
           to: [email],
           subject: `🎉 Seu código de acesso ao ${planoNome}`,
           html: `
@@ -137,7 +137,7 @@ const handler = async (req: Request): Promise<Response> => {
                 </div>
                 <div class="footer">
                   <p>© 2024 Nexsiles. Todos os direitos reservados.</p>
-                  <p>Dúvidas? Entre em contato: suporte@nexsales.online</p>
+                  <p>Dúvidas? Entre em contato: contato@nexsiles.com.br</p>
                 </div>
               </div>
             </body>

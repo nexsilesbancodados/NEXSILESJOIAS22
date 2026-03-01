@@ -252,7 +252,7 @@ serve(async (req) => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "Nexsiles <noreply@nexsales.online>",
+      from: "NexSiles <contato@nexsiles.com.br>",
       to: [ownerProfile.email],
       subject,
       html,

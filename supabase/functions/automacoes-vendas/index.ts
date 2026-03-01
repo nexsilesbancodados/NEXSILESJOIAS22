@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       if (resend && clienteData.email) {
         try {
           await resend.emails.send({
-            from: 'Nexsiles <noreply@nexsales.online>',
+            from: 'NexSiles <contato@nexsiles.com.br>',
             to: [clienteData.email],
             subject: `✨ Obrigado pela compra, ${clienteData.nome}!`,
             html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
@@ -324,7 +324,7 @@ Deno.serve(async (req) => {
       if (resend) {
         try {
           await resend.emails.send({
-            from: `${nomeLoja} <noreply@nexsales.online>`,
+            from: `${nomeLoja} <contato@nexsiles.com.br>`,
             to: [pedido.cliente_email],
             subject: `📦 Pedido #${pedido.numero_pedido} enviado! - ${nomeLoja}`,
             html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
