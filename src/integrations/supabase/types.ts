@@ -3703,6 +3703,8 @@ export type Database = {
           last_resend_at: string | null
           mercadopago_preference_id: string | null
           name: string
+          notified_expired: boolean | null
+          notified_expiring: boolean | null
           payment_status: string
           phone: string | null
           plan: string
@@ -3719,6 +3721,8 @@ export type Database = {
           last_resend_at?: string | null
           mercadopago_preference_id?: string | null
           name: string
+          notified_expired?: boolean | null
+          notified_expiring?: boolean | null
           payment_status?: string
           phone?: string | null
           plan: string
@@ -3735,6 +3739,8 @@ export type Database = {
           last_resend_at?: string | null
           mercadopago_preference_id?: string | null
           name?: string
+          notified_expired?: boolean | null
+          notified_expiring?: boolean | null
           payment_status?: string
           phone?: string | null
           plan?: string
