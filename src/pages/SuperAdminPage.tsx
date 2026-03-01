@@ -21,7 +21,7 @@ import {
   TrendingUp, Calendar, AlertTriangle, RefreshCw, Loader2, Eye, Trash2,
   ChevronDown, ChevronRight, UserCheck, Activity, BarChart3, Clock,
   ArrowUpRight, ArrowDownRight, Zap, CreditCard, Sparkles, Store,
-  ShoppingBag, Package, Globe
+  ShoppingBag, Package, Globe, MessageCircle, Phone, Settings2, Save
 } from 'lucide-react';
 
 interface Funcionario {
@@ -44,7 +44,7 @@ interface AssinaturaRow {
   created_at: string;
   has_subscription: boolean;
   auth_created_at: string;
-  profiles?: { nome: string | null; email: string | null } | null;
+  profiles?: { nome: string | null; email: string | null; telefone: string | null } | null;
   funcionarios?: Funcionario[];
 }
 
@@ -87,13 +87,136 @@ function StatCard({ icon: Icon, label, value, subtitle, color }: {
   );
 }
 
+// WhatsApp Configuration Panel for Super Admin
+function WhatsAppConfigPanel() {
+  const [config, setConfig] = useState({
+    evolution_api_url: '',
+    evolution_api_key: '',
+    instancia_global: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load current config from configuracoes table (global level)
+  const { data: configData, isLoading } = useQuery({
+    queryKey: ['super-admin-whatsapp-config'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      // Use edge function to fetch global configs
+      const res = await fetch(
+        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas?stats=whatsapp_config`,
+        { headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' } }
+      );
+      if (!res.ok) return null;
+      return await res.json();
+    },
+  });
+
+  // When data loads, populate form
+  if (configData && !loaded) {
+    setConfig({
+      evolution_api_url: configData.evolution_api_url || '',
+      evolution_api_key: configData.evolution_api_key || '',
+      instancia_global: configData.instancia_global || '',
+    });
+    setLoaded(true);
+  }
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update_whatsapp_config', config }),
+        }
+      );
+      if (!res.ok) throw new Error('Erro ao salvar');
+      toast.success('Configurações do WhatsApp salvas!');
+    } catch (err: any) {
+      toast.error('Erro ao salvar: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-emerald-400" />
+            Configuração Global WhatsApp (Evolution API)
+          </CardTitle>
+          <CardDescription>
+            Configure a Evolution API para disparos globais de WhatsApp (cobranças, notificações, etc.)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>URL da Evolution API</Label>
+            <Input
+              placeholder="https://sua-evolution-api.com"
+              value={config.evolution_api_url}
+              onChange={(e) => setConfig({ ...config, evolution_api_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">Ex: https://evo.seudominio.com</p>
+          </div>
+          <div className="space-y-2">
+            <Label>API Key da Evolution</Label>
+            <Input
+              type="password"
+              placeholder="Sua chave da Evolution API"
+              value={config.evolution_api_key}
+              onChange={(e) => setConfig({ ...config, evolution_api_key: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Instância Global (nome)</Label>
+            <Input
+              placeholder="nexsiles-global"
+              value={config.instancia_global}
+              onChange={(e) => setConfig({ ...config, instancia_global: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">Nome da instância para disparos de cobrança e notificações da plataforma</p>
+          </div>
+
+          <Separator />
+
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Salvar Configurações
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 bg-muted/30">
+        <CardContent className="p-4 flex items-start gap-3">
+          <Phone className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Telefone dos usuários</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Os telefones cadastrados no perfil de cada usuário serão usados para disparos de cobranças,
+              lembretes de vencimento e notificações via WhatsApp. Você pode visualizar e editar o telefone
+              de cada usuário na aba "Usuários" → Detalhes.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function SuperAdminPage() {
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [editDialog, setEditDialog] = useState<AssinaturaRow | null>(null);
-  const [editForm, setEditForm] = useState({ plano: '', status: '', data_vencimento: '', valor_mensal: '' });
+  const [editForm, setEditForm] = useState({ plano: '', status: '', data_vencimento: '', valor_mensal: '', telefone: '' });
   const [detailDialog, setDetailDialog] = useState<AssinaturaRow | null>(null);
   const [deleteDialog, setDeleteDialog] = useState<AssinaturaRow | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -196,14 +319,12 @@ export default function SuperAdminPage() {
     const semPlano = assinaturas.filter((a: any) => !a.has_subscription);
     const totalFuncionarios = assinaturas.reduce((sum: number, a: any) => sum + (a.funcionarios?.length || 0), 0);
 
-    // Users expiring within 7 days
     const expirandoEm7Dias = assinaturas.filter((a: any) => {
       if (!a.data_vencimento) return false;
       const days = differenceInDays(new Date(a.data_vencimento), new Date());
       return days >= 0 && days <= 7 && a.status === 'ativo';
     });
 
-    // Conversion rate
     const taxaConversao = assinaturas.length > 0
       ? ((ativos.length / assinaturas.length) * 100).toFixed(1)
       : '0';
@@ -227,6 +348,7 @@ export default function SuperAdminPage() {
       const matchSearch = !search ||
         a.profiles?.nome?.toLowerCase().includes(search.toLowerCase()) ||
         a.profiles?.email?.toLowerCase().includes(search.toLowerCase()) ||
+        a.profiles?.telefone?.includes(search) ||
         a.user_id.includes(search) ||
         a.funcionarios?.some((f: Funcionario) =>
           f.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -237,7 +359,6 @@ export default function SuperAdminPage() {
     });
   }, [assinaturas, search, statusFilter]);
 
-  // Group by plan for the overview
   const planDistribution = useMemo(() => {
     const map: Record<string, number> = {};
     assinaturas.forEach((a: any) => {
@@ -253,12 +374,28 @@ export default function SuperAdminPage() {
       status: a.status === 'sem_plano' ? 'ativo' : a.status,
       data_vencimento: a.data_vencimento?.split('T')[0] || '',
       valor_mensal: String(a.valor_mensal || 0),
+      telefone: a.profiles?.telefone || '',
     });
     setEditDialog(a);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editDialog) return;
+
+    // Update telefone in profiles if changed
+    if (editForm.telefone !== (editDialog.profiles?.telefone || '')) {
+      const headers = await getAuthHeaders();
+      await fetch(edgeFnUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          action: 'update_profile_telefone',
+          user_id: editDialog.user_id,
+          telefone: editForm.telefone,
+        }),
+      });
+    }
+
     updateAssinatura.mutate({
       id: editDialog.id,
       user_id: editDialog.user_id,
@@ -293,6 +430,14 @@ export default function SuperAdminPage() {
     });
   };
 
+  // Send WhatsApp message to user
+  const handleSendWhatsApp = (telefone: string, nome: string) => {
+    const cleanPhone = telefone.replace(/\D/g, '');
+    const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const msg = encodeURIComponent(`Olá ${nome}! 👋`);
+    window.open(`https://wa.me/${fullPhone}?text=${msg}`, '_blank');
+  };
+
   if (!isSuperAdmin) {
     return <Navigate to="/" replace />;
   }
@@ -317,9 +462,10 @@ export default function SuperAdminPage() {
 
   const getPlanLabel = (plano: string | null) => {
     if (!plano || plano === 'sem_plano') return '—';
+    if (plano === 'ecommerce_premium') return 'E-com Premium';
     if (plano === 'nexsiles_commerce') return 'Commerce';
     if (plano === 'nexsiles_ysis') return 'Ysis';
-    if (plano === 'nexsiles_max') return 'Max'; // legacy
+    if (plano === 'nexsiles_max') return 'Max';
     return 'Nexsiles';
   };
 
@@ -378,6 +524,13 @@ export default function SuperAdminPage() {
                 <Users className="w-4 h-4 mr-2" />
                 Usuários
               </TabsTrigger>
+              <TabsTrigger
+                value="whatsapp"
+                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-emerald-400 rounded-none px-4 pb-3 text-sm"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -391,7 +544,6 @@ export default function SuperAdminPage() {
               <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
             ) : platformStats ? (
               <>
-                {/* Main Platform KPIs */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   <StatCard icon={Globe} label="Organizações" value={platformStats.totalOrgs} subtitle="Cadastradas" color="primary" />
                   <StatCard icon={Store} label="Lojas Ativas" value={platformStats.totalLojasAtivas} subtitle={`de ${platformStats.totalLojas} criadas`} color="emerald" />
@@ -400,7 +552,6 @@ export default function SuperAdminPage() {
                   <StatCard icon={Package} label="Peças Cadastradas" value={platformStats.totalPecas} subtitle="Na plataforma" color="violet" />
                 </div>
 
-                {/* Month & E-commerce */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Card className="border-border/50">
                     <CardHeader className="pb-2">
@@ -492,7 +643,6 @@ export default function SuperAdminPage() {
         {/* ── Overview Tab ── */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Main Stats */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <StatCard icon={Users} label="Total Usuários" value={stats.totalUsers} subtitle={`${stats.totalFuncionarios} funcionários`} color="primary" />
               <StatCard icon={CheckCircle} label="Ativos" value={stats.ativos} subtitle={`${stats.taxaConversao}% conversão`} color="emerald" />
@@ -501,7 +651,6 @@ export default function SuperAdminPage() {
               <StatCard icon={TrendingUp} label="Sem Plano" value={stats.usersWithoutSub} subtitle="Potenciais conversões" color="violet" />
             </div>
 
-            {/* Secondary Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="border-border/50">
                 <CardContent className="p-4 flex items-center gap-3">
@@ -563,7 +712,7 @@ export default function SuperAdminPage() {
                 <div className="space-y-3">
                   {planDistribution.map(({ plano, count }) => {
                     const pct = assinaturas.length > 0 ? (count / assinaturas.length) * 100 : 0;
-                    const label = plano === 'nexsiles_commerce' ? 'Commerce' : plano === 'nexsiles_ysis' ? 'Ysis' : plano === 'nexsiles_max' ? 'Max' : plano === 'nexsiles' ? 'Nexsiles' : 'Sem Plano';
+                    const label = getPlanLabel(plano === 'sem_plano' ? null : plano) === '—' ? 'Sem Plano' : getPlanLabel(plano);
                     return (
                       <div key={plano} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
@@ -631,6 +780,9 @@ export default function SuperAdminPage() {
           </div>
         )}
 
+        {/* ── WhatsApp Config Tab ── */}
+        {activeTab === 'whatsapp' && <WhatsAppConfigPanel />}
+
         {/* ── Users Tab ── */}
         {activeTab === 'users' && (
           <div className="space-y-4 animate-fade-in">
@@ -639,7 +791,7 @@ export default function SuperAdminPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome, email ou ID..."
+                  placeholder="Buscar por nome, email, telefone ou ID..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10 bg-card"
@@ -698,6 +850,15 @@ export default function SuperAdminPage() {
                             </div>
                             <p className="text-xs text-muted-foreground truncate">{a.profiles?.email || a.user_id.substring(0, 12) + '...'}</p>
                             <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              {a.profiles?.telefone && (
+                                <button
+                                  onClick={() => handleSendWhatsApp(a.profiles!.telefone!, a.profiles?.nome || '')}
+                                  className="text-[11px] text-emerald-400 flex items-center gap-0.5 hover:underline"
+                                  title="Enviar WhatsApp"
+                                >
+                                  <Phone className="w-3 h-3" /> {a.profiles.telefone}
+                                </button>
+                              )}
                               {a.plano && (
                                 <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                                   <Crown className="w-3 h-3" /> {getPlanLabel(a.plano)}
@@ -786,10 +947,20 @@ export default function SuperAdminPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
+              <Label className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" /> Telefone / WhatsApp</Label>
+              <Input
+                placeholder="(11) 99999-9999"
+                value={editForm.telefone}
+                onChange={(e) => setEditForm({ ...editForm, telefone: e.target.value })}
+              />
+            </div>
+            <Separator />
+            <div className="space-y-2">
               <Label>Plano</Label>
               <Select value={editForm.plano} onValueChange={(v) => setEditForm({ ...editForm, plano: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="ecommerce_premium">E-commerce Premium (R$ 149)</SelectItem>
                   <SelectItem value="nexsiles">Nexsiles (R$ 189)</SelectItem>
                   <SelectItem value="nexsiles_ysis">Nexsiles Ysis (R$ 249)</SelectItem>
                   <SelectItem value="nexsiles_commerce">Nexsiles Commerce (R$ 299)</SelectItem>
@@ -855,6 +1026,15 @@ export default function SuperAdminPage() {
                 <div>
                   <p className="font-semibold text-foreground">{detailDialog.profiles?.nome || '—'}</p>
                   <p className="text-xs text-muted-foreground">{detailDialog.profiles?.email || '—'}</p>
+                  {detailDialog.profiles?.telefone && (
+                    <button
+                      onClick={() => handleSendWhatsApp(detailDialog.profiles!.telefone!, detailDialog.profiles?.nome || '')}
+                      className="text-xs text-emerald-400 flex items-center gap-1 hover:underline mt-0.5"
+                    >
+                      <Phone className="w-3 h-3" /> {detailDialog.profiles.telefone}
+                      <MessageCircle className="w-3 h-3 ml-1" />
+                    </button>
+                  )}
                 </div>
                 <div className="ml-auto">{getStatusBadge(detailDialog.status)}</div>
               </div>
@@ -869,6 +1049,10 @@ export default function SuperAdminPage() {
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Plano</p>
                   <p className="font-medium text-foreground capitalize">{getPlanLabel(detailDialog.plano)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Telefone</p>
+                  <p className="font-medium text-foreground">{detailDialog.profiles?.telefone || '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Valor Mensal</p>
@@ -940,8 +1124,8 @@ export default function SuperAdminPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => deleteDialog?.id && deleteAssinatura.mutate(deleteDialog.id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteAssinatura.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Excluir

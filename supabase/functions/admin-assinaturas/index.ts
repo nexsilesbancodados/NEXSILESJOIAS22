@@ -52,6 +52,26 @@ Deno.serve(async (req) => {
       const url = new URL(req.url);
       const statsOnly = url.searchParams.get('stats');
 
+      // WhatsApp config endpoint
+      if (statsOnly === 'whatsapp_config') {
+        const { data: configs } = await adminClient
+          .from('configuracoes')
+          .select('chave, valor')
+          .is('organization_id', null)
+          .in('chave', ['global_evolution_api_url', 'global_evolution_api_key', 'global_whatsapp_instancia']);
+        
+        const configMap: Record<string, string> = {};
+        (configs || []).forEach((c: any) => { configMap[c.chave] = c.valor; });
+        
+        return new Response(JSON.stringify({
+          evolution_api_url: configMap['global_evolution_api_url'] || '',
+          evolution_api_key: configMap['global_evolution_api_key'] || '',
+          instancia_global: configMap['global_whatsapp_instancia'] || '',
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       // Platform stats endpoint
       if (statsOnly === 'platform') {
         const { count: totalOrgs } = await adminClient.from('organizations').select('*', { count: 'exact', head: true });
@@ -125,7 +145,7 @@ Deno.serve(async (req) => {
       // Fetch ALL profiles
       const { data: allProfiles } = await adminClient
         .from('profiles')
-        .select('user_id, nome, email')
+        .select('user_id, nome, email, telefone')
         .order('created_at', { ascending: false });
 
       // Fetch memberships to identify employees vs owners
@@ -221,11 +241,51 @@ Deno.serve(async (req) => {
 
     if (req.method === 'PUT') {
       const body = await req.json();
+
+      // Handle profile telefone update
+      if (body.action === 'update_profile_telefone') {
+        const { user_id: uid, telefone } = body;
+        const { error } = await adminClient
+          .from('profiles')
+          .update({ telefone, updated_at: new Date().toISOString() })
+          .eq('user_id', uid);
+        if (error) throw error;
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Handle WhatsApp config save
+      if (body.action === 'update_whatsapp_config') {
+        const { config } = body;
+        // Store each config key in configuracoes table (global, no org)
+        const keys = [
+          { chave: 'global_evolution_api_url', valor: config.evolution_api_url },
+          { chave: 'global_evolution_api_key', valor: config.evolution_api_key },
+          { chave: 'global_whatsapp_instancia', valor: config.instancia_global },
+        ];
+        for (const k of keys) {
+          const { data: existing } = await adminClient
+            .from('configuracoes')
+            .select('id')
+            .eq('chave', k.chave)
+            .is('organization_id', null)
+            .maybeSingle();
+          if (existing) {
+            await adminClient.from('configuracoes').update({ valor: k.valor, updated_at: new Date().toISOString() }).eq('id', existing.id);
+          } else {
+            await adminClient.from('configuracoes').insert({ chave: k.chave, valor: k.valor, organization_id: null, tipo: 'global', descricao: 'Config global WhatsApp' });
+          }
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const { id, user_id, updates } = body;
       console.log('PUT request:', JSON.stringify({ id, user_id, updates }));
       
       if (id) {
-        // Update existing subscription
         const { error } = await adminClient
           .from('assinaturas')
           .update({ ...updates, updated_at: new Date().toISOString() })
@@ -235,7 +295,6 @@ Deno.serve(async (req) => {
           throw error;
         }
       } else if (user_id) {
-        // Create subscription for user without one
         const now = new Date();
         const defaultVencimento = new Date(now);
         defaultVencimento.setMonth(defaultVencimento.getMonth() + 1);
