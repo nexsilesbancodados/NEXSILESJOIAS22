@@ -15,6 +15,7 @@ import { QueryErrorHandler } from "@/components/QueryErrorHandler";
 import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
 import { OrganizationGuard } from "@/components/OrganizationGuard";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
+import { PlanRouteGuard } from "@/components/subscription/PlanRouteGuard";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivateSubscription } from "@/hooks/useActivateSubscription";
 
@@ -239,9 +240,11 @@ function AppRoutes() {
               <OrganizationGuard>
                 <SubscriptionActivator />
                 <SubscriptionProvider>
-                  <Suspense fallback={<PageLoader />}>
-                    <AtendimentoPage />
-                  </Suspense>
+                  <PlanRouteGuard path="/atendimento">
+                    <Suspense fallback={<PageLoader />}>
+                      <AtendimentoPage />
+                    </Suspense>
+                  </PlanRouteGuard>
                 </SubscriptionProvider>
               </OrganizationGuard>
             </ProtectedRoute>
@@ -256,9 +259,11 @@ function AppRoutes() {
               <OrganizationGuard>
                 <SubscriptionActivator />
                 <SubscriptionProvider>
-                  <Suspense fallback={<PageLoader />}>
-                    <LojaVirtualPage />
-                  </Suspense>
+                  <PlanRouteGuard path="/loja-virtual">
+                    <Suspense fallback={<PageLoader />}>
+                      <LojaVirtualPage />
+                    </Suspense>
+                  </PlanRouteGuard>
                 </SubscriptionProvider>
               </OrganizationGuard>
             </ProtectedRoute>
