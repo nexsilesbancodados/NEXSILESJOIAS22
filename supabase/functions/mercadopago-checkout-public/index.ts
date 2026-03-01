@@ -97,7 +97,7 @@ serve(async (req: Request) => {
         valor: valor,
         email: email,
       }),
-      notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
+      notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?source_news=webhooks`,
       statement_descriptor: "NEXSILES",
     };
 
