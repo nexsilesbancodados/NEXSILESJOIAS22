@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, ShoppingCart, Users, Package, Zap, Shield, Star,
   MessageSquare, TrendingUp, Smartphone, ArrowRight, Check,
   Sparkles, Store, Bot, Crown, ChevronDown, Menu, X, Play,
-  Heart, Gift, Gem, Clock, HeadphonesIcon, DollarSign
+  Heart, Gift, Gem, Clock, HeadphonesIcon, DollarSign, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +14,9 @@ import dashboardMockup from '@/assets/landing-dashboard-mockup.jpg';
 import mobileMockup from '@/assets/landing-mobile-mockup.jpg';
 import heroWoman from '@/assets/landing-hero-woman.jpg';
 import personaHero from '@/assets/landing-persona-hero.jpg';
+import heroSlide1 from '@/assets/hero-slide-1.jpg';
+import heroSlide2 from '@/assets/hero-slide-2.jpg';
+import heroSlide3 from '@/assets/hero-slide-3.jpg';
 import personaLojista from '@/assets/landing-persona-lojista.jpg';
 import personaRevendedora from '@/assets/landing-persona-revendedora.jpg';
 import personaCliente from '@/assets/landing-persona-cliente.jpg';
@@ -98,6 +101,21 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const planosRef = useRef<HTMLDivElement>(null);
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [heroDir, setHeroDir] = useState(0);
+
+  const heroSlides = [
+    { img: heroSlide1, title: 'Gerencie suas semijoias com elegância', subtitle: 'Dashboard, PDV, estoque e muito mais em um só lugar.' },
+    { img: heroSlide2, title: 'Feito para quem vive de semijoias', subtitle: 'Controle total da sua loja física, revendedoras e e-commerce.' },
+    { img: heroSlide3, title: 'Tecnologia que multiplica seus lucros', subtitle: 'Relatórios inteligentes, IA e automação para vender mais.' },
+  ];
+
+  const nextHero = useCallback(() => { setHeroDir(1); setHeroIndex(i => (i + 1) % heroSlides.length); }, [heroSlides.length]);
+
+  useEffect(() => {
+    const timer = setInterval(nextHero, 5000);
+    return () => clearInterval(timer);
+  }, [nextHero]);
 
   const scrollToPlanos = () => {
     planosRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -144,67 +162,74 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-[100svh] flex items-center pt-14 pb-20 sm:pb-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-pink-50 to-orange-50" />
-        <div className="absolute top-20 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-rose-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-pink-200/20 rounded-full blur-3xl" />
-        
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
-            {/* Text */}
-            <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="text-center lg:text-left order-2 lg:order-1">
-              <Badge className="mb-3 sm:mb-4 bg-rose-100 text-rose-600 border-rose-200 px-2.5 py-0.5 text-[11px] sm:text-sm font-medium">
-                <Gem className="w-3 h-3 mr-1" /> Sistema para Semijoias
-              </Badge>
-              <h1 className="text-[1.65rem] leading-[1.15] sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-rose-950 mb-3 sm:mb-6">
-                Complete sua venda e <span className="text-rose-500">multiplique seus lucros</span>
-              </h1>
-              <p className="text-sm sm:text-lg text-rose-800/60 max-w-lg mx-auto lg:mx-0 mb-5 sm:mb-8 leading-relaxed">
-                Dashboard, PDV, estoque, revendedoras, loja virtual e WhatsApp — tudo em um só lugar.
-              </p>
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3 justify-center lg:justify-start">
-                <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-6 rounded-full shadow-xl shadow-rose-200/50"
-                  onClick={() => navigate('/auth')}>
-                  Começar Grátis <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
-                </Button>
-                <Button size="lg" variant="outline" className="border-rose-300 text-rose-700 hover:bg-rose-50 text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-6 rounded-full"
-                  onClick={scrollToPlanos}>
-                  Ver Planos
-                </Button>
-              </div>
-              <div className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1.5 text-[11px] sm:text-sm text-rose-600/50">
-                <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> Sem cartão</span>
-                <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> 3 dias grátis</span>
-                <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-500" /> Cancele quando quiser</span>
-              </div>
-            </motion.div>
+      {/* Hero Carousel - Full Width */}
+      <section className="relative w-full h-[100svh] overflow-hidden">
+        <AnimatePresence initial={false} custom={heroDir} mode="popLayout">
+          <motion.div
+            key={heroIndex}
+            custom={heroDir}
+            variants={{
+              enter: (dir: number) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
+              center: { x: 0, opacity: 1 },
+              exit: (dir: number) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 0 }),
+            }}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.7, ease: 'easeInOut' }}
+            className="absolute inset-0"
+          >
+            <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroSlides[heroIndex].img})` }} />
+            <div className="absolute inset-0 bg-gradient-to-r from-rose-950/80 via-rose-900/50 to-transparent" />
+          </motion.div>
+        </AnimatePresence>
 
-            {/* Hero Image */}
-            <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1} className="order-1 lg:order-2 flex justify-center">
-              <div className="relative">
-                <div className="w-52 sm:w-80 lg:w-[420px] aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-rose-300/30 border-[3px] sm:border-4 border-white">
-                  <img src={personaHero} alt="Semijoias premium rose gold" className="w-full h-full object-cover" loading="eager" />
-                </div>
-                <div className="absolute -bottom-3 -left-3 sm:-bottom-5 sm:-left-5 bg-white rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-xl border border-rose-100">
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] sm:text-[10px] text-rose-400 font-medium">Vendas</p>
-                      <p className="text-xs sm:text-sm font-bold text-rose-950">+340%</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 bg-rose-500 text-white rounded-xl sm:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-lg">
-                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold">
-                    <Bot className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> IA Integrada
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+        <div className="relative z-10 h-full flex flex-col justify-center px-6 sm:px-12 lg:px-24 max-w-4xl">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} key={`text-${heroIndex}`}>
+            <Badge className="mb-4 bg-white/20 text-white border-white/30 backdrop-blur-sm px-3 py-1 text-xs sm:text-sm font-medium">
+              <Gem className="w-3 h-3 mr-1.5" /> Sistema para Semijoias
+            </Badge>
+            <h1 className="text-2xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-3 sm:mb-5 leading-[1.1] drop-shadow-lg"
+                style={{ fontFamily: "'Cormorant Garamond', serif" }}>
+              {heroSlides[heroIndex].title}
+            </h1>
+            <p className="text-sm sm:text-xl text-white/80 max-w-xl mb-6 sm:mb-8 leading-relaxed">
+              {heroSlides[heroIndex].subtitle}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Button size="lg" className="bg-rose-500 hover:bg-rose-600 text-white text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-6 rounded-full shadow-xl shadow-rose-500/30"
+                onClick={() => navigate('/auth')}>
+                Começar Grátis <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1" />
+              </Button>
+              <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-sm sm:text-lg px-6 py-5 sm:px-8 sm:py-6 rounded-full backdrop-blur-sm"
+                onClick={scrollToPlanos}>
+                Ver Planos
+              </Button>
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] sm:text-sm text-white/60">
+              <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-400" /> Sem cartão</span>
+              <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-400" /> 3 dias grátis</span>
+              <span className="flex items-center gap-1"><Check className="w-3 h-3 text-emerald-400" /> Cancele quando quiser</span>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Carousel Controls */}
+        <button onClick={() => { setHeroDir(-1); setHeroIndex(i => (i - 1 + heroSlides.length) % heroSlides.length); }}
+          className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 bg-white/15 backdrop-blur-sm hover:bg-white/30 rounded-full p-2 sm:p-3 transition-colors">
+          <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        </button>
+        <button onClick={() => { setHeroDir(1); setHeroIndex(i => (i + 1) % heroSlides.length); }}
+          className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 bg-white/15 backdrop-blur-sm hover:bg-white/30 rounded-full p-2 sm:p-3 transition-colors">
+          <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        </button>
+
+        {/* Dots */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2.5">
+          {heroSlides.map((_, i) => (
+            <button key={i} onClick={() => { setHeroDir(i > heroIndex ? 1 : -1); setHeroIndex(i); }}
+              className={`h-2 rounded-full transition-all duration-300 ${i === heroIndex ? 'w-8 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'}`} />
+          ))}
         </div>
       </section>
 
