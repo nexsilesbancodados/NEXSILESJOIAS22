@@ -35,6 +35,13 @@ const PLAN_CONFIGS: Record<PlanoKey, {
   popular?: boolean;
   complete?: boolean;
 }> = {
+  ecommerce_premium: {
+    icon: ShoppingBag,
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-400/10',
+    borderColor: 'border-emerald-400/50',
+    checkColor: 'text-emerald-400 bg-emerald-400/10',
+  },
   nexsiles: {
     icon: Zap,
     color: 'text-primary',
@@ -264,7 +271,7 @@ export default function PlanosPage() {
         </div>
 
         {/* Plan Cards - 3 columns */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12 px-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-12 px-4">
           {(Object.entries(PLANOS) as [PlanoKey, typeof PLANOS[PlanoKey]][]).map(([key, plano], index) => {
             const config = PLAN_CONFIGS[key];
             const Icon = config.icon;
@@ -337,6 +344,7 @@ export default function PlanosPage() {
                         {((plano as any).badges as string[]).map((badge: string) => (
                           <Badge key={badge} variant="outline" className={cn(
                             "text-xs",
+                          key === 'ecommerce_premium' && "border-emerald-400/30 text-emerald-400 bg-emerald-400/10",
                             key === 'nexsiles_ysis' && "border-warning/30 text-warning bg-warning/10",
                             key === 'nexsiles_commerce' && "border-cyan-400/30 text-cyan-400 bg-cyan-400/10"
                           )}>
@@ -353,6 +361,7 @@ export default function PlanosPage() {
                     <Button
                       className={cn(
                         "w-full mb-4 gap-2",
+                        key === 'ecommerce_premium' && "bg-emerald-500 hover:bg-emerald-500/90 text-white",
                         key === 'nexsiles_ysis' && "bg-warning hover:bg-warning/90 text-warning-foreground",
                         key === 'nexsiles_commerce' && "bg-cyan-500 hover:bg-cyan-500/90 text-white",
                       )}

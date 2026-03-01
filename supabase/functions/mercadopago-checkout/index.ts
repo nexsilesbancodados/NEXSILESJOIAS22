@@ -8,11 +8,17 @@ const corsHeaders = {
 };
 
 interface CheckoutRequest {
-  plano: "nexsiles" | "nexsiles_ysis" | "nexsiles_commerce";
+  plano: "ecommerce_premium" | "nexsiles" | "nexsiles_ysis" | "nexsiles_commerce";
   periodo: "mensal" | "anual";
 }
 
 const PLANOS: Record<string, { nome: string; descricao: string; valor_mensal: number; valor_anual: number }> = {
+  ecommerce_premium: {
+    nome: "E-commerce Premium",
+    descricao: "Loja virtual completa",
+    valor_mensal: 149.0,
+    valor_anual: 1490.0,
+  },
   nexsiles: {
     nome: "Nexsiles",
     descricao: "Gestão completa para semijoias",

@@ -8,6 +8,7 @@ interface SubscriptionContextType {
   isActive: boolean;
   hasSubscription: boolean;
   planName: string | null;
+  planKey: string | null;
   daysRemaining: number | null;
   checkAccess: (action?: string) => boolean;
 }
@@ -48,6 +49,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         isActive: isAtivo,
         hasSubscription,
         planName: planoInfo?.nome || null,
+        planKey: assinatura?.plano || null,
         daysRemaining: diasRestantes,
         checkAccess,
       }}
@@ -75,6 +77,7 @@ export function useSubscriptionSafe() {
     isActive: true,
     hasSubscription: true,
     planName: null,
+    planKey: null,
     daysRemaining: null,
     checkAccess: () => true,
   };

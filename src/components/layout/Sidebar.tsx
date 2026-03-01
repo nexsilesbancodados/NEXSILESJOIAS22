@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase-db';
 
 const db = supabase;
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
 import { 
   ShoppingCart,
   ShoppingBag,
@@ -310,6 +311,7 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isAdmin, profile } = useAuth();
+  const { planKey } = useSubscriptionSafe();
   const { canAccessPath } = usePermissions();
   const { data: romaneios = [] } = useRomaneios();
   const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(null);
@@ -339,14 +341,23 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
 
   const isSuperAdmin = profile?.is_super_admin === true;
 
-  // Filter menu items based on admin status and permissions
+  // Paths allowed for ecommerce_premium plan
+  const ecommercePremiumPaths = ['/', '/pecas', '/loja-virtual', '/configuracoes', '/planos', '/pedidos-loja', '/etiquetas'];
+
+  // Filter menu items based on admin status, permissions and plan
   const filteredMenuItems = useMemo(() => 
     menuItems.filter((item) => {
-      if ((item as any).superAdminOnly && !isSuperAdmin) return false;
+      const isEcommercePlan = planKey === 'ecommerce_premium';
+      // For ecommerce_premium plan, show Loja Virtual even if not superAdmin
+      if ((item as any).superAdminOnly && !isSuperAdmin) {
+        if (!(isEcommercePlan && item.path === '/loja-virtual')) return false;
+      }
       if ((item as any).adminOnly && !isAdmin) return false;
+      // Restrict ecommerce_premium to only relevant paths
+      if (isEcommercePlan && !ecommercePremiumPaths.includes(item.path)) return false;
       return canAccessPath(item.path);
     }),
-    [isAdmin, canAccessPath, isSuperAdmin]
+    [isAdmin, canAccessPath, isSuperAdmin, planKey]
   );
 
   const handleNavigation = useCallback((path: string) => {
