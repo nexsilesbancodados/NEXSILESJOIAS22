@@ -85,9 +85,9 @@ serve(async (req: Request) => {
 
       // ===== BACK URLS =====
       back_urls: {
-        success: `${origin}/landing?pagamento=sucesso&ref=${externalRef}`,
-        failure: `${origin}/landing?pagamento=erro`,
-        pending: `${origin}/landing?pagamento=pendente&ref=${externalRef}`,
+        success: `${origin}/planos?success=true&ref=${externalRef}`,
+        failure: `${origin}/planos?canceled=true`,
+        pending: `${origin}/planos?success=true&ref=${externalRef}`,
       },
       auto_return: "approved",
 

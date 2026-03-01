@@ -154,9 +154,9 @@ serve(async (req: Request) => {
           identification: cpf ? { type: "CPF", number: cpf.replace(/\D/g, '') } : undefined,
         },
         back_urls: {
-          success: `${origin}/landing?pagamento=sucesso&email=${encodeURIComponent(userEmail)}`,
-          failure: `${origin}/landing?pagamento=erro`,
-          pending: `${origin}/landing?pagamento=pendente`,
+          success: `${origin}/planos?success=true&email=${encodeURIComponent(userEmail)}`,
+          failure: `${origin}/planos?canceled=true`,
+          pending: `${origin}/planos?success=true`,
         },
         auto_return: "approved",
         external_reference: JSON.stringify({
