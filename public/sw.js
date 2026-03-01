@@ -1,28 +1,25 @@
-// Nexsile PDV Service Worker
-// Enables offline functionality for the PDV module
+// Nexsile PDV Service Worker v2
+// Network-first strategy to always serve latest content
 
-const CACHE_NAME = 'nexsile-pdv-v1';
+const CACHE_NAME = 'nexsile-pdv-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
 ];
 
-// Install event - cache static assets
+// Install event - cache only essential assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static assets');
+      console.log('[SW] Caching essential assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
-  // Activate immediately
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -33,99 +30,61 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Take control of all clients immediately
   self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - ALWAYS network first
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip API requests (let them fail naturally when offline)
-  if (url.pathname.startsWith('/rest/') || 
-      url.pathname.startsWith('/auth/') ||
-      url.hostname.includes('supabase')) {
+  const url = new URL(request.url);
+
+  // Skip external/API requests
+  if (url.hostname.includes('supabase') ||
+      url.pathname.startsWith('/rest/') ||
+      url.pathname.startsWith('/auth/')) {
     return;
   }
 
-  // For navigation requests, try network first, then cache
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone and cache the response
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-          return response;
-        })
-        .catch(() => {
-          // Return cached version if available
-          return caches.match(request).then((cached) => {
-            return cached || caches.match('/index.html');
-          });
-        })
-    );
-    return;
-  }
-
-  // For other requests, try cache first, then network
+  // Network first for everything
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetchPromise = fetch(request)
-        .then((response) => {
-          // Only cache successful responses
-          if (response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || fetchPromise;
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request).then((cached) => cached || caches.match('/index.html')))
   );
 });
 
-// Handle messages from the main thread
+// Handle messages
 self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
-  
+  if (event.data === 'skipWaiting') self.skipWaiting();
   if (event.data === 'clearCache') {
-    caches.delete(CACHE_NAME);
+    caches.keys().then((names) => names.forEach((n) => caches.delete(n)));
   }
 });
 
-// Background sync for offline sales
+// Background sync
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-sales') {
     event.waitUntil(
-      // Notify the main thread to sync sales
       self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'SYNC_SALES' });
-        });
+        clients.forEach((client) => client.postMessage({ type: 'SYNC_SALES' }));
       })
     );
   }
 });
 
-// Push notifications (for future use)
+// Push notifications
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-
   const data = event.data.json();
-  
   event.waitUntil(
     self.registration.showNotification(data.title || 'Nexsile', {
       body: data.body,
@@ -138,12 +97,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
   if (event.notification.data) {
-    event.waitUntil(
-      clients.openWindow(event.notification.data)
-    );
+    event.waitUntil(clients.openWindow(event.notification.data));
   }
 });
 
-console.log('[SW] Service Worker loaded');
+console.log('[SW] Service Worker v2 loaded');
