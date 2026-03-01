@@ -89,7 +89,7 @@ export function ProfileCard({ className }: ProfileCardProps) {
   };
 
   const getPlanIcon = () => {
-    if (assinatura?.plano === 'nexsiles_max') {
+    if (assinatura?.plano === 'nexsiles_commerce' || assinatura?.plano === 'nexsiles_ysis') {
       return <Crown className="w-5 h-5 text-chart-4" />;
     }
     return <Zap className="w-5 h-5 text-primary" />;
@@ -104,7 +104,7 @@ export function ProfileCard({ className }: ProfileCardProps) {
       {/* Header with gradient based on plan */}
       <div className={cn(
         "p-6 text-primary-foreground",
-        assinatura?.plano === 'nexsiles_max' 
+        (assinatura?.plano === 'nexsiles_commerce' || assinatura?.plano === 'nexsiles_ysis')
           ? "bg-gradient-to-r from-chart-4 to-chart-5" 
           : "bg-gradient-to-r from-primary to-primary/80"
       )}>
@@ -134,7 +134,7 @@ export function ProfileCard({ className }: ProfileCardProps) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-              {assinatura?.plano === 'nexsiles_max' ? (
+              {(assinatura?.plano === 'nexsiles_commerce' || assinatura?.plano === 'nexsiles_ysis') ? (
                 <Crown className="w-5 h-5 text-chart-4" />
               ) : (
                 <Zap className="w-5 h-5 text-primary" />
@@ -208,7 +208,7 @@ export function ProfileCard({ className }: ProfileCardProps) {
         </div>
 
         {/* Max Plan Exclusive Features */}
-        {assinatura?.plano === 'nexsiles_max' && (
+        {(assinatura?.plano === 'nexsiles_ysis' || assinatura?.plano === 'nexsiles_commerce') && (
           <>
             <Separator />
             <div className="space-y-3">

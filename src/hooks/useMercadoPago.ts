@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CheckoutOptions {
-  plano: 'nexsiles' | 'nexsiles_max';
+  plano: 'nexsiles' | 'nexsiles_ysis' | 'nexsiles_commerce';
   periodo: 'mensal' | 'anual';
 }
 

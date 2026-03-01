@@ -8,22 +8,28 @@ const corsHeaders = {
 };
 
 interface CheckoutRequest {
-  plano: "nexsiles" | "nexsiles_max";
+  plano: "nexsiles" | "nexsiles_ysis" | "nexsiles_commerce";
   periodo: "mensal" | "anual";
 }
 
-const PLANOS = {
+const PLANOS: Record<string, { nome: string; descricao: string; valor_mensal: number; valor_anual: number }> = {
   nexsiles: {
     nome: "Nexsiles",
-    descricao: "Gestão completa para joalherias e semijoias",
+    descricao: "Gestão completa para semijoias",
     valor_mensal: 189.0,
     valor_anual: 1890.0,
   },
-  nexsiles_max: {
-    nome: "Nexsiles Max",
-    descricao: "Gestão avançada com IA e e-commerce integrado",
+  nexsiles_ysis: {
+    nome: "Nexsiles Ysis",
+    descricao: "Vendas potencializadas com IA",
     valor_mensal: 249.0,
     valor_anual: 2490.0,
+  },
+  nexsiles_commerce: {
+    nome: "Nexsiles Commerce",
+    descricao: "Loja virtual + IA + gestão total",
+    valor_mensal: 299.0,
+    valor_anual: 2990.0,
   },
 };
 
@@ -42,7 +48,6 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get user from auth header
     const authHeader = req.headers.get("authorization");
     if (!authHeader) throw new Error("Não autorizado");
 
@@ -58,13 +63,10 @@ serve(async (req: Request) => {
     const descricao = `${planoInfo.nome} - ${periodo === "anual" ? "Anual" : "Mensal"}`;
     const externalRef = `assinatura_${user.id}_${plano}_${periodo}_${Date.now()}`;
 
-    const origin = req.headers.get("origin") || "https://nexsiles.com.br";
-
-    // Split user email name for payer info
+    const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
     const emailName = user.email?.split("@")[0] || "Cliente";
 
     const preferenceData = {
-      // ===== ITEMS (completo) =====
       items: [
         {
           id: `plano_${plano}_${periodo}`,
@@ -76,34 +78,20 @@ serve(async (req: Request) => {
           unit_price: valor,
         },
       ],
-
-      // ===== PAYER (email obrigatório + nome) =====
       payer: {
         email: user.email,
         first_name: emailName,
       },
-
-      // ===== BACK URLS =====
       back_urls: {
         success: `${origin}/planos?success=true&ref=${externalRef}`,
         failure: `${origin}/planos?canceled=true`,
         pending: `${origin}/planos?success=true&ref=${externalRef}`,
       },
       auto_return: "approved",
-
-      // ===== EXTERNAL REFERENCE (obrigatório - conciliação) =====
       external_reference: externalRef,
-
-      // ===== NOTIFICATION URL (obrigatório - webhook) =====
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
-
-      // ===== STATEMENT DESCRIPTOR =====
       statement_descriptor: "NEXSILES",
-
-      // ===== BINARY MODE (desativado para suportar PIX/boleto que são pendentes) =====
       binary_mode: false,
-
-      // ===== METADATA =====
       metadata: {
         plano,
         periodo,

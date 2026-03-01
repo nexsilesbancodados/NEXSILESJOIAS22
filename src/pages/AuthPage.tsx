@@ -132,7 +132,7 @@ export default function AuthPage() {
       setCodigoValidado({ valido: true, plano: data.plano, email: data.email });
       setSignupEmail(data.email);
       setSignupErrors(prev => ({ ...prev, codigo: '' }));
-      toast.success('Código validado!', { description: `Plano: ${data.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}` });
+      toast.success('Código validado!', { description: `Plano: ${data.plano === 'nexsiles_commerce' ? 'Nexsiles Commerce' : data.plano === 'nexsiles_ysis' ? 'Nexsiles Ysis' : 'Nexsiles'}` });
     } catch (error) {
       console.error('Error validating code:', error);
       setCodigoValidado({ valido: false });
@@ -608,7 +608,7 @@ export default function AuthPage() {
                             <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-700/50">
                               <Crown className="h-4 w-4 text-green-600" />
                               <AlertDescription className="text-xs text-green-700 dark:text-green-300">
-                                Código válido! Plano: <span className="font-semibold">{codigoValidado.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles'}</span>
+                                Código válido! Plano: <span className="font-semibold">{codigoValidado.plano === 'nexsiles_commerce' ? 'Nexsiles Commerce' : codigoValidado.plano === 'nexsiles_ysis' ? 'Nexsiles Ysis' : 'Nexsiles'}</span>
                               </AlertDescription>
                             </Alert>
                           )}

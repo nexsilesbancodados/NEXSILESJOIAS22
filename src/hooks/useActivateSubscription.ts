@@ -129,7 +129,8 @@ export function useActivateSubscription() {
 
         const planoValores: Record<string, number> = {
           nexsiles: 189,
-          nexsiles_max: 249,
+          nexsiles_ysis: 249,
+          nexsiles_commerce: 299,
           teste: 1,
         };
 
@@ -171,7 +172,8 @@ export function useActivateSubscription() {
         localStorage.removeItem('pending_access_code');
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
         
-        const planoNome = codeData.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles';
+        const planoNomes: Record<string, string> = { nexsiles: 'Nexsiles', nexsiles_ysis: 'Nexsiles Ysis', nexsiles_commerce: 'Nexsiles Commerce' };
+        const planoNome = planoNomes[codeData.plano] || codeData.plano;
 
         // Send welcome email
         enviarNotificacaoEmail('boas_vindas' as any, {

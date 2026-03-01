@@ -317,7 +317,9 @@ export default function SuperAdminPage() {
 
   const getPlanLabel = (plano: string | null) => {
     if (!plano || plano === 'sem_plano') return '—';
-    if (plano === 'nexsiles_max') return 'Max';
+    if (plano === 'nexsiles_commerce') return 'Commerce';
+    if (plano === 'nexsiles_ysis') return 'Ysis';
+    if (plano === 'nexsiles_max') return 'Max'; // legacy
     return 'Nexsiles';
   };
 
@@ -561,7 +563,7 @@ export default function SuperAdminPage() {
                 <div className="space-y-3">
                   {planDistribution.map(({ plano, count }) => {
                     const pct = assinaturas.length > 0 ? (count / assinaturas.length) * 100 : 0;
-                    const label = plano === 'nexsiles_max' ? 'Nexsiles Max' : plano === 'nexsiles' ? 'Nexsiles' : 'Sem Plano';
+                    const label = plano === 'nexsiles_commerce' ? 'Commerce' : plano === 'nexsiles_ysis' ? 'Ysis' : plano === 'nexsiles_max' ? 'Max' : plano === 'nexsiles' ? 'Nexsiles' : 'Sem Plano';
                     return (
                       <div key={plano} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
@@ -789,7 +791,8 @@ export default function SuperAdminPage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="nexsiles">Nexsiles (R$ 189)</SelectItem>
-                  <SelectItem value="nexsiles_max">Nexsiles Max (R$ 249)</SelectItem>
+                  <SelectItem value="nexsiles_ysis">Nexsiles Ysis (R$ 249)</SelectItem>
+                  <SelectItem value="nexsiles_commerce">Nexsiles Commerce (R$ 299)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

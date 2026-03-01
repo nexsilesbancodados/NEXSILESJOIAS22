@@ -7,7 +7,7 @@ import { ptBR } from 'date-fns/locale';
 export interface Assinatura {
   id: string;
   user_id: string;
-  plano: 'nexsiles' | 'nexsiles_max';
+  plano: 'nexsiles' | 'nexsiles_ysis' | 'nexsiles_commerce';
   status: 'ativo' | 'expirado' | 'cancelado' | 'pendente';
   data_inicio: string;
   data_vencimento: string;
@@ -18,11 +18,9 @@ export interface Assinatura {
   notificacao_vencimento_enviada: boolean;
   created_at: string;
   updated_at: string;
-  // Trial fields
   trial_ativo?: boolean;
   trial_iniciado_em?: string;
   trial_dias?: number;
-  // Payment fields
   metodo_pagamento?: 'pix' | 'boleto' | 'cartao';
   pagamento_recorrente?: boolean;
   ultimo_pagamento_em?: string;
@@ -45,32 +43,57 @@ export interface NotificacaoAssinatura {
 export const PLANOS = {
   nexsiles: {
     nome: 'Nexsiles',
-    descricao: 'Plano completo para gestão de semi-joias',
+    tier: 'PRATA',
+    descricao: 'Gestão completa para seu negócio de semijoias',
     recursos: [
-      'Gestão de peças e estoque',
-      'Controle de vendas (PDV)',
-      'Gestão de revendedoras e maletas',
+      'Dashboard inteligente',
+      'PDV completo',
+      'Estoque ilimitado',
+      'Cadastro de revendedoras',
       'Catálogos digitais',
       'Relatórios completos',
-      'Portal da revendedora',
-      'Loja Virtual (E-commerce)',
+      'Sistema de fidelidade',
+      'Integração WhatsApp',
     ],
     valor: 189.00,
   },
-  nexsiles_max: {
-    nome: 'Nexsiles Max',
-    descricao: 'Tudo do Nexsiles + IA e E-commerce avançado',
+  nexsiles_ysis: {
+    nome: 'Nexsiles Ysis',
+    tier: 'OURO',
+    descricao: 'Vendas potencializadas com inteligência artificial',
     recursos: [
-      'Tudo do plano Nexsiles',
-      'Loja Virtual (E-commerce) completa',
-      'Atendente de IA integrado',
-      'Chatbot WhatsApp automatizado',
-      'Recomendações inteligentes',
-      'Suporte prioritário',
+      'Tudo do plano Prata',
+      'Assistente IA WhatsApp',
+      'Chatbot integrado 24/7',
+      'Respostas automáticas',
+      'Sugestões de vendas por IA',
+      'Análise preditiva de estoque',
+      'Atendimento automático',
+      'Relatórios de IA',
     ],
     valor: 249.00,
+    badges: ['IA 24/7'],
+  },
+  nexsiles_commerce: {
+    nome: 'Nexsiles Commerce',
+    tier: 'DIAMANTE',
+    descricao: 'Loja virtual + IA + gestão total',
+    recursos: [
+      'Tudo do plano Ouro',
+      'Loja virtual com domínio',
+      'Checkout Pix, Cartão, Boleto',
+      'Carrinho com cupons',
+      'Gestão de pedidos',
+      'Cálculo de frete',
+      'SEO otimizado',
+      'Campanhas e promoções',
+    ],
+    valor: 299.00,
+    badges: ['Loja Virtual', 'IA'],
   },
 } as const;
+
+export type PlanoKey = keyof typeof PLANOS;
 
 export function useAssinatura() {
   const { user } = useAuth();
@@ -81,7 +104,6 @@ export function useAssinatura() {
     queryFn: async () => {
       if (!user?.id) return null;
       
-      // First try the user's own subscription
       const { data: ownSub, error: ownError } = await db
         .from('assinaturas')
         .select('*')
@@ -95,7 +117,6 @@ export function useAssinatura() {
       
       if (ownSub) return ownSub as Assinatura;
 
-      // If no own subscription, find org owner's subscription via organizations table
       const { data: membership } = await db
         .from('memberships')
         .select('organization_id')
@@ -104,7 +125,6 @@ export function useAssinatura() {
 
       if (!membership) return null;
 
-      // Get owner directly from organizations table (not memberships, which has restrictive RLS)
       const { data: org } = await db
         .from('organizations')
         .select('owner_id')
@@ -113,7 +133,6 @@ export function useAssinatura() {
 
       if (!org) return null;
 
-      // Get the owner's subscription
       const { data: ownerSub, error: ownerError } = await db
         .from('assinaturas')
         .select('*')
@@ -162,7 +181,6 @@ export function useAssinatura() {
     },
   });
 
-  // Calculated values
   const diasRestantes = assinatura?.data_vencimento
     ? differenceInDays(new Date(assinatura.data_vencimento), new Date())
     : null;
@@ -175,7 +193,7 @@ export function useAssinatura() {
     ? format(new Date(assinatura.data_vencimento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
     : null;
 
-  const planoInfo = assinatura?.plano ? PLANOS[assinatura.plano] : null;
+  const planoInfo = assinatura?.plano ? PLANOS[assinatura.plano as PlanoKey] || null : null;
 
   const notificacoesNaoLidas = notificacoes.filter(n => !n.lida);
 

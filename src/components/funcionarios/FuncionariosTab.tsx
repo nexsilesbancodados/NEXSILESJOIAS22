@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { useOrganizationId } from '@/hooks/useOrganization';
-import { useAssinatura } from '@/hooks/useAssinatura';
+import { useAssinatura, PLANOS } from '@/hooks/useAssinatura';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,8 @@ import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
 const PLAN_LIMITS: Record<string, number> = {
   nexsiles: 5,
-  nexsiles_max: 25,
+  nexsiles_ysis: 15,
+  nexsiles_commerce: 25,
 };
 
 const MODULOS = [
@@ -70,7 +71,7 @@ export function FuncionariosTab() {
   const { assinatura } = useAssinatura();
 
   const maxFuncionarios = assinatura?.plano ? (PLAN_LIMITS[assinatura.plano] || 0) : 0;
-  const planoNome = assinatura?.plano === 'nexsiles_max' ? 'Nexsiles Max' : 'Nexsiles';
+  const planoNome = assinatura?.plano ? (PLANOS[assinatura.plano as keyof typeof PLANOS]?.nome || 'Nexsiles') : 'Nexsiles';
 
   // Form states
   const [nome, setNome] = useState('');
