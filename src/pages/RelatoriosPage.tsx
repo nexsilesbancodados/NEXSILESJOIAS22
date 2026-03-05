@@ -137,6 +137,7 @@ export default function RelatoriosPage() {
   const stats = useMemo(() => {
     const safeFilteredVendas = filteredVendas || [];
     const safeRomaneios = romaneios || [];
+    const safePecas = pecas || [];
     
     const faturamento = safeFilteredVendas.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
     const vendasPDV = safeFilteredVendas.filter(v => v?.revendedora_id === null);
@@ -144,6 +145,16 @@ export default function RelatoriosPage() {
     const ticketMedio = safeFilteredVendas.length > 0 ? faturamento / safeFilteredVendas.length : 0;
     const romaneiosPendentes = safeRomaneios.filter(r => r?.status === 'pendente').length;
     const comissaoTotal = vendasRevendedoras.reduce((acc, v) => acc + Number(v?.valor_total || 0) * 0.1, 0);
+
+    // Inventory metrics
+    const totalPecas = safePecas.length;
+    const totalEstoque = safePecas.reduce((acc, p) => acc + (p.estoque ?? 0), 0);
+    const valorEstoqueVenda = safePecas.reduce((acc, p) => acc + (Number(p.preco_venda || 0) * (p.estoque ?? 0)), 0);
+    const valorEstoqueCusto = safePecas.reduce((acc, p) => acc + (Number(p.preco_custo || 0) * (p.estoque ?? 0)), 0);
+    const lucroPotencial = valorEstoqueVenda - valorEstoqueCusto;
+    const margemMedia = valorEstoqueCusto > 0 ? ((lucroPotencial / valorEstoqueCusto) * 100) : 0;
+    const custoMedio = totalEstoque > 0 ? valorEstoqueCusto / totalEstoque : 0;
+    const precoMedio = totalEstoque > 0 ? valorEstoqueVenda / totalEstoque : 0;
 
     return { 
       faturamento, 
@@ -153,8 +164,16 @@ export default function RelatoriosPage() {
       vendasRevendedoras: vendasRevendedoras.length,
       romaneiosPendentes,
       comissaoTotal,
+      totalPecas,
+      totalEstoque,
+      valorEstoqueVenda,
+      valorEstoqueCusto,
+      lucroPotencial,
+      margemMedia,
+      custoMedio,
+      precoMedio,
     };
-  }, [filteredVendas, romaneios]);
+  }, [filteredVendas, romaneios, pecas]);
 
   const chartData = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return [];
@@ -437,97 +456,156 @@ export default function RelatoriosPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+      {/* Stats Cards - Vendas */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
         <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-violet-500 via-purple-500 to-purple-600">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          </div>
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" /></div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><DollarSign className="w-5 h-5 text-white" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-white/80 text-xs font-medium">Faturamento</p>
               <p className="text-white text-lg font-bold truncate">{formatCurrency(stats.faturamento)}</p>
             </div>
           </div>
         </div>
-
         <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          </div>
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" /></div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><TrendingUp className="w-5 h-5 text-white" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-white/80 text-xs font-medium">Ticket Médio</p>
               <p className="text-white text-lg font-bold truncate">{formatCurrency(stats.ticketMedio)}</p>
             </div>
           </div>
         </div>
-
         <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          </div>
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" /></div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5 text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><ShoppingBag className="w-5 h-5 text-white" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-white/80 text-xs font-medium">Total Vendas</p>
               <p className="text-white text-lg font-bold">{stats.totalVendas}</p>
             </div>
           </div>
         </div>
-
         <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-teal-400 via-cyan-500 to-blue-500">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          </div>
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" /></div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Target className="w-5 h-5 text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><Target className="w-5 h-5 text-white" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-white/80 text-xs font-medium">Vendas PDV</p>
               <p className="text-white text-lg font-bold">{stats.vendasPDV}</p>
             </div>
           </div>
         </div>
-
         <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-pink-400 via-rose-500 to-pink-600">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          </div>
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" /></div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><Users className="w-5 h-5 text-white" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-white/80 text-xs font-medium">Revendedoras</p>
               <p className="text-white text-lg font-bold">{stats.vendasRevendedoras}</p>
             </div>
           </div>
         </div>
-
         <div className="relative overflow-hidden rounded-2xl p-4 shadow-lg bg-gradient-to-br from-amber-400 via-orange-500 to-orange-600">
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" />
-          </div>
+          <div className="absolute inset-0 opacity-10"><div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-white/20" /></div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Package className="w-5 h-5 text-white" />
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center"><PiggyBank className="w-5 h-5 text-white" /></div>
             <div className="flex-1 min-w-0">
               <p className="text-white/80 text-xs font-medium">Comissões</p>
               <p className="text-white text-lg font-bold truncate">{formatCurrency(stats.comissaoTotal)}</p>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Stats Cards - Estoque & Custo */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <Card className="border-0 shadow-md bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-xs font-medium">Total Peças</p>
+                <p className="text-foreground text-lg font-bold">{stats.totalPecas}</p>
+                <p className="text-muted-foreground text-[10px]">{stats.totalEstoque} un. em estoque</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-md bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-xs font-medium">Valor Custo Total</p>
+                <p className="text-foreground text-lg font-bold truncate">{formatCurrency(stats.valorEstoqueCusto)}</p>
+                <p className="text-muted-foreground text-[10px]">Custo médio: {formatCurrency(stats.custoMedio)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-md bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-xs font-medium">Valor Venda Total</p>
+                <p className="text-foreground text-lg font-bold truncate">{formatCurrency(stats.valorEstoqueVenda)}</p>
+                <p className="text-muted-foreground text-[10px]">Preço médio: {formatCurrency(stats.precoMedio)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-md bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-xs font-medium">Lucro Potencial</p>
+                <p className="text-foreground text-lg font-bold truncate">{formatCurrency(stats.lucroPotencial)}</p>
+                <p className="text-muted-foreground text-[10px]">Se vender tudo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-md bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <Scale className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-xs font-medium">Margem Média</p>
+                <p className="text-foreground text-lg font-bold">{stats.margemMedia.toFixed(1)}%</p>
+                <p className="text-muted-foreground text-[10px]">Sobre o custo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-md bg-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <Package className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-muted-foreground text-xs font-medium">Romaneios Pend.</p>
+                <p className="text-foreground text-lg font-bold">{stats.romaneiosPendentes}</p>
+                <p className="text-muted-foreground text-[10px]">Aguardando</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Tabs defaultValue="vendas" className="space-y-6">
