@@ -344,6 +344,7 @@ export function usePecas(options?: { includeCatalogOnly?: boolean }) {
       if (error) throw error;
       return data as Peca[];
     },
+    staleTime: 1000 * 30, // 30s stale time to reduce refetches
   });
 }
 
@@ -364,7 +365,12 @@ export function useAddPeca() {
     },
     onMutate: async (newPeca) => {
       await queryClient.cancelQueries({ queryKey: ['pecas'] });
-      const previousPecas = queryClient.getQueryData<Peca[]>(['pecas']);
+      const previousPecas: Map<string, Peca[] | undefined> = new Map();
+      
+      // Capture all pecas query variants
+      queryClient.getQueriesData<Peca[]>({ queryKey: ['pecas'] }).forEach(([key, data]) => {
+        previousPecas.set(JSON.stringify(key), data);
+      });
       
       const tempPeca: Peca = {
         ...newPeca,
@@ -373,7 +379,8 @@ export function useAddPeca() {
         updated_at: new Date().toISOString(),
       } as Peca;
       
-      queryClient.setQueryData<Peca[]>(['pecas'], (old) => 
+      // Update all pecas query variants
+      queryClient.setQueriesData<Peca[]>({ queryKey: ['pecas'] }, (old) => 
         old ? [...old, tempPeca] : [tempPeca]
       );
       
@@ -381,7 +388,9 @@ export function useAddPeca() {
     },
     onError: (_err, _newPeca, context) => {
       if (context?.previousPecas) {
-        queryClient.setQueryData(['pecas'], context.previousPecas);
+        context.previousPecas.forEach((data, key) => {
+          queryClient.setQueryData(JSON.parse(key), data);
+        });
       }
       toast.error('Erro ao adicionar peça');
     },
@@ -411,9 +420,12 @@ export function useUpdatePeca() {
     },
     onMutate: async ({ id, ...updates }) => {
       await queryClient.cancelQueries({ queryKey: ['pecas'] });
-      const previousPecas = queryClient.getQueryData<Peca[]>(['pecas']);
+      const previousPecas: Map<string, Peca[] | undefined> = new Map();
+      queryClient.getQueriesData<Peca[]>({ queryKey: ['pecas'] }).forEach(([key, data]) => {
+        previousPecas.set(JSON.stringify(key), data);
+      });
       
-      queryClient.setQueryData<Peca[]>(['pecas'], (old) =>
+      queryClient.setQueriesData<Peca[]>({ queryKey: ['pecas'] }, (old) =>
         old?.map((peca) => 
           peca.id === id ? { ...peca, ...updates, updated_at: new Date().toISOString() } : peca
         ) ?? []
@@ -423,7 +435,9 @@ export function useUpdatePeca() {
     },
     onError: (_err, _variables, context) => {
       if (context?.previousPecas) {
-        queryClient.setQueryData(['pecas'], context.previousPecas);
+        context.previousPecas.forEach((data, key) => {
+          queryClient.setQueryData(JSON.parse(key), data);
+        });
       }
       toast.error('Erro ao atualizar peça');
     },
@@ -450,9 +464,12 @@ export function useDeletePeca() {
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ['pecas'] });
-      const previousPecas = queryClient.getQueryData<Peca[]>(['pecas']);
+      const previousPecas: Map<string, Peca[] | undefined> = new Map();
+      queryClient.getQueriesData<Peca[]>({ queryKey: ['pecas'] }).forEach(([key, data]) => {
+        previousPecas.set(JSON.stringify(key), data);
+      });
       
-      queryClient.setQueryData<Peca[]>(['pecas'], (old) =>
+      queryClient.setQueriesData<Peca[]>({ queryKey: ['pecas'] }, (old) =>
         old?.filter((peca) => peca.id !== id) ?? []
       );
       
@@ -460,7 +477,9 @@ export function useDeletePeca() {
     },
     onError: (err, _id, context) => {
       if (context?.previousPecas) {
-        queryClient.setQueryData(['pecas'], context.previousPecas);
+        context.previousPecas.forEach((data, key) => {
+          queryClient.setQueryData(JSON.parse(key), data);
+        });
       }
       toast.error(translateDatabaseError(err, 'remover peça'));
     },
