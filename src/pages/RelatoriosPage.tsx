@@ -137,6 +137,7 @@ export default function RelatoriosPage() {
   const stats = useMemo(() => {
     const safeFilteredVendas = filteredVendas || [];
     const safeRomaneios = romaneios || [];
+    const safePecas = pecas || [];
     
     const faturamento = safeFilteredVendas.reduce((acc, v) => acc + Number(v?.valor_total || 0), 0);
     const vendasPDV = safeFilteredVendas.filter(v => v?.revendedora_id === null);
@@ -144,6 +145,16 @@ export default function RelatoriosPage() {
     const ticketMedio = safeFilteredVendas.length > 0 ? faturamento / safeFilteredVendas.length : 0;
     const romaneiosPendentes = safeRomaneios.filter(r => r?.status === 'pendente').length;
     const comissaoTotal = vendasRevendedoras.reduce((acc, v) => acc + Number(v?.valor_total || 0) * 0.1, 0);
+
+    // Inventory metrics
+    const totalPecas = safePecas.length;
+    const totalEstoque = safePecas.reduce((acc, p) => acc + (p.estoque ?? 0), 0);
+    const valorEstoqueVenda = safePecas.reduce((acc, p) => acc + (Number(p.preco_venda || 0) * (p.estoque ?? 0)), 0);
+    const valorEstoqueCusto = safePecas.reduce((acc, p) => acc + (Number(p.preco_custo || 0) * (p.estoque ?? 0)), 0);
+    const lucroPotencial = valorEstoqueVenda - valorEstoqueCusto;
+    const margemMedia = valorEstoqueCusto > 0 ? ((lucroPotencial / valorEstoqueCusto) * 100) : 0;
+    const custoMedio = totalEstoque > 0 ? valorEstoqueCusto / totalEstoque : 0;
+    const precoMedio = totalEstoque > 0 ? valorEstoqueVenda / totalEstoque : 0;
 
     return { 
       faturamento, 
@@ -153,8 +164,16 @@ export default function RelatoriosPage() {
       vendasRevendedoras: vendasRevendedoras.length,
       romaneiosPendentes,
       comissaoTotal,
+      totalPecas,
+      totalEstoque,
+      valorEstoqueVenda,
+      valorEstoqueCusto,
+      lucroPotencial,
+      margemMedia,
+      custoMedio,
+      precoMedio,
     };
-  }, [filteredVendas, romaneios]);
+  }, [filteredVendas, romaneios, pecas]);
 
   const chartData = useMemo(() => {
     if (!dateRange?.from || !dateRange?.to) return [];
