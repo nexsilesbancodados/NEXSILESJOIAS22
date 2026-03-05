@@ -820,6 +820,7 @@ export function useRevendedoras() {
       if (error) throw error;
       return data as Revendedora[];
     },
+    staleTime: 1000 * 30,
   });
 }
 
