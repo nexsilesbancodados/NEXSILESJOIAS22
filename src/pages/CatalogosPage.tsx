@@ -1585,18 +1585,18 @@ function CatalogoItemsDialog({
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleUpdateQuantidadeMinima(item.id, ((item as any).quantidade_minima || 1) - 1)}
-                          disabled={((item as any).quantidade_minima || 1) <= 1}
+                          onClick={() => handleUpdateQuantidadeMinima(item.id, (item.quantidade_minima || 1) - 1)}
+                          disabled={(item.quantidade_minima || 1) <= 1}
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
-                        <span className="w-6 text-center text-sm font-medium">{(item as any).quantidade_minima || 1}</span>
+                        <span className="w-6 text-center text-sm font-medium">{item.quantidade_minima || 1}</span>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleUpdateQuantidadeMinima(item.id, ((item as any).quantidade_minima || 1) + 1)}
-                          disabled={((item as any).quantidade_minima || 1) >= (item.quantidade || 1)}
+                          onClick={() => handleUpdateQuantidadeMinima(item.id, (item.quantidade_minima || 1) + 1)}
+                          disabled={(item.quantidade_minima || 1) >= (item.quantidade || 1)}
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
