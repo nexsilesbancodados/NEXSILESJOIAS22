@@ -30,8 +30,7 @@ if ('serviceWorker' in navigator) {
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'activated') {
-                console.log('[SW] New version activated, reloading...');
-                window.location.reload();
+                console.log('[SW] New version activated. Refresh to apply.');
               }
             });
           }
