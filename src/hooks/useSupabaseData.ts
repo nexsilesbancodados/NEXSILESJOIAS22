@@ -2365,26 +2365,30 @@ export function useSaveConfiguracoes() {
 // Aligned with actual database schema (including new migration columns)
 export interface Catalogo {
   id: string;
-  user_id: string;
+  organization_id: string | null;
   nome: string;
   descricao: string | null;
   slug: string | null;
-  ativo: boolean;
-  status?: string | null;
-  observacao?: string | null;
-  custo_separacao?: number | null;
-  custo_operacional?: number | null;
-  taxa_entrega?: number | null;
-  logo_url?: string | null;
-  cor_primaria?: string | null;
-  cor_secundaria?: string | null;
-  titulo?: string | null;
-  mensagem_boas_vindas?: string | null;
-  whatsapp?: string | null;
-  email_contato?: string | null;
-  banner_url?: string | null;
-  created_at: string;
-  updated_at: string;
+  ativo: boolean | null;
+  status: string | null;
+  observacao: string | null;
+  custo_separacao: number | null;
+  custo_operacional: number | null;
+  taxa_entrega: number | null;
+  imagem_url: string | null;
+  imagem_capa: string | null;
+  logo_url: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
+  titulo: string | null;
+  mensagem_boas_vindas: string | null;
+  whatsapp: string | null;
+  email_contato: string | null;
+  banner_url: string | null;
+  pedido_minimo_pecas: number | null;
+  data_validade: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface CatalogoItem {

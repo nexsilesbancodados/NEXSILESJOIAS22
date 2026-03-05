@@ -136,18 +136,20 @@ export default function CatalogosPage() {
     (cat) => cat.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const safeStatus = (status: string | null) => status || 'em_preparacao';
+
   const handleOpenForm = (catalogo?: typeof catalogos[0]) => {
     if (catalogo) {
       setSelectedCatalogo(catalogo);
       setFormData({
         nome: catalogo.nome,
-        status: catalogo.status,
+        status: safeStatus(catalogo.status),
         observacao: catalogo.observacao || '',
         custo_separacao: (catalogo.custo_separacao || 0).toString(),
         custo_operacional: (catalogo.custo_operacional || 0).toString(),
         taxa_entrega: (catalogo.taxa_entrega || 0).toString(),
-        imagem_url: (catalogo as any).imagem_url || '',
-        pedido_minimo_pecas: ((catalogo as any).pedido_minimo_pecas || 0).toString(),
+        imagem_url: catalogo.imagem_url || '',
+        pedido_minimo_pecas: (catalogo.pedido_minimo_pecas || 0).toString(),
         logo_url: catalogo.logo_url || '',
         cor_primaria: catalogo.cor_primaria || '#D4AF37',
         cor_secundaria: catalogo.cor_secundaria || '#1a1a2e',
@@ -215,13 +217,13 @@ export default function CatalogosPage() {
     setSelectedCatalogo(catalogo);
     setFormData({
       nome: catalogo.nome,
-      status: catalogo.status,
+      status: safeStatus(catalogo.status),
       observacao: catalogo.observacao || '',
       custo_separacao: (catalogo.custo_separacao || 0).toString(),
       custo_operacional: (catalogo.custo_operacional || 0).toString(),
       taxa_entrega: (catalogo.taxa_entrega || 0).toString(),
-      imagem_url: (catalogo as any).imagem_url || '',
-      pedido_minimo_pecas: ((catalogo as any).pedido_minimo_pecas || 0).toString(),
+      imagem_url: catalogo.imagem_url || '',
+      pedido_minimo_pecas: (catalogo.pedido_minimo_pecas || 0).toString(),
       logo_url: catalogo.logo_url || '',
       cor_primaria: catalogo.cor_primaria || '#D4AF37',
       cor_secundaria: catalogo.cor_secundaria || '#1a1a2e',
@@ -358,13 +360,13 @@ export default function CatalogosPage() {
           </div>
         ) : (
           filteredCatalogos.map((catalogo) => {
-            const statusInfo = getStatusInfo(catalogo.status);
+            const statusInfo = getStatusInfo(safeStatus(catalogo.status));
             return (
               <Card key={catalogo.id} className="glass-card hover-lift overflow-hidden">
-                {(catalogo as any).imagem_url && (
+                {catalogo.imagem_url && (
                   <div className="relative h-32 w-full">
                     <img 
-                      src={(catalogo as any).imagem_url} 
+                      src={catalogo.imagem_url} 
                       alt={catalogo.nome}
                       className="w-full h-full object-cover"
                     />
@@ -466,7 +468,7 @@ export default function CatalogosPage() {
 
                   {/* Status Select */}
                   <Select
-                    value={catalogo.status}
+                    value={safeStatus(catalogo.status)}
                     onValueChange={(value) => handleStatusChange(catalogo.id, value)}
                   >
                     <SelectTrigger className="w-full">
@@ -1583,18 +1585,18 @@ function CatalogoItemsDialog({
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleUpdateQuantidadeMinima(item.id, ((item as any).quantidade_minima || 1) - 1)}
-                          disabled={((item as any).quantidade_minima || 1) <= 1}
+                          onClick={() => handleUpdateQuantidadeMinima(item.id, (item.quantidade_minima || 1) - 1)}
+                          disabled={(item.quantidade_minima || 1) <= 1}
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
-                        <span className="w-6 text-center text-sm font-medium">{(item as any).quantidade_minima || 1}</span>
+                        <span className="w-6 text-center text-sm font-medium">{item.quantidade_minima || 1}</span>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => handleUpdateQuantidadeMinima(item.id, ((item as any).quantidade_minima || 1) + 1)}
-                          disabled={((item as any).quantidade_minima || 1) >= (item.quantidade || 1)}
+                          onClick={() => handleUpdateQuantidadeMinima(item.id, (item.quantidade_minima || 1) + 1)}
+                          disabled={(item.quantidade_minima || 1) >= (item.quantidade || 1)}
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
