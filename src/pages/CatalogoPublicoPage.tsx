@@ -443,7 +443,18 @@ export default function CatalogoPublicoPage() {
 
   const copyOrderSummary = async () => {
     const summary = generateOrderSummary();
-    await navigator.clipboard.writeText(summary);
+    try {
+      await navigator.clipboard.writeText(summary);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = summary;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     toast.success('Resumo copiado!');
     setTimeout(() => setCopied(false), 2000);
@@ -1457,12 +1468,12 @@ export default function CatalogoPublicoPage() {
                     onClick={() => {
                       const peca = detailItem.peca;
                       if (!peca) return;
-                      const pageUrl = window.location.href;
+                      const publishedUrl = `${window.location.origin}/catalogo/${catalogo.slug || catalogo.id}`;
                       const message = [
                         `✨ *${peca.nome}*`, '',
                         `💰 ${formatCurrency(peca.preco_venda || 0)}`,
                         peca.codigo ? `📦 ${peca.codigo}` : '',
-                        '', `👉 ${pageUrl}`,
+                        '', `👉 ${publishedUrl}`,
                       ].filter(Boolean).join('\n');
                       openWhatsAppWithoutPhone(message);
                     }}
@@ -1475,10 +1486,23 @@ export default function CatalogoPublicoPage() {
                     onClick={async () => {
                       const peca = detailItem.peca;
                       if (!peca) return;
+                      const publishedUrl = `${window.location.origin}/catalogo/${catalogo.slug || catalogo.id}`;
+                      const textToCopy = `${peca.nome} - ${formatCurrency(peca.preco_venda || 0)}\n${publishedUrl}`;
                       try {
-                        await navigator.clipboard.writeText(`${peca.nome} - ${formatCurrency(peca.preco_venda || 0)}\n${window.location.href}`);
+                        await navigator.clipboard.writeText(textToCopy);
                         toast.success('Link copiado!', { duration: 2000 });
-                      } catch { toast.error('Erro ao copiar'); }
+                      } catch {
+                        // Fallback for iframe/restricted environments
+                        const textarea = document.createElement('textarea');
+                        textarea.value = textToCopy;
+                        textarea.style.position = 'fixed';
+                        textarea.style.opacity = '0';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        toast.success('Link copiado!', { duration: 2000 });
+                      }
                     }}
                   >
                     <Copy className="w-4 h-4" />
