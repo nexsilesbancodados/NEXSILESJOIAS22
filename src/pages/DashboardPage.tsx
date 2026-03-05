@@ -132,7 +132,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="p-6 lg:p-8 animate-fade-in space-y-6 bg-background min-h-screen">
+    <div className="p-4 lg:p-8 animate-fade-in space-y-6 bg-background min-h-screen">
       {/* Setup Wizard for new users */}
       {showWizard && !wizardLoading && (
         <SetupWizard 
@@ -151,30 +151,43 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <p className="text-muted-foreground text-sm mb-1">
-            {new Date().getHours() < 12 ? 'Bom dia' : new Date().getHours() < 18 ? 'Boa tarde' : 'Boa noite'},
-          </p>
-          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
-            {profile?.nome || 'Usuário'} <Badge variant="outline" className="ml-2 text-xs font-normal">Sistema de Gestão</Badge>
-          </h1>
+      {/* Welcome Header - Premium */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 p-6 lg:p-8 text-primary-foreground shadow-lg">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg className="absolute -right-20 -top-20 w-72 h-72 opacity-10" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" fill="currentColor" />
+          </svg>
+          <svg className="absolute -left-10 -bottom-10 w-48 h-48 opacity-10" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="60" fill="currentColor" />
+          </svg>
         </div>
-        <div className="flex items-center gap-2">
-          {caixaAtual ? (
-            <Badge className="bg-success/10 text-success border-success/30 gap-1.5 px-3 py-1.5">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              Caixa Aberto
-            </Badge>
-          ) : (
-            <Link to="/pdv">
-              <Button size="sm" className="gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Abrir Caixa
-              </Button>
-            </Link>
-          )}
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-primary-foreground/70 text-sm mb-1 font-medium">
+              {new Date().getHours() < 12 ? '☀️ Bom dia' : new Date().getHours() < 18 ? '🌤️ Boa tarde' : '🌙 Boa noite'},
+            </p>
+            <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">
+              {profile?.nome || 'Usuário'}
+            </h1>
+            <p className="text-primary-foreground/60 text-sm mt-1">
+              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {caixaAtual ? (
+              <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm gap-1.5 px-4 py-2 text-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Caixa Aberto
+              </Badge>
+            ) : (
+              <Link to="/pdv">
+                <Button size="sm" variant="secondary" className="gap-2 bg-white/20 hover:bg-white/30 text-white border-white/20 backdrop-blur-sm">
+                  <ShoppingCart className="w-4 h-4" />
+                  Abrir Caixa
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
