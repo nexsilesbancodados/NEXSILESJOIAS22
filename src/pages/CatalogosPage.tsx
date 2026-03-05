@@ -136,6 +136,8 @@ export default function CatalogosPage() {
     (cat) => cat.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const safeStatus = (status: string | null) => status || 'em_preparacao';
+
   const handleOpenForm = (catalogo?: typeof catalogos[0]) => {
     if (catalogo) {
       setSelectedCatalogo(catalogo);
@@ -146,8 +148,8 @@ export default function CatalogosPage() {
         custo_separacao: (catalogo.custo_separacao || 0).toString(),
         custo_operacional: (catalogo.custo_operacional || 0).toString(),
         taxa_entrega: (catalogo.taxa_entrega || 0).toString(),
-        imagem_url: (catalogo as any).imagem_url || '',
-        pedido_minimo_pecas: ((catalogo as any).pedido_minimo_pecas || 0).toString(),
+        imagem_url: catalogo.imagem_url || '',
+        pedido_minimo_pecas: (catalogo.pedido_minimo_pecas || 0).toString(),
         logo_url: catalogo.logo_url || '',
         cor_primaria: catalogo.cor_primaria || '#D4AF37',
         cor_secundaria: catalogo.cor_secundaria || '#1a1a2e',
@@ -220,8 +222,8 @@ export default function CatalogosPage() {
       custo_separacao: (catalogo.custo_separacao || 0).toString(),
       custo_operacional: (catalogo.custo_operacional || 0).toString(),
       taxa_entrega: (catalogo.taxa_entrega || 0).toString(),
-      imagem_url: (catalogo as any).imagem_url || '',
-      pedido_minimo_pecas: ((catalogo as any).pedido_minimo_pecas || 0).toString(),
+      imagem_url: catalogo.imagem_url || '',
+      pedido_minimo_pecas: (catalogo.pedido_minimo_pecas || 0).toString(),
       logo_url: catalogo.logo_url || '',
       cor_primaria: catalogo.cor_primaria || '#D4AF37',
       cor_secundaria: catalogo.cor_secundaria || '#1a1a2e',
