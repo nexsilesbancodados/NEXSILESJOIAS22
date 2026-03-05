@@ -242,21 +242,29 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Quick Actions - Clean Style */}
+      {/* Quick Actions - Glass Morphism Style */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: Gem, label: 'Peças', path: '/pecas', color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-          { icon: ShoppingCart, label: 'PDV', path: '/pdv', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-          { icon: Users, label: 'Revendedoras', path: '/revendedoras', color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-          { icon: BarChart3, label: 'Relatórios', path: '/relatorios', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+          { icon: Gem, label: 'Peças', path: '/pecas', gradient: 'from-purple-500/10 to-violet-500/10', iconColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-200/50 dark:border-purple-800/30' },
+          { icon: ShoppingCart, label: 'PDV', path: '/pdv', gradient: 'from-emerald-500/10 to-teal-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', borderColor: 'border-emerald-200/50 dark:border-emerald-800/30' },
+          { icon: Users, label: 'Revendedoras', path: '/revendedoras', gradient: 'from-blue-500/10 to-cyan-500/10', iconColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-200/50 dark:border-blue-800/30' },
+          { icon: BarChart3, label: 'Relatórios', path: '/relatorios', gradient: 'from-amber-500/10 to-orange-500/10', iconColor: 'text-amber-600 dark:text-amber-400', borderColor: 'border-amber-200/50 dark:border-amber-800/30' },
         ].map((action) => (
           <Link key={action.path} to={action.path}>
-            <div className="bg-card border border-border/50 rounded-2xl p-4 cursor-pointer group hover:shadow-md hover:border-primary/20 transition-all duration-200">
+            <div className={cn(
+              'bg-gradient-to-br border rounded-2xl p-4 cursor-pointer group',
+              'hover:shadow-md hover:scale-[1.02] transition-all duration-300',
+              action.gradient,
+              action.borderColor
+            )}>
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${action.bg}`}>
-                  <action.icon className={`w-5 h-5 ${action.color}`} />
+                <div className="w-11 h-11 rounded-xl bg-card/80 backdrop-blur-sm flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm">
+                  <action.icon className={cn('w-5 h-5', action.iconColor)} />
                 </div>
-                <p className="font-medium text-foreground">{action.label}</p>
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{action.label}</p>
+                  <p className="text-xs text-muted-foreground">Acessar</p>
+                </div>
               </div>
             </div>
           </Link>
