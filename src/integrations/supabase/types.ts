@@ -4510,50 +4510,88 @@ export type Database = {
           banner_url: string | null
           cor_primaria: string | null
           cor_secundaria: string | null
+          created_at: string | null
+          custo_operacional: number | null
+          custo_separacao: number | null
           data_validade: string | null
           descricao: string | null
+          email_contato: string | null
           id: string | null
           imagem_capa: string | null
           imagem_url: string | null
           logo_url: string | null
           mensagem_boas_vindas: string | null
           nome: string | null
+          organization_id: string | null
+          pedido_minimo_pecas: number | null
           slug: string | null
+          status: string | null
+          taxa_entrega: number | null
           titulo: string | null
+          updated_at: string | null
+          whatsapp: string | null
         }
         Insert: {
           ativo?: boolean | null
           banner_url?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          created_at?: string | null
+          custo_operacional?: number | null
+          custo_separacao?: number | null
           data_validade?: string | null
           descricao?: string | null
+          email_contato?: string | null
           id?: string | null
           imagem_capa?: string | null
           imagem_url?: string | null
           logo_url?: string | null
           mensagem_boas_vindas?: string | null
           nome?: string | null
+          organization_id?: string | null
+          pedido_minimo_pecas?: number | null
           slug?: string | null
+          status?: string | null
+          taxa_entrega?: number | null
           titulo?: string | null
+          updated_at?: string | null
+          whatsapp?: string | null
         }
         Update: {
           ativo?: boolean | null
           banner_url?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
+          created_at?: string | null
+          custo_operacional?: number | null
+          custo_separacao?: number | null
           data_validade?: string | null
           descricao?: string | null
+          email_contato?: string | null
           id?: string | null
           imagem_capa?: string | null
           imagem_url?: string | null
           logo_url?: string | null
           mensagem_boas_vindas?: string | null
           nome?: string | null
+          organization_id?: string | null
+          pedido_minimo_pecas?: number | null
           slug?: string | null
+          status?: string | null
+          taxa_entrega?: number | null
           titulo?: string | null
+          updated_at?: string | null
+          whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "catalogos_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ecommerce_avaliacoes_public: {
         Row: {
