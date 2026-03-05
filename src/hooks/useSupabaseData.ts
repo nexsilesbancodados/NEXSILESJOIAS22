@@ -1611,6 +1611,7 @@ export function useVendas() {
       if (error) throw error;
       return data as Venda[];
     },
+    staleTime: 1000 * 15, // 15s
   });
 }
 
