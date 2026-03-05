@@ -10,24 +10,41 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  retryCount: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
     error: null,
+    retryCount: 0,
   };
 
-  public static getDerivedStateFromError(error: Error): State {
+  public static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Auto-retry for DOM manipulation errors (caused by browser extensions/scripts)
+    if (
+      error.message?.includes('insertBefore') ||
+      error.message?.includes('removeChild') ||
+      error.message?.includes('appendChild')
+    ) {
+      if (this.state.retryCount < 2) {
+        this.setState(prev => ({ 
+          hasError: false, 
+          error: null, 
+          retryCount: prev.retryCount + 1 
+        }));
+      }
+    }
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, retryCount: 0 });
     window.location.reload();
   };
 
