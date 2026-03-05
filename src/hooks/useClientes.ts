@@ -37,6 +37,7 @@ export function useClientes() {
       if (error) throw error;
       return data as Cliente[];
     },
+    staleTime: 1000 * 30,
   });
 }
 
