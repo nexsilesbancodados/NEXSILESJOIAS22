@@ -490,10 +490,15 @@ export default function CatalogoPublicoPage() {
       
       const addressText = addressParts.length > 0 ? `Endereço: ${addressParts.join(', ')}` : null;
 
+      // Generate IDs client-side so we don't need .select() (anon users can't read back rows due to RLS)
+      const pedidoId = crypto.randomUUID();
+      const romaneioId = crypto.randomUUID();
+
       // Create the order with validated data (address goes to observacoes)
-      const { data: pedido, error: pedidoError } = await supabase
+      const { error: pedidoError } = await supabase
         .from('pedidos_catalogo')
         .insert({
+          id: pedidoId,
           catalogo_id: catalogo?.id,
           cliente_nome: validatedData.cliente_nome,
           cliente_telefone: validatedData.cliente_telefone || null,
@@ -501,15 +506,13 @@ export default function CatalogoPublicoPage() {
           observacoes: addressText,
           valor_total: cartGrandTotal,
           status: 'pendente',
-        })
-        .select()
-        .single();
+        });
 
       if (pedidoError) throw pedidoError;
 
-      // Create order items (only include columns that exist in the table)
+      // Create order items
       const orderItems = cartItems.map(({ item, quantidade }) => ({
-        pedido_id: pedido.id,
+        pedido_id: pedidoId,
         peca_id: item.peca_id,
         quantidade,
         preco_unitario: item.peca?.preco_venda || 0,
@@ -522,7 +525,6 @@ export default function CatalogoPublicoPage() {
       if (itensError) throw itensError;
 
       // Criar romaneio automaticamente para o pedido
-      // Buscar organization_id do catálogo
       if (catalogo?.organization_id) {
         const enderecoCompleto = [
           validatedData.endereco_logradouro,
@@ -531,14 +533,10 @@ export default function CatalogoPublicoPage() {
           validatedData.endereco_bairro,
         ].filter(Boolean).join(', ');
 
-        const cidadeEstado = [
-          validatedData.endereco_cidade,
-          validatedData.endereco_estado,
-        ].filter(Boolean).join(' - ');
-
-        const { data: romaneio, error: romaneioError } = await supabase
+        const { error: romaneioError } = await supabase
           .from('romaneios')
           .insert({
+            id: romaneioId,
             organization_id: catalogo.organization_id,
             endereco_entrega: enderecoCompleto || null,
             cidade: validatedData.endereco_cidade || null,
@@ -547,17 +545,14 @@ export default function CatalogoPublicoPage() {
             cliente_telefone: validatedData.cliente_telefone || null,
             observacoes: `Pedido do catálogo: ${catalogo.nome}. Cliente: ${validatedData.cliente_nome}${validatedData.cliente_email ? `. Email: ${validatedData.cliente_email}` : ''}`,
             status: 'pendente',
-          })
-          .select()
-          .single();
+          });
 
         if (romaneioError) {
           console.error('Erro ao criar romaneio:', romaneioError);
-          // Não interromper o fluxo, pedido já foi criado
-        } else if (romaneio) {
+        } else {
           // Criar itens do romaneio
           const romaneioItens = cartItems.map(({ item, quantidade }) => ({
-            romaneio_id: romaneio.id,
+            romaneio_id: romaneioId,
             peca_id: item.peca_id,
             quantidade,
           }));
