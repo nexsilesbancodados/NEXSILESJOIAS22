@@ -468,7 +468,7 @@ export default function CatalogosPage() {
 
                   {/* Status Select */}
                   <Select
-                    value={catalogo.status}
+                    value={safeStatus(catalogo.status)}
                     onValueChange={(value) => handleStatusChange(catalogo.id, value)}
                   >
                     <SelectTrigger className="w-full">
