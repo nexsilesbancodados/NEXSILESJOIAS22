@@ -443,7 +443,18 @@ export default function CatalogoPublicoPage() {
 
   const copyOrderSummary = async () => {
     const summary = generateOrderSummary();
-    await navigator.clipboard.writeText(summary);
+    try {
+      await navigator.clipboard.writeText(summary);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = summary;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopied(true);
     toast.success('Resumo copiado!');
     setTimeout(() => setCopied(false), 2000);
