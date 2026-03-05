@@ -360,13 +360,13 @@ export default function CatalogosPage() {
           </div>
         ) : (
           filteredCatalogos.map((catalogo) => {
-            const statusInfo = getStatusInfo(catalogo.status);
+            const statusInfo = getStatusInfo(safeStatus(catalogo.status));
             return (
               <Card key={catalogo.id} className="glass-card hover-lift overflow-hidden">
-                {(catalogo as any).imagem_url && (
+                {catalogo.imagem_url && (
                   <div className="relative h-32 w-full">
                     <img 
-                      src={(catalogo as any).imagem_url} 
+                      src={catalogo.imagem_url} 
                       alt={catalogo.nome}
                       className="w-full h-full object-cover"
                     />
