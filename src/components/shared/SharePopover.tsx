@@ -164,7 +164,8 @@ export const SharePopover = memo(function SharePopover({
       }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
-        toast.error('Erro ao compartilhar');
+        // Fallback to copy if share fails (e.g. inside iframes)
+        handleCopyLink();
       }
     }
   }, [publicLink, itemName, handleCopyLink, isPublic, showPublicToggle, onPublicToggle]);
