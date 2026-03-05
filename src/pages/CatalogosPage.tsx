@@ -143,7 +143,7 @@ export default function CatalogosPage() {
       setSelectedCatalogo(catalogo);
       setFormData({
         nome: catalogo.nome,
-        status: catalogo.status,
+        status: safeStatus(catalogo.status),
         observacao: catalogo.observacao || '',
         custo_separacao: (catalogo.custo_separacao || 0).toString(),
         custo_operacional: (catalogo.custo_operacional || 0).toString(),
@@ -217,7 +217,7 @@ export default function CatalogosPage() {
     setSelectedCatalogo(catalogo);
     setFormData({
       nome: catalogo.nome,
-      status: catalogo.status,
+      status: safeStatus(catalogo.status),
       observacao: catalogo.observacao || '',
       custo_separacao: (catalogo.custo_separacao || 0).toString(),
       custo_operacional: (catalogo.custo_operacional || 0).toString(),
