@@ -663,7 +663,11 @@ export default function CatalogoPublicoPage() {
                 <Sparkles className="w-5 h-5 text-primary mt-0.5" />
               )}
               <div>
-                <p className="font-medium text-foreground">{statusInfo.message}</p>
+                {catalogo.mensagem_boas_vindas ? (
+                  <p className="font-medium text-foreground">{catalogo.mensagem_boas_vindas}</p>
+                ) : (
+                  <p className="font-medium text-foreground">{statusInfo.message}</p>
+                )}
                 {catalogo.observacao && (
                   <p className="text-sm text-muted-foreground mt-1">{catalogo.observacao}</p>
                 )}
