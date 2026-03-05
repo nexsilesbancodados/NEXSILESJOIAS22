@@ -79,6 +79,17 @@ interface CatalogoPublico {
   descricao?: string | null;
   ativo?: boolean;
   slug?: string | null;
+  pedido_minimo_pecas?: number | null;
+  whatsapp?: string | null;
+  email_contato?: string | null;
+  logo_url?: string | null;
+  cor_primaria?: string | null;
+  cor_secundaria?: string | null;
+  banner_url?: string | null;
+  imagem_url?: string | null;
+  imagem_capa?: string | null;
+  titulo?: string | null;
+  mensagem_boas_vindas?: string | null;
 }
 
 interface CatalogoItemPublico {
