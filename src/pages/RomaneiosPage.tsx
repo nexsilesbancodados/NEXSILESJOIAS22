@@ -623,6 +623,24 @@ function RomaneioDetailDialog({
 
   const hasTrackingInfo = romaneio?.codigo_rastreio || romaneio?.transportadora || romaneio?.data_envio;
 
+  // Extract client name from observacoes (format: "...Cliente: Nome...")
+  const clienteNomeFromObs = useMemo(() => {
+    if (!romaneio?.observacoes) return null;
+    const match = romaneio.observacoes.match(/Cliente:\s*([^.]+)/);
+    return match ? match[1].trim() : null;
+  }, [romaneio?.observacoes]);
+
+  // Build address display
+  const enderecoDisplay = useMemo(() => {
+    if (!romaneio) return null;
+    const parts: string[] = [];
+    if (romaneio.endereco_entrega) parts.push(romaneio.endereco_entrega);
+    if (romaneio.cidade) parts.push(romaneio.cidade);
+    if (romaneio.estado) parts.push(romaneio.estado);
+    if (romaneio.cep) parts.push(`CEP: ${romaneio.cep}`);
+    return parts.length > 0 ? parts.join(', ') : null;
+  }, [romaneio]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose} modal>
       <DialogContent className="sm:max-w-lg">
@@ -631,7 +649,9 @@ function RomaneioDetailDialog({
             Romaneio #{romaneio?.id.slice(-6).toUpperCase()}
           </DialogTitle>
           <DialogDescription>
-            Detalhes da venda registrada pela revendedora
+            {clienteNomeFromObs 
+              ? `Pedido de ${clienteNomeFromObs}` 
+              : 'Detalhes da venda registrada pela revendedora'}
           </DialogDescription>
         </DialogHeader>
 
@@ -640,20 +660,15 @@ function RomaneioDetailDialog({
             <div className="py-4 space-y-4 pr-4">
               {/* Info */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Revendedora</p>
-                    <p className="font-medium">{romaneio.revendedora_nome || '-'}</p>
+                {(romaneio.revendedora_nome || clienteNomeFromObs) && (
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Cliente</p>
+                      <p className="font-medium">{clienteNomeFromObs || romaneio.revendedora_nome || '-'}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Cliente</p>
-                    <p className="font-medium">{romaneio.cliente_nome || '-'}</p>
-                  </div>
-                </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                   <div>
@@ -666,6 +681,17 @@ function RomaneioDetailDialog({
                   <div className="mt-1">{getStatusBadge(romaneio.status)}</div>
                 </div>
               </div>
+
+              {/* Address Section */}
+              {enderecoDisplay && (
+                <div className="border-t border-border pt-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Endereço de Entrega</p>
+                  </div>
+                  <p className="text-sm font-medium pl-6">{enderecoDisplay}</p>
+                </div>
+              )}
 
               {/* Phone Section */}
               <div className="border-t border-border pt-4">
