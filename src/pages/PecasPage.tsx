@@ -55,8 +55,9 @@ import { ShareCatalogDropdown } from '@/components/catalogo/ShareCatalogDropdown
 import { ImportacaoModal } from '@/components/pecas/ImportacaoModal';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
+import { CategoriasManager, useCategorias } from '@/components/pecas/CategoriasManager';
 
-const CATEGORIAS = [
+const CATEGORIAS_FALLBACK = [
   'Anel', 'Brinco', 'Pulseira', 'Colar', 'Corrente', 'Chocker', 'Gargantilha', 
   'Tornozeleira', 'Bracelete', 'Conjunto', 'Elo', 'Escapulário', 
   'Pingente', 'Tarraxa', 'Outros'
@@ -76,6 +77,8 @@ export default function PecasPage() {
   const addPeca = useAddPeca();
   const updatePeca = useUpdatePeca();
   const deletePeca = useDeletePeca();
+  const { data: categoriasDb = [] } = useCategorias();
+  const CATEGORIAS = categoriasDb.length > 0 ? categoriasDb.map(c => c.nome) : CATEGORIAS_FALLBACK;
   
   const [activeTab, setActiveTab] = useState('pecas');
   const [searchTerm, setSearchTerm] = useState('');
@@ -354,6 +357,10 @@ export default function PecasPage() {
             <TabsTrigger value="pecas" className="gap-2">
               <Package className="w-4 h-4" />
               Estoque
+            </TabsTrigger>
+            <TabsTrigger value="categorias" className="gap-2">
+              <Tag className="w-4 h-4" />
+              Categorias
             </TabsTrigger>
             <TabsTrigger value="pedidos" className="gap-2">
               <ShoppingBag className="w-4 h-4" />
