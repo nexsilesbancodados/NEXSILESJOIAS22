@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Gem, Package, Loader2, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Wand2, Keyboard, AlertTriangle, ShoppingBag, Upload, Store } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Gem, Package, Loader2, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Wand2, Keyboard, AlertTriangle, ShoppingBag, Upload, Store, Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePecas, useAddPeca, useUpdatePeca, useDeletePeca, useFornecedores } from '@/hooks/useSupabaseData';
