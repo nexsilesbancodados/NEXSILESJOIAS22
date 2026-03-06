@@ -1015,6 +1015,10 @@ export default function PecasPage() {
       </AlertDialog>
         </TabsContent>
 
+        <TabsContent value="categorias" className="mt-0">
+          <CategoriasManager />
+        </TabsContent>
+
         <TabsContent value="pedidos" className="mt-0">
           <MeusPedidosTab />
         </TabsContent>
