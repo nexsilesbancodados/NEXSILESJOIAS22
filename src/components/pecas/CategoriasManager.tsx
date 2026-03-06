@@ -43,7 +43,7 @@ export function useCategorias() {
         .eq('organization_id', organizationId)
         .order('ordem', { ascending: true });
       if (error) throw error;
-      return (data || []) as Categoria[];
+      return (data || []) as unknown as Categoria[];
     },
     enabled: !!organizationId,
   });
