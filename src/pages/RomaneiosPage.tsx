@@ -857,22 +857,26 @@ function RomaneioDetailDialog({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-3 p-2 bg-secondary/50 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.peca_nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {item.quantidade}x {formatCurrency(Number(item.preco_unitario))}
+                    {items.map((item) => {
+                      const preco = item.peca?.preco_venda ?? item.preco_unitario ?? 0;
+                      const nome = item.peca?.nome ?? item.peca_nome ?? 'Peça';
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 p-2 bg-secondary/50 rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.quantidade}x {formatCurrency(Number(preco))}
+                            </p>
+                          </div>
+                          <p className="font-medium">
+                            {formatCurrency(Number(preco) * item.quantidade)}
                           </p>
                         </div>
-                        <p className="font-medium">
-                          {formatCurrency(Number(item.preco_unitario) * item.quantidade)}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -881,7 +885,12 @@ function RomaneioDetailDialog({
               <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                 <span className="font-medium">Total</span>
                 <span className="text-xl font-display font-semibold text-primary">
-                  {formatCurrency(Number(romaneio.total))}
+                  {formatCurrency(
+                    items.reduce((sum, item) => {
+                      const preco = item.peca?.preco_venda ?? item.preco_unitario ?? 0;
+                      return sum + (Number(preco) * item.quantidade);
+                    }, 0)
+                  )}
                 </span>
               </div>
             </div>
