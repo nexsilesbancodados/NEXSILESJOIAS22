@@ -402,23 +402,24 @@ export default function CatalogoPublicoPage() {
       if (validatedData.endereco_cidade || validatedData.endereco_estado) addressParts.push(`${validatedData.endereco_cidade || ''}${validatedData.endereco_estado ? ` - ${validatedData.endereco_estado}` : ''}`);
       if (validatedData.endereco_cep) addressParts.push(`CEP: ${validatedData.endereco_cep}`);
       const addressText = addressParts.length > 0 ? `Endereço: ${addressParts.join(', ')}` : null;
-      const pedidoId = crypto.randomUUID();
-      const romaneioId = crypto.randomUUID();
-      const { error: pedidoError } = await supabase
-        .from('pedidos_catalogo')
-        .insert({ id: pedidoId, catalogo_id: catalogo?.id, cliente_nome: validatedData.cliente_nome, cliente_telefone: validatedData.cliente_telefone || null, cliente_email: validatedData.cliente_email || null, observacoes: addressText, valor_total: cartGrandTotal, status: 'pendente' });
-      if (pedidoError) throw pedidoError;
-      const orderItems = cartItems.map(({ item, quantidade }) => ({ pedido_id: pedidoId, peca_id: item.peca_id, quantidade, preco_unitario: item.peca?.preco_venda || 0 }));
-      const { error: itensError } = await supabase.from('pedidos_catalogo_itens').insert(orderItems);
-      if (itensError) throw itensError;
-      if (catalogo?.organization_id) {
-        const enderecoCompleto = [validatedData.endereco_logradouro, validatedData.endereco_numero ? `nº ${validatedData.endereco_numero}` : '', validatedData.endereco_complemento, validatedData.endereco_bairro].filter(Boolean).join(', ');
-        const { error: romaneioError } = await supabase.from('romaneios').insert({ id: romaneioId, organization_id: catalogo.organization_id, endereco_entrega: enderecoCompleto || null, cidade: validatedData.endereco_cidade || null, estado: validatedData.endereco_estado || null, cep: validatedData.endereco_cep || null, cliente_telefone: validatedData.cliente_telefone || null, observacoes: `Pedido do catálogo: ${catalogo.nome}. Cliente: ${validatedData.cliente_nome}${validatedData.cliente_email ? `. Email: ${validatedData.cliente_email}` : ''}`, status: 'pendente' });
-        if (!romaneioError) {
-          const romaneioItens = cartItems.map(({ item, quantidade }) => ({ romaneio_id: romaneioId, peca_id: item.peca_id, quantidade }));
-          await supabase.from('romaneios_pecas').insert(romaneioItens);
-        }
-      }
+
+      const orderItems = cartItems.map(({ item, quantidade }) => ({
+        peca_id: item.peca_id,
+        quantidade,
+        preco_unitario: item.peca?.preco_venda || 0,
+      }));
+
+      const { data: pedidoId, error: rpcError } = await supabase.rpc('criar_pedido_catalogo', {
+        p_catalogo_id: catalogo?.id,
+        p_cliente_nome: validatedData.cliente_nome,
+        p_cliente_telefone: validatedData.cliente_telefone || null,
+        p_cliente_email: validatedData.cliente_email || null,
+        p_observacoes: addressText,
+        p_valor_total: cartGrandTotal,
+        p_itens: orderItems,
+      });
+
+      if (rpcError) throw rpcError;
       setIsOrderSent(true);
       setIsSummaryOpen(false);
       setIsCartOpen(false);
