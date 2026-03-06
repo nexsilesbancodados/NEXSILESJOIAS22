@@ -5063,6 +5063,18 @@ export type Database = {
     }
     Functions: {
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
+      criar_pedido_catalogo: {
+        Args: {
+          p_catalogo_id: string
+          p_cliente_email?: string
+          p_cliente_nome: string
+          p_cliente_telefone?: string
+          p_itens?: Json
+          p_observacoes?: string
+          p_valor_total?: number
+        }
+        Returns: string
+      }
       debitar_estoque_ecommerce: {
         Args: { p_peca_id: string; p_quantidade: number }
         Returns: undefined
