@@ -1023,6 +1023,41 @@ export type Database = {
           },
         ]
       }
+      categorias_pecas: {
+        Row: {
+          created_at: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          organization_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          organization_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          organization_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_pecas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_preferencias: {
         Row: {
           categorias_favoritas: string[] | null

@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Gem, Package, Loader2, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Wand2, Keyboard, AlertTriangle, ShoppingBag, Upload, Store } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, Gem, Package, Loader2, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Wand2, Keyboard, AlertTriangle, ShoppingBag, Upload, Store, Tag } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { usePecas, useAddPeca, useUpdatePeca, useDeletePeca, useFornecedores } from '@/hooks/useSupabaseData';
@@ -55,8 +55,9 @@ import { ShareCatalogDropdown } from '@/components/catalogo/ShareCatalogDropdown
 import { ImportacaoModal } from '@/components/pecas/ImportacaoModal';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
+import { CategoriasManager, useCategorias } from '@/components/pecas/CategoriasManager';
 
-const CATEGORIAS = [
+const CATEGORIAS_FALLBACK = [
   'Anel', 'Brinco', 'Pulseira', 'Colar', 'Corrente', 'Chocker', 'Gargantilha', 
   'Tornozeleira', 'Bracelete', 'Conjunto', 'Elo', 'Escapulário', 
   'Pingente', 'Tarraxa', 'Outros'
@@ -76,6 +77,8 @@ export default function PecasPage() {
   const addPeca = useAddPeca();
   const updatePeca = useUpdatePeca();
   const deletePeca = useDeletePeca();
+  const { data: categoriasDb = [] } = useCategorias();
+  const CATEGORIAS = categoriasDb.length > 0 ? categoriasDb.map(c => c.nome) : CATEGORIAS_FALLBACK;
   
   const [activeTab, setActiveTab] = useState('pecas');
   const [searchTerm, setSearchTerm] = useState('');
@@ -354,6 +357,10 @@ export default function PecasPage() {
             <TabsTrigger value="pecas" className="gap-2">
               <Package className="w-4 h-4" />
               Estoque
+            </TabsTrigger>
+            <TabsTrigger value="categorias" className="gap-2">
+              <Tag className="w-4 h-4" />
+              Categorias
             </TabsTrigger>
             <TabsTrigger value="pedidos" className="gap-2">
               <ShoppingBag className="w-4 h-4" />
@@ -1006,6 +1013,10 @@ export default function PecasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </TabsContent>
+
+        <TabsContent value="categorias" className="mt-0">
+          <CategoriasManager />
         </TabsContent>
 
         <TabsContent value="pedidos" className="mt-0">
