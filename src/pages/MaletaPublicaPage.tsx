@@ -193,50 +193,33 @@ export default function MaletaPublicaPage() {
       if (!maleta?.id) throw new Error('Maleta não encontrada');
       if (!customerName.trim()) throw new Error('Nome é obrigatório');
       
-      if (!maleta.is_public) {
-        throw new Error('Esta vitrine não está disponível para pedidos no momento.');
-      }
-      
-      const { data: interesse, error: interesseError } = await supabase
-        .from('maleta_interesses')
-        .insert({
-          maleta_id: maleta.id,
-          cliente_nome: customerName.trim(),
-          cliente_telefone: customerPhone.trim() || null,
-          cliente_email: customerEmail.trim() || null,
-          observacoes: observacoes.trim() || null,
-          status: 'pendente',
-        })
-        .select()
-        .single();
-
-      if (interesseError) {
-        if (interesseError.message?.includes('policy') || interesseError.code === '42501') {
-          throw new Error('Esta vitrine não está disponível para pedidos no momento.');
-        }
-        throw new Error('Erro ao enviar seu interesse. Tente novamente.');
-      }
-
       const cartItems = Array.from(selectedItems.values());
-      const interesseItems = cartItems.map(({ item, quantidade }) => ({
-        interesse_id: interesse.id,
+      const itensPayload = cartItems.map(({ item, quantidade }) => ({
         peca_id: item.peca_id,
         quantidade,
       }));
 
-      const { error: itensError } = await supabase
-        .from('maleta_interesse_itens')
-        .insert(interesseItems);
+      const { data: interesseId, error } = await supabase.rpc('criar_interesse_maleta', {
+        p_maleta_id: maleta.id,
+        p_cliente_nome: customerName.trim(),
+        p_cliente_telefone: customerPhone.trim() || null,
+        p_cliente_email: customerEmail.trim() || null,
+        p_observacoes: observacoes.trim() || null,
+        p_itens: itensPayload,
+      });
 
-      if (itensError) throw new Error('Erro ao salvar os itens do pedido.');
+      if (error) {
+        console.error('RPC criar_interesse_maleta error:', error);
+        throw new Error('Erro ao enviar pedido. Tente novamente.');
+      }
 
       try {
         await supabase.functions.invoke('notificar-novo-pedido-revendedora', {
-          body: { interesse_id: interesse.id },
+          body: { interesse_id: interesseId },
         });
       } catch {}
 
-      return interesse;
+      return { id: interesseId };
     },
     onSuccess: () => {
       setIsSuccess(true);
