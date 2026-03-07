@@ -910,14 +910,16 @@ export default function PortalRevendedoraPage() {
                                   {formatCurrency(item.preco_unitario || item.peca.preco_venda || 0)}
                                 </TableCell>
                                 <TableCell className="text-center">
-                                  {item.vendida ? (
+                                  {item.quantidade > 0 && (item.quantidade_vendida || 0) > 0 ? (
+                                    <Badge className="bg-amber-500">Parcial</Badge>
+                                  ) : item.quantidade === 0 && (item.quantidade_vendida || 0) > 0 ? (
                                     <Badge className="bg-green-500">Vendida</Badge>
                                   ) : (
                                     <Badge variant="secondary">Pendente</Badge>
                                   )}
                                 </TableCell>
                                 <TableCell className="text-right space-x-1">
-                                  {!item.vendida && (
+                                  {item.quantidade > 0 && (
                                     <Button
                                       size="sm"
                                       onClick={() => {
