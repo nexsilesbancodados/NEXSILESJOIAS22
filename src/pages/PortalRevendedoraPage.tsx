@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing, Download, WifiOff, Smartphone, Share2, Copy, ExternalLink } from 'lucide-react';
+import { Loader2, Package, ShoppingBag, TrendingUp, Check, X, LogOut, Eye, EyeOff, Briefcase, DollarSign, Clock, CheckCircle2, Bell, BellRing, Download, WifiOff, Smartphone, Share2, Copy, ExternalLink, History, Receipt, Search, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
