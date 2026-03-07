@@ -197,20 +197,23 @@ export default function MaletaPublicaPage() {
         throw new Error('Esta vitrine não está disponível para pedidos no momento.');
       }
       
-      const { data: interesse, error: interesseError } = await supabase
+      // Generate ID client-side to avoid needing .select() which fails due to RLS
+      const interesseId = crypto.randomUUID();
+      
+      const { error: interesseError } = await supabase
         .from('maleta_interesses')
         .insert({
+          id: interesseId,
           maleta_id: maleta.id,
           cliente_nome: customerName.trim(),
           cliente_telefone: customerPhone.trim() || null,
           cliente_email: customerEmail.trim() || null,
           observacoes: observacoes.trim() || null,
           status: 'pendente',
-        })
-        .select()
-        .single();
+        });
 
       if (interesseError) {
+        console.error('Insert interesse error:', interesseError);
         if (interesseError.message?.includes('policy') || interesseError.code === '42501') {
           throw new Error('Esta vitrine não está disponível para pedidos no momento.');
         }
