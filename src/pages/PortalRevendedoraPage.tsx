@@ -1134,6 +1134,8 @@ export default function PortalRevendedoraPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
+      </Dialog>
+
       {/* Desfazer Venda Modal */}
       <Dialog open={!!desfazerModal} onOpenChange={(open) => !open && setDesfazerModal(null)}>
         <DialogContent>
