@@ -103,6 +103,7 @@ export default function PortalRevendedoraPage() {
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [desfazerModal, setDesfazerModal] = useState<MaletaPeca | null>(null);
   const [quantidadeDesfazer, setQuantidadeDesfazer] = useState(1);
+  const [buscaPeca, setBuscaPeca] = useState('');
   const [processando, setProcessando] = useState(false);
 
   // Portal notifications hook
