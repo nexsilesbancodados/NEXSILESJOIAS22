@@ -231,7 +231,10 @@ export default function MaletaPublicaPage() {
         .from('maleta_interesse_itens')
         .insert(interesseItems);
 
-      if (itensError) throw new Error('Erro ao salvar os itens do pedido.');
+      if (itensError) {
+        console.error('Insert itens error:', JSON.stringify(itensError));
+        throw new Error('Erro ao salvar os itens do pedido.');
+      }
 
       try {
         await supabase.functions.invoke('notificar-novo-pedido-revendedora', {
