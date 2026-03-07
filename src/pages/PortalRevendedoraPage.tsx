@@ -1134,6 +1134,56 @@ export default function PortalRevendedoraPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
+      {/* Desfazer Venda Modal */}
+      <Dialog open={!!desfazerModal} onOpenChange={(open) => !open && setDesfazerModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desfazer Venda</DialogTitle>
+            <DialogDescription>
+              Escolha quantos itens deseja desfazer a venda de "{desfazerModal?.peca.nome}"
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Quantidade vendida:</span>
+              <span className="font-medium">{desfazerModal?.quantidade_vendida || 0}</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Quantidade a desfazer</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantidadeDesfazer(Math.max(1, quantidadeDesfazer - 1))}
+                  disabled={quantidadeDesfazer <= 1}
+                >
+                  -
+                </Button>
+                <span className="text-xl font-bold w-12 text-center">{quantidadeDesfazer}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantidadeDesfazer(Math.min(desfazerModal?.quantidade_vendida || 1, quantidadeDesfazer + 1))}
+                  disabled={quantidadeDesfazer >= (desfazerModal?.quantidade_vendida || 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDesfazerModal(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDesfazerVenda} disabled={processando}>
+              {processando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Desfazer Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
     </div>
   );
