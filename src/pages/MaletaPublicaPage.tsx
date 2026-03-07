@@ -222,7 +222,7 @@ export default function MaletaPublicaPage() {
 
       const cartItems = Array.from(selectedItems.values());
       const interesseItems = cartItems.map(({ item, quantidade }) => ({
-        interesse_id: interesse.id,
+        interesse_id: interesseId,
         peca_id: item.peca_id,
         quantidade,
       }));
@@ -235,11 +235,11 @@ export default function MaletaPublicaPage() {
 
       try {
         await supabase.functions.invoke('notificar-novo-pedido-revendedora', {
-          body: { interesse_id: interesse.id },
+          body: { interesse_id: interesseId },
         });
       } catch {}
 
-      return interesse;
+      return { id: interesseId };
     },
     onSuccess: () => {
       setIsSuccess(true);
