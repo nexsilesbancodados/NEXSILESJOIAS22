@@ -1029,6 +1029,149 @@ export default function PortalRevendedoraPage() {
               </div>
             )}
           </TabsContent>
+
+          {/* Histórico de Vendas Tab */}
+          <TabsContent value="historico" className="space-y-4">
+            {(() => {
+              const vendasRealizadas = pecasMaleta.filter(item => (item.quantidade_vendida || 0) > 0);
+              const allVendas = maletas.length > 0 ? vendasRealizadas : [];
+              
+              if (allVendas.length === 0) {
+                return (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <History className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Nenhuma venda registrada ainda</p>
+                      <p className="text-sm text-muted-foreground mt-1">Selecione uma maleta na aba "Maletas" para ver as vendas</p>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              return (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <History className="w-5 h-5" />
+                      Histórico de Vendas
+                      {maletaSelecionada && <Badge variant="outline">{maletaSelecionada.nome}</Badge>}
+                    </CardTitle>
+                    <CardDescription>
+                      {allVendas.length} item(s) vendido(s) • Total: {formatCurrency(valorVendido)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Peça</TableHead>
+                            <TableHead className="text-center">Qtd Vendida</TableHead>
+                            <TableHead className="text-right">Preço Unit.</TableHead>
+                            <TableHead className="text-right">Subtotal</TableHead>
+                            <TableHead className="text-center">Data</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allVendas.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  {item.peca.imagem_url ? (
+                                    <img src={item.peca.imagem_url} alt={item.peca.nome} className="w-10 h-10 rounded object-cover" />
+                                  ) : (
+                                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                                      <Package className="w-5 h-5 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="font-medium">{item.peca.nome}</p>
+                                    {item.peca.codigo && <p className="text-xs text-muted-foreground">{item.peca.codigo}</p>}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center font-medium">{item.quantidade_vendida}</TableCell>
+                              <TableCell className="text-right">{formatCurrency(item.preco_unitario || item.peca.preco_venda || 0)}</TableCell>
+                              <TableCell className="text-right font-medium">
+                                {formatCurrency((item.preco_unitario || item.peca.preco_venda || 0) * (item.quantidade_vendida || 0))}
+                              </TableCell>
+                              <TableCell className="text-center text-sm text-muted-foreground">
+                                {item.data_venda ? format(new Date(item.data_venda), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
+          </TabsContent>
+
+          {/* Extrato de Comissões Tab */}
+          <TabsContent value="extrato" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="w-5 h-5" />
+                  Extrato de Comissões
+                </CardTitle>
+                <CardDescription>
+                  Resumo financeiro baseado nas vendas realizadas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-muted/50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-muted-foreground">Total Vendido</p>
+                    <p className="text-2xl font-bold">{formatCurrency(valorVendido)}</p>
+                  </div>
+                  <div className="bg-primary/5 rounded-lg p-4 text-center">
+                    <p className="text-sm text-muted-foreground">Sua Comissão ({revendedora?.comissao_percentual || 30}%)</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(comissao)}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-muted-foreground">Peças Vendidas</p>
+                    <p className="text-2xl font-bold">{pecasVendidas}</p>
+                  </div>
+                </div>
+
+                {/* Per-maleta breakdown */}
+                {maletas.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-3">Detalhamento por Maleta</h4>
+                    <div className="space-y-2">
+                      {maletas.map((maleta) => {
+                        const isSelecionada = maletaSelecionada?.id === maleta.id;
+                        return (
+                          <div key={maleta.id} className={`flex items-center justify-between p-3 rounded-lg border ${isSelecionada ? 'border-primary bg-primary/5' : ''}`}>
+                            <div className="flex items-center gap-3">
+                              <Briefcase className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium text-sm">{maleta.nome}</p>
+                                <p className="text-xs text-muted-foreground capitalize">{maleta.status || 'aberta'}</p>
+                              </div>
+                            </div>
+                            {isSelecionada && (
+                              <div className="text-right">
+                                <p className="font-medium text-sm">{formatCurrency(valorVendido)}</p>
+                                <p className="text-xs text-primary">Comissão: {formatCurrency(comissao)}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      * Selecione uma maleta na aba "Maletas" para ver os valores detalhados
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
