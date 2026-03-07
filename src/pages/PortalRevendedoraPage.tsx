@@ -874,7 +874,7 @@ export default function PortalRevendedoraPage() {
                                     <Badge variant="secondary">Pendente</Badge>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right space-x-1">
                                   {!item.vendida && (
                                     <Button
                                       size="sm"
@@ -885,6 +885,20 @@ export default function PortalRevendedoraPage() {
                                     >
                                       <Check className="w-4 h-4 mr-1" />
                                       Vendi
+                                    </Button>
+                                  )}
+                                  {(item.quantidade_vendida || 0) > 0 && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+                                      onClick={() => {
+                                        setDesfazerModal(item);
+                                        setQuantidadeDesfazer(1);
+                                      }}
+                                    >
+                                      <X className="w-4 h-4 mr-1" />
+                                      Desfazer
                                     </Button>
                                   )}
                                 </TableCell>
