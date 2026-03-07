@@ -405,7 +405,34 @@ export default function PortalRevendedoraPage() {
     }
   };
 
-  const formatCurrency = (value: number) => {
+  const handleDesfazerVenda = async () => {
+    if (!desfazerModal || !maletaSelecionada || !revendedora) return;
+
+    setProcessando(true);
+    try {
+      const { data: result, error } = await supabase.rpc('portal_desfazer_venda' as any, {
+        p_revendedora_id: revendedora.id,
+        p_maleta_peca_id: desfazerModal.id,
+        p_quantidade_desfazer: quantidadeDesfazer
+      });
+
+      if (error) throw error;
+
+      toast.success(quantidadeDesfazer > 1 
+        ? `${quantidadeDesfazer} peças devolvidas ao estoque da maleta!` 
+        : 'Venda desfeita com sucesso!'
+      );
+      setDesfazerModal(null);
+      setQuantidadeDesfazer(1);
+      fetchPecasMaleta(maletaSelecionada.id);
+    } catch (error: any) {
+      console.error('Error undoing sale:', error);
+      toast.error(error.message || 'Erro ao desfazer venda');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
