@@ -853,6 +853,16 @@ export default function PortalRevendedoraPage() {
                       )}
                     </CardHeader>
                     <CardContent>
+                      {/* Search */}
+                      <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar peça por nome ou código..."
+                          value={buscaPeca}
+                          onChange={(e) => setBuscaPeca(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
                       <div className="rounded-md border overflow-x-auto">
                         <Table>
                           <TableHeader>
@@ -865,7 +875,14 @@ export default function PortalRevendedoraPage() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {pecasMaleta.map((item) => (
+                            {pecasMaleta
+                              .filter(item => {
+                                if (!buscaPeca) return true;
+                                const search = buscaPeca.toLowerCase();
+                                return item.peca.nome.toLowerCase().includes(search) || 
+                                       (item.peca.codigo || '').toLowerCase().includes(search);
+                              })
+                              .map((item) => (
                               <TableRow key={item.id}>
                                 <TableCell>
                                   <div className="flex items-center gap-3">
