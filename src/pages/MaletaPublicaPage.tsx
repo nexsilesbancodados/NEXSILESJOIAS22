@@ -205,7 +205,7 @@ export default function MaletaPublicaPage() {
         p_cliente_telefone: customerPhone.trim() || null,
         p_cliente_email: customerEmail.trim() || null,
         p_observacoes: observacoes.trim() || null,
-        p_itens: JSON.stringify(itensPayload),
+        p_itens: itensPayload,
       });
 
       if (error) {
