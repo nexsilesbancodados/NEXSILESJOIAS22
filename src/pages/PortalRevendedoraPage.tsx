@@ -828,6 +828,21 @@ export default function PortalRevendedoraPage() {
                               Compartilhar
                             </Button>
                           )}
+                          {maletaSelecionada.is_public && maletaSelecionada.slug && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-600 border-green-600/50 hover:bg-green-600/10"
+                              onClick={() => {
+                                const url = `${window.location.origin}/maleta/${maletaSelecionada.slug}`;
+                                const text = `Confira as peças da minha maleta "${maletaSelecionada.nome}"! 💎\n${url}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                              }}
+                            >
+                              <MessageCircle className="w-4 h-4 mr-1" />
+                              WhatsApp
+                            </Button>
+                          )}
                           <Badge>{pecasPendentes} pendente(s)</Badge>
                         </div>
                       </CardTitle>
