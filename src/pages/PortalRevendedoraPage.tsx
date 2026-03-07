@@ -101,6 +101,8 @@ export default function PortalRevendedoraPage() {
   const [interesseModal, setInteresseModal] = useState<Interesse | null>(null);
   const [vendaModal, setVendaModal] = useState<MaletaPeca | null>(null);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
+  const [desfazerModal, setDesfazerModal] = useState<MaletaPeca | null>(null);
+  const [quantidadeDesfazer, setQuantidadeDesfazer] = useState(1);
   const [processando, setProcessando] = useState(false);
 
   // Portal notifications hook
@@ -398,6 +400,34 @@ export default function PortalRevendedoraPage() {
     } catch (error) {
       console.error('Error marking as sold:', error);
       toast.error('Erro ao marcar como vendida');
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const handleDesfazerVenda = async () => {
+    if (!desfazerModal || !maletaSelecionada || !revendedora) return;
+
+    setProcessando(true);
+    try {
+      const { data: result, error } = await supabase.rpc('portal_desfazer_venda' as any, {
+        p_revendedora_id: revendedora.id,
+        p_maleta_peca_id: desfazerModal.id,
+        p_quantidade_desfazer: quantidadeDesfazer
+      });
+
+      if (error) throw error;
+
+      toast.success(quantidadeDesfazer > 1 
+        ? `${quantidadeDesfazer} peças devolvidas ao estoque da maleta!` 
+        : 'Venda desfeita com sucesso!'
+      );
+      setDesfazerModal(null);
+      setQuantidadeDesfazer(1);
+      fetchPecasMaleta(maletaSelecionada.id);
+    } catch (error: any) {
+      console.error('Error undoing sale:', error);
+      toast.error(error.message || 'Erro ao desfazer venda');
     } finally {
       setProcessando(false);
     }
@@ -845,7 +875,7 @@ export default function PortalRevendedoraPage() {
                                     <Badge variant="secondary">Pendente</Badge>
                                   )}
                                 </TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="text-right space-x-1">
                                   {!item.vendida && (
                                     <Button
                                       size="sm"
@@ -856,6 +886,20 @@ export default function PortalRevendedoraPage() {
                                     >
                                       <Check className="w-4 h-4 mr-1" />
                                       Vendi
+                                    </Button>
+                                  )}
+                                  {(item.quantidade_vendida || 0) > 0 && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-amber-500 border-amber-500/50 hover:bg-amber-500/10"
+                                      onClick={() => {
+                                        setDesfazerModal(item);
+                                        setQuantidadeDesfazer(1);
+                                      }}
+                                    >
+                                      <X className="w-4 h-4 mr-1" />
+                                      Desfazer
                                     </Button>
                                   )}
                                 </TableCell>
@@ -1088,6 +1132,58 @@ export default function PortalRevendedoraPage() {
             <Button onClick={handleMarcarVendida} disabled={processando}>
               {processando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Confirmar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Desfazer Venda Modal */}
+      <Dialog open={!!desfazerModal} onOpenChange={(open) => !open && setDesfazerModal(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desfazer Venda</DialogTitle>
+            <DialogDescription>
+              Escolha quantos itens deseja desfazer a venda de "{desfazerModal?.peca.nome}"
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Quantidade vendida:</span>
+              <span className="font-medium">{desfazerModal?.quantidade_vendida || 0}</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Quantidade a desfazer</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantidadeDesfazer(Math.max(1, quantidadeDesfazer - 1))}
+                  disabled={quantidadeDesfazer <= 1}
+                >
+                  -
+                </Button>
+                <span className="text-xl font-bold w-12 text-center">{quantidadeDesfazer}</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setQuantidadeDesfazer(Math.min(desfazerModal?.quantidade_vendida || 1, quantidadeDesfazer + 1))}
+                  disabled={quantidadeDesfazer >= (desfazerModal?.quantidade_vendida || 1)}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDesfazerModal(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDesfazerVenda} disabled={processando}>
+              {processando && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Desfazer Venda
             </Button>
           </DialogFooter>
         </DialogContent>

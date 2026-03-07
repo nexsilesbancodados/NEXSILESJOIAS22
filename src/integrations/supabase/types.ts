@@ -5168,6 +5168,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      portal_desfazer_venda: {
+        Args: {
+          p_maleta_peca_id: string
+          p_quantidade_desfazer: number
+          p_revendedora_id: string
+        }
+        Returns: boolean
+      }
       portal_fetch_interesse_itens: {
         Args: { p_interesse_id: string; p_revendedora_id: string }
         Returns: {
