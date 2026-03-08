@@ -133,6 +133,42 @@ export default function PortalRevendedoraPage() {
     }
   }, [revendedoraId, navigate]);
 
+  const fetchPecasMaleta = useCallback(async (maletaId: string) => {
+    if (!revendedora) return;
+    try {
+      console.log('[Portal] Fetching pecas for maleta:', maletaId, 'revendedora:', revendedora.id);
+      const { data, error } = await supabase
+        .rpc('portal_fetch_maleta_pecas', { p_maleta_id: maletaId, p_revendedora_id: revendedora.id });
+
+      if (error) {
+        console.error('[Portal] Error from RPC:', error);
+        throw error;
+      }
+      
+      console.log('[Portal] Pecas received:', data?.length || 0);
+      
+      const formattedData = (data || []).map((item: any) => ({
+        id: item.id,
+        quantidade: item.quantidade,
+        quantidade_vendida: item.quantidade_vendida,
+        vendida: item.vendida,
+        preco_unitario: item.preco_unitario,
+        data_venda: item.data_venda,
+        peca: {
+          id: item.peca_id,
+          nome: item.peca_nome,
+          codigo: item.peca_codigo,
+          preco_venda: item.peca_preco_venda,
+          imagem_url: item.peca_imagem_url,
+        }
+      })) as MaletaPeca[];
+      
+      setPecasMaleta(formattedData);
+    } catch (error) {
+      console.error('Error fetching pecas:', error);
+    }
+  }, [revendedora]);
+
   // Fetch data when authenticated
   useEffect(() => {
     if (isAuthenticated && revendedora) {
@@ -143,10 +179,10 @@ export default function PortalRevendedoraPage() {
 
   // Fetch peças when maleta is selected
   useEffect(() => {
-    if (maletaSelecionada) {
+    if (maletaSelecionada && revendedora) {
       fetchPecasMaleta(maletaSelecionada.id);
     }
-  }, [maletaSelecionada]);
+  }, [maletaSelecionada, revendedora, fetchPecasMaleta]);
 
   const handleLogin = async () => {
     if (!loginEmail.trim() || !senha.trim()) {
@@ -240,35 +276,6 @@ export default function PortalRevendedoraPage() {
     }
   };
 
-  const fetchPecasMaleta = async (maletaId: string) => {
-    if (!revendedora) return;
-    try {
-      const { data, error } = await supabase
-        .rpc('portal_fetch_maleta_pecas', { p_maleta_id: maletaId, p_revendedora_id: revendedora.id });
-
-      if (error) throw error;
-      
-      const formattedData = (data || []).map((item: any) => ({
-        id: item.id,
-        quantidade: item.quantidade,
-        quantidade_vendida: item.quantidade_vendida,
-        vendida: item.vendida,
-        preco_unitario: item.preco_unitario,
-        data_venda: item.data_venda,
-        peca: {
-          id: item.peca_id,
-          nome: item.peca_nome,
-          codigo: item.peca_codigo,
-          preco_venda: item.peca_preco_venda,
-          imagem_url: item.peca_imagem_url,
-        }
-      })) as MaletaPeca[];
-      
-      setPecasMaleta(formattedData);
-    } catch (error) {
-      console.error('Error fetching pecas:', error);
-    }
-  };
 
   const fetchInteresses = async () => {
     if (!revendedora) return;
