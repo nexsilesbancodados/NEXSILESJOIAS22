@@ -143,10 +143,10 @@ export default function PortalRevendedoraPage() {
 
   // Fetch peças when maleta is selected
   useEffect(() => {
-    if (maletaSelecionada) {
+    if (maletaSelecionada && revendedora) {
       fetchPecasMaleta(maletaSelecionada.id);
     }
-  }, [maletaSelecionada]);
+  }, [maletaSelecionada, revendedora]);
 
   const handleLogin = async () => {
     if (!loginEmail.trim() || !senha.trim()) {
