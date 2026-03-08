@@ -240,13 +240,19 @@ export default function PortalRevendedoraPage() {
     }
   };
 
-  const fetchPecasMaleta = async (maletaId: string) => {
+  const fetchPecasMaleta = useCallback(async (maletaId: string) => {
     if (!revendedora) return;
     try {
+      console.log('[Portal] Fetching pecas for maleta:', maletaId, 'revendedora:', revendedora.id);
       const { data, error } = await supabase
         .rpc('portal_fetch_maleta_pecas', { p_maleta_id: maletaId, p_revendedora_id: revendedora.id });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Portal] Error from RPC:', error);
+        throw error;
+      }
+      
+      console.log('[Portal] Pecas received:', data?.length || 0);
       
       const formattedData = (data || []).map((item: any) => ({
         id: item.id,
@@ -268,7 +274,7 @@ export default function PortalRevendedoraPage() {
     } catch (error) {
       console.error('Error fetching pecas:', error);
     }
-  };
+  }, [revendedora]);
 
   const fetchInteresses = async () => {
     if (!revendedora) return;
