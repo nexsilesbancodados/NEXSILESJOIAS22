@@ -146,7 +146,7 @@ export default function PortalRevendedoraPage() {
     if (maletaSelecionada && revendedora) {
       fetchPecasMaleta(maletaSelecionada.id);
     }
-  }, [maletaSelecionada, revendedora]);
+  }, [maletaSelecionada, revendedora, fetchPecasMaleta]);
 
   const handleLogin = async () => {
     if (!loginEmail.trim() || !senha.trim()) {
