@@ -311,7 +311,7 @@ export function ConferenciaWizardDialog({
       <BarcodeScannerDialog
         open={scannerOpen}
         onOpenChange={setScannerOpen}
-        onDetected={handleBarcode}
+        onDetect={handleBarcode}
       />
     </>
   );
