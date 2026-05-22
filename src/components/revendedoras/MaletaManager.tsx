@@ -1797,6 +1797,15 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         organizationId={maleta.organization_id ?? null}
         valorEsperado={valorVendido}
       />
+
+      <ConferenciaWizardDialog
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+        comissaoPercentual={comissaoPercentual}
+        onFechado={onClose}
+      />
     </div>
   );
 });
