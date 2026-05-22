@@ -1648,8 +1648,15 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
         </DialogContent>
       </Dialog>
+
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onDetect={handleBarcodeDetected}
+      />
     </div>
   );
 });
+
 
 MaletaManager.displayName = 'MaletaManager';
