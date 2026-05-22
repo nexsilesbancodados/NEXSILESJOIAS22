@@ -215,7 +215,6 @@ export default function RevendedorasPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleteMaletaConfirming, setIsDeleteMaletaConfirming] = useState(false);
   const [selectedRevendedora, setSelectedRevendedora] = useState<Revendedora | null>(null);
   const [viewingRevendedora, setViewingRevendedora] = useState<Revendedora | null>(null);
   const [isMaletaOpen, setIsMaletaOpen] = useState(false);
@@ -661,7 +660,6 @@ export default function RevendedorasPage() {
   // Clear selection when maleta changes
   useEffect(() => {
     setSelectedItemIds(new Set());
-    setIsDeleteMaletaConfirming(false);
   }, [selectedMaleta?.id]);
 
   const deleteSelectedMaleta = useCallback(async () => {
@@ -673,7 +671,6 @@ export default function RevendedorasPage() {
         maletaId: selectedMaleta.id,
         returnToStock: true,
       });
-      setIsDeleteMaletaConfirming(false);
       setIsMaletaOpen(false);
       setSelectedMaleta(null);
     } catch (error) {
@@ -1658,26 +1655,13 @@ export default function RevendedorasPage() {
               <div className="flex w-full justify-between">
                 <Button 
                   variant="destructive" 
-                  onClick={() => {
-                    setIsDeleteMaletaConfirming(true);
-                  }}
+                  onClick={deleteSelectedMaleta}
                   disabled={isDeletingMaleta || !selectedMaleta}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir Maleta
+                  {isDeletingMaleta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  Excluir definitivamente
                 </Button>
                 <div className="flex gap-2">
-                  {isDeleteMaletaConfirming && (
-                    <>
-                      <Button variant="outline" onClick={() => setIsDeleteMaletaConfirming(false)} disabled={isDeletingMaleta}>
-                        Cancelar exclusão
-                      </Button>
-                      <Button variant="destructive" onClick={deleteSelectedMaleta} disabled={isDeletingMaleta}>
-                        {isDeletingMaleta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                        Confirmar exclusão
-                      </Button>
-                    </>
-                  )}
                   <Button variant="outline" onClick={() => setIsMaletaOpen(false)}>
                     Fechar
                   </Button>
