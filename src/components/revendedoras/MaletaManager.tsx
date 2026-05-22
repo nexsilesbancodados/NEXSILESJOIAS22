@@ -111,10 +111,8 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   };
   const limparConferencia = () => setItensConferidos(new Set());
 
-  const totalConferir = itemsPendentes.length;
-  const totalConferidos = itemsPendentes.filter((i) => itensConferidos.has(i.id)).length;
-  const conferenciaCompleta = conferenciaManual ? totalConferidos === totalConferir : true;
-  const itensFaltantes = conferenciaManual ? totalConferir - totalConferidos : 0;
+  const limparConferencia = () => setItensConferidos(new Set());
+
 
   // Computed values - Now using quantidade_vendida for accurate tracking
   // Items with quantidade_vendida > 0 have had sales
