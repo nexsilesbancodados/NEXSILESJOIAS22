@@ -47,8 +47,16 @@ import {
   Download,
   Share2,
   ScanBarcode,
+  Tag,
+  History,
+  ArrowLeftRight,
+  Unlock,
 } from 'lucide-react';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
+import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
+import { TransferirPecaDialog } from './TransferirPecaDialog';
+import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -101,6 +109,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [itensConferidos, setItensConferidos] = useState<Set<string>>(new Set());
   const [motivoDevolucao, setMotivoDevolucao] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [etiquetasOpen, setEtiquetasOpen] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [transferirOpen, setTransferirOpen] = useState(false);
+  const [reabrirOpen, setReabrirOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
