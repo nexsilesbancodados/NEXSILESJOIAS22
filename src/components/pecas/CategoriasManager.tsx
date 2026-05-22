@@ -28,6 +28,7 @@ interface Categoria {
   id: string;
   nome: string;
   ordem: number;
+  comissao_percentual?: number | null;
 }
 
 export function useCategorias() {
@@ -39,7 +40,7 @@ export function useCategorias() {
       if (!organizationId) return [];
       const { data, error } = await supabase
         .from('categorias_pecas' as any)
-        .select('id, nome, ordem')
+        .select('id, nome, ordem, comissao_percentual')
         .eq('organization_id', organizationId)
         .order('ordem', { ascending: true });
       if (error) throw error;
@@ -56,17 +57,19 @@ export function CategoriasManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editItem, setEditItem] = useState<Categoria | null>(null);
   const [nome, setNome] = useState('');
+  const [comissao, setComissao] = useState<string>('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['categorias-pecas'] });
 
   const addMutation = useMutation({
-    mutationFn: async (nome: string) => {
+    mutationFn: async ({ nome, comissao }: { nome: string; comissao: number | null }) => {
       if (!organizationId) throw new Error('Sem organização');
       const { error } = await supabase.from('categorias_pecas' as any).insert({
         organization_id: organizationId,
         nome: nome.trim(),
         ordem: categorias.length,
+        comissao_percentual: comissao,
       });
       if (error) throw error;
     },
@@ -75,8 +78,10 @@ export function CategoriasManager() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, nome }: { id: string; nome: string }) => {
-      const { error } = await supabase.from('categorias_pecas' as any).update({ nome: nome.trim() }).eq('id', id);
+    mutationFn: async ({ id, nome, comissao }: { id: string; nome: string; comissao: number | null }) => {
+      const { error } = await supabase.from('categorias_pecas' as any)
+        .update({ nome: nome.trim(), comissao_percentual: comissao })
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => { invalidate(); toast.success('Categoria atualizada'); },
@@ -94,18 +99,29 @@ export function CategoriasManager() {
 
   const handleSave = () => {
     if (!nome.trim()) return;
+    const comissaoNum = comissao.trim() === '' ? null : parseFloat(comissao);
+    if (comissaoNum !== null && (isNaN(comissaoNum) || comissaoNum < 0 || comissaoNum > 100)) {
+      toast.error('Comissão deve ser entre 0 e 100');
+      return;
+    }
     if (editItem) {
-      updateMutation.mutate({ id: editItem.id, nome });
+      updateMutation.mutate({ id: editItem.id, nome, comissao: comissaoNum });
     } else {
-      addMutation.mutate(nome);
+      addMutation.mutate({ nome, comissao: comissaoNum });
     }
     setDialogOpen(false);
     setEditItem(null);
     setNome('');
+    setComissao('');
   };
 
-  const openAdd = () => { setEditItem(null); setNome(''); setDialogOpen(true); };
-  const openEdit = (cat: Categoria) => { setEditItem(cat); setNome(cat.nome); setDialogOpen(true); };
+  const openAdd = () => { setEditItem(null); setNome(''); setComissao(''); setDialogOpen(true); };
+  const openEdit = (cat: Categoria) => {
+    setEditItem(cat);
+    setNome(cat.nome);
+    setComissao(cat.comissao_percentual != null ? String(cat.comissao_percentual) : '');
+    setDialogOpen(true);
+  };
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>;
 
@@ -123,6 +139,9 @@ export function CategoriasManager() {
         {categorias.map((cat) => (
           <div key={cat.id} className="flex items-center gap-1 px-3 py-1.5 rounded-full border bg-muted/50 text-sm group">
             <span>{cat.nome}</span>
+            {cat.comissao_percentual != null && (
+              <span className="text-xs text-primary font-medium ml-1">{cat.comissao_percentual}%</span>
+            )}
             <button onClick={() => openEdit(cat)} className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-primary">
               <Pencil className="w-3 h-3" />
             </button>
@@ -145,6 +164,19 @@ export function CategoriasManager() {
             <div className="space-y-1.5">
               <Label>Nome</Label>
               <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Anel" onKeyDown={e => e.key === 'Enter' && handleSave()} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Comissão (%) <span className="text-xs text-muted-foreground">— opcional, sobrescreve a comissão da revendedora</span></Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                step="0.5"
+                value={comissao}
+                onChange={e => setComissao(e.target.value)}
+                placeholder="Ex: 25"
+              />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

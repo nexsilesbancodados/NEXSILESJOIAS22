@@ -51,12 +51,14 @@ import {
   History,
   ArrowLeftRight,
   Unlock,
+  FileSignature,
 } from 'lucide-react';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
 import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
 import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
 import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
+import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -113,6 +115,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [transferirOpen, setTransferirOpen] = useState(false);
   const [reabrirOpen, setReabrirOpen] = useState(false);
+  const [assinaturaOpen, setAssinaturaOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
@@ -811,6 +814,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         </Button>
         {maleta.status === 'aberta' && items.length > 0 && (
           <>
+            <Button variant="outline" size="sm" onClick={() => setAssinaturaOpen(true)}>
+              <FileSignature className="w-4 h-4 mr-2" />
+              Comprovante
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setEtiquetasOpen(true)}>
               <Tag className="w-4 h-4 mr-2" />
               Etiquetas
@@ -1715,6 +1722,22 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         onOpenChange={setReabrirOpen}
         maletaId={maleta.id}
         maletaNome={maleta.nome}
+      />
+
+      <AssinaturaRetiradaDialog
+        open={assinaturaOpen}
+        onOpenChange={setAssinaturaOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+        numeroSequencial={(maleta as any).numero_sequencial ?? null}
+        revendedoraId={maleta.revendedora_id ?? null}
+        revendedoraNome={(maleta as any).revendedora?.nome ?? null}
+        items={items.map((it) => ({
+          peca_nome: it.peca?.nome ?? 'Peça',
+          peca_codigo: it.peca?.codigo ?? null,
+          quantidade: it.quantidade ?? 0,
+          preco_unitario: it.preco_unitario ?? it.peca?.preco_venda ?? 0,
+        }))}
       />
     </div>
   );
