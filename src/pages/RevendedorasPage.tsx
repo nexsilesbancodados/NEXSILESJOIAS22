@@ -1655,26 +1655,13 @@ export default function RevendedorasPage() {
               <div className="flex w-full justify-between">
                 <Button 
                   variant="destructive" 
-                  onClick={() => {
-                    setIsDeleteMaletaConfirming(true);
-                  }}
+                  onClick={deleteSelectedMaleta}
                   disabled={isDeletingMaleta || !selectedMaleta}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Excluir Maleta
+                  {isDeletingMaleta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  Excluir definitivamente
                 </Button>
                 <div className="flex gap-2">
-                  {isDeleteMaletaConfirming && (
-                    <>
-                      <Button variant="outline" onClick={() => setIsDeleteMaletaConfirming(false)} disabled={isDeletingMaleta}>
-                        Cancelar exclusão
-                      </Button>
-                      <Button variant="destructive" onClick={deleteSelectedMaleta} disabled={isDeletingMaleta}>
-                        {isDeletingMaleta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                        Confirmar exclusão
-                      </Button>
-                    </>
-                  )}
                   <Button variant="outline" onClick={() => setIsMaletaOpen(false)}>
                     Fechar
                   </Button>
