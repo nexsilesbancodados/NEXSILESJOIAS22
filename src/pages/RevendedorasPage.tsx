@@ -115,6 +115,7 @@ import { useVerificarMaletasVencendo } from '@/hooks/useMaletaAlerts';
 import { ComissaoEscala, FaixaComissao, calcularComissaoPorEscala, serializeFaixas, deserializeFaixas } from '@/components/maleta/ComissaoEscala';
 import { ComissoesManager } from '@/components/revendedoras/ComissoesManager';
 import { AlertasMaletasWidget } from '@/components/revendedoras/AlertasMaletasWidget';
+import { MetasRankingWidget } from '@/components/revendedoras/MetasRankingWidget';
 
 // Hook para atualizar maleta
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -2008,7 +2009,10 @@ export default function RevendedorasPage() {
         />
       </div>
 
-      <AlertasMaletasWidget />
+      <div className="grid lg:grid-cols-2 gap-4">
+        <AlertasMaletasWidget />
+        <MetasRankingWidget />
+      </div>
 
       {/* Cards Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

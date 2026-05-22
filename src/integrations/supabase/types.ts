@@ -2904,6 +2904,77 @@ export type Database = {
         }
         Relationships: []
       }
+      maleta_acertos: {
+        Row: {
+          created_at: string
+          fiado_id: string | null
+          forma_pagamento: string
+          id: string
+          maleta_id: string
+          observacao: string | null
+          organization_id: string
+          parcelas: number | null
+          revendedora_id: string | null
+          user_id: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          fiado_id?: string | null
+          forma_pagamento: string
+          id?: string
+          maleta_id: string
+          observacao?: string | null
+          organization_id: string
+          parcelas?: number | null
+          revendedora_id?: string | null
+          user_id?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          fiado_id?: string | null
+          forma_pagamento?: string
+          id?: string
+          maleta_id?: string
+          observacao?: string | null
+          organization_id?: string
+          parcelas?: number | null
+          revendedora_id?: string | null
+          user_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_acertos_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_acertos_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_acertos_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_acertos_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maleta_assinaturas: {
         Row: {
           assinante_nome: string
@@ -3302,6 +3373,78 @@ export type Database = {
           },
           {
             foreignKeyName: "maleta_transferencias_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maleta_venda_fotos: {
+        Row: {
+          created_at: string
+          foto_url: string
+          id: string
+          maleta_id: string
+          maleta_peca_id: string | null
+          observacao: string | null
+          organization_id: string
+          peca_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          foto_url: string
+          id?: string
+          maleta_id: string
+          maleta_peca_id?: string | null
+          observacao?: string | null
+          organization_id: string
+          peca_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          foto_url?: string
+          id?: string
+          maleta_id?: string
+          maleta_peca_id?: string | null
+          observacao?: string | null
+          organization_id?: string
+          peca_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_venda_fotos_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_venda_fotos_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_venda_fotos_maleta_peca_id_fkey"
+            columns: ["maleta_peca_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_venda_fotos_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_venda_fotos_peca_id_fkey"
             columns: ["peca_id"]
             isOneToOne: false
             referencedRelation: "pecas_loja_public"
@@ -4436,6 +4579,57 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revendedora_metas: {
+        Row: {
+          ano: number
+          created_at: string
+          id: string
+          mes: number
+          meta_valor: number
+          observacao: string | null
+          organization_id: string
+          revendedora_id: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          id?: string
+          mes: number
+          meta_valor?: number
+          observacao?: string | null
+          organization_id: string
+          revendedora_id: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          id?: string
+          mes?: number
+          meta_valor?: number
+          observacao?: string | null
+          organization_id?: string
+          revendedora_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revendedora_metas_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revendedora_metas_revendedora_id_fkey"
+            columns: ["revendedora_id"]
+            isOneToOne: false
+            referencedRelation: "revendedoras_portal_public"
             referencedColumns: ["id"]
           },
         ]
@@ -5729,6 +5923,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      ranking_revendedoras_mes: {
+        Args: { p_ano: number; p_mes: number; p_organization_id: string }
+        Returns: {
+          badge: string
+          meta_valor: number
+          nome: string
+          percentual_meta: number
+          posicao: number
+          revendedora_id: string
+          total_pecas: number
+          total_vendido: number
+        }[]
+      }
       reabrir_maleta: {
         Args: { p_maleta_id: string; p_motivo?: string }
         Returns: string
@@ -5757,6 +5964,18 @@ export type Database = {
           p_peca_id: string
         }
         Returns: string
+      }
+      sugerir_reposicao_revendedora: {
+        Args: { p_limite?: number; p_revendedora_id: string }
+        Returns: {
+          codigo: string
+          estoque_atual: number
+          imagem_url: string
+          nome: string
+          peca_id: string
+          preco_venda: number
+          total_vendido: number
+        }[]
       }
       transferir_peca_entre_maletas: {
         Args: {

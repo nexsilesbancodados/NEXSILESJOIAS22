@@ -52,6 +52,9 @@ import {
   ArrowLeftRight,
   Unlock,
   FileSignature,
+  Sparkles,
+  Camera,
+  Wallet,
 } from 'lucide-react';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
 import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
@@ -59,6 +62,9 @@ import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
 import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
 import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
+import { SugerirReposicaoDialog } from './SugerirReposicaoDialog';
+import { FotosVendasDialog } from './FotosVendasDialog';
+import { AcertoFinanceiroDialog } from './AcertoFinanceiroDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -116,6 +122,9 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [transferirOpen, setTransferirOpen] = useState(false);
   const [reabrirOpen, setReabrirOpen] = useState(false);
   const [assinaturaOpen, setAssinaturaOpen] = useState(false);
+  const [sugerirOpen, setSugerirOpen] = useState(false);
+  const [fotosOpen, setFotosOpen] = useState(false);
+  const [acertoOpen, setAcertoOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
@@ -826,6 +835,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               <ArrowLeftRight className="w-4 h-4 mr-2" />
               Transferir peça
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setSugerirOpen(true)}>
+              <Sparkles className="w-4 h-4 mr-2" />
+              Sugerir reposição
+            </Button>
           </>
         )}
         {maleta.status === 'aberta' && (
@@ -840,10 +853,20 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           </Button>
         )}
         {maleta.status === 'fechada' && (
-          <Button variant="outline" size="sm" onClick={() => setReabrirOpen(true)}>
-            <Unlock className="w-4 h-4 mr-2" />
-            Reabrir maleta
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={() => setReabrirOpen(true)}>
+              <Unlock className="w-4 h-4 mr-2" />
+              Reabrir maleta
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setFotosOpen(true)}>
+              <Camera className="w-4 h-4 mr-2" />
+              Fotos das vendas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAcertoOpen(true)}>
+              <Wallet className="w-4 h-4 mr-2" />
+              Acerto financeiro
+            </Button>
+          </>
         )}
       </div>
 
@@ -1738,6 +1761,30 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           quantidade: it.quantidade ?? 0,
           preco_unitario: it.preco_unitario ?? it.peca?.preco_venda ?? 0,
         }))}
+      />
+
+      <SugerirReposicaoDialog
+        open={sugerirOpen}
+        onOpenChange={setSugerirOpen}
+        revendedoraId={maleta.revendedora_id ?? null}
+        maletaId={maleta.id}
+      />
+
+      <FotosVendasDialog
+        open={fotosOpen}
+        onOpenChange={setFotosOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+        organizationId={maleta.organization_id ?? null}
+      />
+
+      <AcertoFinanceiroDialog
+        open={acertoOpen}
+        onOpenChange={setAcertoOpen}
+        maletaId={maleta.id}
+        revendedoraId={maleta.revendedora_id ?? null}
+        organizationId={maleta.organization_id ?? null}
+        valorEsperado={valorVendido}
       />
     </div>
   );
