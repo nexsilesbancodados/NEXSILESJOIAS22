@@ -46,7 +46,10 @@ import {
   Printer,
   Download,
   Share2,
+  ScanBarcode,
 } from 'lucide-react';
+import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
