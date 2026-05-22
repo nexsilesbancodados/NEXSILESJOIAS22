@@ -84,7 +84,7 @@ export function EtiquetasBarcodeDialog({ open, onOpenChange, items, maletaNome }
       const x = marginX + col * labelW;
       const y = marginY + row * labelH;
 
-      const peca = item.peca || {};
+      const peca: any = item.peca || {};
       const code = peca.codigo_barras || peca.codigo || item.id.slice(0, 8);
       const nome = (peca.nome || '').substring(0, 28);
       const preco = peca.preco_venda ? `R$ ${Number(peca.preco_venda).toFixed(2).replace('.', ',')}` : '';
@@ -141,7 +141,7 @@ export function EtiquetasBarcodeDialog({ open, onOpenChange, items, maletaNome }
           <ScrollArea className="h-[300px] border rounded-md p-2">
             <div className="space-y-1">
               {items.map(item => {
-                const peca = item.peca || {};
+                const peca: any = item.peca || {};
                 return (
                   <label key={item.id} className="flex items-center gap-3 p-2 rounded hover:bg-secondary/50 cursor-pointer">
                     <Checkbox checked={selected.has(item.id)} onCheckedChange={() => toggle(item.id)} />
