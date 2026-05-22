@@ -51,6 +51,7 @@ import {
   History,
   ArrowLeftRight,
   Unlock,
+  FileSignature,
 } from 'lucide-react';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
 import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
@@ -813,6 +814,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         </Button>
         {maleta.status === 'aberta' && items.length > 0 && (
           <>
+            <Button variant="outline" size="sm" onClick={() => setAssinaturaOpen(true)}>
+              <FileSignature className="w-4 h-4 mr-2" />
+              Comprovante
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setEtiquetasOpen(true)}>
               <Tag className="w-4 h-4 mr-2" />
               Etiquetas
