@@ -1429,7 +1429,9 @@ export function useCloseMaleta() {
             .from('maletas_pecas')
             .update({ quantidade: 0 })
             .eq('maleta_id', maletaId)
+            .eq('vendida', false)
             .gt('quantidade', 0);
+
 
           if (zeroError) {
             console.error('Error zeroing pending quantities:', zeroError);
