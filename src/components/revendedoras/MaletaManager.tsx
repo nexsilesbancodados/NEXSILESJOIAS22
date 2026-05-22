@@ -107,9 +107,11 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
     });
   };
   const marcarTodosConferidos = () => {
-    setItensConferidos(new Set(itemsPendentes.map((i) => i.id)));
+    const all = [...itemsPendentes.map((i) => i.id), ...itemsComVendas.map((i) => i.id)];
+    setItensConferidos(new Set(all));
   };
   const limparConferencia = () => setItensConferidos(new Set());
+
 
 
 
