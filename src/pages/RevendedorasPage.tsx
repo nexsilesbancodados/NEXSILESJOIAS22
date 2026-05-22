@@ -114,6 +114,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useVerificarMaletasVencendo } from '@/hooks/useMaletaAlerts';
 import { ComissaoEscala, FaixaComissao, calcularComissaoPorEscala, serializeFaixas, deserializeFaixas } from '@/components/maleta/ComissaoEscala';
 import { ComissoesManager } from '@/components/revendedoras/ComissoesManager';
+import { AlertasMaletasWidget } from '@/components/revendedoras/AlertasMaletasWidget';
 
 // Hook para atualizar maleta
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
