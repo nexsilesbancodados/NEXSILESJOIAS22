@@ -1659,15 +1659,25 @@ export default function RevendedorasPage() {
                 <Button 
                   variant="destructive" 
                   onClick={() => {
-                    console.log('Opening delete maleta dialog for:', selectedMaleta?.id);
-                    setIsDeleteMaletaOpen(true);
+                    setIsDeleteMaletaConfirming(true);
                   }}
-                  disabled={deleteMaletaMutation.isPending || !selectedMaleta}
+                  disabled={isDeletingMaleta || !selectedMaleta}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Excluir Maleta
                 </Button>
                 <div className="flex gap-2">
+                  {isDeleteMaletaConfirming && (
+                    <>
+                      <Button variant="outline" onClick={() => setIsDeleteMaletaConfirming(false)} disabled={isDeletingMaleta}>
+                        Cancelar exclusão
+                      </Button>
+                      <Button variant="destructive" onClick={deleteSelectedMaleta} disabled={isDeletingMaleta}>
+                        {isDeletingMaleta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                        Confirmar exclusão
+                      </Button>
+                    </>
+                  )}
                   <Button variant="outline" onClick={() => setIsMaletaOpen(false)}>
                     Fechar
                   </Button>
