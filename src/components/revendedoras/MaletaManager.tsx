@@ -1500,19 +1500,29 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleExportarPDF}
                 disabled={closeMaletaMutation.isPending}
                 className="flex-1 sm:flex-initial"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Exportar PDF
+                Baixar PDF
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCompartilharPDF}
+                disabled={closeMaletaMutation.isPending}
+                className="flex-1 sm:flex-initial"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartilhar
+              </Button>
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleImprimir}
                 disabled={closeMaletaMutation.isPending}
@@ -1526,12 +1536,13 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               <Button variant="outline" onClick={() => setFecharMaletaModal(false)} disabled={closeMaletaMutation.isPending}>
                 Cancelar
               </Button>
-              <Button 
-                onClick={handleFecharMaleta} 
+              <Button
+                onClick={handleFecharMaleta}
                 disabled={
                   closeMaletaMutation.isPending ||
                   (conferenciaManual &&
-                    itemsPendentes.filter((i) => itensConferidos.has(i.id)).length !== itemsPendentes.length)
+                    [...itemsPendentes, ...itemsComVendas].filter((i) => itensConferidos.has(i.id)).length !==
+                      itemsPendentes.length + itemsComVendas.length)
                 }
                 className="bg-primary hover:bg-primary/90"
               >
@@ -1544,6 +1555,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               </Button>
             </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
