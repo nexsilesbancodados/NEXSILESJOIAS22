@@ -1373,16 +1373,22 @@ export function useCloseMaleta() {
         //  - fully pending items (vendida=false, quantidade=N)
         //  - partially-sold items (vendida=false, quantidade=remaining)
         // We use `quantidade > 0` so anything with units left in the maleta is returned.
+        // Get ONLY items still pending (not sold). Sold items must NEVER return to stock.
+        // - fully pending items (vendida=false, quantidade_vendida=0/null, quantidade>0)
+        // - partially-sold items (vendida=false, quantidade=remaining unsold units)
+        // Items with vendida=true are fully sold and must be ignored here.
         const { data: pendingItems, error: fetchError } = await supabase
           .from('maletas_pecas')
           .select('id, peca_id, quantidade')
           .eq('maleta_id', maletaId)
+          .eq('vendida', false)
           .gt('quantidade', 0);
 
         if (fetchError) {
           console.error('Error fetching pending items:', fetchError);
           throw new Error('Erro ao buscar itens pendentes da maleta');
         }
+
 
         if (pendingItems && pendingItems.length > 0) {
           for (const item of pendingItems) {
