@@ -835,6 +835,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               <ArrowLeftRight className="w-4 h-4 mr-2" />
               Transferir peça
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setSugerirOpen(true)}>
+              <Sparkles className="w-4 h-4 mr-2" />
+              Sugerir reposição
+            </Button>
           </>
         )}
         {maleta.status === 'aberta' && (
@@ -849,10 +853,20 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           </Button>
         )}
         {maleta.status === 'fechada' && (
-          <Button variant="outline" size="sm" onClick={() => setReabrirOpen(true)}>
-            <Unlock className="w-4 h-4 mr-2" />
-            Reabrir maleta
-          </Button>
+          <>
+            <Button variant="outline" size="sm" onClick={() => setReabrirOpen(true)}>
+              <Unlock className="w-4 h-4 mr-2" />
+              Reabrir maleta
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setFotosOpen(true)}>
+              <Camera className="w-4 h-4 mr-2" />
+              Fotos das vendas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAcertoOpen(true)}>
+              <Wallet className="w-4 h-4 mr-2" />
+              Acerto financeiro
+            </Button>
+          </>
         )}
       </div>
 
@@ -1747,6 +1761,30 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           quantidade: it.quantidade ?? 0,
           preco_unitario: it.preco_unitario ?? it.peca?.preco_venda ?? 0,
         }))}
+      />
+
+      <SugerirReposicaoDialog
+        open={sugerirOpen}
+        onOpenChange={setSugerirOpen}
+        revendedoraId={maleta.revendedora_id ?? null}
+        maletaId={maleta.id}
+      />
+
+      <FotosVendasDialog
+        open={fotosOpen}
+        onOpenChange={setFotosOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+        organizationId={maleta.organization_id ?? null}
+      />
+
+      <AcertoFinanceiroDialog
+        open={acertoOpen}
+        onOpenChange={setAcertoOpen}
+        maletaId={maleta.id}
+        revendedoraId={maleta.revendedora_id ?? null}
+        organizationId={maleta.organization_id ?? null}
+        valorEsperado={valorVendido}
       />
     </div>
   );
