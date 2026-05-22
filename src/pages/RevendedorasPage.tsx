@@ -2197,63 +2197,6 @@ export default function RevendedorasPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Maleta Alert Dialog */}
-      <AlertDialog 
-        open={isDeleteMaletaOpen} 
-        onOpenChange={(open) => {
-          if (!isDeletingMaleta) {
-            setIsDeleteMaletaOpen(open);
-          }
-        }}
-      >
-        <AlertDialogContent className="z-[100]" overlayClassName="z-[99]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Maleta</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a maleta "{selectedMaleta?.nome}"? 
-              {maletaItems.filter(i => !i.vendida).length > 0 && (
-                <span className="block mt-2 text-amber-600">
-                  ⚠️ {maletaItems.filter(i => !i.vendida).length} peça(s) não vendida(s) serão devolvidas ao estoque.
-                </span>
-              )}
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingMaleta}>Cancelar</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (!selectedMaleta || isDeletingMaleta) return;
-                
-                setIsDeletingMaleta(true);
-                try {
-                  await deleteMaletaMutation.mutateAsync({ 
-                    maletaId: selectedMaleta.id, 
-                    returnToStock: true 
-                  });
-                  setIsDeleteMaletaOpen(false);
-                  setIsMaletaOpen(false);
-                  setSelectedMaleta(null);
-                } catch (error) {
-                  console.error('Error deleting maleta:', error);
-                } finally {
-                  setIsDeletingMaleta(false);
-                }
-              }}
-              disabled={isDeletingMaleta}
-            >
-              {isDeletingMaleta ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Excluir Maleta
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* Modal de seleção de quantidade para venda */}
       <QuantidadeVendaModal
         open={vendaModalOpen}
