@@ -2007,6 +2007,8 @@ export default function RevendedorasPage() {
         />
       </div>
 
+      <AlertasMaletasWidget />
+
       {/* Cards Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {revendedoras.map((rev, index) => (
