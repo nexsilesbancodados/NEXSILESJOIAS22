@@ -1069,6 +1069,7 @@ export type Database = {
       }
       categorias_pecas: {
         Row: {
+          comissao_percentual: number | null
           created_at: string | null
           id: string
           nome: string
@@ -1077,6 +1078,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          comissao_percentual?: number | null
           created_at?: string | null
           id?: string
           nome: string
@@ -1085,6 +1087,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          comissao_percentual?: number | null
           created_at?: string | null
           id?: string
           nome?: string
@@ -2901,6 +2904,63 @@ export type Database = {
         }
         Relationships: []
       }
+      maleta_assinaturas: {
+        Row: {
+          assinante_nome: string
+          assinatura_base64: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          maleta_id: string
+          observacoes: string | null
+          organization_id: string
+          revendedora_id: string | null
+          snapshot_itens: Json
+          user_agent: string | null
+        }
+        Insert: {
+          assinante_nome: string
+          assinatura_base64: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          maleta_id: string
+          observacoes?: string | null
+          organization_id: string
+          revendedora_id?: string | null
+          snapshot_itens?: Json
+          user_agent?: string | null
+        }
+        Update: {
+          assinante_nome?: string
+          assinatura_base64?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          maleta_id?: string
+          observacoes?: string | null
+          organization_id?: string
+          revendedora_id?: string | null
+          snapshot_itens?: Json
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_assinaturas_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_assinaturas_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maleta_conferencias: {
         Row: {
           created_at: string
@@ -3251,6 +3311,7 @@ export type Database = {
       }
       maletas: {
         Row: {
+          alerta_enviado_em: string | null
           codigo: string | null
           cor_primaria: string | null
           cor_secundaria: string | null
@@ -3265,6 +3326,7 @@ export type Database = {
           numero_sequencial: number | null
           observacoes: string | null
           organization_id: string | null
+          prazo_devolucao: string | null
           revendedora_id: string | null
           sharing_slug: string | null
           status: string | null
@@ -3272,6 +3334,7 @@ export type Database = {
           valor_total: number | null
         }
         Insert: {
+          alerta_enviado_em?: string | null
           codigo?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
@@ -3286,6 +3349,7 @@ export type Database = {
           numero_sequencial?: number | null
           observacoes?: string | null
           organization_id?: string | null
+          prazo_devolucao?: string | null
           revendedora_id?: string | null
           sharing_slug?: string | null
           status?: string | null
@@ -3293,6 +3357,7 @@ export type Database = {
           valor_total?: number | null
         }
         Update: {
+          alerta_enviado_em?: string | null
           codigo?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
@@ -3307,6 +3372,7 @@ export type Database = {
           numero_sequencial?: number | null
           observacoes?: string | null
           organization_id?: string | null
+          prazo_devolucao?: string | null
           revendedora_id?: string | null
           sharing_slug?: string | null
           status?: string | null
@@ -3842,6 +3908,7 @@ export type Database = {
           categoria: string | null
           codigo: string | null
           codigo_barras: string | null
+          comissao_percentual_override: number | null
           created_at: string | null
           descricao: string | null
           disponivel_loja: boolean
@@ -3867,6 +3934,7 @@ export type Database = {
           categoria?: string | null
           codigo?: string | null
           codigo_barras?: string | null
+          comissao_percentual_override?: number | null
           created_at?: string | null
           descricao?: string | null
           disponivel_loja?: boolean
@@ -3892,6 +3960,7 @@ export type Database = {
           categoria?: string | null
           codigo?: string | null
           codigo_barras?: string | null
+          comissao_percentual_override?: number | null
           created_at?: string | null
           descricao?: string | null
           disponivel_loja?: boolean
@@ -5461,6 +5530,10 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_comissao_peca: {
+        Args: { p_peca_id: string; p_revendedora_id: string }
+        Returns: number
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -5552,6 +5625,21 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      maletas_vencidas: {
+        Args: { p_dias_parada?: number }
+        Returns: {
+          dias_aberta: number
+          dias_vencida: number
+          id: string
+          nome: string
+          numero_sequencial: number
+          organization_id: string
+          prazo_devolucao: string
+          revendedora_id: string
+          revendedora_nome: string
+          status: string
+        }[]
       }
       portal_desfazer_venda: {
         Args: {
