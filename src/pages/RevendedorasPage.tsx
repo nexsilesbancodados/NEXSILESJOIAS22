@@ -215,7 +215,7 @@ export default function RevendedorasPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleteMaletaOpen, setIsDeleteMaletaOpen] = useState(false);
+  const [isDeleteMaletaConfirming, setIsDeleteMaletaConfirming] = useState(false);
   const [selectedRevendedora, setSelectedRevendedora] = useState<Revendedora | null>(null);
   const [viewingRevendedora, setViewingRevendedora] = useState<Revendedora | null>(null);
   const [isMaletaOpen, setIsMaletaOpen] = useState(false);
@@ -661,7 +661,27 @@ export default function RevendedorasPage() {
   // Clear selection when maleta changes
   useEffect(() => {
     setSelectedItemIds(new Set());
+    setIsDeleteMaletaConfirming(false);
   }, [selectedMaleta?.id]);
+
+  const deleteSelectedMaleta = useCallback(async () => {
+    if (!selectedMaleta || isDeletingMaleta) return;
+
+    setIsDeletingMaleta(true);
+    try {
+      await deleteMaletaMutation.mutateAsync({
+        maletaId: selectedMaleta.id,
+        returnToStock: true,
+      });
+      setIsDeleteMaletaConfirming(false);
+      setIsMaletaOpen(false);
+      setSelectedMaleta(null);
+    } catch (error) {
+      console.error('Error deleting maleta:', error);
+    } finally {
+      setIsDeletingMaleta(false);
+    }
+  }, [deleteMaletaMutation, isDeletingMaleta, selectedMaleta]);
 
   const handleFecharMaleta = async () => {
     if (!selectedMaleta) return;
@@ -1639,15 +1659,25 @@ export default function RevendedorasPage() {
                 <Button 
                   variant="destructive" 
                   onClick={() => {
-                    console.log('Opening delete maleta dialog for:', selectedMaleta?.id);
-                    setIsDeleteMaletaOpen(true);
+                    setIsDeleteMaletaConfirming(true);
                   }}
-                  disabled={deleteMaletaMutation.isPending || !selectedMaleta}
+                  disabled={isDeletingMaleta || !selectedMaleta}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Excluir Maleta
                 </Button>
                 <div className="flex gap-2">
+                  {isDeleteMaletaConfirming && (
+                    <>
+                      <Button variant="outline" onClick={() => setIsDeleteMaletaConfirming(false)} disabled={isDeletingMaleta}>
+                        Cancelar exclusão
+                      </Button>
+                      <Button variant="destructive" onClick={deleteSelectedMaleta} disabled={isDeletingMaleta}>
+                        {isDeletingMaleta ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                        Confirmar exclusão
+                      </Button>
+                    </>
+                  )}
                   <Button variant="outline" onClick={() => setIsMaletaOpen(false)}>
                     Fechar
                   </Button>
@@ -2163,63 +2193,6 @@ export default function RevendedorasPage() {
               ) : null}
               Excluir
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Maleta Alert Dialog */}
-      <AlertDialog 
-        open={isDeleteMaletaOpen} 
-        onOpenChange={(open) => {
-          if (!isDeletingMaleta) {
-            setIsDeleteMaletaOpen(open);
-          }
-        }}
-      >
-        <AlertDialogContent className="z-[100]" overlayClassName="z-[99]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Maleta</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir a maleta "{selectedMaleta?.nome}"? 
-              {maletaItems.filter(i => !i.vendida).length > 0 && (
-                <span className="block mt-2 text-amber-600">
-                  ⚠️ {maletaItems.filter(i => !i.vendida).length} peça(s) não vendida(s) serão devolvidas ao estoque.
-                </span>
-              )}
-              Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingMaleta}>Cancelar</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (!selectedMaleta || isDeletingMaleta) return;
-                
-                setIsDeletingMaleta(true);
-                try {
-                  await deleteMaletaMutation.mutateAsync({ 
-                    maletaId: selectedMaleta.id, 
-                    returnToStock: true 
-                  });
-                  setIsDeleteMaletaOpen(false);
-                  setIsMaletaOpen(false);
-                  setSelectedMaleta(null);
-                } catch (error) {
-                  console.error('Error deleting maleta:', error);
-                } finally {
-                  setIsDeletingMaleta(false);
-                }
-              }}
-              disabled={isDeletingMaleta}
-            >
-              {isDeletingMaleta ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Excluir Maleta
-            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1496,9 +1496,28 @@ export function useDeleteMaleta() {
         throw new Error(`Erro ao excluir maleta: ${error.message}`);
       }
 
+      const { data: stillExists, error: verifyError } = await supabase
+        .from('maletas')
+        .select('id')
+        .eq('id', maletaId)
+        .maybeSingle();
+
+      if (verifyError) {
+        console.error('Error verifying maleta deletion:', verifyError);
+        throw new Error(`Erro ao confirmar exclusão da maleta: ${verifyError.message}`);
+      }
+
+      if (stillExists) {
+        throw new Error('A maleta continuou no banco após a exclusão. Tente novamente.');
+      }
+
       return data as { deleted: boolean; returned_units: number };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
+      queryClient.setQueriesData<Maleta[]>({ queryKey: ['maletas'] }, (old) =>
+        old?.filter((maleta) => maleta.id !== variables.maletaId) ?? old
+      );
+      queryClient.removeQueries({ queryKey: ['maleta-items', variables.maletaId] });
       queryClient.invalidateQueries({ queryKey: ['maletas'] });
       queryClient.invalidateQueries({ queryKey: ['maleta-items'] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
