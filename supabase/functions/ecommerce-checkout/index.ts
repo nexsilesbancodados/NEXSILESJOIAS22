@@ -1,11 +1,40 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { parseJson, z } from "../_shared/validate.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const CheckoutSchema = z.object({
+  items: z.array(z.object({
+    peca_id: z.string().uuid(),
+    quantidade: z.number().int().positive().max(1000),
+    preco_unitario: z.number().nonnegative(),
+    nome: z.string().max(500),
+    codigo: z.string().max(100).optional(),
+    descricao: z.string().max(2000).optional(),
+    categoria: z.string().max(200).optional(),
+  })).min(1).max(100),
+  organization_id: z.string().uuid(),
+  cliente: z.object({
+    nome: z.string().min(1).max(200),
+    email: z.string().email().max(255).optional(),
+    telefone: z.string().max(30).optional(),
+    cpf: z.string().max(20).optional(),
+  }),
+  endereco: z.object({
+    cep: z.string().max(15),
+    rua: z.string().max(300),
+    numero: z.string().max(20),
+    complemento: z.string().max(200).optional(),
+    bairro: z.string().max(200),
+    cidade: z.string().max(200),
+    estado: z.string().max(50),
+  }).optional(),
+  valor_frete: z.number().nonnegative().max(10000),
+  metodo_pagamento: z.string().max(50).optional(),
+  cupom_id: z.string().uuid().optional(),
+  valor_desconto: z.number().nonnegative().optional(),
+});
 
 interface CartItem {
   peca_id: string;
@@ -46,12 +75,18 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Anti-abuse: 30 checkouts/min per IP
+  const rl = await rateLimit(req, "ecommerce-checkout", { maxRequests: 30 });
+  if (rl) return rl;
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body: CheckoutRequest = await req.json();
+    const parsed = await parseJson(req, CheckoutSchema);
+    if (parsed.error) return parsed.error;
+    const body = parsed.data;
     const { items, organization_id, cliente, endereco, valor_frete, metodo_pagamento, cupom_id, valor_desconto } = body;
 
     if (!items || items.length === 0) throw new Error("Carrinho vazio");
