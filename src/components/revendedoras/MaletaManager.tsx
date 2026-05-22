@@ -349,45 +349,49 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   };
 
 
-  const handleExportarPDF = () => {
+  const buildPdfDoc = () => {
     const dados = gerarDadosResumo();
     const doc = new jsPDF();
-    
-    // Header
+
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Resumo de Fechamento de Maleta', 14, 20);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Maleta: ${dados.maletaNome}`, 14, 32);
     doc.text(`Data de Criação: ${dados.dataCriacao}`, 14, 38);
     doc.text(`Data de Fechamento: ${dados.dataFechamento}`, 14, 44);
-    
-    // Resumo de Peças
+    if (dados.conferenciaAtiva) {
+      doc.text('Conferência manual: ATIVADA', 14, 50);
+    }
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Resumo de Peças', 14, 56);
-    
+    doc.text('Resumo de Peças', 14, 62);
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Total de Peças: ${dados.totalPecas}`, 14, 64);
-    doc.text(`Peças Vendidas: ${dados.pecasVendidas}`, 14, 70);
-    doc.text(`Peças Devolvidas: ${dados.pecasPendentes}`, 14, 76);
-    
-    let yPos = 90;
-    
-    // Tabela de peças vendidas
+    doc.text(`Total de Peças: ${dados.totalPecas}`, 14, 70);
+    doc.text(`Peças Vendidas: ${dados.pecasVendidas}`, 14, 76);
+    doc.text(`Peças Devolvidas: ${dados.pecasPendentes}`, 14, 82);
+
+    let yPos = 96;
+
+    const confColHead = dados.conferenciaAtiva ? ['Conf.'] : [];
+    const confCell = (ok: boolean) => (dados.conferenciaAtiva ? [ok ? '[X]' : '[ ]'] : []);
+
     if (dados.itemsVendidos.length > 0) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Peças Vendidas', 14, yPos);
       yPos += 4;
-      
+
       autoTable(doc, {
         startY: yPos,
-        head: [['Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
+        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
         body: dados.itemsVendidos.map(item => [
+          ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 30 ? item.nome.substring(0, 30) + '...' : item.nome,
           item.quantidade.toString(),
@@ -395,64 +399,62 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           formatCurrency(item.subtotal),
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [34, 197, 94] }, // success green
+        headStyles: { fillColor: [34, 197, 94] },
         styles: { fontSize: 8 },
         margin: { left: 14, right: 14 },
       });
-      
+
       yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
       yPos += 10;
     }
-    
-    // Tabela de peças devolvidas
+
     if (dados.itemsPendentes.length > 0 && yPos < 250) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Peças Devolvidas ao Estoque', 14, yPos);
       yPos += 4;
-      
+
       autoTable(doc, {
         startY: yPos,
-        head: [['Código', 'Produto', 'Qtd', 'Valor Unit.']],
+        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Valor Unit.']],
         body: dados.itemsPendentes.map(item => [
+          ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 35 ? item.nome.substring(0, 35) + '...' : item.nome,
           item.quantidade.toString(),
           formatCurrency(item.preco),
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [234, 179, 8] }, // warning yellow
+        headStyles: { fillColor: [234, 179, 8] },
         styles: { fontSize: 8 },
         margin: { left: 14, right: 14 },
       });
-      
+
       yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
       yPos += 10;
     }
-    
-    // Resumo Financeiro
+
     if (yPos > 230) {
       doc.addPage();
       yPos = 20;
     }
-    
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Resumo Financeiro', 14, yPos);
     yPos += 10;
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Valor Total em Vendas: ${formatCurrency(dados.valorVendido)}`, 14, yPos);
     yPos += 6;
     doc.text(`Valor Devolvido ao Estoque: ${formatCurrency(dados.valorPendente)}`, 14, yPos);
     yPos += 10;
-    
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.text(`Comissão (${dados.comissaoPercentual}%): ${formatCurrency(dados.comissaoEstimada)}`, 14, yPos);
-    
-    // Footer
+
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -464,10 +466,40 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         doc.internal.pageSize.height - 10
       );
     }
-    
+
+    return doc;
+  };
+
+  const handleExportarPDF = () => {
+    const doc = buildPdfDoc();
     doc.save(`fechamento-maleta-${maleta.id.slice(-6)}.pdf`);
     toast.success('PDF exportado com sucesso!');
   };
+
+  const handleCompartilharPDF = async () => {
+    const doc = buildPdfDoc();
+    const blob = doc.output('blob') as Blob;
+    const fileName = `fechamento-maleta-${maleta.id.slice(-6)}.pdf`;
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+
+    const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+    if (nav.canShare && nav.canShare({ files: [file] }) && navigator.share) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Fechamento de Maleta',
+          text: `Resumo de fechamento da maleta "${maleta.nome || maleta.id.slice(-4)}"`,
+        });
+        return;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+        console.warn('Share falhou, baixando PDF:', err);
+      }
+    }
+    doc.save(fileName);
+    toast.info('Compartilhamento indisponível neste navegador. PDF baixado.');
+  };
+
 
   const handleImprimir = () => {
     const dados = gerarDadosResumo();
