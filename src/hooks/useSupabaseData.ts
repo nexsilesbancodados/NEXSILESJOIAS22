@@ -1183,18 +1183,36 @@ export function useUpdateMaletaItem() {
     }) => {
       // For 'devolvido' status, we need to delete the item and return to stock
       if (status === 'devolvido') {
-        // First return to stock
-        const { data: pecaData } = await supabase
-          .from('pecas')
-          .select('estoque')
-          .eq('id', pecaId)
+        // ALWAYS fetch the actual remaining quantity from DB — the `quantidade` column
+        // already reflects pending units (decremented on each partial sale).
+        // This prevents bugs where callers pass `1` by default and only 1 unit is
+        // returned even when 7 were pending.
+        const { data: itemData, error: itemErr } = await supabase
+          .from('maletas_pecas')
+          .select('quantidade')
+          .eq('id', id)
           .single();
-        
-        if (pecaData) {
-          await supabase
+
+        if (itemErr) {
+          console.error('Error fetching maleta item before return:', itemErr);
+          throw new Error('Erro ao buscar item da maleta');
+        }
+
+        const quantidadeToReturn = itemData?.quantidade ?? quantidade ?? 1;
+
+        if (quantidadeToReturn > 0) {
+          const { data: pecaData } = await supabase
             .from('pecas')
-            .update({ estoque: (pecaData.estoque || 0) + quantidade })
-            .eq('id', pecaId);
+            .select('estoque')
+            .eq('id', pecaId)
+            .single();
+
+          if (pecaData) {
+            await supabase
+              .from('pecas')
+              .update({ estoque: (pecaData.estoque || 0) + quantidadeToReturn })
+              .eq('id', pecaId);
+          }
         }
 
         // Then delete the item from maleta
@@ -1204,7 +1222,7 @@ export function useUpdateMaletaItem() {
           .eq('id', id);
         
         if (deleteError) throw deleteError;
-        return { id, deleted: true };
+        return { id, deleted: true, quantidadeReturned: quantidadeToReturn };
       }
 
       // For 'vendido' status with partial quantity (selling part of a multi-quantity item)
