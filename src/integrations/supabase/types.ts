@@ -3092,6 +3092,56 @@ export type Database = {
           },
         ]
       }
+      maleta_conferencias_itens: {
+        Row: {
+          conferencia_id: string
+          created_at: string
+          divergencia: boolean
+          id: string
+          maleta_peca_id: string
+          observacao: string | null
+          peca_id: string | null
+          qtd_devolvida: number
+          qtd_esperada: number
+          qtd_perdida: number
+          qtd_vendida: number
+        }
+        Insert: {
+          conferencia_id: string
+          created_at?: string
+          divergencia?: boolean
+          id?: string
+          maleta_peca_id: string
+          observacao?: string | null
+          peca_id?: string | null
+          qtd_devolvida?: number
+          qtd_esperada?: number
+          qtd_perdida?: number
+          qtd_vendida?: number
+        }
+        Update: {
+          conferencia_id?: string
+          created_at?: string
+          divergencia?: boolean
+          id?: string
+          maleta_peca_id?: string
+          observacao?: string | null
+          peca_id?: string | null
+          qtd_devolvida?: number
+          qtd_esperada?: number
+          qtd_perdida?: number
+          qtd_vendida?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_conferencias_itens_conferencia_id_fkey"
+            columns: ["conferencia_id"]
+            isOneToOne: false
+            referencedRelation: "maleta_conferencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maleta_devolucoes: {
         Row: {
           created_at: string
@@ -3548,43 +3598,64 @@ export type Database = {
       }
       maletas_pecas: {
         Row: {
+          codigo_snapshot: string | null
           created_at: string | null
           data_devolucao: string | null
           data_venda: string | null
           id: string
           maleta_id: string
           motivo_devolucao: string | null
+          motivo_perda: string | null
+          nome_snapshot: string | null
           peca_id: string
           preco_unitario: number | null
+          preco_unitario_snapshot: number | null
           quantidade: number
+          quantidade_devolvida: number
+          quantidade_inicial: number
+          quantidade_perdida: number
           quantidade_vendida: number | null
           updated_at: string | null
           vendida: boolean | null
         }
         Insert: {
+          codigo_snapshot?: string | null
           created_at?: string | null
           data_devolucao?: string | null
           data_venda?: string | null
           id?: string
           maleta_id: string
           motivo_devolucao?: string | null
+          motivo_perda?: string | null
+          nome_snapshot?: string | null
           peca_id: string
           preco_unitario?: number | null
+          preco_unitario_snapshot?: number | null
           quantidade?: number
+          quantidade_devolvida?: number
+          quantidade_inicial?: number
+          quantidade_perdida?: number
           quantidade_vendida?: number | null
           updated_at?: string | null
           vendida?: boolean | null
         }
         Update: {
+          codigo_snapshot?: string | null
           created_at?: string | null
           data_devolucao?: string | null
           data_venda?: string | null
           id?: string
           maleta_id?: string
           motivo_devolucao?: string | null
+          motivo_perda?: string | null
+          nome_snapshot?: string | null
           peca_id?: string
           preco_unitario?: number | null
+          preco_unitario_snapshot?: number | null
           quantidade?: number
+          quantidade_devolvida?: number
+          quantidade_inicial?: number
+          quantidade_perdida?: number
           quantidade_vendida?: number | null
           updated_at?: string | null
           vendida?: boolean | null
@@ -5818,6 +5889,47 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      maleta_adicionar_peca: {
+        Args: {
+          p_maleta_id: string
+          p_peca_id: string
+          p_preco?: number
+          p_quantidade: number
+        }
+        Returns: string
+      }
+      maleta_conferir: {
+        Args: { p_itens: Json; p_maleta_id: string; p_observacoes?: string }
+        Returns: Json
+      }
+      maleta_desfazer_venda: {
+        Args: { p_maleta_peca_id: string; p_quantidade: number }
+        Returns: boolean
+      }
+      maleta_fechar_v2: {
+        Args: { p_forcar?: boolean; p_maleta_id: string }
+        Returns: Json
+      }
+      maleta_marcar_perdida: {
+        Args: {
+          p_maleta_peca_id: string
+          p_motivo: string
+          p_quantidade: number
+        }
+        Returns: boolean
+      }
+      maleta_registrar_venda: {
+        Args: {
+          p_maleta_peca_id: string
+          p_preco?: number
+          p_quantidade: number
+        }
+        Returns: boolean
+      }
+      maleta_remover_peca: {
+        Args: { p_maleta_peca_id: string; p_quantidade: number }
         Returns: boolean
       }
       maletas_vencidas: {

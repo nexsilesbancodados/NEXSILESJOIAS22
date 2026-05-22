@@ -65,6 +65,7 @@ import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
 import { SugerirReposicaoDialog } from './SugerirReposicaoDialog';
 import { FotosVendasDialog } from './FotosVendasDialog';
 import { AcertoFinanceiroDialog } from './AcertoFinanceiroDialog';
+import { ConferenciaWizardDialog } from './ConferenciaWizardDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -125,6 +126,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [sugerirOpen, setSugerirOpen] = useState(false);
   const [fotosOpen, setFotosOpen] = useState(false);
   const [acertoOpen, setAcertoOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
@@ -842,15 +844,24 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           </>
         )}
         {maleta.status === 'aberta' && (
-          <Button
-            variant="default"
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => setFecharMaletaModal(true)}
-            disabled={isPending}
-          >
-            <Lock className="w-4 h-4 mr-2" />
-            Fechar Maleta
-          </Button>
+          <>
+            <Button
+              variant="default"
+              className="bg-gradient-to-r from-primary to-pink-500 hover:opacity-90 text-white shadow-lg"
+              onClick={() => setWizardOpen(true)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Conferir &amp; fechar (Wizard)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setFecharMaletaModal(true)}
+              disabled={isPending}
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Fechar (modo clássico)
+            </Button>
+          </>
         )}
         {maleta.status === 'fechada' && (
           <>
@@ -1785,6 +1796,15 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         revendedoraId={maleta.revendedora_id ?? null}
         organizationId={maleta.organization_id ?? null}
         valorEsperado={valorVendido}
+      />
+
+      <ConferenciaWizardDialog
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+        comissaoPercentual={comissaoPercentual}
+        onFechado={onClose}
       />
     </div>
   );
