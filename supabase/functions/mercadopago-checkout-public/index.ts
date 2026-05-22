@@ -1,10 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { corsHeaders } from "../_shared/cors.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { parseJson, z } from "../_shared/validate.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const CheckoutBodySchema = z.object({
+  email: z.string().email().max(255),
+  plano: z.enum(["ecommerce", "bronze", "prata", "diamante", "teste"]),
+  periodo: z.enum(["mensal", "anual"]),
+});
 
 interface CheckoutRequest {
   email: string;
@@ -46,6 +49,10 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // 20 checkout starts per IP per minute (anti-abuse / anti-spam)
+  const rl = await rateLimit(req, "mercadopago-checkout-public", { maxRequests: 20 });
+  if (rl) return rl;
+
   try {
     const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
     if (!MERCADOPAGO_ACCESS_TOKEN) {
@@ -53,10 +60,13 @@ serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const { email, plano, periodo }: CheckoutRequest = await req.json();
 
-    if (!email || !plano || !PLANOS[plano]) {
-      throw new Error("Email e plano são obrigatórios");
+    const parsed = await parseJson(req, CheckoutBodySchema);
+    if (parsed.error) return parsed.error;
+    const { email, plano, periodo } = parsed.data;
+
+    if (!PLANOS[plano]) {
+      throw new Error("Plano inválido");
     }
 
     // Validate email format
