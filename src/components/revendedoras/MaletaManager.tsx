@@ -1461,7 +1461,11 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               </Button>
               <Button 
                 onClick={handleFecharMaleta} 
-                disabled={closeMaletaMutation.isPending}
+                disabled={
+                  closeMaletaMutation.isPending ||
+                  (conferenciaManual &&
+                    itemsPendentes.filter((i) => itensConferidos.has(i.id)).length !== itemsPendentes.length)
+                }
                 className="bg-primary hover:bg-primary/90"
               >
                 {closeMaletaMutation.isPending ? (
