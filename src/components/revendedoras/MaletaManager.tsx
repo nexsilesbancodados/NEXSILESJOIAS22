@@ -52,6 +52,9 @@ import {
   ArrowLeftRight,
   Unlock,
   FileSignature,
+  Sparkles,
+  Camera,
+  Wallet,
 } from 'lucide-react';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
 import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
@@ -59,6 +62,9 @@ import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
 import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
 import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
+import { SugerirReposicaoDialog } from './SugerirReposicaoDialog';
+import { FotosVendasDialog } from './FotosVendasDialog';
+import { AcertoFinanceiroDialog } from './AcertoFinanceiroDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -116,6 +122,9 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [transferirOpen, setTransferirOpen] = useState(false);
   const [reabrirOpen, setReabrirOpen] = useState(false);
   const [assinaturaOpen, setAssinaturaOpen] = useState(false);
+  const [sugerirOpen, setSugerirOpen] = useState(false);
+  const [fotosOpen, setFotosOpen] = useState(false);
+  const [acertoOpen, setAcertoOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
