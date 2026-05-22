@@ -93,9 +93,28 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [reporModal, setReporModal] = useState<{ open: boolean; item: MaletaItem | null }>({ open: false, item: null });
   const [detalhesModal, setDetalhesModal] = useState<{ open: boolean; peca: Peca | null }>({ open: false, peca: null });
   const [fecharMaletaModal, setFecharMaletaModal] = useState(false);
+  const [conferenciaManual, setConferenciaManual] = useState(false);
+  const [itensConferidos, setItensConferidos] = useState<Set<string>>(new Set());
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
+
+  const toggleConferido = (id: string) => {
+    setItensConferidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const marcarTodosConferidos = () => {
+    setItensConferidos(new Set(itemsPendentes.map((i) => i.id)));
+  };
+  const limparConferencia = () => setItensConferidos(new Set());
+
+  const totalConferir = itemsPendentes.length;
+  const totalConferidos = itemsPendentes.filter((i) => itensConferidos.has(i.id)).length;
+  const conferenciaCompleta = conferenciaManual ? totalConferidos === totalConferir : true;
+  const itensFaltantes = conferenciaManual ? totalConferir - totalConferidos : 0;
 
   // Computed values - Now using quantidade_vendida for accurate tracking
   // Items with quantidade_vendida > 0 have had sales
