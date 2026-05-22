@@ -181,6 +181,7 @@ export interface Maleta {
   cor_primaria: string | null;
   cor_secundaria: string | null;
   imagem_capa: string | null;
+  numero_sequencial: number | null;
   created_at: string | null;
   updated_at: string | null;
 }

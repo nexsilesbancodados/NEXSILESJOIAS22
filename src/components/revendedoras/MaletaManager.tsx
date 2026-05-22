@@ -46,7 +46,10 @@ import {
   Printer,
   Download,
   Share2,
+  ScanBarcode,
 } from 'lucide-react';
+import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
@@ -96,6 +99,8 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [fecharMaletaModal, setFecharMaletaModal] = useState(false);
   const [conferenciaManual, setConferenciaManual] = useState(false);
   const [itensConferidos, setItensConferidos] = useState<Set<string>>(new Set());
+  const [motivoDevolucao, setMotivoDevolucao] = useState('');
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
@@ -112,6 +117,30 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
     setItensConferidos(new Set(all));
   };
   const limparConferencia = () => setItensConferidos(new Set());
+
+  const handleBarcodeDetected = (code: string) => {
+    const norm = code.trim().toLowerCase();
+    const all = [...itemsComVendas, ...itemsPendentes];
+    const found = all.find((i) => {
+      const c1 = (i.peca?.codigo || '').toLowerCase();
+      const c2 = ((i.peca as { codigo_barras?: string })?.codigo_barras || '').toLowerCase();
+      return (c1 && c1 === norm) || (c2 && c2 === norm);
+    });
+    if (!found) {
+      toast.error(`Código "${code}" não encontrado nesta maleta`);
+      return;
+    }
+    setItensConferidos((prev) => {
+      const next = new Set(prev);
+      next.add(found.id);
+      return next;
+    });
+    toast.success(`Conferido: ${found.peca?.nome ?? code}`);
+  };
+
+  const maletaLabel = maleta.numero_sequencial
+    ? `Maleta #${String(maleta.numero_sequencial).padStart(3, '0')}`
+    : maleta.nome || `Maleta #${maleta.id.slice(-4)}`;
 
 
 
@@ -317,7 +346,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   // Gerar conteúdo do resumo para PDF/impressão
   const gerarDadosResumo = () => {
     return {
-      maletaNome: maleta.nome || `Maleta #${maleta.id.slice(-4)}`,
+      maletaNome: maleta.nome ? `${maletaLabel} — ${maleta.nome}` : maletaLabel,
       dataFechamento: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
       dataCriacao: maleta.created_at ? format(new Date(maleta.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '-',
       totalPecas,
@@ -390,8 +419,9 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
       autoTable(doc, {
         startY: yPos,
-        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
-        body: dados.itemsVendidos.map(item => [
+        head: [['#', ...confColHead, 'Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
+        body: dados.itemsVendidos.map((item, idx) => [
+          (idx + 1).toString(),
           ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 30 ? item.nome.substring(0, 30) + '...' : item.nome,
@@ -417,8 +447,9 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
       autoTable(doc, {
         startY: yPos,
-        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Valor Unit.']],
-        body: dados.itemsPendentes.map(item => [
+        head: [['#', ...confColHead, 'Código', 'Produto', 'Qtd', 'Valor Unit.']],
+        body: dados.itemsPendentes.map((item, idx) => [
+          (idx + 1).toString(),
           ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 35 ? item.nome.substring(0, 35) + '...' : item.nome,
@@ -656,6 +687,47 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
   const handleFecharMaleta = async () => {
     try {
+      // 1) Persistir registro de conferência (auditoria)
+      if (maleta.organization_id) {
+        const itens = [...itemsComVendas, ...itemsPendentes].map((i) => ({
+          maleta_peca_id: i.id,
+          peca_id: i.peca_id,
+          codigo: i.peca?.codigo,
+          nome: i.peca?.nome,
+          quantidade: (i.quantidade_vendida ?? 0) + (i.quantidade ?? 0),
+          vendida: (i.quantidade_vendida ?? 0) > 0,
+          conferido: itensConferidos.has(i.id),
+        }));
+        const total = itens.length;
+        const conferidos = itens.filter((x) => x.conferido).length;
+        const { data: userRes } = await supabase.auth.getUser();
+        await supabase.from('maleta_conferencias').insert({
+          maleta_id: maleta.id,
+          organization_id: maleta.organization_id,
+          user_id: userRes?.user?.id ?? null,
+          tipo: 'fechamento',
+          itens_conferidos: itens,
+          total_itens: total,
+          total_conferidos: conferidos,
+          observacoes: conferenciaManual ? 'Conferência manual realizada' : 'Fechamento sem conferência manual',
+          status: 'concluida',
+        });
+
+        // 2) Logar devoluções por item pendente
+        if (itemsPendentes.length > 0) {
+          const devolucoes = itemsPendentes.map((i) => ({
+            maleta_id: maleta.id,
+            maleta_peca_id: i.id,
+            peca_id: i.peca_id,
+            organization_id: maleta.organization_id,
+            quantidade: i.quantidade ?? 0,
+            motivo: motivoDevolucao.trim() || 'Devolução no fechamento da maleta',
+            user_id: userRes?.user?.id ?? null,
+          }));
+          await supabase.from('maleta_devolucoes').insert(devolucoes);
+        }
+      }
+
       await closeMaletaMutation.mutateAsync({
         maletaId: maleta.id,
         returnPendingToStock: true,
@@ -664,6 +736,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
       if (onClose) onClose();
     } catch (error) {
       console.error('Error closing maleta:', error);
+      toast.error('Erro ao fechar maleta');
     }
   };
 
@@ -1451,9 +1524,12 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   };
                   return (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm flex-wrap gap-2">
                         <span className="font-medium">{okConf} de {totalConf} conferido(s)</span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <Button type="button" size="sm" variant="outline" onClick={() => setScannerOpen(true)}>
+                            <ScanBarcode className="w-3.5 h-3.5 mr-1" /> Escanear
+                          </Button>
                           <Button type="button" size="sm" variant="ghost" onClick={marcarTodosConferidos}>
                             Marcar todos
                           </Button>
@@ -1495,9 +1571,22 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   );
                 })()}
               </div>
+            )}
 
+            {itemsPendentes.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="motivo-dev" className="text-sm">Motivo da devolução (opcional)</Label>
+                <Input
+                  id="motivo-dev"
+                  value={motivoDevolucao}
+                  onChange={(e) => setMotivoDevolucao(e.target.value)}
+                  placeholder="Ex.: não interessou, defeito, fora de tamanho..."
+                />
+              </div>
             )}
           </div>
+
+
 
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -1559,8 +1648,15 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
         </DialogContent>
       </Dialog>
+
+      <BarcodeScannerDialog
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
+        onDetect={handleBarcodeDetected}
+      />
     </div>
   );
 });
+
 
 MaletaManager.displayName = 'MaletaManager';

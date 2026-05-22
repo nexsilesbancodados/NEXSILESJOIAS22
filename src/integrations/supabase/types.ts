@@ -2901,6 +2901,130 @@ export type Database = {
         }
         Relationships: []
       }
+      maleta_conferencias: {
+        Row: {
+          created_at: string
+          id: string
+          itens_conferidos: Json
+          maleta_id: string
+          observacoes: string | null
+          organization_id: string
+          status: string
+          tipo: string
+          total_conferidos: number
+          total_itens: number
+          user_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          itens_conferidos?: Json
+          maleta_id: string
+          observacoes?: string | null
+          organization_id: string
+          status?: string
+          tipo?: string
+          total_conferidos?: number
+          total_itens?: number
+          user_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          itens_conferidos?: Json
+          maleta_id?: string
+          observacoes?: string | null
+          organization_id?: string
+          status?: string
+          tipo?: string
+          total_conferidos?: number
+          total_itens?: number
+          user_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_conferencias_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_conferencias_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maleta_devolucoes: {
+        Row: {
+          created_at: string
+          data_devolucao: string
+          id: string
+          maleta_id: string
+          maleta_peca_id: string | null
+          motivo: string | null
+          organization_id: string
+          peca_id: string | null
+          quantidade: number
+          user_id: string | null
+          usuario_nome: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_devolucao?: string
+          id?: string
+          maleta_id: string
+          maleta_peca_id?: string | null
+          motivo?: string | null
+          organization_id: string
+          peca_id?: string | null
+          quantidade: number
+          user_id?: string | null
+          usuario_nome?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_devolucao?: string
+          id?: string
+          maleta_id?: string
+          maleta_peca_id?: string | null
+          motivo?: string | null
+          organization_id?: string
+          peca_id?: string | null
+          quantidade?: number
+          user_id?: string | null
+          usuario_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_devolucoes_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_devolucoes_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_devolucoes_maleta_peca_id_fkey"
+            columns: ["maleta_peca_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maleta_interesse_itens: {
         Row: {
           created_at: string | null
@@ -3011,6 +3135,7 @@ export type Database = {
           imagem_capa: string | null
           is_public: boolean | null
           nome: string
+          numero_sequencial: number | null
           observacoes: string | null
           organization_id: string | null
           revendedora_id: string | null
@@ -3031,6 +3156,7 @@ export type Database = {
           imagem_capa?: string | null
           is_public?: boolean | null
           nome: string
+          numero_sequencial?: number | null
           observacoes?: string | null
           organization_id?: string | null
           revendedora_id?: string | null
@@ -3051,6 +3177,7 @@ export type Database = {
           imagem_capa?: string | null
           is_public?: boolean | null
           nome?: string
+          numero_sequencial?: number | null
           observacoes?: string | null
           organization_id?: string | null
           revendedora_id?: string | null
@@ -3086,9 +3213,11 @@ export type Database = {
       maletas_pecas: {
         Row: {
           created_at: string | null
+          data_devolucao: string | null
           data_venda: string | null
           id: string
           maleta_id: string
+          motivo_devolucao: string | null
           peca_id: string
           preco_unitario: number | null
           quantidade: number
@@ -3098,9 +3227,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          data_devolucao?: string | null
           data_venda?: string | null
           id?: string
           maleta_id: string
+          motivo_devolucao?: string | null
           peca_id: string
           preco_unitario?: number | null
           quantidade?: number
@@ -3110,9 +3241,11 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          data_devolucao?: string | null
           data_venda?: string | null
           id?: string
           maleta_id?: string
+          motivo_devolucao?: string | null
           peca_id?: string
           preco_unitario?: number | null
           quantidade?: number
@@ -3590,6 +3723,7 @@ export type Database = {
           fornecedor_id: string | null
           id: string
           imagem_url: string | null
+          lote: string | null
           material: string | null
           nome: string
           organization_id: string | null
@@ -3614,6 +3748,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           imagem_url?: string | null
+          lote?: string | null
           material?: string | null
           nome: string
           organization_id?: string | null
@@ -3638,6 +3773,7 @@ export type Database = {
           fornecedor_id?: string | null
           id?: string
           imagem_url?: string | null
+          lote?: string | null
           material?: string | null
           nome?: string
           organization_id?: string | null
