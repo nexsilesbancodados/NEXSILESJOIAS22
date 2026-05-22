@@ -844,15 +844,24 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           </>
         )}
         {maleta.status === 'aberta' && (
-          <Button
-            variant="default"
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => setFecharMaletaModal(true)}
-            disabled={isPending}
-          >
-            <Lock className="w-4 h-4 mr-2" />
-            Fechar Maleta
-          </Button>
+          <>
+            <Button
+              variant="default"
+              className="bg-gradient-to-r from-primary to-pink-500 hover:opacity-90 text-white shadow-lg"
+              onClick={() => setWizardOpen(true)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Conferir &amp; fechar (Wizard)
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setFecharMaletaModal(true)}
+              disabled={isPending}
+            >
+              <Lock className="w-4 h-4 mr-2" />
+              Fechar (modo clássico)
+            </Button>
+          </>
         )}
         {maleta.status === 'fechada' && (
           <>
