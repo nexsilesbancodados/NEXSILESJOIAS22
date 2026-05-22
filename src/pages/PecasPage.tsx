@@ -118,6 +118,7 @@ export default function PecasPage() {
     imagem_url: '',
     imagem_url_2: '',
     descricao: '',
+    comissao_percentual_override: '',
   });
 
   const activeFiltersCount = [
@@ -216,6 +217,7 @@ export default function PecasPage() {
         imagem_url: peca.imagem_url || '',
         imagem_url_2: (peca as any).imagem_url_2 || '',
         descricao: peca.descricao || '',
+        comissao_percentual_override: (peca as any).comissao_percentual_override != null ? String((peca as any).comissao_percentual_override) : '',
       });
     } else {
       setSelectedPeca(null);
@@ -238,6 +240,7 @@ export default function PecasPage() {
         imagem_url: '',
         imagem_url_2: '',
         descricao: '',
+        comissao_percentual_override: '',
       });
     }
     setIsFormOpen(true);
@@ -288,6 +291,7 @@ export default function PecasPage() {
       fornecedor_id: formData.fornecedor_id || null,
       imagem_url: formData.imagem_url || null,
       descricao: formData.descricao || null,
+      comissao_percentual_override: formData.comissao_percentual_override.trim() === '' ? null : parseFloat(formData.comissao_percentual_override),
       peso: null,
       ativo: true,
     };
@@ -956,7 +960,32 @@ export default function PecasPage() {
                   O preço atacado será aplicado quando a quantidade for igual ou maior que a quantidade mínima.
                 </p>
               </div>
+
+              <div className="border-t border-border/50 pt-4 mt-4">
+                <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                  Comissão Personalizada
+                </h4>
+                <div className="space-y-2">
+                  <Label htmlFor="comissao_override">Comissão para esta peça (%)</Label>
+                  <Input
+                    id="comissao_override"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                    value={formData.comissao_percentual_override}
+                    onChange={(e) => setFormData({ ...formData, comissao_percentual_override: e.target.value })}
+                    placeholder="Ex: 25 — opcional"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Sobrescreve a comissão da categoria e da revendedora. Deixe em branco para usar a regra padrão.
+                  </p>
+                </div>
+              </div>
             </TabsContent>
+            
             
             <TabsContent value="imagens" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
