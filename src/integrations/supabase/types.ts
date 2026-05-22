@@ -5908,6 +5908,10 @@ export type Database = {
         Args: { p_maleta_peca_id: string; p_quantidade: number }
         Returns: boolean
       }
+      maleta_excluir_definitivo: {
+        Args: { p_maleta_id: string; p_return_to_stock?: boolean }
+        Returns: Json
+      }
       maleta_fechar_v2: {
         Args: { p_forcar?: boolean; p_maleta_id: string }
         Returns: Json
