@@ -65,6 +65,7 @@ import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
 import { SugerirReposicaoDialog } from './SugerirReposicaoDialog';
 import { FotosVendasDialog } from './FotosVendasDialog';
 import { AcertoFinanceiroDialog } from './AcertoFinanceiroDialog';
+import { ConferenciaWizardDialog } from './ConferenciaWizardDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
