@@ -54,7 +54,9 @@ const Header = memo(({
   cargo,
   isAdmin,
   onSignOut,
-  sidebarWidth
+  sidebarWidth,
+  isMobile,
+  onOpenMobileMenu,
 }: { 
   menuMode: MenuMode; 
   onToggleMode: () => void;
@@ -64,22 +66,40 @@ const Header = memo(({
   isAdmin: boolean;
   onSignOut: () => void;
   sidebarWidth: number;
+  isMobile: boolean;
+  onOpenMobileMenu: () => void;
 }) => {
   const { theme, setTheme } = useTheme();
   const toggleTheme = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   }, [theme, setTheme]);
 
+  // On desktop, always render HeaderNav inline (regardless of menuMode)
+  const showInlineNav = !isMobile;
+
   return (
     <header 
       className="fixed top-0 right-0 h-16 bg-card/80 backdrop-blur-md border-b border-border/50 z-40 px-4 flex items-center justify-between gap-3 transition-all duration-300"
-      style={{ left: menuMode === 'sidebar' ? sidebarWidth : 0 }}
+      style={{ left: isMobile ? 0 : sidebarWidth }}
     >
       {/* Left side - Logo + Menu controls */}
       <div className="flex items-center gap-3">
-        {/* Logo (only in floating/aerial mode) */}
-        {menuMode === 'floating' && (
-          <div className="flex items-center gap-3 pr-4 border-r border-border/50">
+        {/* Mobile hamburger */}
+        {isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenMobileMenu}
+            className="h-9 w-9 rounded-xl hover:bg-muted"
+            aria-label="Abrir menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        )}
+
+        {/* Logo (mobile, or desktop in floating mode) */}
+        {(isMobile || menuMode === 'floating') && (
+          <div className="flex items-center gap-3 pr-4 md:border-r md:border-border/50">
             <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl border border-primary/20">
               <img src={logo} alt="Nexsiles" className="w-6 h-6 object-contain" width={24} height={24} loading="lazy" />
             </div>
@@ -87,30 +107,33 @@ const Header = memo(({
           </div>
         )}
         
-        {/* Toggle menu mode button */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleMode}
-              className="h-9 w-9 rounded-xl hover:bg-muted transition-transform hover:scale-105 active:scale-95"
-            >
-              {menuMode === 'sidebar' ? (
-                <LayoutGrid className="w-4 h-4" />
-              ) : (
-                <PanelLeft className="w-4 h-4" />
-              )}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="bg-card border-border shadow-xl">
-            {menuMode === 'sidebar' ? 'Menu aéreo' : 'Menu lateral'}
-          </TooltipContent>
-        </Tooltip>
+        {/* Toggle menu mode button - desktop only */}
+        {!isMobile && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleMode}
+                className="h-9 w-9 rounded-xl hover:bg-muted transition-transform hover:scale-105 active:scale-95"
+              >
+                {menuMode === 'sidebar' ? (
+                  <LayoutGrid className="w-4 h-4" />
+                ) : (
+                  <PanelLeft className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="bg-card border-border shadow-xl">
+              {menuMode === 'sidebar' ? 'Menu aéreo' : 'Menu lateral'}
+            </TooltipContent>
+          </Tooltip>
+        )}
 
-        {/* Horizontal navigation (only in floating/aerial mode) */}
-        {menuMode === 'floating' && <HeaderNav />}
+        {/* Horizontal navigation on desktop */}
+        {showInlineNav && menuMode === 'floating' && <HeaderNav />}
       </div>
+
 
       {/* Right side - User info */}
       <div className="flex items-center gap-2">
