@@ -1393,7 +1393,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
             )}
 
             {/* Conferência Manual */}
-            {itemsPendentes.length > 0 && (
+            {(itemsPendentes.length > 0 || itemsComVendas.length > 0) && (
               <div className="border rounded-lg p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -1401,7 +1401,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                       Conferência manual item por item
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Marque cada peça conferida fisicamente antes de fechar.
+                      Confira o que foi vendido e o que será devolvido antes de fechar.
                     </p>
                   </div>
                   <Switch
@@ -1414,60 +1414,87 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   />
                 </div>
 
-                {conferenciaManual && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">
-                        {itemsPendentes.filter((i) => itensConferidos.has(i.id)).length} de {itemsPendentes.length} conferido(s)
-                      </span>
-                      <div className="flex gap-2">
-                        <Button type="button" size="sm" variant="ghost" onClick={marcarTodosConferidos}>
-                          Marcar todos
-                        </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={limparConferencia}>
-                          Limpar
-                        </Button>
+                {conferenciaManual && (() => {
+                  const totalConf = itemsPendentes.length + itemsComVendas.length;
+                  const okConf = [...itemsPendentes, ...itemsComVendas].filter((i) => itensConferidos.has(i.id)).length;
+                  const pending = totalConf - okConf;
+                  const renderRow = (i: MaletaItem, qty: number, isSold: boolean) => {
+                    const checked = itensConferidos.has(i.id);
+                    return (
+                      <li key={i.id} className="flex items-center gap-3 p-2 hover:bg-muted/40">
+                        <Checkbox
+                          id={`conf-${i.id}`}
+                          checked={checked}
+                          onCheckedChange={() => toggleConferido(i.id)}
+                        />
+                        <label
+                          htmlFor={`conf-${i.id}`}
+                          className={cn(
+                            'flex-1 cursor-pointer text-sm',
+                            checked && 'line-through text-muted-foreground'
+                          )}
+                        >
+                          <span className="font-medium">{i.peca?.nome ?? 'Peça'}</span>
+                          {i.peca?.codigo && (
+                            <span className="ml-2 text-xs text-muted-foreground">#{i.peca.codigo}</span>
+                          )}
+                        </label>
+                        <Badge
+                          variant={isSold ? 'default' : 'secondary'}
+                          className={cn('text-xs', isSold && 'bg-success text-success-foreground hover:bg-success/90')}
+                        >
+                          {qty} un.
+                        </Badge>
+                      </li>
+                    );
+                  };
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{okConf} de {totalConf} conferido(s)</span>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" variant="ghost" onClick={marcarTodosConferidos}>
+                            Marcar todos
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={limparConferencia}>
+                            Limpar
+                          </Button>
+                        </div>
                       </div>
+                      <ScrollArea className="h-56 rounded border">
+                        <div>
+                          {itemsComVendas.length > 0 && (
+                            <>
+                              <p className="text-[11px] uppercase tracking-wide font-semibold text-success px-2 pt-2 pb-1 bg-success/5">
+                                Vendidas ({itemsComVendas.length})
+                              </p>
+                              <ul className="divide-y">
+                                {itemsComVendas.map((i) => renderRow(i, i.quantidade_vendida ?? 0, true))}
+                              </ul>
+                            </>
+                          )}
+                          {itemsPendentes.length > 0 && (
+                            <>
+                              <p className="text-[11px] uppercase tracking-wide font-semibold text-warning px-2 pt-2 pb-1 bg-warning/5">
+                                A devolver ao estoque ({itemsPendentes.length})
+                              </p>
+                              <ul className="divide-y">
+                                {itemsPendentes.map((i) => renderRow(i, i.quantidade ?? 0, false))}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      </ScrollArea>
+                      {pending > 0 && (
+                        <p className="text-xs text-destructive">
+                          {pending} peça(s) ainda não conferida(s).
+                        </p>
+                      )}
                     </div>
-                    <ScrollArea className="h-48 rounded border">
-                      <ul className="divide-y">
-                        {itemsPendentes.map((i) => {
-                          const checked = itensConferidos.has(i.id);
-                          return (
-                            <li key={i.id} className="flex items-center gap-3 p-2 hover:bg-muted/40">
-                              <Checkbox
-                                id={`conf-${i.id}`}
-                                checked={checked}
-                                onCheckedChange={() => toggleConferido(i.id)}
-                              />
-                              <label
-                                htmlFor={`conf-${i.id}`}
-                                className={cn(
-                                  'flex-1 cursor-pointer text-sm',
-                                  checked && 'line-through text-muted-foreground'
-                                )}
-                              >
-                                <span className="font-medium">{i.peca?.nome ?? 'Peça'}</span>
-                                {i.peca?.codigo && (
-                                  <span className="ml-2 text-xs text-muted-foreground">#{i.peca.codigo}</span>
-                                )}
-                              </label>
-                              <Badge variant="secondary" className="text-xs">
-                                {i.quantidade ?? 0} un.
-                              </Badge>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </ScrollArea>
-                    {itemsPendentes.filter((i) => !itensConferidos.has(i.id)).length > 0 && (
-                      <p className="text-xs text-destructive">
-                        {itemsPendentes.filter((i) => !itensConferidos.has(i.id)).length} peça(s) ainda não conferida(s).
-                      </p>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
               </div>
+
             )}
           </div>
 
