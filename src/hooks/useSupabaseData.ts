@@ -1486,118 +1486,28 @@ export function useDeleteMaleta() {
   
   return useMutation({
     mutationFn: async ({ maletaId, returnToStock = true }: { maletaId: string; returnToStock?: boolean }) => {
-      console.log('useDeleteMaleta: Starting deletion for maletaId:', maletaId);
-      
-      // If returnToStock is true, return all items to stock before deleting
-      if (returnToStock) {
-        const { data: items, error: itemsError } = await supabase
-          .from('maletas_pecas')
-          .select('id, peca_id, quantidade, vendida')
-          .eq('maleta_id', maletaId);
-
-        if (itemsError) {
-          console.error('Error fetching maleta items:', itemsError);
-          throw new Error(`Erro ao buscar itens da maleta: ${itemsError.message}`);
-        }
-
-        console.log('useDeleteMaleta: Found items:', items?.length || 0);
-
-        if (items && items.length > 0) {
-          // Return non-sold items to stock
-          for (const item of items) {
-            if (!item.vendida) {
-              const { data: pecaData, error: pecaError } = await supabase
-                .from('pecas')
-                .select('estoque')
-                .eq('id', item.peca_id)
-                .maybeSingle();
-              
-              if (pecaError) {
-                console.error('Error fetching peca:', pecaError);
-                // Continue even if we can't find the piece
-              }
-              
-              if (pecaData) {
-                const { error: updateError } = await supabase
-                  .from('pecas')
-                  .update({ estoque: (pecaData.estoque || 0) + (item.quantidade || 1) })
-                  .eq('id', item.peca_id);
-                
-                if (updateError) {
-                  console.error('Error updating stock:', updateError);
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Delete all items from maleta
-      const { error: deleteItemsError } = await supabase
-        .from('maletas_pecas')
-        .delete()
-        .eq('maleta_id', maletaId);
-
-      if (deleteItemsError) {
-        console.error('Error deleting maleta items:', deleteItemsError);
-        throw new Error(`Erro ao excluir itens da maleta: ${deleteItemsError.message}`);
-      }
-
-      console.log('useDeleteMaleta: Items deleted successfully');
-
-      // Delete all interests from maleta
-      const { data: interesses, error: interessesError } = await supabase
-        .from('maleta_interesses')
-        .select('id')
-        .eq('maleta_id', maletaId);
-
-      if (interessesError) {
-        console.error('Error fetching interesses:', interessesError);
-        // Continue even if we can't find interests
-      }
-
-      if (interesses && interesses.length > 0) {
-        for (const interesse of interesses) {
-          const { error: deleteInteresseItensError } = await supabase
-            .from('maleta_interesse_itens')
-            .delete()
-            .eq('interesse_id', interesse.id);
-          
-          if (deleteInteresseItensError) {
-            console.error('Error deleting interesse itens:', deleteInteresseItensError);
-          }
-        }
-        
-        const { error: deleteInteressesError } = await supabase
-          .from('maleta_interesses')
-          .delete()
-          .eq('maleta_id', maletaId);
-        
-        if (deleteInteressesError) {
-          console.error('Error deleting interesses:', deleteInteressesError);
-        }
-      }
-
-      console.log('useDeleteMaleta: Interests deleted, now deleting maleta');
-
-      // Now delete the maleta
-      const { error } = await supabase
-        .from('maletas')
-        .delete()
-        .eq('id', maletaId);
+      const { data, error } = await supabase.rpc('maleta_excluir_definitivo', {
+        p_maleta_id: maletaId,
+        p_return_to_stock: returnToStock,
+      });
       
       if (error) {
         console.error('Error deleting maleta:', error);
         throw new Error(`Erro ao excluir maleta: ${error.message}`);
       }
 
-      console.log('useDeleteMaleta: Maleta deleted successfully');
+      return data as { deleted: boolean; returned_units: number };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['maletas'] });
       queryClient.invalidateQueries({ queryKey: ['maleta-items'] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
-      toast.success('Maleta excluída com sucesso!');
+      const returnedUnits = result?.returned_units ?? 0;
+      toast.success(
+        returnedUnits > 0
+          ? `Maleta excluída! ${returnedUnits} unidade(s) devolvida(s) ao estoque.`
+          : 'Maleta excluída com sucesso!'
+      );
     },
     onError: (error: Error) => {
       console.error('Delete maleta error:', error);
