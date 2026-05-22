@@ -54,7 +54,7 @@ export function TransferirPecaDialog({ open, onOpenChange, maletaOrigemId, items
     })();
   }, [open, maletaOrigemId]);
 
-  const itemSelecionado = items.find(i => (i as any).peca_id === pecaId);
+  const itemSelecionado = items.find(i => i.peca_id === pecaId);
   const qtdDisponivel = itemSelecionado?.quantidade || 0;
 
   const handleTransferir = async () => {
@@ -107,9 +107,9 @@ export function TransferirPecaDialog({ open, onOpenChange, maletaOrigemId, items
               <SelectTrigger><SelectValue placeholder="Selecione uma peça" /></SelectTrigger>
               <SelectContent>
                 {items.filter(i => i.quantidade > 0).map(i => {
-                  const peca = (i as any).pecas || {};
+                  const peca = i.peca || {};
                   return (
-                    <SelectItem key={(i as any).peca_id} value={(i as any).peca_id}>
+                    <SelectItem key={i.peca_id} value={i.peca_id}>
                       {peca.nome || 'Peça'} ({peca.codigo || '-'}) • {i.quantidade} disp.
                     </SelectItem>
                   );
