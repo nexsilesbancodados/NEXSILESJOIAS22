@@ -45,6 +45,7 @@ import {
   AlertTriangle,
   Printer,
   Download,
+  Share2,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -107,9 +108,11 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
     });
   };
   const marcarTodosConferidos = () => {
-    setItensConferidos(new Set(itemsPendentes.map((i) => i.id)));
+    const all = [...itemsPendentes.map((i) => i.id), ...itemsComVendas.map((i) => i.id)];
+    setItensConferidos(new Set(all));
   };
   const limparConferencia = () => setItensConferidos(new Set());
+
 
 
 
@@ -325,61 +328,71 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
       comissaoPercentual,
       comissaoEstimada,
       itemsVendidos: itemsComVendas.map(i => ({
+        id: i.id,
         nome: i.peca?.nome || 'Peça desconhecida',
         codigo: i.peca?.codigo || '-',
         quantidade: i.quantidade_vendida || 0,
         preco: i.peca?.preco_venda || 0,
         subtotal: (i.peca?.preco_venda || 0) * (i.quantidade_vendida || 0),
+        conferido: itensConferidos.has(i.id),
       })),
       itemsPendentes: itemsPendentes.map(i => ({
+        id: i.id,
         nome: i.peca?.nome || 'Peça desconhecida',
         codigo: i.peca?.codigo || '-',
         quantidade: i.quantidade || 1,
         preco: i.peca?.preco_venda || 0,
         subtotal: (i.peca?.preco_venda || 0) * (i.quantidade || 1),
+        conferido: itensConferidos.has(i.id),
       })),
+      conferenciaAtiva: conferenciaManual,
     };
   };
 
-  const handleExportarPDF = () => {
+
+  const buildPdfDoc = () => {
     const dados = gerarDadosResumo();
     const doc = new jsPDF();
-    
-    // Header
+
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Resumo de Fechamento de Maleta', 14, 20);
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Maleta: ${dados.maletaNome}`, 14, 32);
     doc.text(`Data de Criação: ${dados.dataCriacao}`, 14, 38);
     doc.text(`Data de Fechamento: ${dados.dataFechamento}`, 14, 44);
-    
-    // Resumo de Peças
+    if (dados.conferenciaAtiva) {
+      doc.text('Conferência manual: ATIVADA', 14, 50);
+    }
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Resumo de Peças', 14, 56);
-    
+    doc.text('Resumo de Peças', 14, 62);
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Total de Peças: ${dados.totalPecas}`, 14, 64);
-    doc.text(`Peças Vendidas: ${dados.pecasVendidas}`, 14, 70);
-    doc.text(`Peças Devolvidas: ${dados.pecasPendentes}`, 14, 76);
-    
-    let yPos = 90;
-    
-    // Tabela de peças vendidas
+    doc.text(`Total de Peças: ${dados.totalPecas}`, 14, 70);
+    doc.text(`Peças Vendidas: ${dados.pecasVendidas}`, 14, 76);
+    doc.text(`Peças Devolvidas: ${dados.pecasPendentes}`, 14, 82);
+
+    let yPos = 96;
+
+    const confColHead = dados.conferenciaAtiva ? ['Conf.'] : [];
+    const confCell = (ok: boolean) => (dados.conferenciaAtiva ? [ok ? '[X]' : '[ ]'] : []);
+
     if (dados.itemsVendidos.length > 0) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Peças Vendidas', 14, yPos);
       yPos += 4;
-      
+
       autoTable(doc, {
         startY: yPos,
-        head: [['Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
+        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Preço Unit.', 'Subtotal']],
         body: dados.itemsVendidos.map(item => [
+          ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 30 ? item.nome.substring(0, 30) + '...' : item.nome,
           item.quantidade.toString(),
@@ -387,64 +400,62 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           formatCurrency(item.subtotal),
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [34, 197, 94] }, // success green
+        headStyles: { fillColor: [34, 197, 94] },
         styles: { fontSize: 8 },
         margin: { left: 14, right: 14 },
       });
-      
+
       yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
       yPos += 10;
     }
-    
-    // Tabela de peças devolvidas
+
     if (dados.itemsPendentes.length > 0 && yPos < 250) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text('Peças Devolvidas ao Estoque', 14, yPos);
       yPos += 4;
-      
+
       autoTable(doc, {
         startY: yPos,
-        head: [['Código', 'Produto', 'Qtd', 'Valor Unit.']],
+        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Valor Unit.']],
         body: dados.itemsPendentes.map(item => [
+          ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 35 ? item.nome.substring(0, 35) + '...' : item.nome,
           item.quantidade.toString(),
           formatCurrency(item.preco),
         ]),
         theme: 'striped',
-        headStyles: { fillColor: [234, 179, 8] }, // warning yellow
+        headStyles: { fillColor: [234, 179, 8] },
         styles: { fontSize: 8 },
         margin: { left: 14, right: 14 },
       });
-      
+
       yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
       yPos += 10;
     }
-    
-    // Resumo Financeiro
+
     if (yPos > 230) {
       doc.addPage();
       yPos = 20;
     }
-    
+
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Resumo Financeiro', 14, yPos);
     yPos += 10;
-    
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Valor Total em Vendas: ${formatCurrency(dados.valorVendido)}`, 14, yPos);
     yPos += 6;
     doc.text(`Valor Devolvido ao Estoque: ${formatCurrency(dados.valorPendente)}`, 14, yPos);
     yPos += 10;
-    
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.text(`Comissão (${dados.comissaoPercentual}%): ${formatCurrency(dados.comissaoEstimada)}`, 14, yPos);
-    
-    // Footer
+
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -456,10 +467,40 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         doc.internal.pageSize.height - 10
       );
     }
-    
+
+    return doc;
+  };
+
+  const handleExportarPDF = () => {
+    const doc = buildPdfDoc();
     doc.save(`fechamento-maleta-${maleta.id.slice(-6)}.pdf`);
     toast.success('PDF exportado com sucesso!');
   };
+
+  const handleCompartilharPDF = async () => {
+    const doc = buildPdfDoc();
+    const blob = doc.output('blob') as Blob;
+    const fileName = `fechamento-maleta-${maleta.id.slice(-6)}.pdf`;
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+
+    const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+    if (nav.canShare && nav.canShare({ files: [file] }) && navigator.share) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Fechamento de Maleta',
+          text: `Resumo de fechamento da maleta "${maleta.nome || maleta.id.slice(-4)}"`,
+        });
+        return;
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return;
+        console.warn('Share falhou, baixando PDF:', err);
+      }
+    }
+    doc.save(fileName);
+    toast.info('Compartilhamento indisponível neste navegador. PDF baixado.');
+  };
+
 
   const handleImprimir = () => {
     const dados = gerarDadosResumo();
@@ -1353,7 +1394,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
             )}
 
             {/* Conferência Manual */}
-            {itemsPendentes.length > 0 && (
+            {(itemsPendentes.length > 0 || itemsComVendas.length > 0) && (
               <div className="border rounded-lg p-3 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -1361,7 +1402,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                       Conferência manual item por item
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Marque cada peça conferida fisicamente antes de fechar.
+                      Confira o que foi vendido e o que será devolvido antes de fechar.
                     </p>
                   </div>
                   <Switch
@@ -1374,78 +1415,115 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   />
                 </div>
 
-                {conferenciaManual && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">
-                        {itemsPendentes.filter((i) => itensConferidos.has(i.id)).length} de {itemsPendentes.length} conferido(s)
-                      </span>
-                      <div className="flex gap-2">
-                        <Button type="button" size="sm" variant="ghost" onClick={marcarTodosConferidos}>
-                          Marcar todos
-                        </Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={limparConferencia}>
-                          Limpar
-                        </Button>
+                {conferenciaManual && (() => {
+                  const totalConf = itemsPendentes.length + itemsComVendas.length;
+                  const okConf = [...itemsPendentes, ...itemsComVendas].filter((i) => itensConferidos.has(i.id)).length;
+                  const pending = totalConf - okConf;
+                  const renderRow = (i: MaletaItem, qty: number, isSold: boolean) => {
+                    const checked = itensConferidos.has(i.id);
+                    return (
+                      <li key={i.id} className="flex items-center gap-3 p-2 hover:bg-muted/40">
+                        <Checkbox
+                          id={`conf-${i.id}`}
+                          checked={checked}
+                          onCheckedChange={() => toggleConferido(i.id)}
+                        />
+                        <label
+                          htmlFor={`conf-${i.id}`}
+                          className={cn(
+                            'flex-1 cursor-pointer text-sm',
+                            checked && 'line-through text-muted-foreground'
+                          )}
+                        >
+                          <span className="font-medium">{i.peca?.nome ?? 'Peça'}</span>
+                          {i.peca?.codigo && (
+                            <span className="ml-2 text-xs text-muted-foreground">#{i.peca.codigo}</span>
+                          )}
+                        </label>
+                        <Badge
+                          variant={isSold ? 'default' : 'secondary'}
+                          className={cn('text-xs', isSold && 'bg-success text-success-foreground hover:bg-success/90')}
+                        >
+                          {qty} un.
+                        </Badge>
+                      </li>
+                    );
+                  };
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{okConf} de {totalConf} conferido(s)</span>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" variant="ghost" onClick={marcarTodosConferidos}>
+                            Marcar todos
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={limparConferencia}>
+                            Limpar
+                          </Button>
+                        </div>
                       </div>
+                      <ScrollArea className="h-56 rounded border">
+                        <div>
+                          {itemsComVendas.length > 0 && (
+                            <>
+                              <p className="text-[11px] uppercase tracking-wide font-semibold text-success px-2 pt-2 pb-1 bg-success/5">
+                                Vendidas ({itemsComVendas.length})
+                              </p>
+                              <ul className="divide-y">
+                                {itemsComVendas.map((i) => renderRow(i, i.quantidade_vendida ?? 0, true))}
+                              </ul>
+                            </>
+                          )}
+                          {itemsPendentes.length > 0 && (
+                            <>
+                              <p className="text-[11px] uppercase tracking-wide font-semibold text-warning px-2 pt-2 pb-1 bg-warning/5">
+                                A devolver ao estoque ({itemsPendentes.length})
+                              </p>
+                              <ul className="divide-y">
+                                {itemsPendentes.map((i) => renderRow(i, i.quantidade ?? 0, false))}
+                              </ul>
+                            </>
+                          )}
+                        </div>
+                      </ScrollArea>
+                      {pending > 0 && (
+                        <p className="text-xs text-destructive">
+                          {pending} peça(s) ainda não conferida(s).
+                        </p>
+                      )}
                     </div>
-                    <ScrollArea className="h-48 rounded border">
-                      <ul className="divide-y">
-                        {itemsPendentes.map((i) => {
-                          const checked = itensConferidos.has(i.id);
-                          return (
-                            <li key={i.id} className="flex items-center gap-3 p-2 hover:bg-muted/40">
-                              <Checkbox
-                                id={`conf-${i.id}`}
-                                checked={checked}
-                                onCheckedChange={() => toggleConferido(i.id)}
-                              />
-                              <label
-                                htmlFor={`conf-${i.id}`}
-                                className={cn(
-                                  'flex-1 cursor-pointer text-sm',
-                                  checked && 'line-through text-muted-foreground'
-                                )}
-                              >
-                                <span className="font-medium">{i.peca?.nome ?? 'Peça'}</span>
-                                {i.peca?.codigo && (
-                                  <span className="ml-2 text-xs text-muted-foreground">#{i.peca.codigo}</span>
-                                )}
-                              </label>
-                              <Badge variant="secondary" className="text-xs">
-                                {i.quantidade ?? 0} un.
-                              </Badge>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </ScrollArea>
-                    {itemsPendentes.filter((i) => !itensConferidos.has(i.id)).length > 0 && (
-                      <p className="text-xs text-destructive">
-                        {itemsPendentes.filter((i) => !itensConferidos.has(i.id)).length} peça(s) ainda não conferida(s).
-                      </p>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
               </div>
+
             )}
           </div>
 
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button 
-                variant="outline" 
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleExportarPDF}
                 disabled={closeMaletaMutation.isPending}
                 className="flex-1 sm:flex-initial"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Exportar PDF
+                Baixar PDF
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCompartilharPDF}
+                disabled={closeMaletaMutation.isPending}
+                className="flex-1 sm:flex-initial"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartilhar
+              </Button>
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleImprimir}
                 disabled={closeMaletaMutation.isPending}
@@ -1459,12 +1537,13 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               <Button variant="outline" onClick={() => setFecharMaletaModal(false)} disabled={closeMaletaMutation.isPending}>
                 Cancelar
               </Button>
-              <Button 
-                onClick={handleFecharMaleta} 
+              <Button
+                onClick={handleFecharMaleta}
                 disabled={
                   closeMaletaMutation.isPending ||
                   (conferenciaManual &&
-                    itemsPendentes.filter((i) => itensConferidos.has(i.id)).length !== itemsPendentes.length)
+                    [...itemsPendentes, ...itemsComVendas].filter((i) => itensConferidos.has(i.id)).length !==
+                      itemsPendentes.length + itemsComVendas.length)
                 }
                 className="bg-primary hover:bg-primary/90"
               >
@@ -1477,6 +1556,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
               </Button>
             </div>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
