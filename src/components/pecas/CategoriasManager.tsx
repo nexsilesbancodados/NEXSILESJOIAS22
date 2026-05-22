@@ -28,6 +28,7 @@ interface Categoria {
   id: string;
   nome: string;
   ordem: number;
+  comissao_percentual?: number | null;
 }
 
 export function useCategorias() {
@@ -39,7 +40,7 @@ export function useCategorias() {
       if (!organizationId) return [];
       const { data, error } = await supabase
         .from('categorias_pecas' as any)
-        .select('id, nome, ordem')
+        .select('id, nome, ordem, comissao_percentual')
         .eq('organization_id', organizationId)
         .order('ordem', { ascending: true });
       if (error) throw error;
