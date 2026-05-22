@@ -327,21 +327,27 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
       comissaoPercentual,
       comissaoEstimada,
       itemsVendidos: itemsComVendas.map(i => ({
+        id: i.id,
         nome: i.peca?.nome || 'Peça desconhecida',
         codigo: i.peca?.codigo || '-',
         quantidade: i.quantidade_vendida || 0,
         preco: i.peca?.preco_venda || 0,
         subtotal: (i.peca?.preco_venda || 0) * (i.quantidade_vendida || 0),
+        conferido: itensConferidos.has(i.id),
       })),
       itemsPendentes: itemsPendentes.map(i => ({
+        id: i.id,
         nome: i.peca?.nome || 'Peça desconhecida',
         codigo: i.peca?.codigo || '-',
         quantidade: i.quantidade || 1,
         preco: i.peca?.preco_venda || 0,
         subtotal: (i.peca?.preco_venda || 0) * (i.quantidade || 1),
+        conferido: itensConferidos.has(i.id),
       })),
+      conferenciaAtiva: conferenciaManual,
     };
   };
+
 
   const handleExportarPDF = () => {
     const dados = gerarDadosResumo();
