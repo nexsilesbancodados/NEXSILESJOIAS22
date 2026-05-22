@@ -215,7 +215,6 @@ export default function RevendedorasPage() {
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isDeleteMaletaConfirming, setIsDeleteMaletaConfirming] = useState(false);
   const [selectedRevendedora, setSelectedRevendedora] = useState<Revendedora | null>(null);
   const [viewingRevendedora, setViewingRevendedora] = useState<Revendedora | null>(null);
   const [isMaletaOpen, setIsMaletaOpen] = useState(false);
@@ -661,7 +660,6 @@ export default function RevendedorasPage() {
   // Clear selection when maleta changes
   useEffect(() => {
     setSelectedItemIds(new Set());
-    setIsDeleteMaletaConfirming(false);
   }, [selectedMaleta?.id]);
 
   const deleteSelectedMaleta = useCallback(async () => {
@@ -673,7 +671,6 @@ export default function RevendedorasPage() {
         maletaId: selectedMaleta.id,
         returnToStock: true,
       });
-      setIsDeleteMaletaConfirming(false);
       setIsMaletaOpen(false);
       setSelectedMaleta(null);
     } catch (error) {
