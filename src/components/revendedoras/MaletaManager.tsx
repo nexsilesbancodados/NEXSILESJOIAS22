@@ -111,7 +111,6 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   };
   const limparConferencia = () => setItensConferidos(new Set());
 
-  const limparConferencia = () => setItensConferidos(new Set());
 
 
   // Computed values - Now using quantidade_vendida for accurate tracking
