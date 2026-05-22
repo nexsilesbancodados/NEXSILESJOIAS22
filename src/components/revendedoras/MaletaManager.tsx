@@ -346,7 +346,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   // Gerar conteúdo do resumo para PDF/impressão
   const gerarDadosResumo = () => {
     return {
-      maletaNome: maleta.nome || `Maleta #${maleta.id.slice(-4)}`,
+      maletaNome: maleta.nome ? `${maletaLabel} — ${maleta.nome}` : maletaLabel,
       dataFechamento: format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }),
       dataCriacao: maleta.created_at ? format(new Date(maleta.created_at), 'dd/MM/yyyy', { locale: ptBR }) : '-',
       totalPecas,
