@@ -118,6 +118,30 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   };
   const limparConferencia = () => setItensConferidos(new Set());
 
+  const handleBarcodeDetected = (code: string) => {
+    const norm = code.trim().toLowerCase();
+    const all = [...itemsComVendas, ...itemsPendentes];
+    const found = all.find((i) => {
+      const c1 = (i.peca?.codigo || '').toLowerCase();
+      const c2 = ((i.peca as { codigo_barras?: string })?.codigo_barras || '').toLowerCase();
+      return (c1 && c1 === norm) || (c2 && c2 === norm);
+    });
+    if (!found) {
+      toast.error(`Código "${code}" não encontrado nesta maleta`);
+      return;
+    }
+    setItensConferidos((prev) => {
+      const next = new Set(prev);
+      next.add(found.id);
+      return next;
+    });
+    toast.success(`Conferido: ${found.peca?.nome ?? code}`);
+  };
+
+  const maletaLabel = maleta.numero_sequencial
+    ? `Maleta #${String(maleta.numero_sequencial).padStart(3, '0')}`
+    : maleta.nome || `Maleta #${maleta.id.slice(-4)}`;
+
 
 
 
