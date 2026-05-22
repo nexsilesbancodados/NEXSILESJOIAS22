@@ -139,6 +139,9 @@ export function CategoriasManager() {
         {categorias.map((cat) => (
           <div key={cat.id} className="flex items-center gap-1 px-3 py-1.5 rounded-full border bg-muted/50 text-sm group">
             <span>{cat.nome}</span>
+            {cat.comissao_percentual != null && (
+              <span className="text-xs text-primary font-medium ml-1">{cat.comissao_percentual}%</span>
+            )}
             <button onClick={() => openEdit(cat)} className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-primary">
               <Pencil className="w-3 h-3" />
             </button>
@@ -161,6 +164,19 @@ export function CategoriasManager() {
             <div className="space-y-1.5">
               <Label>Nome</Label>
               <Input value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Anel" onKeyDown={e => e.key === 'Enter' && handleSave()} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Comissão (%) <span className="text-xs text-muted-foreground">— opcional, sobrescreve a comissão da revendedora</span></Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                step="0.5"
+                value={comissao}
+                onChange={e => setComissao(e.target.value)}
+                placeholder="Ex: 25"
+              />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
