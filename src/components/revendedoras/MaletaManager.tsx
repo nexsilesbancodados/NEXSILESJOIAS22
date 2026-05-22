@@ -57,6 +57,7 @@ import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
 import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
 import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
+import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -113,6 +114,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [transferirOpen, setTransferirOpen] = useState(false);
   const [reabrirOpen, setReabrirOpen] = useState(false);
+  const [assinaturaOpen, setAssinaturaOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
