@@ -76,6 +76,50 @@ export type Database = {
           },
         ]
       }
+      account_deletion_requests: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          organization_id: string | null
+          processed_at: string | null
+          reason: string | null
+          scheduled_for: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          organization_id?: string | null
+          processed_at?: string | null
+          reason?: string | null
+          scheduled_for?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          organization_id?: string | null
+          processed_at?: string | null
+          reason?: string | null
+          scheduled_for?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agendamentos: {
         Row: {
           cliente_email: string | null

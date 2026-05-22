@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, MessageCircle, User, RotateCcw, Users } from 'lucide-react';
+import { Settings, Percent, Store, Bell, Palette, Printer, LogOut, Loader2, Sun, Moon, Monitor, MessageCircle, User, RotateCcw, Users, ShieldCheck } from 'lucide-react';
+import { LGPDPanel } from '@/components/lgpd/LGPDPanel';
 import { toast } from 'sonner';
 import { useConfiguracoes, useSaveConfiguracoes } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -128,7 +129,15 @@ export default function ConfiguracoesPage() {
             <Users className="w-3 h-3" />
             Funcionários
           </TabsTrigger>
+          <TabsTrigger value="privacidade" className="gap-1">
+            <ShieldCheck className="w-3 h-3" />
+            Privacidade
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="privacidade" className="space-y-6">
+          <LGPDPanel />
+        </TabsContent>
 
         <TabsContent value="perfil" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
