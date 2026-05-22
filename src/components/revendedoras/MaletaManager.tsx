@@ -47,8 +47,16 @@ import {
   Download,
   Share2,
   ScanBarcode,
+  Tag,
+  History,
+  ArrowLeftRight,
+  Unlock,
 } from 'lucide-react';
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
+import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
+import { TransferirPecaDialog } from './TransferirPecaDialog';
+import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -101,6 +109,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [itensConferidos, setItensConferidos] = useState<Set<string>>(new Set());
   const [motivoDevolucao, setMotivoDevolucao] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [etiquetasOpen, setEtiquetasOpen] = useState(false);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [transferirOpen, setTransferirOpen] = useState(false);
+  const [reabrirOpen, setReabrirOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
@@ -791,9 +803,25 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         </Card>
       </div>
 
-      {/* Close Maleta Button */}
-      {maleta.status === 'aberta' && (
-        <div className="flex justify-end">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => setHistoricoOpen(true)}>
+          <History className="w-4 h-4 mr-2" />
+          Histórico
+        </Button>
+        {maleta.status === 'aberta' && items.length > 0 && (
+          <>
+            <Button variant="outline" size="sm" onClick={() => setEtiquetasOpen(true)}>
+              <Tag className="w-4 h-4 mr-2" />
+              Etiquetas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setTransferirOpen(true)}>
+              <ArrowLeftRight className="w-4 h-4 mr-2" />
+              Transferir peça
+            </Button>
+          </>
+        )}
+        {maleta.status === 'aberta' && (
           <Button
             variant="default"
             className="bg-primary hover:bg-primary/90"
@@ -803,8 +831,14 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
             <Lock className="w-4 h-4 mr-2" />
             Fechar Maleta
           </Button>
-        </div>
-      )}
+        )}
+        {maleta.status === 'fechada' && (
+          <Button variant="outline" size="sm" onClick={() => setReabrirOpen(true)}>
+            <Unlock className="w-4 h-4 mr-2" />
+            Reabrir maleta
+          </Button>
+        )}
+      </div>
 
       {/* Maleta Fechada Banner */}
       {maleta.status === 'fechada' && (
@@ -1653,6 +1687,34 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         open={scannerOpen}
         onOpenChange={setScannerOpen}
         onDetect={handleBarcodeDetected}
+      />
+
+      <EtiquetasBarcodeDialog
+        open={etiquetasOpen}
+        onOpenChange={setEtiquetasOpen}
+        items={items}
+        maletaNome={maleta.nome}
+      />
+
+      <HistoricoMaletaDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+      />
+
+      <TransferirPecaDialog
+        open={transferirOpen}
+        onOpenChange={setTransferirOpen}
+        maletaOrigemId={maleta.id}
+        items={items}
+      />
+
+      <ReabrirMaletaDialog
+        open={reabrirOpen}
+        onOpenChange={setReabrirOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
       />
     </div>
   );

@@ -3122,6 +3122,133 @@ export type Database = {
           },
         ]
       }
+      maleta_reaberturas: {
+        Row: {
+          created_at: string
+          estorno_conferencia_id: string | null
+          estorno_devolucoes: Json | null
+          id: string
+          maleta_id: string
+          motivo: string | null
+          organization_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          estorno_conferencia_id?: string | null
+          estorno_devolucoes?: Json | null
+          id?: string
+          maleta_id: string
+          motivo?: string | null
+          organization_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          estorno_conferencia_id?: string | null
+          estorno_devolucoes?: Json | null
+          id?: string
+          maleta_id?: string
+          motivo?: string | null
+          organization_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_reaberturas_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_reaberturas_maleta_id_fkey"
+            columns: ["maleta_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maleta_transferencias: {
+        Row: {
+          created_at: string
+          id: string
+          maleta_destino_id: string
+          maleta_origem_id: string
+          observacao: string | null
+          organization_id: string
+          peca_id: string
+          quantidade: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          maleta_destino_id: string
+          maleta_origem_id: string
+          observacao?: string | null
+          organization_id: string
+          peca_id: string
+          quantidade: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          maleta_destino_id?: string
+          maleta_origem_id?: string
+          observacao?: string | null
+          organization_id?: string
+          peca_id?: string
+          quantidade?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maleta_transferencias_maleta_destino_id_fkey"
+            columns: ["maleta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_transferencias_maleta_destino_id_fkey"
+            columns: ["maleta_destino_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_transferencias_maleta_origem_id_fkey"
+            columns: ["maleta_origem_id"]
+            isOneToOne: false
+            referencedRelation: "maletas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_transferencias_maleta_origem_id_fkey"
+            columns: ["maleta_origem_id"]
+            isOneToOne: false
+            referencedRelation: "maletas_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_transferencias_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maleta_transferencias_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "pecas_loja_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maletas: {
         Row: {
           codigo: string | null
@@ -5514,6 +5641,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      reabrir_maleta: {
+        Args: { p_maleta_id: string; p_motivo?: string }
+        Returns: string
+      }
       registrar_cliente_loja: {
         Args: {
           p_email: string
@@ -5536,6 +5667,16 @@ export type Database = {
           p_nota: number
           p_organization_id: string
           p_peca_id: string
+        }
+        Returns: string
+      }
+      transferir_peca_entre_maletas: {
+        Args: {
+          p_maleta_destino_id: string
+          p_maleta_origem_id: string
+          p_observacao?: string
+          p_peca_id: string
+          p_quantidade: number
         }
         Returns: string
       }
