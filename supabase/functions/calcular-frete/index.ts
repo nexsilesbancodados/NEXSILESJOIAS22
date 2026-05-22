@@ -1,9 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 interface FreteRequest {
   cepOrigem: string;
@@ -111,6 +108,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // 120 req/min per IP (CEP/frete lookup)
+  const rl = await rateLimit(req, "calcular-frete", { maxRequests: 120 });
+  if (rl) return rl;
 
   try {
     const url = new URL(req.url);

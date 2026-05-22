@@ -3976,6 +3976,27 @@ export type Database = {
           },
         ]
       }
+      rate_limits: {
+        Row: {
+          created_at: string
+          endpoint: string
+          id: number
+          identifier: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          id?: number
+          identifier: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          id?: number
+          identifier?: string
+        }
+        Relationships: []
+      }
       recompensas_fidelidade: {
         Row: {
           ativo: boolean
@@ -4457,6 +4478,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          headers: Json | null
+          id: string
+          last_error: string | null
+          payload: Json
+          processed_at: string | null
+          source: string
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          headers?: Json | null
+          id?: string
+          last_error?: string | null
+          payload: Json
+          processed_at?: string | null
+          source: string
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          headers?: Json | null
+          id?: string
+          last_error?: string | null
+          payload?: Json
+          processed_at?: string | null
+          source?: string
+          status?: string
+        }
+        Relationships: []
       }
       whatsapp_templates: {
         Row: {
@@ -5097,6 +5154,16 @@ export type Database = {
       }
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_max_requests?: number
+          p_window_seconds?: number
+        }
+        Returns: boolean
+      }
+      cleanup_rate_limits: { Args: never; Returns: undefined }
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
       criar_interesse_maleta: {
         Args: {

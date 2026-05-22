@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { verifyMercadoPagoSignature } from "../_shared/hmac.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const log = createLogger("mercadopago-webhook");
 
 async function sendEmailBrevo(apiKey: string, to: { email: string; name?: string }, from: { email: string; name: string }, subject: string, htmlContent: string) {
   const res = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -34,6 +34,10 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Rate limit by IP (300 req/min — webhook traffic can spike)
+  const rl = await rateLimit(req, "mercadopago-webhook", { maxRequests: 300 });
+  if (rl) return rl;
+
   try {
     const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
     if (!MERCADOPAGO_ACCESS_TOKEN) {
@@ -44,21 +48,36 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Read body once (raw) for HMAC + JSON parsing
+    const rawBody = await req.text();
+
+    // ===== HMAC SIGNATURE VERIFICATION =====
+    const mpSecret = Deno.env.get("MERCADOPAGO_WEBHOOK_SECRET");
+    if (mpSecret) {
+      const ok = await verifyMercadoPagoSignature(req, rawBody, mpSecret);
+      if (!ok) {
+        log.warn("Invalid MP webhook signature", { ip: req.headers.get("x-forwarded-for") });
+        return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+      }
+    } else {
+      log.warn("MERCADOPAGO_WEBHOOK_SECRET not set — signature check skipped");
+    }
+
     // Handle both Webhook (JSON body) and IPN (query params) formats
     const url = new URL(req.url);
     let paymentId: string | null = null;
 
     const contentType = req.headers.get("content-type") || "";
 
-    if (contentType.includes("application/json")) {
+    if (contentType.includes("application/json") && rawBody) {
       // Webhook format: JSON body with { type, action, data: { id } }
-      const body = await req.json();
-      console.log("Webhook received (JSON):", JSON.stringify(body));
+      const body = JSON.parse(rawBody);
+      log.info("Webhook received (JSON)", { type: body.type, action: body.action });
 
       if (body.type === "payment" || body.action === "payment.created" || body.action === "payment.updated") {
         paymentId = body.data?.id ? String(body.data.id) : null;
       } else {
-        console.log("Ignoring non-payment webhook type:", body.type, body.action);
+        log.info("Ignoring non-payment webhook", { type: body.type, action: body.action });
         return new Response("OK", { status: 200, headers: corsHeaders });
       }
     } else {
@@ -70,14 +89,14 @@ serve(async (req: Request) => {
       if (topic === "payment" && id) {
         paymentId = id;
       } else {
-        // Also try reading body as form-urlencoded or plain text
+        // Also try parsing raw body as JSON fallback
         try {
-          const body = await req.json();
+          const body = rawBody ? JSON.parse(rawBody) : {};
           if (body.type === "payment" || body.action?.startsWith("payment.")) {
             paymentId = body.data?.id ? String(body.data.id) : null;
           }
         } catch {
-          console.log("No parseable body, ignoring. Topic:", topic);
+          log.info("No parseable body", { topic });
         }
         if (!paymentId) {
           return new Response("OK", { status: 200, headers: corsHeaders });

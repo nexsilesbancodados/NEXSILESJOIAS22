@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { verifyHmacSha256 } from "../_shared/hmac.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+const log = createLogger("webhook-whatsapp");
 
 interface EvolutionWebhookMessage {
   event: string;
@@ -125,9 +126,28 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Rate limit by IP — Evolution can bombard us
+  const rl = await rateLimit(req, "webhook-whatsapp", { maxRequests: 600 });
+  if (rl) return rl;
+
   try {
-    const payload: EvolutionWebhookMessage = await req.json();
-    console.log('Webhook received event:', payload.event, 'instance:', payload.instance);
+    const rawBody = await req.text();
+
+    // ===== HMAC SIGNATURE (Evolution custom header) =====
+    const waSecret = Deno.env.get("WHATSAPP_WEBHOOK_SECRET");
+    if (waSecret) {
+      const sig = req.headers.get("x-hub-signature-256") || req.headers.get("x-signature");
+      const ok = await verifyHmacSha256(rawBody, sig, waSecret);
+      if (!ok) {
+        log.warn("Invalid WhatsApp webhook signature");
+        return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+      }
+    } else {
+      log.warn("WHATSAPP_WEBHOOK_SECRET not set — signature check skipped");
+    }
+
+    const payload: EvolutionWebhookMessage = JSON.parse(rawBody);
+    log.info('Webhook received', { event: payload.event, instance: payload.instance });
 
     // Only process incoming text messages
     if (payload.event !== 'messages.upsert') {

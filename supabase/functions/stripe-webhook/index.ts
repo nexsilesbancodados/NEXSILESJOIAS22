@@ -44,9 +44,12 @@ serve(async (req) => {
         );
       }
     } else {
-      // For development/testing without webhook secret
-      event = JSON.parse(body);
-      console.log("⚠️ Processing webhook without signature verification");
+      // Production hardening: refuse unsigned webhooks when secret is not configured
+      console.error("❌ STRIPE_WEBHOOK_SECRET not configured — rejecting webhook");
+      return new Response(
+        JSON.stringify({ error: "Webhook secret not configured on server" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`Processing webhook event: ${event.type}`);
