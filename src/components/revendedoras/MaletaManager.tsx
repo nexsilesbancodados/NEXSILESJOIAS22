@@ -1723,6 +1723,22 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         maletaId={maleta.id}
         maletaNome={maleta.nome}
       />
+
+      <AssinaturaRetiradaDialog
+        open={assinaturaOpen}
+        onOpenChange={setAssinaturaOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+        numeroSequencial={(maleta as any).numero_sequencial ?? null}
+        revendedoraId={maleta.revendedora_id ?? null}
+        revendedoraNome={(maleta as any).revendedora?.nome ?? null}
+        items={items.map((it) => ({
+          peca_nome: it.peca?.nome ?? 'Peça',
+          peca_codigo: it.peca?.codigo ?? null,
+          quantidade: it.quantidade ?? 0,
+          preco_unitario: it.preco_unitario ?? it.peca?.preco_venda ?? 0,
+        }))}
+      />
     </div>
   );
 });
