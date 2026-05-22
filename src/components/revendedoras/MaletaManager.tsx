@@ -45,6 +45,7 @@ import {
   AlertTriangle,
   Printer,
   Download,
+  Share2,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
