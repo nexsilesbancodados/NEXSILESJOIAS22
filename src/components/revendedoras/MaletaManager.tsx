@@ -1524,9 +1524,12 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   };
                   return (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm flex-wrap gap-2">
                         <span className="font-medium">{okConf} de {totalConf} conferido(s)</span>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <Button type="button" size="sm" variant="outline" onClick={() => setScannerOpen(true)}>
+                            <ScanBarcode className="w-3.5 h-3.5 mr-1" /> Escanear
+                          </Button>
                           <Button type="button" size="sm" variant="ghost" onClick={marcarTodosConferidos}>
                             Marcar todos
                           </Button>
