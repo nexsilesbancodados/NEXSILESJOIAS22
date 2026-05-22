@@ -56,10 +56,9 @@ export function SugerirReposicaoDialog({ open, onOpenChange, revendedoraId, male
     setAdding(s.peca_id);
     try {
       await addItem.mutateAsync({
-        maleta_id: maletaId,
-        peca_id: s.peca_id,
+        maletaId,
+        pecaId: s.peca_id,
         quantidade: 1,
-        preco_unitario: s.preco_venda ?? 0,
       } as any);
       toast.success(`${s.nome} adicionada`);
       onAdded?.();
