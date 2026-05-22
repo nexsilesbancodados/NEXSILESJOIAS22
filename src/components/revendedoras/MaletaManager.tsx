@@ -447,8 +447,9 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
       autoTable(doc, {
         startY: yPos,
-        head: [[...confColHead, 'Código', 'Produto', 'Qtd', 'Valor Unit.']],
-        body: dados.itemsPendentes.map(item => [
+        head: [['#', ...confColHead, 'Código', 'Produto', 'Qtd', 'Valor Unit.']],
+        body: dados.itemsPendentes.map((item, idx) => [
+          (idx + 1).toString(),
           ...confCell(item.conferido),
           item.codigo,
           item.nome.length > 35 ? item.nome.substring(0, 35) + '...' : item.nome,
