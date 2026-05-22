@@ -106,10 +106,10 @@ export function TransferirPecaDialog({ open, onOpenChange, maletaOrigemId, items
             <Select value={pecaId} onValueChange={(v) => { setPecaId(v); setQuantidade(1); }}>
               <SelectTrigger><SelectValue placeholder="Selecione uma peça" /></SelectTrigger>
               <SelectContent>
-                {items.filter(i => i.quantidade > 0).map(i => {
-                  const peca = i.peca || {};
+                {items.filter(i => i.quantidade > 0 && i.peca_id).map(i => {
+                  const peca = i.peca || ({} as any);
                   return (
-                    <SelectItem key={i.peca_id} value={i.peca_id}>
+                    <SelectItem key={i.peca_id!} value={i.peca_id!}>
                       {peca.nome || 'Peça'} ({peca.codigo || '-'}) • {i.quantidade} disp.
                     </SelectItem>
                   );
