@@ -280,7 +280,21 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, [signOut]);
 
 
-  const sidebarWidth = menuMode === 'sidebar' ? (sidebarExpanded ? 280 : 80) : 0;
+  const isMobile = useIsMobile();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  // Close mobile sheet on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const effectiveMenuMode: MenuMode = isMobile ? 'floating' : menuMode;
+  const sidebarWidth = isMobile
+    ? 0
+    : effectiveMenuMode === 'sidebar'
+      ? (sidebarExpanded ? 280 : 80)
+      : 0;
 
   // Memoize main content style to prevent recalculations
   const mainStyle = useMemo(() => ({ marginLeft: sidebarWidth }), [sidebarWidth]);
@@ -288,8 +302,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Sidebar only visible in sidebar mode */}
-        {menuMode === 'sidebar' && (
+        {/* Desktop sidebar */}
+        {!isMobile && effectiveMenuMode === 'sidebar' && (
           <Sidebar 
             isExpanded={sidebarExpanded} 
             onToggle={toggleSidebar}
@@ -297,9 +311,23 @@ export function MainLayout({ children }: MainLayoutProps) {
             onTogglePin={toggleSidebarPin}
           />
         )}
+
+        {/* Mobile sheet sidebar */}
+        {isMobile && (
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetContent side="left" className="p-0 w-[280px] max-w-[85vw]">
+              <Sidebar 
+                isExpanded={true}
+                onToggle={() => setMobileMenuOpen(false)}
+                isPinned={false}
+                onTogglePin={() => {}}
+              />
+            </SheetContent>
+          </Sheet>
+        )}
         
         <Header 
-          menuMode={menuMode}
+          menuMode={effectiveMenuMode}
           onToggleMode={toggleMenuMode}
           user={user}
           profile={profile}
@@ -307,6 +335,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           isAdmin={isAdmin}
           onSignOut={handleSignOut}
           sidebarWidth={sidebarWidth}
+          isMobile={isMobile}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
         />
         
         {/* Main content with optimized transitions */}
@@ -318,5 +348,6 @@ export function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
     </TooltipProvider>
+
   );
 }
