@@ -126,6 +126,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [sugerirOpen, setSugerirOpen] = useState(false);
   const [fotosOpen, setFotosOpen] = useState(false);
   const [acertoOpen, setAcertoOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
