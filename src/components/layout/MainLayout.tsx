@@ -3,13 +3,16 @@ import { Sidebar } from './Sidebar';
 import { HeaderNav } from './HeaderNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase-db';
 import { Button } from '@/components/ui/button';
-import { LogOut, PanelLeft, LayoutGrid, Moon, Sun } from 'lucide-react';
+import { LogOut, PanelLeft, LayoutGrid, Moon, Sun, Menu } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import logo from '@/assets/logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserPreferences, useSaveUserPreference, PREFERENCE_KEYS } from '@/hooks/useUserPreferences';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy load heavy components
 const NotificationBell = lazy(() => import('@/components/notifications/NotificationBell').then(m => ({ default: m.NotificationBell })));
