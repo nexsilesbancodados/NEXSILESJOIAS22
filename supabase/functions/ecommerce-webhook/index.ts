@@ -1,58 +1,73 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeaders } from "../_shared/cors.ts";
+import { verifyMercadoPagoSignature } from "../_shared/hmac.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { createLogger } from "../_shared/logger.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const log = createLogger("ecommerce-webhook");
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const rl = await rateLimit(req, "ecommerce-webhook", { maxRequests: 300 });
+  if (rl) return rl;
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle both Webhook (JSON body) and IPN (query params) formats
+    const rawBody = await req.text();
+
+    // ===== HMAC SIGNATURE VERIFICATION =====
+    const mpSecret = Deno.env.get("MERCADOPAGO_WEBHOOK_SECRET");
+    if (mpSecret) {
+      const ok = await verifyMercadoPagoSignature(req, rawBody, mpSecret);
+      if (!ok) {
+        log.warn("Invalid MP webhook signature");
+        return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+      }
+    } else {
+      log.warn("MERCADOPAGO_WEBHOOK_SECRET not set — signature check skipped");
+    }
+
     const url = new URL(req.url);
     let paymentId: string | null = null;
     let eventAction: string | null = null;
 
     const contentType = req.headers.get("content-type") || "";
 
-    if (contentType.includes("application/json")) {
-      const body = await req.json();
-      console.log("Ecommerce webhook received (JSON):", JSON.stringify(body));
+    if (contentType.includes("application/json") && rawBody) {
+      const body = JSON.parse(rawBody);
+      log.info("Ecommerce webhook (JSON)", { type: body.type, action: body.action });
 
       if (body.type === "payment" || body.action === "payment.created" || body.action === "payment.updated") {
         paymentId = body.data?.id ? String(body.data.id) : null;
         eventAction = body.action || body.type;
       } else {
-        console.log("Ignoring non-payment event:", body.type, body.action);
+        log.info("Ignoring non-payment event", { type: body.type });
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
     } else {
-      // IPN format: query params ?topic=payment&id=123
       const topic = url.searchParams.get("topic") || url.searchParams.get("type");
       const id = url.searchParams.get("id") || url.searchParams.get("data.id");
-      console.log("Ecommerce webhook received (IPN):", { topic, id });
+      log.info("Ecommerce webhook (IPN)", { topic, id });
 
       if (topic === "payment" && id) {
         paymentId = id;
         eventAction = "payment.ipn";
       } else {
         try {
-          const body = await req.json();
+          const body = rawBody ? JSON.parse(rawBody) : {};
           if (body.type === "payment" || body.action?.startsWith("payment.")) {
             paymentId = body.data?.id ? String(body.data.id) : null;
             eventAction = body.action || body.type;
           }
         } catch {
-          console.log("No parseable body. Topic:", topic);
+          log.info("No parseable body", { topic });
         }
         if (!paymentId) {
           return new Response("ok", { status: 200, headers: corsHeaders });
