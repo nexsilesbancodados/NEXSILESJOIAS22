@@ -1,17 +1,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { parseJson, z } from "../_shared/validate.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-cross-secret",
-};
+const BodySchema = z.object({
+  email: z.string().email().max(255),
+  plano: z.enum(["nexsiles", "nexsiles_max"]),
+  valor_pago: z.number().nonnegative().optional(),
+  valido_ate: z.string().datetime().optional(),
+});
 
 function gerarCodigo(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
-  for (let i = 0; i < 12; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
+  const buf = new Uint8Array(12);
+  crypto.getRandomValues(buf);
+  for (let i = 0; i < 12; i++) result += chars.charAt(buf[i] % chars.length);
   return result;
 }
 
@@ -20,44 +24,25 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Rate limit by IP — protects shared-secret endpoint
+  const rl = await rateLimit(req, "criar-codigo-externo", { maxRequests: 30 });
+  if (rl) return rl;
+
   try {
     // Validate shared secret
     const secret = req.headers.get("x-cross-secret");
     const expectedSecret = Deno.env.get("CROSS_PROJECT_SECRET");
 
-    if (!secret || secret !== expectedSecret) {
+    if (!secret || !expectedSecret || secret !== expectedSecret) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { email, plano, valor_pago, valido_ate } = await req.json();
-
-    // Validate required fields
-    if (!email || !plano) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: email, plano" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate email
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid email format" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Validate plano
-    const planosValidos = ["nexsiles", "nexsiles_max"];
-    if (!planosValidos.includes(plano)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid plano. Must be 'nexsiles' or 'nexsiles_max'" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const parsed = await parseJson(req, BodySchema);
+    if (parsed.error) return parsed.error;
+    const { email, plano, valor_pago, valido_ate } = parsed.data;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
