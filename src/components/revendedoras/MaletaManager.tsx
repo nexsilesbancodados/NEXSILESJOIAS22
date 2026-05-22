@@ -687,6 +687,47 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
 
   const handleFecharMaleta = async () => {
     try {
+      // 1) Persistir registro de conferência (auditoria)
+      if (maleta.organization_id) {
+        const itens = [...itemsComVendas, ...itemsPendentes].map((i) => ({
+          maleta_peca_id: i.id,
+          peca_id: i.peca_id,
+          codigo: i.peca?.codigo,
+          nome: i.peca?.nome,
+          quantidade: (i.quantidade_vendida ?? 0) + (i.quantidade ?? 0),
+          vendida: (i.quantidade_vendida ?? 0) > 0,
+          conferido: itensConferidos.has(i.id),
+        }));
+        const total = itens.length;
+        const conferidos = itens.filter((x) => x.conferido).length;
+        const { data: userRes } = await supabase.auth.getUser();
+        await supabase.from('maleta_conferencias').insert({
+          maleta_id: maleta.id,
+          organization_id: maleta.organization_id,
+          user_id: userRes?.user?.id ?? null,
+          tipo: 'fechamento',
+          itens_conferidos: itens,
+          total_itens: total,
+          total_conferidos: conferidos,
+          observacoes: conferenciaManual ? 'Conferência manual realizada' : 'Fechamento sem conferência manual',
+          status: 'concluida',
+        });
+
+        // 2) Logar devoluções por item pendente
+        if (itemsPendentes.length > 0) {
+          const devolucoes = itemsPendentes.map((i) => ({
+            maleta_id: maleta.id,
+            maleta_peca_id: i.id,
+            peca_id: i.peca_id,
+            organization_id: maleta.organization_id,
+            quantidade: i.quantidade ?? 0,
+            motivo: motivoDevolucao.trim() || 'Devolução no fechamento da maleta',
+            user_id: userRes?.user?.id ?? null,
+          }));
+          await supabase.from('maleta_devolucoes').insert(devolucoes);
+        }
+      }
+
       await closeMaletaMutation.mutateAsync({
         maletaId: maleta.id,
         returnPendingToStock: true,
@@ -695,6 +736,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
       if (onClose) onClose();
     } catch (error) {
       console.error('Error closing maleta:', error);
+      toast.error('Erro ao fechar maleta');
     }
   };
 
