@@ -1571,9 +1571,22 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
                   );
                 })()}
               </div>
+            )}
 
+            {itemsPendentes.length > 0 && (
+              <div className="space-y-1.5">
+                <Label htmlFor="motivo-dev" className="text-sm">Motivo da devolução (opcional)</Label>
+                <Input
+                  id="motivo-dev"
+                  value={motivoDevolucao}
+                  onChange={(e) => setMotivoDevolucao(e.target.value)}
+                  placeholder="Ex.: não interessou, defeito, fora de tamanho..."
+                />
+              </div>
             )}
           </div>
+
+
 
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
