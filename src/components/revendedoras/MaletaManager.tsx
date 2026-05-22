@@ -803,9 +803,25 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         </Card>
       </div>
 
-      {/* Close Maleta Button */}
-      {maleta.status === 'aberta' && (
-        <div className="flex justify-end">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => setHistoricoOpen(true)}>
+          <History className="w-4 h-4 mr-2" />
+          Histórico
+        </Button>
+        {maleta.status === 'aberta' && items.length > 0 && (
+          <>
+            <Button variant="outline" size="sm" onClick={() => setEtiquetasOpen(true)}>
+              <Tag className="w-4 h-4 mr-2" />
+              Etiquetas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setTransferirOpen(true)}>
+              <ArrowLeftRight className="w-4 h-4 mr-2" />
+              Transferir peça
+            </Button>
+          </>
+        )}
+        {maleta.status === 'aberta' && (
           <Button
             variant="default"
             className="bg-primary hover:bg-primary/90"
@@ -815,8 +831,14 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
             <Lock className="w-4 h-4 mr-2" />
             Fechar Maleta
           </Button>
-        </div>
-      )}
+        )}
+        {maleta.status === 'fechada' && (
+          <Button variant="outline" size="sm" onClick={() => setReabrirOpen(true)}>
+            <Unlock className="w-4 h-4 mr-2" />
+            Reabrir maleta
+          </Button>
+        )}
+      </div>
 
       {/* Maleta Fechada Banner */}
       {maleta.status === 'fechada' && (
