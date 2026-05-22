@@ -3,16 +3,13 @@ import { Sidebar } from './Sidebar';
 import { HeaderNav } from './HeaderNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase-db';
 import { Button } from '@/components/ui/button';
-import { LogOut, PanelLeft, LayoutGrid, Moon, Sun, Menu } from 'lucide-react';
+import { LogOut, PanelLeft, LayoutGrid, Moon, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import logo from '@/assets/logo.png';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUserPreferences, useSaveUserPreference, PREFERENCE_KEYS } from '@/hooks/useUserPreferences';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy load heavy components
 const NotificationBell = lazy(() => import('@/components/notifications/NotificationBell').then(m => ({ default: m.NotificationBell })));
@@ -54,9 +51,7 @@ const Header = memo(({
   cargo,
   isAdmin,
   onSignOut,
-  sidebarWidth,
-  isMobile,
-  onOpenMobileMenu,
+  sidebarWidth
 }: { 
   menuMode: MenuMode; 
   onToggleMode: () => void;
@@ -66,40 +61,22 @@ const Header = memo(({
   isAdmin: boolean;
   onSignOut: () => void;
   sidebarWidth: number;
-  isMobile: boolean;
-  onOpenMobileMenu: () => void;
 }) => {
   const { theme, setTheme } = useTheme();
   const toggleTheme = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   }, [theme, setTheme]);
 
-  // On desktop, always render HeaderNav inline (regardless of menuMode)
-  const showInlineNav = !isMobile;
-
   return (
     <header 
       className="fixed top-0 right-0 h-16 bg-card/80 backdrop-blur-md border-b border-border/50 z-40 px-4 flex items-center justify-between gap-3 transition-all duration-300"
-      style={{ left: isMobile ? 0 : sidebarWidth }}
+      style={{ left: menuMode === 'sidebar' ? sidebarWidth : 0 }}
     >
       {/* Left side - Logo + Menu controls */}
       <div className="flex items-center gap-3">
-        {/* Mobile hamburger */}
-        {isMobile && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenMobileMenu}
-            className="h-9 w-9 rounded-xl hover:bg-muted"
-            aria-label="Abrir menu"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-        )}
-
-        {/* Logo (mobile, or desktop in floating mode) */}
-        {(isMobile || menuMode === 'floating') && (
-          <div className="flex items-center gap-3 pr-4 md:border-r md:border-border/50">
+        {/* Logo (only in floating/aerial mode) */}
+        {menuMode === 'floating' && (
+          <div className="flex items-center gap-3 pr-4 border-r border-border/50">
             <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl border border-primary/20">
               <img src={logo} alt="Nexsiles" className="w-6 h-6 object-contain" width={24} height={24} loading="lazy" />
             </div>
@@ -107,33 +84,30 @@ const Header = memo(({
           </div>
         )}
         
-        {/* Toggle menu mode button - desktop only */}
-        {!isMobile && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleMode}
-                className="h-9 w-9 rounded-xl hover:bg-muted transition-transform hover:scale-105 active:scale-95"
-              >
-                {menuMode === 'sidebar' ? (
-                  <LayoutGrid className="w-4 h-4" />
-                ) : (
-                  <PanelLeft className="w-4 h-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="bg-card border-border shadow-xl">
-              {menuMode === 'sidebar' ? 'Menu aéreo' : 'Menu lateral'}
-            </TooltipContent>
-          </Tooltip>
-        )}
+        {/* Toggle menu mode button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleMode}
+              className="h-9 w-9 rounded-xl hover:bg-muted transition-transform hover:scale-105 active:scale-95"
+            >
+              {menuMode === 'sidebar' ? (
+                <LayoutGrid className="w-4 h-4" />
+              ) : (
+                <PanelLeft className="w-4 h-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="bg-card border-border shadow-xl">
+            {menuMode === 'sidebar' ? 'Menu aéreo' : 'Menu lateral'}
+          </TooltipContent>
+        </Tooltip>
 
-        {/* Horizontal navigation on desktop */}
-        {showInlineNav && menuMode === 'floating' && <HeaderNav />}
+        {/* Horizontal navigation (only in floating/aerial mode) */}
+        {menuMode === 'floating' && <HeaderNav />}
       </div>
-
 
       {/* Right side - User info */}
       <div className="flex items-center gap-2">
@@ -280,21 +254,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, [signOut]);
 
 
-  const isMobile = useIsMobile();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const location = useLocation();
-
-  // Close mobile sheet on route change
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  const effectiveMenuMode: MenuMode = isMobile ? 'floating' : menuMode;
-  const sidebarWidth = isMobile
-    ? 0
-    : effectiveMenuMode === 'sidebar'
-      ? (sidebarExpanded ? 280 : 80)
-      : 0;
+  const sidebarWidth = menuMode === 'sidebar' ? (sidebarExpanded ? 280 : 80) : 0;
 
   // Memoize main content style to prevent recalculations
   const mainStyle = useMemo(() => ({ marginLeft: sidebarWidth }), [sidebarWidth]);
@@ -302,8 +262,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-background">
-        {/* Desktop sidebar */}
-        {!isMobile && effectiveMenuMode === 'sidebar' && (
+        {/* Sidebar only visible in sidebar mode */}
+        {menuMode === 'sidebar' && (
           <Sidebar 
             isExpanded={sidebarExpanded} 
             onToggle={toggleSidebar}
@@ -311,23 +271,9 @@ export function MainLayout({ children }: MainLayoutProps) {
             onTogglePin={toggleSidebarPin}
           />
         )}
-
-        {/* Mobile sheet sidebar */}
-        {isMobile && (
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetContent side="left" className="p-0 w-[280px] max-w-[85vw]">
-              <Sidebar 
-                isExpanded={true}
-                onToggle={() => setMobileMenuOpen(false)}
-                isPinned={false}
-                onTogglePin={() => {}}
-              />
-            </SheetContent>
-          </Sheet>
-        )}
         
         <Header 
-          menuMode={effectiveMenuMode}
+          menuMode={menuMode}
           onToggleMode={toggleMenuMode}
           user={user}
           profile={profile}
@@ -335,8 +281,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           isAdmin={isAdmin}
           onSignOut={handleSignOut}
           sidebarWidth={sidebarWidth}
-          isMobile={isMobile}
-          onOpenMobileMenu={() => setMobileMenuOpen(true)}
         />
         
         {/* Main content with optimized transitions */}
@@ -348,6 +292,5 @@ export function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
     </TooltipProvider>
-
   );
 }
