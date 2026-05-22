@@ -1688,6 +1688,34 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         onOpenChange={setScannerOpen}
         onDetect={handleBarcodeDetected}
       />
+
+      <EtiquetasBarcodeDialog
+        open={etiquetasOpen}
+        onOpenChange={setEtiquetasOpen}
+        items={items}
+        maletaNome={maleta.nome}
+      />
+
+      <HistoricoMaletaDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+      />
+
+      <TransferirPecaDialog
+        open={transferirOpen}
+        onOpenChange={setTransferirOpen}
+        maletaOrigemId={maleta.id}
+        items={items}
+      />
+
+      <ReabrirMaletaDialog
+        open={reabrirOpen}
+        onOpenChange={setReabrirOpen}
+        maletaId={maleta.id}
+        maletaNome={maleta.nome}
+      />
     </div>
   );
 });
