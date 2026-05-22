@@ -21,12 +21,6 @@ Deno.serve(async (req) => {
     if (parsed.error) return parsed.error;
     const { access_code } = parsed.data;
 
-    if (!access_code) {
-      return new Response(
-        JSON.stringify({ valid: false, error: "Missing access_code" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     const codigoClean = String(access_code).replace(/[^A-Z0-9]/gi, "").toUpperCase();
 
