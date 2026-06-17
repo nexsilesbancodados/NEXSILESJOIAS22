@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CheckoutOptions {
-  plano: 'nexsiles' | 'nexsiles_ysis' | 'nexsiles_commerce';
-  periodo: 'mensal' | 'anual';
+  plano?: string;
+  periodo?: 'mensal' | 'anual';
 }
 
 export function useMercadoPago() {

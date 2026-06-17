@@ -127,22 +127,14 @@ export function useActivateSubscription() {
         const dataVencimento = new Date();
         dataVencimento.setDate(dataVencimento.getDate() + 30);
 
-        const planoValores: Record<string, number> = {
-          ecommerce_premium: 149,
-          nexsiles: 189,
-          nexsiles_ysis: 249,
-          nexsiles_commerce: 299,
-          teste: 1,
-        };
+        const valorMensal = 129;
 
-        const valorMensal = planoValores[codeData.plano] || codeData.valor_pago || 0;
-
-        // 4. Create the subscription
+        // 4. Create the subscription (plano único Nexsiles Prime)
         const { error: subError } = await supabase
           .from('assinaturas')
           .upsert({
             user_id: user.id,
-            plano: codeData.plano === 'teste' ? 'nexsiles' : codeData.plano,
+            plano: 'nexsiles',
             status: 'ativo',
             data_inicio: now.toISOString(),
             data_vencimento: dataVencimento.toISOString(),
@@ -173,8 +165,7 @@ export function useActivateSubscription() {
         localStorage.removeItem('pending_access_code');
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
         
-        const planoNomes: Record<string, string> = { ecommerce_premium: 'E-commerce Premium', nexsiles: 'Nexsiles', nexsiles_ysis: 'Nexsiles Ysis', nexsiles_commerce: 'Nexsiles Commerce' };
-        const planoNome = planoNomes[codeData.plano] || codeData.plano;
+        const planoNome = 'Nexsiles Prime';
 
         // Send welcome email
         enviarNotificacaoEmail('boas_vindas' as any, {

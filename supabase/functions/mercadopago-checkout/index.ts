@@ -8,35 +8,16 @@ const corsHeaders = {
 };
 
 interface CheckoutRequest {
-  plano: "ecommerce_premium" | "nexsiles" | "nexsiles_ysis" | "nexsiles_commerce";
-  periodo: "mensal" | "anual";
+  plano?: string;
+  periodo?: "mensal" | "anual";
 }
 
-const PLANOS: Record<string, { nome: string; descricao: string; valor_mensal: number; valor_anual: number }> = {
-  ecommerce_premium: {
-    nome: "E-commerce Premium",
-    descricao: "Loja virtual completa",
-    valor_mensal: 149.0,
-    valor_anual: 1490.0,
-  },
-  nexsiles: {
-    nome: "Nexsiles",
-    descricao: "Gestão completa para semijoias",
-    valor_mensal: 189.0,
-    valor_anual: 1890.0,
-  },
-  nexsiles_ysis: {
-    nome: "Nexsiles Ysis",
-    descricao: "Vendas potencializadas com IA",
-    valor_mensal: 249.0,
-    valor_anual: 2490.0,
-  },
-  nexsiles_commerce: {
-    nome: "Nexsiles Commerce",
-    descricao: "Loja virtual + IA + gestão total",
-    valor_mensal: 299.0,
-    valor_anual: 2990.0,
-  },
+// Plano único Nexsiles Prime — R$ 129/mês
+const PLANO_UNICO = {
+  key: "nexsiles",
+  nome: "Nexsiles Prime",
+  descricao: "Acesso completo a tudo que o Nexsiles oferece",
+  valor_mensal: 129.0,
 };
 
 serve(async (req: Request) => {
@@ -61,13 +42,14 @@ serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Usuário não autenticado");
 
-    const { plano, periodo }: CheckoutRequest = await req.json();
-    if (!plano || !PLANOS[plano]) throw new Error("Plano inválido");
-
-    const planoInfo = PLANOS[plano];
-    const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
-    const descricao = `${planoInfo.nome} - ${periodo === "anual" ? "Anual" : "Mensal"}`;
-    const externalRef = `assinatura_${user.id}_${plano}_${periodo}_${Date.now()}`;
+    const { plano, periodo }: CheckoutRequest = await req.json().catch(() => ({}));
+    // Ignora plano/período enviado — só existe um plano agora
+    const planoKey = PLANO_UNICO.key;
+    const planoInfo = PLANO_UNICO;
+    const valor = planoInfo.valor_mensal;
+    const periodoFinal = "mensal";
+    const descricao = `${planoInfo.nome} - Mensal`;
+    const externalRef = `assinatura_${user.id}_${planoKey}_${periodoFinal}_${Date.now()}`;
 
     const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
     const emailName = user.email?.split("@")[0] || "Cliente";
@@ -75,7 +57,7 @@ serve(async (req: Request) => {
     const preferenceData = {
       items: [
         {
-          id: `plano_${plano}_${periodo}`,
+          id: `plano_${planoKey}_${periodoFinal}`,
           title: descricao,
           description: planoInfo.descricao,
           category_id: "services",
@@ -99,8 +81,8 @@ serve(async (req: Request) => {
       statement_descriptor: "NEXSILES",
       binary_mode: false,
       metadata: {
-        plano,
-        periodo,
+        plano: planoKey,
+        periodo: periodoFinal,
         valor,
         user_id: user.id,
         email: user.email,

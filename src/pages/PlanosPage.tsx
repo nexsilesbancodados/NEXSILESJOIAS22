@@ -265,19 +265,8 @@ export default function PlanosPage() {
                         {assinatura.trial_ativo ? 'Assinar Agora' : 'Renovar Agora'}
                       </Button>
                     )}
-                    {planoAtual && planoAtual !== 'nexsiles_commerce' && (
-                      <Button
-                        variant={isExpirando ? "outline" : "default"}
-                        onClick={() => handleSelectPlan(
-                          planoAtual === 'nexsiles' ? 'nexsiles_ysis' : 'nexsiles_commerce'
-                        )}
-                        className="gap-2"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                        Fazer Upgrade
-                      </Button>
-                    )}
                   </div>
+
                 </div>
               </CardContent>
             </Card>
@@ -296,13 +285,15 @@ export default function PlanosPage() {
     );
   }
 
+  const PRIME = PLANOS.nexsiles;
+
   return (
     <div className="min-h-screen">
-      <PageHeader icon={Crown} title="Escolha seu Plano" subtitle="3 dias de teste grátis em todos os planos. Cancele quando quiser." />
+      <PageHeader icon={Crown} title="Nexsiles Prime" subtitle="Plano único com tudo incluso. 3 dias de teste grátis." />
 
       {/* Expired banner */}
       {assinatura && !isAtivo && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="max-w-6xl mx-auto mb-8">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto mb-8 px-4">
           <Card className="border-2 border-destructive/30 bg-destructive/5">
             <CardContent className="py-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -311,11 +302,11 @@ export default function PlanosPage() {
                     <CreditCard className="w-6 h-6 text-destructive" />
                   </div>
                   <div>
-                    <p className="font-semibold text-destructive">Plano {planoInfo?.nome || ''} Expirado</p>
+                    <p className="font-semibold text-destructive">Assinatura Expirada</p>
                     <p className="text-sm text-muted-foreground">Renove para continuar usando todas as funcionalidades.</p>
                   </div>
                 </div>
-                <Button onClick={() => handleSelectPlan(planoAtual || 'nexsiles')} className="gap-2 bg-gradient-to-r from-primary to-primary/80">
+                <Button onClick={() => handleSelectPlan('nexsiles')} className="gap-2 bg-gradient-to-r from-primary to-primary/80">
                   <Sparkles className="w-4 h-4" />
                   Renovar Agora
                 </Button>
@@ -325,174 +316,88 @@ export default function PlanosPage() {
         </motion.div>
       )}
 
-      {/* Toggle Mensal/Anual */}
-      <div className="flex items-center justify-center gap-4 mb-8">
-        <Label htmlFor="billing-toggle" className={cn(!isAnual && 'text-foreground font-semibold')}>Mensal</Label>
-        <Switch id="billing-toggle" checked={isAnual} onCheckedChange={setIsAnual} />
-        <div className="flex items-center gap-2">
-          <Label htmlFor="billing-toggle" className={cn(isAnual && 'text-foreground font-semibold')}>Anual</Label>
-          {isAnual && (
-            <Badge variant="secondary" className="bg-success/10 text-success border-success/20">20% OFF</Badge>
-          )}
+      {/* Single Plan Card */}
+      <div className="max-w-2xl mx-auto mb-12 px-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="relative overflow-hidden border-2 border-primary/50 shadow-xl shadow-primary/10">
+            <div className="absolute top-4 right-4">
+              <Badge className="bg-primary text-primary-foreground gap-1">
+                <Sparkles className="w-3 h-3" /> Tudo Incluso
+              </Badge>
+            </div>
+
+            <CardHeader className="pb-4 pt-8">
+              <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                {PRIME.tier}
+              </p>
+              <CardTitle className="text-3xl mt-1">{PRIME.nome}</CardTitle>
+              <CardDescription className="text-base">{PRIME.descricao}</CardDescription>
+            </CardHeader>
+
+            <CardContent className="flex flex-col">
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm text-muted-foreground">R$</span>
+                  <span className="text-6xl font-bold text-foreground">
+                    {Math.floor(PRIME.valor)}
+                  </span>
+                  <span className="text-muted-foreground text-lg">/mês</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Sem fidelidade. Cancele quando quiser.</p>
+              </div>
+
+              {!assinatura && (
+                <Button
+                  size="lg"
+                  className="w-full mb-2 gap-2"
+                  disabled={loadingTrial === 'nexsiles'}
+                  onClick={() => handleActivateTrial('nexsiles')}
+                >
+                  {loadingTrial === 'nexsiles' ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Ativando...</>
+                  ) : (
+                    <><Gift className="w-4 h-4" /> Teste Grátis 3 Dias</>
+                  )}
+                </Button>
+              )}
+
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full mb-6 gap-2"
+                onClick={() => handleSelectPlan('nexsiles')}
+              >
+                <Zap className="w-4 h-4" /> Assinar agora
+              </Button>
+
+              <ul className="grid sm:grid-cols-2 gap-3">
+                {PRIME.recursos.map((recurso, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5 bg-primary/10 text-primary">
+                      <Check className="w-3 h-3" />
+                    </div>
+                    <span className="text-sm text-muted-foreground">{recurso}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <div className="text-center mt-8">
+          <p className="text-sm text-muted-foreground">
+            Inclui 3 dias de teste grátis. Cancele quando quiser.
+          </p>
         </div>
-      </div>
-
-      {/* Plan Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto mb-12 px-4">
-        {(Object.entries(PLANOS) as [PlanoKey, typeof PLANOS[PlanoKey]][]).map(([key, plano], index) => {
-          const config = PLAN_CONFIGS[key];
-          const Icon = config.icon;
-          const isCurrent = planoAtual === key;
-
-          return (
-            <motion.div
-              key={key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className={cn(
-                "relative overflow-hidden transition-all duration-300 hover:shadow-lg h-full flex flex-col",
-                config.popular && "border-2 border-warning/50 scale-[1.02] shadow-lg shadow-warning/10",
-                config.complete && "border-2 border-cyan-400/50",
-                isCurrent && "ring-2 ring-primary",
-                !config.popular && !config.complete && "border"
-              )}>
-                {config.popular && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-warning text-warning-foreground gap-1">
-                      <Sparkles className="w-3 h-3" /> Mais Popular
-                    </Badge>
-                  </div>
-                )}
-                {config.complete && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 gap-1">
-                      <Check className="w-3 h-3" /> Completo
-                    </Badge>
-                  </div>
-                )}
-
-                {isCurrent && (
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-primary text-primary-foreground">Seu Plano</Badge>
-                  </div>
-                )}
-
-                <CardHeader className="pb-4">
-                  <p className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-                    {plano.tier}
-                  </p>
-                  <CardTitle className="text-2xl mt-1">{plano.nome}</CardTitle>
-                  <CardDescription className="text-sm">{plano.descricao}</CardDescription>
-                </CardHeader>
-
-                <CardContent className="flex-1 flex flex-col">
-                  {/* Price */}
-                  <div className="mb-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm text-muted-foreground">R$</span>
-                      <span className="text-5xl font-bold text-foreground">
-                        {Math.floor(getPrecoComDesconto(plano.valor))}
-                      </span>
-                      <span className="text-muted-foreground">/mês</span>
-                    </div>
-                    {isAnual && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Cobrado R$ {(plano.valor * 12 * 0.8).toFixed(2).replace('.', ',')} anualmente
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Badges */}
-                  {'badges' in plano && (plano as any).badges && (
-                    <div className="flex gap-2 mb-4">
-                      {((plano as any).badges as string[]).map((badge: string) => (
-                        <Badge key={badge} variant="outline" className={cn(
-                          "text-xs",
-                          key === 'ecommerce_premium' && "border-emerald-400/30 text-emerald-400 bg-emerald-400/10",
-                          key === 'nexsiles_ysis' && "border-warning/30 text-warning bg-warning/10",
-                          key === 'nexsiles_commerce' && "border-cyan-400/30 text-cyan-400 bg-cyan-400/10"
-                        )}>
-                          {badge === 'IA 24/7' && <Bot className="w-3 h-3 mr-1" />}
-                          {badge === 'Loja Virtual' && <ShoppingBag className="w-3 h-3 mr-1" />}
-                          {badge === 'IA' && <Bot className="w-3 h-3 mr-1" />}
-                          {badge}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Trial CTA - activates trial directly */}
-                  {!assinatura && (
-                    <Button
-                      className={cn(
-                        "w-full mb-2 gap-2",
-                        key === 'ecommerce_premium' && "bg-emerald-500 hover:bg-emerald-500/90 text-white",
-                        key === 'nexsiles_ysis' && "bg-warning hover:bg-warning/90 text-warning-foreground",
-                        key === 'nexsiles_commerce' && "bg-cyan-500 hover:bg-cyan-500/90 text-white",
-                      )}
-                      variant={key === 'nexsiles' ? 'default' : undefined}
-                      disabled={isCurrent || loadingTrial === key}
-                      onClick={() => handleActivateTrial(key)}
-                    >
-                      {loadingTrial === key ? (
-                        <><Loader2 className="w-4 h-4 animate-spin" /> Ativando...</>
-                      ) : (
-                        <><Gift className="w-4 h-4" /> Teste Grátis 3 Dias</>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* Subscribe CTA */}
-                  <Button
-                    variant="outline"
-                    className="w-full mb-6 gap-2"
-                    disabled={isCurrent}
-                    onClick={() => handleSelectPlan(key)}
-                  >
-                    {isCurrent ? (
-                      'Plano Atual'
-                    ) : (
-                      <><Zap className="w-4 h-4" /> Assinar agora</>
-                    )}
-                  </Button>
-
-                  {/* Features */}
-                  <ul className="space-y-3 flex-1">
-                    {plano.recursos.map((recurso, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className={cn(
-                          "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
-                          config.checkColor
-                        )}>
-                          <Check className="w-3 h-3" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">{recurso}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Footer note */}
-      <div className="max-w-6xl mx-auto text-center mb-8">
-        <p className="text-sm text-muted-foreground">
-          Todos os planos incluem 3 dias de teste grátis. Cancele quando quiser.
-        </p>
       </div>
 
       <MercadoPagoCheckout
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
         plano={selectedPlan}
-        periodo={isAnual ? 'anual' : 'mensal'}
-        valor={getValorCheckout(selectedPlan)}
-        planoNome={PLANOS[selectedPlan].nome}
+        periodo="mensal"
+        valor={PRIME.valor}
+        planoNome={PRIME.nome}
       />
     </div>
   );

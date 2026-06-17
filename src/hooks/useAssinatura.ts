@@ -40,76 +40,39 @@ export interface NotificacaoAssinatura {
   created_at: string;
 }
 
+// Plano único: Nexsiles Prime - R$ 129/mês com acesso completo
+const PRIME_PLAN = {
+  nome: 'Nexsiles Prime',
+  tier: 'PRIME',
+  descricao: 'Acesso completo a tudo que o Nexsiles oferece',
+  recursos: [
+    'Dashboard inteligente',
+    'PDV completo (online e offline)',
+    'Estoque ilimitado e categorias',
+    'Cadastro de revendedoras e maletas',
+    'Catálogos digitais e públicos',
+    'Loja virtual com domínio próprio',
+    'Checkout Pix, Cartão e Boleto',
+    'Carrinho, cupons e frete automático',
+    'Assistente IA WhatsApp 24/7',
+    'Chatbot e respostas automáticas',
+    'Sistema de fidelidade e fiado',
+    'Relatórios e análises avançadas',
+    'Integração WhatsApp e e-mail',
+    'Romaneios, entregas e galvânica',
+    'Funcionários com permissões',
+    'Campanhas e automações de venda',
+  ],
+  valor: 129.00,
+  badges: ['Tudo Incluso'],
+} as const;
+
+// Todas as chaves legadas apontam para o mesmo plano para compatibilidade com dados antigos
 export const PLANOS = {
-  ecommerce_premium: {
-    nome: 'E-commerce',
-    tier: 'E-COMMERCE',
-    descricao: 'Sua loja virtual completa, sem complicação',
-    recursos: [
-      'Loja virtual com domínio',
-      'Gestão de estoque',
-      'Checkout Pix, Cartão, Boleto',
-      'Carrinho com cupons',
-      'Gestão de pedidos online',
-      'Cálculo de frete automático',
-      'SEO otimizado',
-      'Catálogo digital',
-    ],
-    valor: 129.00,
-    badges: ['Loja Virtual'],
-  },
-  nexsiles: {
-    nome: 'Bronze',
-    tier: 'BRONZE',
-    descricao: 'Gestão completa para seu negócio de semijoias',
-    recursos: [
-      'Dashboard inteligente',
-      'PDV completo',
-      'Estoque ilimitado',
-      'Cadastro de revendedoras',
-      'Catálogos digitais',
-      'Relatórios completos',
-      'Sistema de fidelidade',
-      'Integração WhatsApp',
-      'Gestão de clientes',
-      'Romaneios e entregas',
-    ],
-    valor: 189.00,
-  },
-  nexsiles_ysis: {
-    nome: 'Prata',
-    tier: 'PRATA',
-    descricao: 'Tudo do Bronze + Atendente de IA 24/7',
-    recursos: [
-      'Tudo do plano Bronze',
-      'Assistente IA WhatsApp',
-      'Chatbot integrado 24/7',
-      'Respostas automáticas',
-      'Sugestões de vendas por IA',
-      'Análise preditiva de estoque',
-      'Atendimento automático',
-      'Relatórios de IA',
-    ],
-    valor: 239.00,
-    badges: ['IA 24/7'],
-  },
-  nexsiles_commerce: {
-    nome: 'Diamante',
-    tier: 'DIAMANTE',
-    descricao: 'Tudo do Bronze e Prata + Loja Virtual completa',
-    recursos: [
-      'Tudo do plano Prata',
-      'Loja virtual com domínio',
-      'Checkout Pix, Cartão, Boleto',
-      'Carrinho com cupons',
-      'Gestão de pedidos online',
-      'Cálculo de frete',
-      'SEO otimizado',
-      'Campanhas e promoções',
-    ],
-    valor: 299.00,
-    badges: ['Loja Virtual', 'IA'],
-  },
+  nexsiles: PRIME_PLAN,
+  nexsiles_ysis: PRIME_PLAN,
+  nexsiles_commerce: PRIME_PLAN,
+  ecommerce_premium: PRIME_PLAN,
 } as const;
 
 export type PlanoKey = keyof typeof PLANOS;
