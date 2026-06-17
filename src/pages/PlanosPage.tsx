@@ -265,19 +265,8 @@ export default function PlanosPage() {
                         {assinatura.trial_ativo ? 'Assinar Agora' : 'Renovar Agora'}
                       </Button>
                     )}
-                    {planoAtual && planoAtual !== 'nexsiles_commerce' && (
-                      <Button
-                        variant={isExpirando ? "outline" : "default"}
-                        onClick={() => handleSelectPlan(
-                          planoAtual === 'nexsiles' ? 'nexsiles_ysis' : 'nexsiles_commerce'
-                        )}
-                        className="gap-2"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                        Fazer Upgrade
-                      </Button>
-                    )}
                   </div>
+
                 </div>
               </CardContent>
             </Card>
