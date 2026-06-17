@@ -8,35 +8,16 @@ const corsHeaders = {
 };
 
 interface CheckoutRequest {
-  plano: "ecommerce_premium" | "nexsiles" | "nexsiles_ysis" | "nexsiles_commerce";
-  periodo: "mensal" | "anual";
+  plano?: string;
+  periodo?: "mensal" | "anual";
 }
 
-const PLANOS: Record<string, { nome: string; descricao: string; valor_mensal: number; valor_anual: number }> = {
-  ecommerce_premium: {
-    nome: "E-commerce Premium",
-    descricao: "Loja virtual completa",
-    valor_mensal: 149.0,
-    valor_anual: 1490.0,
-  },
-  nexsiles: {
-    nome: "Nexsiles",
-    descricao: "Gestão completa para semijoias",
-    valor_mensal: 189.0,
-    valor_anual: 1890.0,
-  },
-  nexsiles_ysis: {
-    nome: "Nexsiles Ysis",
-    descricao: "Vendas potencializadas com IA",
-    valor_mensal: 249.0,
-    valor_anual: 2490.0,
-  },
-  nexsiles_commerce: {
-    nome: "Nexsiles Commerce",
-    descricao: "Loja virtual + IA + gestão total",
-    valor_mensal: 299.0,
-    valor_anual: 2990.0,
-  },
+// Plano único Nexsiles Prime — R$ 129/mês
+const PLANO_UNICO = {
+  key: "nexsiles",
+  nome: "Nexsiles Prime",
+  descricao: "Acesso completo a tudo que o Nexsiles oferece",
+  valor_mensal: 129.0,
 };
 
 serve(async (req: Request) => {
