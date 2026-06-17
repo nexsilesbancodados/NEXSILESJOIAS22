@@ -22,7 +22,7 @@ export default function MinhaAssinaturaPage() {
     <div className="space-y-6">
       <PageHeader
         title="Minha Assinatura"
-        description="Gerencie seu plano, veja datas e atualize sua assinatura"
+        subtitle="Gerencie seu plano, veja datas e atualize sua assinatura"
         icon={Crown}
       />
 
