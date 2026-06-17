@@ -165,8 +165,7 @@ export function useActivateSubscription() {
         localStorage.removeItem('pending_access_code');
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
         
-        const planoNomes: Record<string, string> = { ecommerce_premium: 'E-commerce Premium', nexsiles: 'Nexsiles', nexsiles_ysis: 'Nexsiles Ysis', nexsiles_commerce: 'Nexsiles Commerce' };
-        const planoNome = planoNomes[codeData.plano] || codeData.plano;
+        const planoNome = 'Nexsiles Prime';
 
         // Send welcome email
         enviarNotificacaoEmail('boas_vindas' as any, {
