@@ -15,32 +15,13 @@ interface CheckoutRequest {
   periodo: "mensal" | "anual";
 }
 
+// Plano único Nexsiles Prime — R$ 129/mês. Todos os aliases apontam para o mesmo.
 const PLANOS: Record<string, { nome: string; valor_mensal: number; valor_anual: number }> = {
-  ecommerce: {
-    nome: "E-commerce",
-    valor_mensal: 129.0,
-    valor_anual: 1290.0,
-  },
-  bronze: {
-    nome: "Bronze",
-    valor_mensal: 189.0,
-    valor_anual: 1890.0,
-  },
-  prata: {
-    nome: "Prata",
-    valor_mensal: 239.0,
-    valor_anual: 2390.0,
-  },
-  diamante: {
-    nome: "Diamante",
-    valor_mensal: 299.0,
-    valor_anual: 2990.0,
-  },
-  teste: {
-    nome: "Teste",
-    valor_mensal: 1.0,
-    valor_anual: 1.0,
-  },
+  ecommerce: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  bronze: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  prata: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  diamante: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  teste: { nome: "Teste", valor_mensal: 1.0, valor_anual: 1.0 },
 };
 
 serve(async (req: Request) => {
