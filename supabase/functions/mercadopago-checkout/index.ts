@@ -42,13 +42,14 @@ serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) throw new Error("Usuário não autenticado");
 
-    const { plano, periodo }: CheckoutRequest = await req.json();
-    if (!plano || !PLANOS[plano]) throw new Error("Plano inválido");
-
-    const planoInfo = PLANOS[plano];
-    const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
-    const descricao = `${planoInfo.nome} - ${periodo === "anual" ? "Anual" : "Mensal"}`;
-    const externalRef = `assinatura_${user.id}_${plano}_${periodo}_${Date.now()}`;
+    const { plano, periodo }: CheckoutRequest = await req.json().catch(() => ({}));
+    // Ignora plano/período enviado — só existe um plano agora
+    const planoKey = PLANO_UNICO.key;
+    const planoInfo = PLANO_UNICO;
+    const valor = planoInfo.valor_mensal;
+    const periodoFinal = "mensal";
+    const descricao = `${planoInfo.nome} - Mensal`;
+    const externalRef = `assinatura_${user.id}_${planoKey}_${periodoFinal}_${Date.now()}`;
 
     const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
     const emailName = user.email?.split("@")[0] || "Cliente";
@@ -56,7 +57,7 @@ serve(async (req: Request) => {
     const preferenceData = {
       items: [
         {
-          id: `plano_${plano}_${periodo}`,
+          id: `plano_${planoKey}_${periodoFinal}`,
           title: descricao,
           description: planoInfo.descricao,
           category_id: "services",
