@@ -157,7 +157,7 @@ const menuItems = [
   { icon: MessageCircle, label: 'Atendimento IA', path: '/atendimento', color: 'from-violet-500 to-fuchsia-600', whatsappStatus: true },
   { icon: GraduationCap, label: 'Tutorial', path: '/tutorial', color: 'from-emerald-500 to-green-600' },
   { icon: UserCog, label: 'Funcionários', path: '/funcionarios', color: 'from-sky-500 to-blue-600', adminOnly: true },
-  { icon: ShoppingBag, label: 'Loja Virtual', path: '/loja-virtual', color: 'from-rose-500 to-pink-600', superAdminOnly: true },
+  { icon: ShoppingBag, label: 'Loja Virtual', path: '/loja-virtual', color: 'from-rose-500 to-pink-600' },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
   { icon: TrendingUp, label: 'CRM', path: '/crm', color: 'from-indigo-500 to-violet-600', superAdminOnly: true },
   { icon: Shield, label: 'Super Admin', path: '/super-admin', color: 'from-red-500 to-orange-600', superAdminOnly: true },
@@ -343,43 +343,14 @@ export const Sidebar = memo(function Sidebar({ isExpanded, onToggle, isPinned, o
 
   const isSuperAdmin = profile?.is_super_admin === true;
 
-  // Paths allowed for ecommerce_premium plan (only virtual store)
-  const ecommercePremiumPaths = ['/', '/pecas', '/loja-virtual', '/configuracoes', '/planos', '/pedidos-loja', '/etiquetas'];
-
-  // Paths restricted from Bronze plan (no loja virtual, no AI agent)
-  const bronzeRestrictedPaths = ['/loja-virtual', '/atendimento'];
-  
-  // Paths restricted from Prata plan (no loja virtual)
-  const prataRestrictedPaths = ['/loja-virtual'];
-
-  // Filter menu items based on admin status, permissions and plan
-  const filteredMenuItems = useMemo(() => 
+  // Plano único Nexsiles Prime: todos os módulos disponíveis para qualquer assinante ativo.
+  const filteredMenuItems = useMemo(() =>
     menuItems.filter((item) => {
-      const isEcommercePlan = planKey === 'ecommerce_premium';
-      const isBronzePlan = planKey === 'nexsiles';
-      const isPrataPlan = planKey === 'nexsiles_ysis';
-      const isDiamantePlan = planKey === 'nexsiles_commerce';
-
-      // For plans that include Loja Virtual (ecommerce, diamante), show it even if not superAdmin
-      const hasLojaVirtual = isEcommercePlan || isDiamantePlan;
-      
-      if ((item as any).superAdminOnly && !isSuperAdmin) {
-        if (!(hasLojaVirtual && item.path === '/loja-virtual')) return false;
-      }
+      if ((item as any).superAdminOnly && !isSuperAdmin) return false;
       if ((item as any).adminOnly && !isAdmin) return false;
-      
-      // Restrict ecommerce_premium to only relevant paths
-      if (isEcommercePlan && !ecommercePremiumPaths.includes(item.path)) return false;
-      
-      // Bronze: block loja virtual and atendimento IA
-      if (isBronzePlan && bronzeRestrictedPaths.includes(item.path)) return false;
-      
-      // Prata: block loja virtual
-      if (isPrataPlan && prataRestrictedPaths.includes(item.path)) return false;
-      
       return canAccessPath(item.path);
     }),
-    [isAdmin, canAccessPath, isSuperAdmin, planKey]
+    [isAdmin, canAccessPath, isSuperAdmin]
   );
 
   const handleNavigation = useCallback((path: string) => {

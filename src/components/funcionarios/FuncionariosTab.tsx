@@ -17,10 +17,12 @@ import { toast } from 'sonner';
 import { Plus, Users, Shield, Loader2, KeyRound, AlertTriangle } from 'lucide-react';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
 
+// Plano único Nexsiles Prime: 25 funcionários por organização
 const PLAN_LIMITS: Record<string, number> = {
-  nexsiles: 5,
-  nexsiles_ysis: 15,
+  nexsiles: 25,
+  nexsiles_ysis: 25,
   nexsiles_commerce: 25,
+  ecommerce_premium: 25,
 };
 
 const MODULOS = [
