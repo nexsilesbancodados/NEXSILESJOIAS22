@@ -59,6 +59,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const PoliticaPrivacidadePage = lazy(() => import("./pages/PoliticaPrivacidadePage"));
 const TermosDeUsoPage = lazy(() => import("./pages/TermosDeUsoPage"));
 const CRMPage = lazy(() => import("./pages/CRMPage"));
+const MinhaAssinaturaPage = lazy(() => import("./pages/MinhaAssinaturaPage"));
 
 // Detecta subdomínio loja.* e serve a loja pública
 function LojaSubdomainRedirect() {
@@ -297,6 +298,7 @@ function AppRoutes() {
                           <Route path="/fidelidade" element={<FidelidadePage />} />
                           <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                           <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
+                          <Route path="/minha-assinatura" element={<MinhaAssinaturaPage />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
@@ -416,6 +418,7 @@ function AppRoutes() {
                       <Route path="/fidelidade" element={<FidelidadePage />} />
                       <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                       <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
+                      <Route path="/minha-assinatura" element={<MinhaAssinaturaPage />} />
                       {/* Loja Virtual moved to standalone route above */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
