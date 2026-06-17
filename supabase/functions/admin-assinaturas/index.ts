@@ -202,13 +202,15 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Build result: only owners (non-employee users)
+      // Build result: include ALL auth users (owners + funcionarios)
+      // Funcionarios are flagged so UI can render them distinctly
       const result = (authUsers || [])
-        .filter((authUser: any) => !employeeUserIds.has(authUser.id))
         .map((authUser: any) => {
           const sub = subMap.get(authUser.id);
           const prof = profileMap.get(authUser.id);
           const employees = employeesPerOwner.get(authUser.id) || [];
+          const isFuncionario = employeeUserIds.has(authUser.id);
+          const func = funcionarioMap.get(authUser.id);
           return {
             id: sub?.id || null,
             user_id: authUser.id,
@@ -228,10 +230,18 @@ Deno.serve(async (req) => {
             notificacao_vencimento_enviada: sub?.notificacao_vencimento_enviada || false,
             pagamento_recorrente: sub?.pagamento_recorrente || false,
             has_subscription: !!sub,
-            profiles: prof || { nome: null, email: authUser.email },
+            profiles: prof || { nome: func?.nome || null, email: authUser.email },
             auth_created_at: authUser.created_at,
             funcionarios: employees,
+            is_funcionario: isFuncionario,
+            cargo: func?.cargo || null,
+            tipo_usuario: isFuncionario ? 'funcionario' : 'titular',
           };
+        })
+        .sort((a: any, b: any) => {
+          // Titulares primeiro, depois funcionários
+          if (a.is_funcionario !== b.is_funcionario) return a.is_funcionario ? 1 : -1;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
       return new Response(JSON.stringify(result), {
