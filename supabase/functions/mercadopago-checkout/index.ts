@@ -81,8 +81,8 @@ serve(async (req: Request) => {
       statement_descriptor: "NEXSILES",
       binary_mode: false,
       metadata: {
-        plano,
-        periodo,
+        plano: planoKey,
+        periodo: periodoFinal,
         valor,
         user_id: user.id,
         email: user.email,
