@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { requireAuth, isInternalServiceCall } from "../_shared/auth.ts";
 
 // Tool definitions for the AI agent
 const allTools = [
@@ -512,7 +513,7 @@ ID: ${peca.id}`;
           return "Catálogo não encontrado.";
         }
 
-        const baseUrl = Deno.env.get('APP_URL') || 'https://nexsiles2567.lovable.app';
+        const baseUrl = Deno.env.get('APP_URL') || 'https://nexsiles.com.br';
         const link = `${baseUrl}/catalogo/${catalogo.slug || catalogo.id}`;
         
         return `Link do catálogo "${catalogo.nome}":\n${link}\n\nVocê pode compartilhar este link com seus clientes!`;
@@ -1193,14 +1194,24 @@ serve(async (req) => {
   if (rl) return rl;
 
   try {
-    const { messages, organizationId, sessionId, clienteTelefone } = await req.json();
-    
+    const body = await req.json();
+    const { messages, sessionId, clienteTelefone } = body;
+
     if (!messages || !Array.isArray(messages)) {
       throw new Error("Messages array is required");
     }
 
-    if (!organizationId) {
-      throw new Error("Organization ID is required");
+    // Autenticação: chamada interna (webhook-whatsapp, com service role) pode usar
+    // o organizationId do body; caso contrário exige usuário logado e deriva a org
+    // do token — nunca do body (impede acesso cross-tenant).
+    let organizationId: string;
+    if (isInternalServiceCall(req)) {
+      organizationId = body.organizationId;
+      if (!organizationId) throw new Error("Organization ID is required");
+    } else {
+      const auth = await requireAuth(req);
+      if (auth.error) return auth.error;
+      organizationId = auth.ctx.organizationId;
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -1333,7 +1344,7 @@ serve(async (req) => {
       }
 
       if (catalogos && catalogos.length > 0) {
-        const baseUrl = Deno.env.get('APP_URL') || 'https://nexsiles2567.lovable.app';
+        const baseUrl = Deno.env.get('APP_URL') || 'https://nexsiles.com.br';
         knowledgeBase += `\n\n## Catálogos para Compartilhar\n`;
         catalogos.forEach((c: any) => {
           knowledgeBase += `- "${c.nome}" → ${baseUrl}/catalogo/${c.slug || c.id}${c.descricao ? ` | ${c.descricao}` : ''}\n`;

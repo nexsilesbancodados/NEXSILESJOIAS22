@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,7 +37,12 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, organizationId, instanceName } = await req.json();
+    // Exige lojista autenticado (owner/admin); a organização vem do token, não do body.
+    const auth = await requireAuth(req, { roles: ["owner", "admin"] });
+    if (auth.error) return auth.error;
+    const organizationId = auth.ctx.organizationId;
+
+    const { action, instanceName } = await req.json();
 
     // Generate unique instance name if not provided
     const finalInstanceName = instanceName || `org_${organizationId.substring(0, 8)}`;

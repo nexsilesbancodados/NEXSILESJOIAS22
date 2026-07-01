@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCrossSecret } from "../_shared/auth.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +54,14 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Este endpoint gera códigos de acesso pagos e ativa assinaturas. NÃO é chamado
+  // pelo app — só por outro projeto (site de vendas) após pagamento confirmado.
+  // Protegido por rate limit + segredo compartilhado (x-cross-secret).
+  const rl = await rateLimit(req, "gerar-codigo-acesso", { maxRequests: 30 });
+  if (rl) return rl;
+  const secretError = requireCrossSecret(req);
+  if (secretError) return secretError;
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -103,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin-top:10px;color:#666;font-size:12px">Válido por 30 dias</p>
               </div>
               <p>Para começar: acesse o sistema → Criar Conta → insira o código.</p>
-              <center><a href="https://nexsiles2567.lovable.app/auth" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:20px">Criar Minha Conta</a></center>
+              <center><a href="https://nexsiles.com.br/auth" style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:20px">Criar Minha Conta</a></center>
             </div>
             <div style="background:#f9fafb;padding:20px;text-align:center;color:#9ca3af;font-size:12px">
               <p>© Nexsiles. Todos os direitos reservados.</p>

@@ -6,7 +6,9 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+# --legacy-peer-deps: @zxing/browser exige @zxing/library@^0.22, mas o projeto usa
+# 0.23; sem a flag o `npm install` falha com ERESOLVE e o build do Docker quebra.
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,11 +20,15 @@ serve(async (req: Request) => {
     const clientSecret = Deno.env.get("MERCADOPAGO_CLIENT_SECRET")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Exige usuário autenticado com papel privilegiado; a org vem do token (não do body).
+    const auth = await requireAuth(req, { roles: ["owner", "admin"] });
+    if (auth.error) return auth.error;
+    const organization_id = auth.ctx.organizationId;
+
     const body = await req.json();
-    const { code, organization_id, redirect_uri } = body;
+    const { code, redirect_uri } = body;
 
     if (!code) throw new Error("Authorization code is required");
-    if (!organization_id) throw new Error("Organization ID is required");
 
     console.log("Exchanging OAuth code for organization:", organization_id);
 

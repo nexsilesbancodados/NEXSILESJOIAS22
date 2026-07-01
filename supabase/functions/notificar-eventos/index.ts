@@ -117,7 +117,7 @@ serve(async (req) => {
                 ${planoNome === 'Nexsiles Max' ? '<li>🤖 Atendente de IA integrado</li><li>💬 Chatbot WhatsApp automatizado</li>' : ''}
               </ul>
               <div style="text-align: center; margin-top: 25px;">
-                <a href="https://nexsiles2567.lovable.app" style="display: inline-block; background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                <a href="https://nexsiles.com.br" style="display: inline-block; background: linear-gradient(135deg, #8B5CF6, #A855F7); color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                   Acessar o Sistema
                 </a>
               </div>
@@ -259,7 +259,7 @@ serve(async (req) => {
               <p><strong>Valor:</strong> R$ ${valorEcom}</p>
             </div>
             <div style="text-align: center; margin-top: 20px;">
-              <a href="https://nexsiles2567.lovable.app/loja-virtual" style="display: inline-block; background: #38a169; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ver Pedidos</a>
+              <a href="https://nexsiles.com.br/loja-virtual" style="display: inline-block; background: #38a169; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">Ver Pedidos</a>
             </div>
           </div>`;
         break;
