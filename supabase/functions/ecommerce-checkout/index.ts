@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
+import { computeOrderTotals } from "../_shared/pricing.ts";
 
 const CheckoutSchema = z.object({
   items: z.array(z.object({
@@ -87,7 +88,7 @@ serve(async (req: Request) => {
     const parsed = await parseJson(req, CheckoutSchema);
     if (parsed.error) return parsed.error;
     const body = parsed.data;
-    const { items, organization_id, cliente, endereco, valor_frete, metodo_pagamento, cupom_id, valor_desconto } = body;
+    const { items, organization_id, cliente, endereco, valor_frete, metodo_pagamento, cupom_id } = body;
 
     if (!items || items.length === 0) throw new Error("Carrinho vazio");
     if (!organization_id) throw new Error("Organization ID obrigatório");
@@ -100,26 +101,20 @@ serve(async (req: Request) => {
       .eq("organization_id", organization_id)
       .single();
 
-    // Validate stock for each item
-    const pecaIds = items.map((i) => i.peca_id);
-    const { data: pecas, error: pecasError } = await supabase
-      .from("pecas")
-      .select("id, nome, codigo, preco_venda, estoque, disponivel_loja, ativo, categoria, descricao")
-      .in("id", pecaIds);
-
-    if (pecasError) throw new Error("Erro ao validar estoque");
-
-    for (const item of items) {
-      const peca = pecas?.find((p: any) => p.id === item.peca_id);
-      if (!peca) throw new Error(`Peça não encontrada: ${item.peca_id}`);
-      if (!peca.disponivel_loja || !peca.ativo) throw new Error(`Peça indisponível: ${peca.nome}`);
-      if (peca.estoque < item.quantidade) throw new Error(`Estoque insuficiente para: ${peca.nome}`);
-    }
-
-    // Calculate totals
-    const desconto = valor_desconto || 0;
-    const valor_subtotal = items.reduce((sum, item) => sum + item.preco_unitario * item.quantidade, 0);
-    const valor_total = valor_subtotal - desconto + (valor_frete || 0);
+    // Recalcula preços/totais no servidor — nunca confia em preço/subtotal/desconto do cliente.
+    // Também valida disponibilidade, estoque e que cada peça pertence a esta loja.
+    const totals = await computeOrderTotals({
+      organizationId: organization_id,
+      items,
+      cupomId: cupom_id || null,
+      frete: valor_frete,
+    });
+    const pricedItems = totals.items;
+    const valor_subtotal = totals.valor_subtotal;
+    const desconto = totals.valor_desconto;
+    const freteFinal = totals.valor_frete;
+    const valor_total = totals.valor_total;
+    const cupomValidado = totals.cupom_id;
 
     // ===== PIX DIRETO: Create order immediately =====
     if (metodo_pagamento === 'pix_direto') {
@@ -133,9 +128,9 @@ serve(async (req: Request) => {
           cliente_cpf: cliente.cpf || null,
           endereco: endereco || null,
           valor_subtotal,
-          valor_frete: valor_frete || 0,
+          valor_frete: freteFinal,
           valor_desconto: desconto,
-          cupom_id: cupom_id || null,
+          cupom_id: cupomValidado,
           valor_total,
           status: "aguardando_pix",
           metodo_pagamento: "pix_direto",
@@ -148,9 +143,9 @@ serve(async (req: Request) => {
         throw new Error("Erro ao criar pedido");
       }
 
-      // Insert order items
-      if (items.length > 0) {
-        const orderItems = items.map((item) => ({
+      // Insert order items (preços do servidor)
+      if (pricedItems.length > 0) {
+        const orderItems = pricedItems.map((item) => ({
           pedido_id: pedido.id,
           peca_id: item.peca_id,
           quantidade: item.quantidade,
@@ -160,8 +155,8 @@ serve(async (req: Request) => {
       }
 
       // Increment coupon usage if applied
-      if (cupom_id) {
-        await supabase.rpc("usar_cupom", { p_cupom_id: cupom_id });
+      if (cupomValidado) {
+        await supabase.rpc("usar_cupom", { p_cupom_id: cupomValidado });
       }
 
       // Send confirmation email (fire and forget)
@@ -189,7 +184,7 @@ serve(async (req: Request) => {
       throw new Error("Mercado Pago não configurado. Configure suas credenciais no painel.");
     }
 
-    const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
+    const origin = req.headers.get("origin") || "https://nexsiles.com.br";
     const lojaUrl = ecomConfig?.slug ? `${origin}/loja/${ecomConfig.slug}` : origin;
 
     // Calculate marketplace fee if configured
@@ -206,18 +201,15 @@ serve(async (req: Request) => {
 
     const preferenceData: any = {
       // ===== ITEMS (quantity, unit_price, id, title, description, category_id) =====
-      items: items.map((item) => {
-        const peca = pecas?.find((p: any) => p.id === item.peca_id);
-        return {
-          id: peca?.codigo || item.peca_id,
-          title: peca?.nome || item.nome,
-          description: (peca?.descricao || peca?.nome || item.nome).substring(0, 256),
-          category_id: peca?.categoria || "others",
-          quantity: item.quantidade,
-          currency_id: "BRL",
-          unit_price: item.preco_unitario,
-        };
-      }),
+      items: pricedItems.map((item) => ({
+        id: item.codigo || item.peca_id,
+        title: item.nome,
+        description: (item.descricao || item.nome).substring(0, 256),
+        category_id: item.categoria || "others",
+        quantity: item.quantidade,
+        currency_id: "BRL",
+        unit_price: item.preco_unitario,
+      })),
 
       // ===== PAYER (email obrigatório, nome, sobrenome, telefone, CPF, endereço) =====
       payer: {
@@ -246,8 +238,8 @@ serve(async (req: Request) => {
       },
 
       // ===== SHIPMENTS (frete) =====
-      ...(valor_frete > 0 && {
-        shipments: { cost: valor_frete, mode: "not_specified" },
+      ...(freteFinal > 0 && {
+        shipments: { cost: freteFinal, mode: "not_specified" },
       }),
 
       // ===== BACK URLS =====
@@ -278,13 +270,13 @@ serve(async (req: Request) => {
       // ===== METADATA (dados internos para o webhook) =====
       metadata: {
         organization_id,
-        items: items.map(i => ({ peca_id: i.peca_id, quantidade: i.quantidade, preco_unitario: i.preco_unitario })),
+        items: pricedItems.map(i => ({ peca_id: i.peca_id, quantidade: i.quantidade, preco_unitario: i.preco_unitario })),
         cliente,
         endereco: endereco || null,
         valor_subtotal,
-        valor_frete: valor_frete || 0,
+        valor_frete: freteFinal,
         valor_desconto: desconto,
-        cupom_id: cupom_id || null,
+        cupom_id: cupomValidado,
         valor_total,
       },
     };

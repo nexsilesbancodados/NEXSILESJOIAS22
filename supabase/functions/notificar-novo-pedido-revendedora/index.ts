@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
                 <tbody>${itensHtml}</tbody>
                 <tfoot><tr><td colspan="2" style="padding:12px 8px;text-align:right;font-weight:bold;border-top:2px solid #8B5CF6">Total:</td><td style="padding:12px 8px;text-align:right;font-weight:bold;color:#8B5CF6;border-top:2px solid #8B5CF6">${formatCurrency(valorTotal)}</td></tr></tfoot>
               </table>
-              <div style="text-align:center;margin-top:32px"><a href="https://nexsiles2567.lovable.app/portal/login" style="display:inline-block;background:linear-gradient(135deg,#8B5CF6,#6366F1);color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600">Acessar Portal</a></div>
+              <div style="text-align:center;margin-top:32px"><a href="https://nexsiles.com.br/portal/login" style="display:inline-block;background:linear-gradient(135deg,#8B5CF6,#6366F1);color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:600">Acessar Portal</a></div>
             </div>
             <div style="background:#f8f9fa;padding:20px;text-align:center;border-top:1px solid #eee"><p style="margin:0;color:#888;font-size:12px">Email automático - Nexsiles</p></div>
           </div>

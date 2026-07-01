@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +26,7 @@ const PLANOS = {
   nexsiles_max: { nome: "Nexsiles Max", valor: 249.00 },
 };
 
-const APP_URL = "https://nexsiles2567.lovable.app";
+const APP_URL = "https://nexsiles.com.br";
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -104,6 +105,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Cron protegido: exige x-cron-secret quando CRON_SECRET está configurado.
+  const cronError = requireCronSecret(req);
+  if (cronError) return cronError;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

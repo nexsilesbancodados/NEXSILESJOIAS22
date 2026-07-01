@@ -143,7 +143,10 @@ serve(async (req) => {
         return new Response("Invalid signature", { status: 401, headers: corsHeaders });
       }
     } else {
-      log.warn("WHATSAPP_WEBHOOK_SECRET not set — signature check skipped");
+      // Fail-closed: sem segredo configurado não há como validar a origem do webhook.
+      // Configure WHATSAPP_WEBHOOK_SECRET e a assinatura (x-hub-signature-256) no Evolution.
+      log.error("WHATSAPP_WEBHOOK_SECRET não configurado — webhook rejeitado.");
+      return new Response("Webhook secret not configured", { status: 503, headers: corsHeaders });
     }
 
     const payload: EvolutionWebhookMessage = JSON.parse(rawBody);

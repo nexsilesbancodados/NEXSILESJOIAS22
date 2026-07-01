@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { computeOrderTotals } from "../_shared/pricing.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,9 +19,18 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json();
-    const { formData, organization_id, items, cliente, endereco, valor_subtotal, valor_frete, cupom_id, valor_desconto } = body;
+    const { formData, organization_id, items, cliente, endereco, valor_frete, cupom_id } = body;
 
     if (!formData) throw new Error("formData obrigatório");
+    if (!organization_id) throw new Error("organization_id obrigatório");
+
+    // Recalcula preços/totais no servidor — nunca confia nos valores do cliente.
+    const totals = await computeOrderTotals({
+      organizationId: organization_id,
+      items,
+      cupomId: cupom_id || null,
+      frete: valor_frete,
+    });
 
     // Fetch org-specific MP token, fallback to global
     const { data: ecomConfig } = await supabase
@@ -32,8 +42,8 @@ serve(async (req: Request) => {
     const MERCADOPAGO_ACCESS_TOKEN = ecomConfig?.mercadopago_access_token || Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
     if (!MERCADOPAGO_ACCESS_TOKEN) throw new Error("Mercado Pago não configurado");
 
-    // Process payment via MP API
-    const paymentData = { ...formData, description: `Pedido - Loja Online` };
+    // Processa o pagamento — força o valor cobrado ao total calculado no servidor.
+    const paymentData = { ...formData, transaction_amount: totals.valor_total, description: `Pedido - Loja Online` };
 
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -49,10 +59,7 @@ serve(async (req: Request) => {
     console.log("Payment result:", paymentResult.status, paymentResult.id);
 
     if (paymentResult.status === "approved") {
-      // Create order
-      const desconto = valor_desconto || 0;
-      const valor_total = (valor_subtotal || 0) - desconto + (valor_frete || 0);
-      
+      // Cria o pedido com os totais calculados no servidor.
       const { data: pedido, error: pedidoError } = await supabase
         .from("ecommerce_pedidos")
         .insert({
@@ -62,11 +69,11 @@ serve(async (req: Request) => {
           cliente_telefone: cliente.telefone || null,
           cliente_cpf: cliente.cpf || null,
           endereco: endereco || null,
-          valor_subtotal: valor_subtotal || 0,
-          valor_frete: valor_frete || 0,
-          valor_desconto: desconto,
-          cupom_id: cupom_id || null,
-          valor_total,
+          valor_subtotal: totals.valor_subtotal,
+          valor_frete: totals.valor_frete,
+          valor_desconto: totals.valor_desconto,
+          cupom_id: totals.cupom_id,
+          valor_total: totals.valor_total,
           status: "pago",
           mercadopago_payment_id: String(paymentResult.id),
           metodo_pagamento: paymentResult.payment_method_id || "unknown",
@@ -79,9 +86,9 @@ serve(async (req: Request) => {
         throw new Error("Erro ao criar pedido");
       }
 
-      // Insert order items
-      if (items && items.length > 0) {
-        const orderItems = items.map((item: any) => ({
+      // Insert order items (preços do servidor)
+      if (totals.items.length > 0) {
+        const orderItems = totals.items.map((item) => ({
           pedido_id: pedido.id,
           peca_id: item.peca_id,
           quantidade: item.quantidade,
@@ -92,7 +99,7 @@ serve(async (req: Request) => {
         if (itensError) console.error("Error inserting items:", itensError);
 
         // Debit stock atomically
-        for (const item of items) {
+        for (const item of totals.items) {
           const { error: stockError } = await supabase.rpc("debitar_estoque_ecommerce" as any, {
             p_peca_id: item.peca_id,
             p_quantidade: item.quantidade,
@@ -107,8 +114,8 @@ serve(async (req: Request) => {
       }
 
       // Increment coupon usage if applied
-      if (cupom_id) {
-        await supabase.rpc("usar_cupom", { p_cupom_id: cupom_id });
+      if (totals.cupom_id) {
+        await supabase.rpc("usar_cupom", { p_cupom_id: totals.cupom_id });
       }
 
       // Send confirmation email (fire and forget)

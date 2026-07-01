@@ -51,7 +51,7 @@ serve(async (req: Request) => {
     const descricao = `${planoInfo.nome} - Mensal`;
     const externalRef = `assinatura_${user.id}_${planoKey}_${periodoFinal}_${Date.now()}`;
 
-    const origin = req.headers.get("origin") || "https://nexsiles2567.lovable.app";
+    const origin = req.headers.get("origin") || "https://nexsiles.com.br";
     const emailName = user.email?.split("@")[0] || "Cliente";
 
     const preferenceData = {

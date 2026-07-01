@@ -1030,7 +1030,7 @@ export default function EtiquetasPage() {
             labelData.qrcode = 'ASO-12345';
             break;
           case 'catalogo':
-            labelData.qrcode = 'https://nexsilesemijoias.lovable.app/catalogo/preview';
+            labelData.qrcode = 'https://nexsiles.com.br/catalogo/preview';
             break;
           case 'preco':
             labelData.qrcode = 'R$ 199,90';
@@ -1149,7 +1149,7 @@ export default function EtiquetasPage() {
                 labelData.qrcode = item.peca.codigo || item.peca.id.slice(0, 8);
                 break;
               case 'catalogo':
-                labelData.qrcode = `https://nexsilesemijoias.lovable.app/catalogo/${item.peca.id}`;
+                labelData.qrcode = `https://nexsiles.com.br/catalogo/${item.peca.id}`;
                 break;
               case 'preco':
                 labelData.qrcode = `R$ ${(item.peca.preco_venda || 0).toFixed(2).replace('.', ',')}`;
@@ -1204,7 +1204,7 @@ export default function EtiquetasPage() {
         return peca?.codigo || peca?.id?.slice(0, 8) || 'PEC-001';
       case 'catalogo':
         // URL do catálogo público
-        return `https://nexsilesemijoias.lovable.app/catalogo/${peca?.id || 'preview'}`;
+        return `https://nexsiles.com.br/catalogo/${peca?.id || 'preview'}`;
       case 'preco':
         const preco = peca?.preco_venda || 199.90;
         return `R$ ${preco.toFixed(2).replace('.', ',')}`;
