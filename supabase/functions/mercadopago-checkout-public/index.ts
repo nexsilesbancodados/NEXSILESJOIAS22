@@ -116,8 +116,10 @@ serve(async (req: Request) => {
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?source_news=webhooks`,
       statement_descriptor: STATEMENT_DESCRIPTOR,
       expires: true,
-      expiration_date_from: toMpDate(now),
+      // margem de 5min pra trás evita rejeição por drift de relógio no MP
+      expiration_date_from: toMpDate(new Date(now.getTime() - 5 * 60 * 1000)),
       expiration_date_to: toMpDate(expiration),
+
     };
 
     const idempotencyKey = uuidv4();
