@@ -1517,6 +1517,7 @@ export default function LandingPage() {
         <Navbar onCta={goPlanos} />
         <Hero onCta={goPlanos} />
         <Sobre />
+        <StickyShowcase />
         <EditorialBlock
           id="lojistas"
           tag="Para lojistas"
