@@ -11,11 +11,12 @@ import buyersImg from '@/assets/landing-buyers.jpg';
    Inspired by the Eagle real-estate reference (huge display type,
    stripes, scroll-driven parallax, magazine cadence). */
 
-const ACCENT = '#c9a27a';       // rose-gold
+const ACCENT = '#b07a4c';       // rose-gold escuro para contraste em fundo claro
 const ACCENT_SOFT = '#e8c9a8';
-const BG = '#0b0a09';
-const INK = '#f5efe6';
-const MUTED = 'rgba(245,239,230,0.55)';
+const BG = '#f6f1ea';           // creme editorial
+const BG_ALT = '#efe7dc';       // creme mais quente para faixas
+const INK = '#1a1410';          // tinta quase preta
+const MUTED = 'rgba(26,20,16,0.6)';
 
 /* ---------- Small primitives ---------- */
 
@@ -88,7 +89,7 @@ function Navbar({ onCta }: { onCta: () => void }) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? 'backdrop-blur-xl bg-[rgba(11,10,9,0.72)] border-b border-white/5' : ''
+        scrolled ? 'backdrop-blur-xl bg-[rgba(246,241,234,0.82)] border-b border-black/5' : ''
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
@@ -128,8 +129,8 @@ function Navbar({ onCta }: { onCta: () => void }) {
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
-          className="md:hidden border-t border-white/5"
-          style={{ background: 'rgba(11,10,9,0.95)' }}
+          className="md:hidden border-t border-black/5"
+          style={{ background: 'rgba(246,241,234,0.97)' }}
         >
           <div className="px-6 py-6 flex flex-col gap-5">
             {links.map((l) => (
@@ -170,14 +171,14 @@ function PillButton({
       className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase transition-colors"
       style={{
         background: solid ? ACCENT : 'transparent',
-        color: solid ? '#1a1410' : INK,
-        border: solid ? 'none' : `1px solid rgba(245,239,230,0.2)`,
+        color: solid ? '#fff8ef' : INK,
+        border: solid ? 'none' : `1px solid rgba(26,20,16,0.18)`,
       }}
     >
       <span>{children}</span>
       <span
         className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
-        style={{ background: solid ? '#1a1410' : ACCENT, color: solid ? ACCENT : '#1a1410' }}
+        style={{ background: solid ? '#1a1410' : ACCENT, color: solid ? ACCENT_SOFT : '#fff8ef' }}
       >
         <ArrowUpRight size={12} />
       </span>
@@ -200,7 +201,7 @@ function Hero({ onCta }: { onCta: () => void }) {
       {/* Vertical stripes */}
       <div className="absolute inset-0 grid grid-cols-6 pointer-events-none">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="border-r border-white/[0.03] h-full" />
+          <div key={i} className="border-r border-black/[0.04] h-full" />
         ))}
       </div>
 
@@ -210,13 +211,13 @@ function Hero({ onCta }: { onCta: () => void }) {
           src={heroImg}
           alt="Semi-jewelry"
           className="w-full h-full object-cover"
-          style={{ filter: 'brightness(0.55) contrast(1.05)' }}
+          style={{ filter: 'brightness(1.05) contrast(0.95) saturate(0.95)' }}
         />
         <div
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(180deg, rgba(11,10,9,0.55) 0%, rgba(11,10,9,0.35) 40%, rgba(11,10,9,0.85) 100%)',
+              'linear-gradient(180deg, rgba(246,241,234,0.35) 0%, rgba(246,241,234,0.15) 40%, rgba(246,241,234,0.95) 100%)',
           }}
         />
       </motion.div>
@@ -247,7 +248,7 @@ function Hero({ onCta }: { onCta: () => void }) {
             transition={{ duration: 1, delay: 0.8 }}
             className="md:col-span-5 md:col-start-6"
           >
-            <p className="text-[15px] md:text-[17px] leading-relaxed" style={{ color: 'rgba(245,239,230,0.78)' }}>
+            <p className="text-[15px] md:text-[17px] leading-relaxed" style={{ color: 'rgba(26,20,16,0.78)' }}>
               O sistema completo para quem vive de semi-joias.
               De estoque a maleta, de PDV a loja virtual — tudo em um só lugar,
               feito com o cuidado que sua marca merece.
@@ -319,7 +320,7 @@ function Sobre() {
                   { n: 99, s: '%', label: 'Uptime da plataforma' },
                   { n: 129, s: '', prefix: 'R$', label: 'Mensal — tudo incluso' },
                 ].map((s, i) => (
-                  <div key={i} className="border-t border-white/10 pt-4">
+                  <div key={i} className="border-t border-black/10 pt-4">
                     <div className="flex items-baseline gap-1">
                       <div
                         className="text-3xl md:text-5xl"
@@ -357,7 +358,7 @@ function Sobre() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.05, duration: 0.6 }}
-                    className="aspect-[3/2] border border-white/10 flex items-center justify-center text-center px-3 relative overflow-hidden group cursor-default"
+                    className="aspect-[3/2] border border-black/10 flex items-center justify-center text-center px-3 relative overflow-hidden group cursor-default"
                   >
                     <span
                       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -431,11 +432,11 @@ function Editorial({
             <div className="mt-10 space-y-6">
               {items.map((t, i) => (
                 <Reveal key={i} delay={0.15 + i * 0.08}>
-                  <div className="flex gap-6 border-t border-white/10 pt-5">
+                  <div className="flex gap-6 border-t border-black/10 pt-5">
                     <span className="text-xs tracking-[0.2em]" style={{ color: ACCENT }}>
                       [{String(i + 1).padStart(2, '0')}]
                     </span>
-                    <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(245,239,230,0.72)' }}>
+                    <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(26,20,16,0.72)' }}>
                       {t}
                     </p>
                   </div>
@@ -454,7 +455,7 @@ function Editorial({
 function Marquee() {
   const words = ['Estoque', 'Maletas', 'PDV', 'Catálogo público', 'Loja virtual', 'IA de atendimento', 'CRM', 'Fidelidade', 'Relatórios', 'Fiado'];
   return (
-    <section className="py-10 border-y border-white/5 overflow-hidden" style={{ background: '#0d0c0b' }}>
+    <section className="py-10 border-y border-black/5 overflow-hidden" style={{ background: BG_ALT }}>
       <motion.div
         className="flex gap-16 whitespace-nowrap"
         animate={{ x: ['0%', '-50%'] }}
@@ -507,7 +508,7 @@ function Recursos() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10 border-y border-white/10">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black/10 border-y border-black/10">
           {RECURSOS.map((r, i) => (
             <motion.div
               key={r.n}
@@ -516,7 +517,7 @@ function Recursos() {
               viewport={{ once: true, margin: '-60px' }}
               transition={{ delay: (i % 3) * 0.1, duration: 0.8 }}
               className={`p-8 md:p-12 group relative overflow-hidden ${
-                i >= 3 ? 'md:border-t md:border-white/10' : ''
+                i >= 3 ? 'md:border-t md:border-black/10' : ''
               }`}
             >
               <motion.div
@@ -575,7 +576,7 @@ function Depoimentos() {
   }, []);
   const d = DEPOIMENTOS[i];
   return (
-    <section id="depoimentos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: '#0d0c0b', color: INK }}>
+    <section id="depoimentos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG_ALT, color: INK }}>
       <div className="max-w-[1200px] mx-auto text-center">
         <Reveal>
           <SectionTag>[ vozes ]</SectionTag>
@@ -608,7 +609,7 @@ function Depoimentos() {
               key={k}
               onClick={() => setI(k)}
               className="w-8 h-px transition-all"
-              style={{ background: k === i ? ACCENT : 'rgba(245,239,230,0.2)' }}
+              style={{ background: k === i ? ACCENT : 'rgba(26,20,16,0.2)' }}
               aria-label={`depoimento ${k + 1}`}
             />
           ))}
@@ -683,7 +684,7 @@ function CTA({ onCta }: { onCta: () => void }) {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/10 py-14 px-6 md:px-10" style={{ background: BG, color: INK }}>
+    <footer className="border-t border-black/10 py-14 px-6 md:px-10" style={{ background: BG, color: INK }}>
       <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row justify-between gap-10">
         <div>
           <div
