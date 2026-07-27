@@ -788,6 +788,8 @@ function EditorialBlock({
             <img
               src={image}
               alt={imageAlt}
+              loading="lazy"
+              decoding="async"
               className="w-full h-[420px] md:h-[560px] object-cover"
             />
           </ClipReveal>
