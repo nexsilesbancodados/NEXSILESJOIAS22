@@ -81,6 +81,7 @@ function Navbar({ onCta }: { onCta: () => void }) {
     { label: 'Sistema', href: '#sistema' },
     { label: 'Para você', href: '#lojistas' },
     { label: 'Recursos', href: '#recursos' },
+    { label: 'Preços', href: '#precos' },
     { label: 'Depoimentos', href: '#depoimentos' },
   ];
   return (
@@ -680,6 +681,158 @@ function CTA({ onCta }: { onCta: () => void }) {
   );
 }
 
+/* ---------- Preços ---------- */
+
+const PRIME_FEATURES = [
+  'Estoque, categorias, banhos e etiquetas',
+  'Sistema de Maletas com conferência atômica',
+  'PDV completo, offline, fiado e fidelidade',
+  'Loja virtual com Mercado Pago e Pix direto',
+  'Catálogo público e portal da revendedora',
+  'IA Bella no WhatsApp — atendimento 24/7',
+  'CRM, campanhas e automações de vendas',
+  'Relatórios, metas e ranking de revendedoras',
+  'Até 25 usuários — funcionários inclusos',
+  'Suporte humano por WhatsApp',
+];
+
+function Precos({ onCta }: { onCta: () => void }) {
+  return (
+    <section id="precos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG, color: INK }}>
+      <div className="max-w-[1200px] mx-auto">
+        <div className="grid md:grid-cols-12 gap-10 mb-16 md:mb-20">
+          <div className="md:col-span-4">
+            <Reveal>
+              <SectionTag>[ investimento ]</SectionTag>
+            </Reveal>
+          </div>
+          <div className="md:col-span-8">
+            <Reveal delay={0.1}>
+              <h2
+                className="text-[2rem] md:text-[3.2rem] leading-[1.05] tracking-[-0.01em]"
+                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+              >
+                Um plano.{' '}
+                <span style={{ color: ACCENT, fontStyle: 'italic' }}>Tudo incluso.</span>
+                <br />
+                Sem letras miúdas, sem surpresas.
+              </h2>
+            </Reveal>
+          </div>
+        </div>
+
+        <Reveal delay={0.15}>
+          <motion.div
+            whileHover={{ y: -4 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+            className="relative overflow-hidden border p-8 md:p-14"
+            style={{ borderColor: 'rgba(26,20,16,0.15)', background: BG_ALT }}
+          >
+            {/* Accent corner */}
+            <div
+              className="absolute top-0 right-0 px-4 py-2 text-[10px] tracking-[0.3em] uppercase"
+              style={{ background: ACCENT, color: '#fff8ef' }}
+            >
+              Recomendado
+            </div>
+
+            <div className="grid md:grid-cols-12 gap-10 md:gap-14 items-start">
+              <div className="md:col-span-5">
+                <div className="text-xs tracking-[0.3em] uppercase" style={{ color: ACCENT }}>
+                  Nexsiles
+                </div>
+                <h3
+                  className="mt-3 text-5xl md:text-7xl leading-none"
+                  style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+                >
+                  Prime
+                </h3>
+
+                <div className="mt-8 flex items-baseline gap-2">
+                  <span className="text-sm" style={{ color: MUTED }}>
+                    R$
+                  </span>
+                  <span
+                    className="text-6xl md:text-7xl leading-none"
+                    style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+                  >
+                    129
+                  </span>
+                  <span className="text-sm" style={{ color: MUTED }}>
+                    /mês
+                  </span>
+                </div>
+
+                <p className="mt-6 text-sm leading-relaxed" style={{ color: MUTED }}>
+                  Acesso completo a todos os módulos da plataforma. Sem cobrança por usuário,
+                  sem taxa de setup, cancele quando quiser.
+                </p>
+
+                <div className="mt-10 flex flex-col sm:flex-row gap-3">
+                  <PillButton onClick={onCta}>Assinar agora</PillButton>
+                  <PillButton
+                    variant="ghost"
+                    onClick={() => (window.location.href = '/minha-assinatura')}
+                  >
+                    Atualizar assinatura
+                  </PillButton>
+                </div>
+
+                <div className="mt-6 text-[11px] tracking-[0.2em] uppercase" style={{ color: MUTED }}>
+                  Pagamento via Mercado Pago · Pix, cartão ou boleto
+                </div>
+              </div>
+
+              <div className="md:col-span-7">
+                <div className="text-xs tracking-[0.3em] uppercase mb-6" style={{ color: ACCENT }}>
+                  o que está incluso
+                </div>
+                <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
+                  {PRIME_FEATURES.map((f, i) => (
+                    <motion.li
+                      key={f}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: i * 0.04, duration: 0.5 }}
+                      className="flex items-start gap-3 text-sm"
+                      style={{ color: 'rgba(26,20,16,0.82)' }}
+                    >
+                      <span
+                        className="mt-[6px] inline-block w-3 h-px flex-shrink-0"
+                        style={{ background: ACCENT }}
+                      />
+                      <span>{f}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </motion.div>
+        </Reveal>
+
+        <Reveal delay={0.25}>
+          <div
+            className="mt-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs tracking-[0.2em] uppercase"
+            style={{ color: MUTED }}
+          >
+            <span>Dúvidas sobre o plano?</span>
+            <a
+              href="https://wa.me/5511937687369"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-4 hover:opacity-100 transition"
+              style={{ color: INK }}
+            >
+              Fale com a gente no WhatsApp →
+            </a>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Footer ---------- */
 
 function Footer() {
@@ -762,6 +915,7 @@ export default function LandingPage() {
         img={buyersImg}
       />
       <Depoimentos />
+      <Precos onCta={goCta} />
       <CTA onCta={goCta} />
       <Footer />
     </div>
