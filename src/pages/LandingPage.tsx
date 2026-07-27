@@ -129,7 +129,7 @@ function Navbar({ onCta }: { onCta: () => void }) {
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
-          className="md:hidden border-t border-white/5"
+          className="md:hidden border-t border-black/5"
           style={{ background: 'rgba(246,241,234,0.97)' }}
         >
           <div className="px-6 py-6 flex flex-col gap-5">
@@ -201,7 +201,7 @@ function Hero({ onCta }: { onCta: () => void }) {
       {/* Vertical stripes */}
       <div className="absolute inset-0 grid grid-cols-6 pointer-events-none">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="border-r border-white/[0.03] h-full" />
+          <div key={i} className="border-r border-black/[0.04] h-full" />
         ))}
       </div>
 
@@ -320,7 +320,7 @@ function Sobre() {
                   { n: 99, s: '%', label: 'Uptime da plataforma' },
                   { n: 129, s: '', prefix: 'R$', label: 'Mensal — tudo incluso' },
                 ].map((s, i) => (
-                  <div key={i} className="border-t border-white/10 pt-4">
+                  <div key={i} className="border-t border-black/10 pt-4">
                     <div className="flex items-baseline gap-1">
                       <div
                         className="text-3xl md:text-5xl"
@@ -358,7 +358,7 @@ function Sobre() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.05, duration: 0.6 }}
-                    className="aspect-[3/2] border border-white/10 flex items-center justify-center text-center px-3 relative overflow-hidden group cursor-default"
+                    className="aspect-[3/2] border border-black/10 flex items-center justify-center text-center px-3 relative overflow-hidden group cursor-default"
                   >
                     <span
                       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -432,7 +432,7 @@ function Editorial({
             <div className="mt-10 space-y-6">
               {items.map((t, i) => (
                 <Reveal key={i} delay={0.15 + i * 0.08}>
-                  <div className="flex gap-6 border-t border-white/10 pt-5">
+                  <div className="flex gap-6 border-t border-black/10 pt-5">
                     <span className="text-xs tracking-[0.2em]" style={{ color: ACCENT }}>
                       [{String(i + 1).padStart(2, '0')}]
                     </span>
@@ -508,7 +508,7 @@ function Recursos() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10 border-y border-white/10">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black/10 border-y border-black/10">
           {RECURSOS.map((r, i) => (
             <motion.div
               key={r.n}
@@ -517,7 +517,7 @@ function Recursos() {
               viewport={{ once: true, margin: '-60px' }}
               transition={{ delay: (i % 3) * 0.1, duration: 0.8 }}
               className={`p-8 md:p-12 group relative overflow-hidden ${
-                i >= 3 ? 'md:border-t md:border-white/10' : ''
+                i >= 3 ? 'md:border-t md:border-black/10' : ''
               }`}
             >
               <motion.div
@@ -684,7 +684,7 @@ function CTA({ onCta }: { onCta: () => void }) {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/10 py-14 px-6 md:px-10" style={{ background: BG, color: INK }}>
+    <footer className="border-t border-black/10 py-14 px-6 md:px-10" style={{ background: BG, color: INK }}>
       <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row justify-between gap-10">
         <div>
           <div
