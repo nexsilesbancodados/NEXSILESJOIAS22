@@ -1245,6 +1245,8 @@ function CTA({ onCta }: { onCta: () => void }) {
             <img
               src={ctaImg}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="w-full h-[440px] md:h-[560px] object-cover"
             />
           </ClipReveal>
