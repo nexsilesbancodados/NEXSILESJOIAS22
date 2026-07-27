@@ -48,6 +48,7 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const AtendimentoPage = lazy(() => import("./pages/AtendimentoPage"));
 const TutorialPage = lazy(() => import("./pages/TutorialPage"));
 const SuperAdminPage = lazy(() => import("./pages/SuperAdminPage"));
+const ObservabilityPage = lazy(() => import("./pages/ObservabilityPage"));
 const FiadoPage = lazy(() => import("./pages/FiadoPage"));
 const EntregasPage = lazy(() => import("./pages/EntregasPage"));
 const FidelidadePage = lazy(() => import("./pages/FidelidadePage"));
