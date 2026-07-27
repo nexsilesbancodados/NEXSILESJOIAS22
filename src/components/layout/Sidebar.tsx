@@ -162,6 +162,7 @@ const menuItems = [
   { icon: Settings, label: 'Configurações', path: '/configuracoes', color: 'from-zinc-500 to-neutral-600' },
   { icon: TrendingUp, label: 'CRM', path: '/crm', color: 'from-indigo-500 to-violet-600', superAdminOnly: true },
   { icon: Shield, label: 'Super Admin', path: '/super-admin', color: 'from-red-500 to-orange-600', superAdminOnly: true },
+  { icon: Activity, label: 'Observabilidade', path: '/observabilidade', color: 'from-emerald-500 to-teal-600', superAdminOnly: true },
 ];
 
 // Memoized menu item for collapsed sidebar
