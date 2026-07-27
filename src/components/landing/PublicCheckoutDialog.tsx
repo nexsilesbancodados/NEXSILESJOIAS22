@@ -35,12 +35,13 @@ export function PublicCheckoutDialog({ open, onOpenChange }: Props) {
     setLoading(true);
     try {
       const { data, error: fnError } = await supabase.functions.invoke('mercadopago-checkout-public', {
-        body: { email: parsed.data, plano: 'bronze', periodo },
+        body: { email: parsed.data, plano: 'nexsiles', periodo },
       });
       if (fnError) throw fnError;
-      const url = data?.initPoint || data?.sandboxInitPoint;
+      const url = data?.checkoutUrl || data?.initPoint || data?.sandboxInitPoint;
       if (!url) throw new Error('Não foi possível iniciar o checkout.');
-      window.location.href = url;
+      // Redireciona na mesma aba — padrão do Checkout Pro para melhor conversão mobile
+      window.location.assign(url);
     } catch (err: any) {
       console.error('checkout error', err);
       setError(err.message || 'Erro ao iniciar checkout. Tente novamente.');

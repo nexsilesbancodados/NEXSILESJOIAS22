@@ -3,34 +3,46 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
 
+// Checkout público alinhado à documentação oficial do Mercado Pago (Checkout Pro).
+// Referências:
+//   https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/integrate-checkout-pro
+//   https://www.mercadopago.com.br/developers/pt/reference/preferences/_checkout_preferences/post
+//   https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/idempotency-key
+
 const CheckoutBodySchema = z.object({
-  email: z.string().email().max(255),
-  plano: z.enum(["ecommerce", "bronze", "prata", "diamante", "teste"]),
-  periodo: z.enum(["mensal", "anual"]),
+  email: z.string().trim().toLowerCase().email().max(255),
+  plano: z.enum(["ecommerce", "bronze", "prata", "diamante", "nexsiles", "teste"]).default("nexsiles"),
+  periodo: z.enum(["mensal", "anual"]).default("mensal"),
 });
 
-interface CheckoutRequest {
-  email: string;
-  plano: "ecommerce" | "bronze" | "prata" | "diamante" | "teste";
-  periodo: "mensal" | "anual";
-}
-
-// Plano único Nexsiles Prime — R$ 129/mês. Todos os aliases apontam para o mesmo.
+// Plano único Nexsiles Prime — R$ 129/mês. Aliases legados apontam para o mesmo produto.
 const PLANOS: Record<string, { nome: string; valor_mensal: number; valor_anual: number }> = {
+  nexsiles:  { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
   ecommerce: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
-  bronze: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
-  prata: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
-  diamante: { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
-  teste: { nome: "Teste", valor_mensal: 1.0, valor_anual: 1.0 },
+  bronze:    { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  prata:     { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  diamante:  { nome: "Nexsiles Prime", valor_mensal: 129.0, valor_anual: 1290.0 },
+  teste:     { nome: "Teste",          valor_mensal: 1.0,   valor_anual: 1.0 },
 };
 
+// statement_descriptor: max 22 chars (MP docs)
+const STATEMENT_DESCRIPTOR = "NEXSILES";
+
+function uuidv4(): string {
+  // crypto.randomUUID é padrão no Deno Deploy — fallback defensivo
+  return (globalThis.crypto?.randomUUID?.() as string) ??
+    "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+}
+
 serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // 20 checkout starts per IP per minute (anti-abuse / anti-spam)
   const rl = await rateLimit(req, "mercadopago-checkout-public", { maxRequests: 20 });
   if (rl) return rl;
 
@@ -39,93 +51,112 @@ serve(async (req: Request) => {
     if (!MERCADOPAGO_ACCESS_TOKEN) {
       throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado");
     }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
     const parsed = await parseJson(req, CheckoutBodySchema);
     if (parsed.error) return parsed.error;
     const { email, plano, periodo } = parsed.data;
 
-    if (!PLANOS[plano]) {
-      throw new Error("Plano inválido");
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("Email inválido");
-    }
-
-    const planoInfo = PLANOS[plano];
+    const planoInfo = PLANOS[plano] ?? PLANOS.nexsiles;
     const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
-    const descricao = `${planoInfo.nome} - ${periodo === "anual" ? "Anual" : "Mensal"}`;
-    
-    const origin = req.headers.get("origin") || "https://nexsiles.com.br";
+    const descricao = `${planoInfo.nome} — Assinatura ${periodo === "anual" ? "Anual" : "Mensal"}`;
 
-    // Create Mercado Pago preference
+    const origin = req.headers.get("origin") || "https://nexsiles.com.br";
+    const externalReference = `nx:${plano}:${periodo}:${email}:${Date.now()}`;
+
+    // Validade da preferência: 24h (janela para o usuário finalizar)
+    const now = new Date();
+    const expiration = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    // MP requer offset -03:00 no formato ISO
+    const toMpDate = (d: Date) =>
+      d.toISOString().replace("Z", "-03:00");
+
+    // Estrutura conforme /checkout/preferences (Checkout Pro)
     const preferenceData = {
       items: [
         {
+          id: `${plano}-${periodo}`,
           title: descricao,
-          description: `Assinatura ${planoInfo.nome}`,
+          description: `Plataforma Nexsiles — ${planoInfo.nome}`,
+          category_id: "services",
           quantity: 1,
           currency_id: "BRL",
-          unit_price: valor,
+          unit_price: Number(valor.toFixed(2)),
         },
       ],
-      payer: {
-        email: email,
-      },
+      payer: { email },
       back_urls: {
         success: `${origin}/landing?pagamento=sucesso&email=${encodeURIComponent(email)}`,
-        failure: `${origin}/landing?pagamento=erro`,
-        pending: `${origin}/landing?pagamento=pendente`,
+        failure: `${origin}/landing?pagamento=erro&email=${encodeURIComponent(email)}`,
+        pending: `${origin}/landing?pagamento=pendente&email=${encodeURIComponent(email)}`,
       },
       auto_return: "approved",
-      external_reference: JSON.stringify({
-        plano: plano,
-        periodo: periodo,
-        valor: valor,
-        email: email,
-      }),
+      // Métodos de pagamento — habilita PIX/Boleto/Cartão e até 12x
+      payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [],
+        installments: 12,
+        default_installments: 1,
+      },
+      // Nunca use binary_mode:true — bloqueia PIX/Boleto (fluxos assíncronos)
+      binary_mode: false,
+      external_reference: externalReference,
+      metadata: {
+        plano,
+        periodo,
+        valor,
+        email,
+        source: "landing_public_checkout",
+      },
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook?source_news=webhooks`,
-      statement_descriptor: "NEXSILES",
+      statement_descriptor: STATEMENT_DESCRIPTOR,
+      expires: true,
+      expiration_date_from: toMpDate(now),
+      expiration_date_to: toMpDate(expiration),
     };
 
-    console.log("Creating public Mercado Pago preference:", preferenceData);
+    const idempotencyKey = uuidv4();
 
     const mpResponse = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
+        // Header oficial recomendado pelo MP para evitar preferências duplicadas
+        "X-Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify(preferenceData),
     });
 
     if (!mpResponse.ok) {
       const errorData = await mpResponse.text();
-      console.error("Mercado Pago error:", errorData);
-      throw new Error(`Erro ao criar preferência: ${errorData}`);
+      console.error("Mercado Pago error:", mpResponse.status, errorData);
+      return new Response(
+        JSON.stringify({ error: "Erro ao criar preferência de pagamento", details: errorData }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const preference = await mpResponse.json();
-    console.log("Preference created:", preference.id);
+    console.log("Preference created:", preference.id, "ext_ref:", externalReference);
+
+    // Detecta ambiente pelo token (APP_USR = produção, TEST = sandbox)
+    const isProd = MERCADOPAGO_ACCESS_TOKEN.startsWith("APP_USR-");
+    const checkoutUrl = isProd ? preference.init_point : preference.sandbox_init_point;
 
     return new Response(
       JSON.stringify({
         preferenceId: preference.id,
         initPoint: preference.init_point,
         sandboxInitPoint: preference.sandbox_init_point,
+        checkoutUrl,
+        externalReference,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: any) {
     console.error("Error in mercadopago-checkout-public:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message ?? "Erro interno" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
