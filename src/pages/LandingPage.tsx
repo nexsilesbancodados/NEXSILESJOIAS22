@@ -318,29 +318,40 @@ function PillButton({
 }) {
   const solid = variant === 'solid';
   return (
-    <motion.button
-      onClick={onClick}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase"
-      style={{
-        background: solid ? INK : 'transparent',
-        color: solid ? BG : INK,
-        border: solid ? 'none' : `1px solid rgba(26,20,16,0.22)`,
-      }}
-    >
-      <span>{children}</span>
-      <span
-        className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
+    <Magnetic strength={18} className="inline-block">
+      <motion.button
+        onClick={onClick}
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase overflow-hidden"
         style={{
-          background: solid ? ACCENT : INK,
-          color: solid ? '#fff8ef' : BG,
+          background: solid ? INK : 'transparent',
+          color: solid ? BG : INK,
+          border: solid ? 'none' : `1px solid rgba(26,20,16,0.22)`,
         }}
       >
-        <ArrowUpRight size={12} />
-      </span>
-    </motion.button>
+        <span
+          aria-hidden
+          className="absolute inset-0 -z-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ background: solid ? ACCENT : INK }}
+        />
+        <span className="relative z-10 transition-colors duration-500 group-hover:text-[color:var(--pill-hover)]"
+          style={{ ['--pill-hover' as any]: solid ? '#fff8ef' : BG }}
+        >
+          {children}
+        </span>
+        <span
+          className="relative z-10 inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
+          style={{
+            background: solid ? ACCENT : INK,
+            color: solid ? '#fff8ef' : BG,
+          }}
+        >
+          <ArrowUpRight size={12} />
+        </span>
+      </motion.button>
+    </Magnetic>
   );
 }
 
