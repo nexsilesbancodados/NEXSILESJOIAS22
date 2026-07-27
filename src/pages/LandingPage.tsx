@@ -50,7 +50,166 @@ const INK_SOFT = 'rgba(26,20,16,0.62)';
 const ACCENT = '#b07a4c';
 const ACCENT_SOFT = '#e8c9a8';
 
-/* ---------- primitives ---------- */
+/* ---------- global fx: cursor blob, grain, scroll progress ---------- */
+
+function CursorBlob() {
+  const x = useMotionValue(-100);
+  const y = useMotionValue(-100);
+  const sx = useSpring(x, { stiffness: 320, damping: 32, mass: 0.4 });
+  const sy = useSpring(y, { stiffness: 320, damping: 32, mass: 0.4 });
+  const [hover, setHover] = useState(false);
+  const scale = useSpring(hover ? 2.4 : 1, { stiffness: 260, damping: 22 });
+
+  useEffect(() => {
+    const move = (e: MouseEvent) => {
+      x.set(e.clientX);
+      y.set(e.clientY);
+      const t = e.target as HTMLElement | null;
+      setHover(!!t?.closest('a,button,[data-magnetic],[role="button"]'));
+    };
+    window.addEventListener('mousemove', move);
+    return () => window.removeEventListener('mousemove', move);
+  }, [x, y]);
+
+  // hide on touch devices
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    setIsTouch(matchMedia('(hover: none)').matches);
+  }, []);
+  if (isTouch) return null;
+
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none fixed top-0 left-0 z-[100]"
+      style={{
+        x: sx,
+        y: sy,
+        translateX: '-50%',
+        translateY: '-50%',
+        scale,
+        mixBlendMode: 'difference' as const,
+      }}
+    >
+      <div
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: '#f3d9b4',
+        }}
+      />
+    </motion.div>
+  );
+}
+
+function Grain() {
+  const svg = encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>`,
+  );
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-[90] opacity-[0.07] mix-blend-multiply"
+      style={{ backgroundImage: `url("data:image/svg+xml,${svg}")` }}
+    />
+  );
+}
+
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 24 });
+  return (
+    <motion.div
+      className="fixed top-0 left-0 right-0 z-[80] h-[2px] origin-left"
+      style={{ scaleX, background: ACCENT }}
+    />
+  );
+}
+
+/* ---------- magnetic wrapper (Awwwards staple) ---------- */
+
+function Magnetic({
+  children,
+  strength = 22,
+  className,
+}: {
+  children: React.ReactNode;
+  strength?: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 220, damping: 15, mass: 0.3 });
+  const sy = useSpring(y, { stiffness: 220, damping: 15, mass: 0.3 });
+  const onMove = (e: ReactMouseEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    x.set(((e.clientX - r.left) / r.width - 0.5) * strength);
+    y.set(((e.clientY - r.top) / r.height - 0.5) * strength);
+  };
+  const onLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+  return (
+    <motion.div
+      ref={ref}
+      data-magnetic
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{ x: sx, y: sy }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ---------- word-by-word mask reveal ---------- */
+
+function WordReveal({
+  text,
+  className,
+  style,
+  delay = 0,
+}: {
+  text: string;
+  className?: string;
+  style?: React.CSSProperties;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  const words = text.split(' ');
+  return (
+    <span ref={ref} className={className} style={style}>
+      {words.map((w, i) => (
+        <span
+          key={i}
+          className="inline-block overflow-hidden align-bottom"
+          style={{ marginRight: '0.28em' }}
+        >
+          <motion.span
+            className="inline-block"
+            initial={{ y: '110%' }}
+            animate={inView ? { y: '0%' } : {}}
+            transition={{
+              duration: 0.9,
+              delay: delay + i * 0.06,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            {w}
+          </motion.span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+
 
 function SectionTag({ children }: { children: React.ReactNode }) {
   return (
