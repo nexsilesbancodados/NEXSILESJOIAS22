@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   motion,
   useScroll,
   useTransform,
   useInView,
+  useSpring,
+  useMotionValue,
   AnimatePresence,
 } from 'framer-motion';
 import {
@@ -48,7 +50,166 @@ const INK_SOFT = 'rgba(26,20,16,0.62)';
 const ACCENT = '#b07a4c';
 const ACCENT_SOFT = '#e8c9a8';
 
-/* ---------- primitives ---------- */
+/* ---------- global fx: cursor blob, grain, scroll progress ---------- */
+
+function CursorBlob() {
+  const x = useMotionValue(-100);
+  const y = useMotionValue(-100);
+  const sx = useSpring(x, { stiffness: 320, damping: 32, mass: 0.4 });
+  const sy = useSpring(y, { stiffness: 320, damping: 32, mass: 0.4 });
+  const [hover, setHover] = useState(false);
+  const scale = useSpring(hover ? 2.4 : 1, { stiffness: 260, damping: 22 });
+
+  useEffect(() => {
+    const move = (e: MouseEvent) => {
+      x.set(e.clientX);
+      y.set(e.clientY);
+      const t = e.target as HTMLElement | null;
+      setHover(!!t?.closest('a,button,[data-magnetic],[role="button"]'));
+    };
+    window.addEventListener('mousemove', move);
+    return () => window.removeEventListener('mousemove', move);
+  }, [x, y]);
+
+  // hide on touch devices
+  const [isTouch, setIsTouch] = useState(false);
+  useEffect(() => {
+    setIsTouch(matchMedia('(hover: none)').matches);
+  }, []);
+  if (isTouch) return null;
+
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none fixed top-0 left-0 z-[100]"
+      style={{
+        x: sx,
+        y: sy,
+        translateX: '-50%',
+        translateY: '-50%',
+        scale,
+        mixBlendMode: 'difference' as const,
+      }}
+    >
+      <div
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: '50%',
+          background: '#f3d9b4',
+        }}
+      />
+    </motion.div>
+  );
+}
+
+function Grain() {
+  const svg = encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>`,
+  );
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-[90] opacity-[0.07] mix-blend-multiply"
+      style={{ backgroundImage: `url("data:image/svg+xml,${svg}")` }}
+    />
+  );
+}
+
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 24 });
+  return (
+    <motion.div
+      className="fixed top-0 left-0 right-0 z-[80] h-[2px] origin-left"
+      style={{ scaleX, background: ACCENT }}
+    />
+  );
+}
+
+/* ---------- magnetic wrapper (Awwwards staple) ---------- */
+
+function Magnetic({
+  children,
+  strength = 22,
+  className,
+}: {
+  children: React.ReactNode;
+  strength?: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const sx = useSpring(x, { stiffness: 220, damping: 15, mass: 0.3 });
+  const sy = useSpring(y, { stiffness: 220, damping: 15, mass: 0.3 });
+  const onMove = (e: ReactMouseEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    x.set(((e.clientX - r.left) / r.width - 0.5) * strength);
+    y.set(((e.clientY - r.top) / r.height - 0.5) * strength);
+  };
+  const onLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+  return (
+    <motion.div
+      ref={ref}
+      data-magnetic
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{ x: sx, y: sy }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ---------- word-by-word mask reveal ---------- */
+
+function WordReveal({
+  text,
+  className,
+  style,
+  delay = 0,
+}: {
+  text: string;
+  className?: string;
+  style?: React.CSSProperties;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-60px' });
+  const words = text.split(' ');
+  return (
+    <span ref={ref} className={className} style={style}>
+      {words.map((w, i) => (
+        <span
+          key={i}
+          className="inline-block overflow-hidden align-bottom"
+          style={{ marginRight: '0.28em' }}
+        >
+          <motion.span
+            className="inline-block"
+            initial={{ y: '110%' }}
+            animate={inView ? { y: '0%' } : {}}
+            transition={{
+              duration: 0.9,
+              delay: delay + i * 0.06,
+              ease: [0.16, 1, 0.3, 1],
+            }}
+          >
+            {w}
+          </motion.span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+
 
 function SectionTag({ children }: { children: React.ReactNode }) {
   return (
@@ -157,29 +318,40 @@ function PillButton({
 }) {
   const solid = variant === 'solid';
   return (
-    <motion.button
-      onClick={onClick}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase"
-      style={{
-        background: solid ? INK : 'transparent',
-        color: solid ? BG : INK,
-        border: solid ? 'none' : `1px solid rgba(26,20,16,0.22)`,
-      }}
-    >
-      <span>{children}</span>
-      <span
-        className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
+    <Magnetic strength={18} className="inline-block">
+      <motion.button
+        onClick={onClick}
+        whileHover={{ y: -2 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase overflow-hidden"
         style={{
-          background: solid ? ACCENT : INK,
-          color: solid ? '#fff8ef' : BG,
+          background: solid ? INK : 'transparent',
+          color: solid ? BG : INK,
+          border: solid ? 'none' : `1px solid rgba(26,20,16,0.22)`,
         }}
       >
-        <ArrowUpRight size={12} />
-      </span>
-    </motion.button>
+        <span
+          aria-hidden
+          className="absolute inset-0 -z-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          style={{ background: solid ? ACCENT : INK }}
+        />
+        <span className="relative z-10 transition-colors duration-500 group-hover:text-[color:var(--pill-hover)]"
+          style={{ ['--pill-hover' as any]: solid ? '#fff8ef' : BG }}
+        >
+          {children}
+        </span>
+        <span
+          className="relative z-10 inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
+          style={{
+            background: solid ? ACCENT : INK,
+            color: solid ? '#fff8ef' : BG,
+          }}
+        >
+          <ArrowUpRight size={12} />
+        </span>
+      </motion.button>
+    </Magnetic>
   );
 }
 
@@ -385,7 +557,7 @@ function Hero({ onCta }: { onCta: () => void }) {
       className="relative overflow-hidden"
       style={{ background: BG, minHeight: '100vh' }}
     >
-      {/* Huge display title */}
+      {/* Huge display title with per-letter mask reveal */}
       <div className="relative z-10 pt-[140px] md:pt-[160px] pb-8 md:pb-12">
         <motion.h1
           style={{
@@ -399,13 +571,29 @@ function Hero({ onCta }: { onCta: () => void }) {
             y: titleY,
             opacity: titleOpacity,
           }}
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          className="flex justify-center"
         >
-          NEXSILES
+          <span className="sr-only">NEXSILES</span>
+          {'NEXSILES'.split('').map((ch, i) => (
+            <span key={i} className="inline-block overflow-hidden align-bottom">
+              <motion.span
+                aria-hidden
+                className="inline-block"
+                initial={{ y: '110%' }}
+                animate={{ y: '0%' }}
+                transition={{
+                  duration: 1.1,
+                  delay: 0.15 + i * 0.06,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                {ch}
+              </motion.span>
+            </span>
+          ))}
         </motion.h1>
       </div>
+
 
       {/* Content row */}
       <div className="relative z-10 max-w-[1440px] mx-auto px-6 md:px-10 grid md:grid-cols-[1fr_auto] items-end gap-8 pb-16">
@@ -1146,6 +1334,172 @@ function Footer() {
   );
 }
 
+/* ---------- Sticky Showcase (scroll-synced feature switcher) ---------- */
+
+function StickyShowcase() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end end'],
+  });
+
+  const slides = [
+    {
+      tag: '01 · PDV',
+      title: 'Frente de caixa que acompanha o ritmo da loja',
+      copy: 'Vendas em segundos com PIX, cartão, fiado, múltiplos caixas e permissões por funcionário. Interface reativa desenhada para o balcão real.',
+      img: pdvImg,
+    },
+    {
+      tag: '02 · Maletas',
+      title: 'Ciclo de maleta atômico, do envio ao acerto',
+      copy: 'Montagem, conferência assistida com wizard, marcação de vendas em tempo real e acerto financeiro com múltiplas formas de pagamento.',
+      img: revendedoraImg,
+    },
+    {
+      tag: '03 · Loja virtual',
+      title: 'E-commerce próprio, checkout em 3 passos',
+      copy: 'Mercado Pago, PIX direto, cupons, frete calculado e vitrine dinâmica com identidade visual da sua marca.',
+      img: lojaImg,
+    },
+    {
+      tag: '04 · CRM & IA',
+      title: 'Bella responde no WhatsApp. Você vende dormindo.',
+      copy: 'IA 24/7 com DeepSeek, funil de vendas, MRR em tempo real, alertas inteligentes de estoque e aniversário.',
+      img: dashboardImg,
+    },
+  ];
+
+  return (
+    <section
+      ref={ref}
+      id="showcase"
+      className="relative"
+      style={{ height: `${slides.length * 100}vh`, background: BG_ALT }}
+    >
+      <div className="sticky top-0 h-screen overflow-hidden flex items-center">
+        <div className="max-w-[1440px] mx-auto px-6 md:px-10 grid md:grid-cols-[1fr_1.1fr] gap-10 md:gap-16 w-full items-center">
+          {/* Left: text stack cross-fading */}
+          <div className="relative min-h-[360px]">
+            {slides.map((s, i) => {
+              const start = i / slides.length;
+              const end = (i + 1) / slides.length;
+              const mid = (start + end) / 2;
+              const opacity = useTransform(
+                scrollYProgress,
+                [start, mid - 0.02, mid + 0.02, end],
+                [0, 1, 1, 0],
+              );
+              const y = useTransform(
+                scrollYProgress,
+                [start, mid, end],
+                [40, 0, -40],
+              );
+              return (
+                <motion.div
+                  key={i}
+                  style={{ opacity, y }}
+                  className="absolute inset-0 flex flex-col gap-8 justify-center"
+                >
+                  <div
+                    className="text-[11px] tracking-[0.32em] uppercase"
+                    style={{ color: ACCENT }}
+                  >
+                    [{s.tag}]
+                  </div>
+                  <h3
+                    style={{
+                      fontFamily: 'Cormorant Garamond, serif',
+                      color: INK,
+                      fontSize: 'clamp(2rem, 4vw, 3.6rem)',
+                      lineHeight: 1.05,
+                      letterSpacing: '-0.02em',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p
+                    style={{
+                      color: INK,
+                      fontSize: 16,
+                      lineHeight: 1.65,
+                      maxWidth: '32rem',
+                    }}
+                  >
+                    {s.copy}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Right: image stack with cross-fade + parallax */}
+          <div className="relative aspect-[4/5] md:aspect-[5/6] overflow-hidden rounded-[2px]">
+            {slides.map((s, i) => {
+              const start = i / slides.length;
+              const end = (i + 1) / slides.length;
+              const mid = (start + end) / 2;
+              const opacity = useTransform(
+                scrollYProgress,
+                [start, mid - 0.03, mid + 0.03, end],
+                [0, 1, 1, 0],
+              );
+              const scale = useTransform(
+                scrollYProgress,
+                [start, mid, end],
+                [1.15, 1.02, 1.15],
+              );
+              return (
+                <motion.img
+                  key={i}
+                  src={s.img}
+                  alt=""
+                  style={{ opacity, scale }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              );
+            })}
+            {/* progress rail */}
+            <div className="absolute right-4 top-4 bottom-4 w-[2px] bg-white/25">
+              <motion.div
+                className="w-full origin-top"
+                style={{
+                  scaleY: scrollYProgress,
+                  background: ACCENT_SOFT,
+                  height: '100%',
+                }}
+              />
+            </div>
+            {/* counters */}
+            <div className="absolute left-4 bottom-4 flex gap-3">
+              {slides.map((_, i) => {
+                const start = i / slides.length;
+                const end = (i + 1) / slides.length;
+                const mid = (start + end) / 2;
+                const op = useTransform(
+                  scrollYProgress,
+                  [start, mid, end],
+                  [0.35, 1, 0.35],
+                );
+                return (
+                  <motion.span
+                    key={i}
+                    style={{ opacity: op, color: '#fff8ef' }}
+                    className="text-[11px] tracking-[0.3em] uppercase"
+                  >
+                    0{i + 1}
+                  </motion.span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export default function LandingPage() {
@@ -1155,10 +1509,15 @@ export default function LandingPage() {
   return (
     <div className="relative" style={{ background: BG, color: INK }}>
       <Stripes />
+      <Grain />
+      <ScrollProgress />
+      <CursorBlob />
       <div className="relative z-10">
+
         <Navbar onCta={goPlanos} />
         <Hero onCta={goPlanos} />
         <Sobre />
+        <StickyShowcase />
         <EditorialBlock
           id="lojistas"
           tag="Para lojistas"
