@@ -1465,6 +1465,8 @@ function StickyShowcase() {
                   key={i}
                   src={s.img}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   style={{ opacity, scale }}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
