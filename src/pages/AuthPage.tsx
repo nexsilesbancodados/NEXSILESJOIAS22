@@ -32,6 +32,18 @@ export default function AuthPage() {
       navigate('/', { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Prefill from URL (?codigo=XXXX&email=...) — used after public checkout
+  useEffect(() => {
+    const c = searchParams.get('codigo');
+    const e = searchParams.get('email');
+    if (c || e) {
+      setActiveTab('signup');
+      if (c) setSignupCodigo(c.toUpperCase().slice(0, 12));
+      if (e) setSignupEmail(e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
