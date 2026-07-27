@@ -1334,6 +1334,172 @@ function Footer() {
   );
 }
 
+/* ---------- Sticky Showcase (scroll-synced feature switcher) ---------- */
+
+function StickyShowcase() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end end'],
+  });
+
+  const slides = [
+    {
+      tag: '01 · PDV',
+      title: 'Frente de caixa que acompanha o ritmo da loja',
+      copy: 'Vendas em segundos com PIX, cartão, fiado, múltiplos caixas e permissões por funcionário. Interface reativa desenhada para o balcão real.',
+      img: pdvImg,
+    },
+    {
+      tag: '02 · Maletas',
+      title: 'Ciclo de maleta atômico, do envio ao acerto',
+      copy: 'Montagem, conferência assistida com wizard, marcação de vendas em tempo real e acerto financeiro com múltiplas formas de pagamento.',
+      img: revendedoraImg,
+    },
+    {
+      tag: '03 · Loja virtual',
+      title: 'E-commerce próprio, checkout em 3 passos',
+      copy: 'Mercado Pago, PIX direto, cupons, frete calculado e vitrine dinâmica com identidade visual da sua marca.',
+      img: lojaImg,
+    },
+    {
+      tag: '04 · CRM & IA',
+      title: 'Bella responde no WhatsApp. Você vende dormindo.',
+      copy: 'IA 24/7 com DeepSeek, funil de vendas, MRR em tempo real, alertas inteligentes de estoque e aniversário.',
+      img: dashboardImg,
+    },
+  ];
+
+  return (
+    <section
+      ref={ref}
+      id="showcase"
+      className="relative"
+      style={{ height: `${slides.length * 100}vh`, background: BG_ALT }}
+    >
+      <div className="sticky top-0 h-screen overflow-hidden flex items-center">
+        <div className="max-w-[1440px] mx-auto px-6 md:px-10 grid md:grid-cols-[1fr_1.1fr] gap-10 md:gap-16 w-full items-center">
+          {/* Left: text stack cross-fading */}
+          <div className="relative min-h-[360px]">
+            {slides.map((s, i) => {
+              const start = i / slides.length;
+              const end = (i + 1) / slides.length;
+              const mid = (start + end) / 2;
+              const opacity = useTransform(
+                scrollYProgress,
+                [start, mid - 0.02, mid + 0.02, end],
+                [0, 1, 1, 0],
+              );
+              const y = useTransform(
+                scrollYProgress,
+                [start, mid, end],
+                [40, 0, -40],
+              );
+              return (
+                <motion.div
+                  key={i}
+                  style={{ opacity, y }}
+                  className="absolute inset-0 flex flex-col gap-8 justify-center"
+                >
+                  <div
+                    className="text-[11px] tracking-[0.32em] uppercase"
+                    style={{ color: ACCENT }}
+                  >
+                    [{s.tag}]
+                  </div>
+                  <h3
+                    style={{
+                      fontFamily: 'Cormorant Garamond, serif',
+                      color: INK,
+                      fontSize: 'clamp(2rem, 4vw, 3.6rem)',
+                      lineHeight: 1.05,
+                      letterSpacing: '-0.02em',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p
+                    style={{
+                      color: INK,
+                      fontSize: 16,
+                      lineHeight: 1.65,
+                      maxWidth: '32rem',
+                    }}
+                  >
+                    {s.copy}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Right: image stack with cross-fade + parallax */}
+          <div className="relative aspect-[4/5] md:aspect-[5/6] overflow-hidden rounded-[2px]">
+            {slides.map((s, i) => {
+              const start = i / slides.length;
+              const end = (i + 1) / slides.length;
+              const mid = (start + end) / 2;
+              const opacity = useTransform(
+                scrollYProgress,
+                [start, mid - 0.03, mid + 0.03, end],
+                [0, 1, 1, 0],
+              );
+              const scale = useTransform(
+                scrollYProgress,
+                [start, mid, end],
+                [1.15, 1.02, 1.15],
+              );
+              return (
+                <motion.img
+                  key={i}
+                  src={s.img}
+                  alt=""
+                  style={{ opacity, scale }}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              );
+            })}
+            {/* progress rail */}
+            <div className="absolute right-4 top-4 bottom-4 w-[2px] bg-white/25">
+              <motion.div
+                className="w-full origin-top"
+                style={{
+                  scaleY: scrollYProgress,
+                  background: ACCENT_SOFT,
+                  height: '100%',
+                }}
+              />
+            </div>
+            {/* counters */}
+            <div className="absolute left-4 bottom-4 flex gap-3">
+              {slides.map((_, i) => {
+                const start = i / slides.length;
+                const end = (i + 1) / slides.length;
+                const mid = (start + end) / 2;
+                const op = useTransform(
+                  scrollYProgress,
+                  [start, mid, end],
+                  [0.35, 1, 0.35],
+                );
+                return (
+                  <motion.span
+                    key={i}
+                    style={{ opacity: op, color: '#fff8ef' }}
+                    className="text-[11px] tracking-[0.3em] uppercase"
+                  >
+                    0{i + 1}
+                  </motion.span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export default function LandingPage() {
@@ -1343,7 +1509,11 @@ export default function LandingPage() {
   return (
     <div className="relative" style={{ background: BG, color: INK }}>
       <Stripes />
+      <Grain />
+      <ScrollProgress />
+      <CursorBlob />
       <div className="relative z-10">
+
         <Navbar onCta={goPlanos} />
         <Hero onCta={goPlanos} />
         <Sobre />
