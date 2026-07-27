@@ -1,39 +1,83 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring } from 'framer-motion';
-import { ArrowUpRight, Menu, X } from 'lucide-react';
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useInView,
+  AnimatePresence,
+} from 'framer-motion';
+import {
+  ArrowUpRight,
+  Menu,
+  X,
+  Package,
+  ShoppingCart,
+  Store,
+  Users,
+  BarChart3,
+  Sparkles,
+  MessageCircle,
+  Wallet,
+  Boxes,
+  Gift,
+  Bell,
+  Instagram,
+  Youtube,
+  Linkedin,
+} from 'lucide-react';
+
 import heroImg from '@/assets/landing-hero-jewelry.jpg';
-import sellersImg from '@/assets/landing-sellers.jpg';
-import buyersImg from '@/assets/landing-buyers.jpg';
+import lojistaImg from '@/assets/landing-persona-lojista.jpg';
+import revendedoraImg from '@/assets/landing-persona-revendedora.jpg';
+import ctaImg from '@/assets/landing-cta-bg.jpg';
+import dashboardImg from '@/assets/landing-dashboard-mockup.jpg';
+import pdvImg from '@/assets/landing-pdv-mockup.png';
+import lojaImg from '@/assets/landing-loja-mockup.png';
 
-/* ---------- Design tokens (local to landing) ----------
-   Editorial dark canvas + rose-gold accent.
-   Inspired by the Eagle real-estate reference (huge display type,
-   stripes, scroll-driven parallax, magazine cadence). */
+/* =========================================================
+   Nexsiles Landing — Editorial rebuild inspired by Eagle
+   Cream/ivory palette · Cormorant display · rose-gold accent
+   ========================================================= */
 
-const ACCENT = '#b07a4c';       // rose-gold escuro para contraste em fundo claro
+const BG = '#f6f1ea';
+const BG_ALT = '#efe7dc';
+const BG_DEEP = '#e8dccd';
+const INK = '#1a1410';
+const INK_SOFT = 'rgba(26,20,16,0.62)';
+const ACCENT = '#b07a4c';
 const ACCENT_SOFT = '#e8c9a8';
-const BG = '#f6f1ea';           // creme editorial
-const BG_ALT = '#efe7dc';       // creme mais quente para faixas
-const INK = '#1a1410';          // tinta quase preta
-const MUTED = 'rgba(26,20,16,0.6)';
 
-/* ---------- Small primitives ---------- */
+/* ---------- primitives ---------- */
 
 function SectionTag({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 text-[11px] tracking-[0.25em] uppercase" style={{ color: ACCENT }}>
-      <span className="inline-block w-6 h-px" style={{ background: ACCENT }} />
+    <div
+      className="inline-flex items-center gap-2 text-[11px] tracking-[0.32em] uppercase"
+      style={{ color: ACCENT }}
+    >
+      <span>[</span>
       <span>{children}</span>
+      <span>]</span>
     </div>
   );
 }
 
-function Reveal({ children, delay = 0, y = 40 }: { children: React.ReactNode; delay?: number; y?: number }) {
+function Reveal({
+  children,
+  delay = 0,
+  y = 40,
+  className,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  y?: number;
+  className?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
   return (
-    <div ref={ref}>
+    <div ref={ref} className={className}>
       <motion.div
         initial={{ opacity: 0, y }}
         animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -45,7 +89,37 @@ function Reveal({ children, delay = 0, y = 40 }: { children: React.ReactNode; de
   );
 }
 
-function Counter({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
+function ClipReveal({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  return (
+    <div ref={ref} className={`overflow-hidden ${className || ''}`}>
+      <motion.div
+        initial={{ scale: 1.2, clipPath: 'inset(100% 0% 0% 0%)' }}
+        animate={inView ? { scale: 1, clipPath: 'inset(0% 0% 0% 0%)' } : {}}
+        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+function Counter({
+  to,
+  suffix = '',
+  prefix = '',
+}: {
+  to: number;
+  suffix?: string;
+  prefix?: string;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
   const [val, setVal] = useState(0);
@@ -63,93 +137,12 @@ function Counter({ to, suffix = '', prefix = '' }: { to: number; suffix?: string
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [inView, to]);
-  return <span ref={ref}>{prefix}{val.toLocaleString('pt-BR')}{suffix}</span>;
-}
-
-/* ---------- Navbar ---------- */
-
-function Navbar({ onCta }: { onCta: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 40);
-    on();
-    window.addEventListener('scroll', on, { passive: true });
-    return () => window.removeEventListener('scroll', on);
-  }, []);
-  const links = [
-    { label: 'Sistema', href: '#sistema' },
-    { label: 'Para você', href: '#lojistas' },
-    { label: 'Recursos', href: '#recursos' },
-    { label: 'Preços', href: '#precos' },
-    { label: 'Depoimentos', href: '#depoimentos' },
-  ];
   return (
-    <motion.header
-      initial={{ y: -30, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? 'backdrop-blur-xl bg-[rgba(246,241,234,0.82)] border-b border-black/5' : ''
-      }`}
-    >
-      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
-        <a href="#top" className="flex items-center gap-3 group">
-          <span
-            className="text-[13px] tracking-[0.35em] uppercase"
-            style={{ color: INK, fontFamily: 'Cormorant Garamond, serif' }}
-          >
-            Nexsiles
-          </span>
-        </a>
-        <nav className="hidden md:flex items-center gap-10">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-[12px] tracking-[0.22em] uppercase transition-colors hover:opacity-100"
-              style={{ color: MUTED }}
-            >
-              {l.label}
-            </a>
-          ))}
-        </nav>
-        <div className="hidden md:block">
-          <PillButton onClick={onCta}>Começar agora</PillButton>
-        </div>
-        <button
-          className="md:hidden p-2"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="menu"
-          style={{ color: INK }}
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </div>
-      {open && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          className="md:hidden border-t border-black/5"
-          style={{ background: 'rgba(246,241,234,0.97)' }}
-        >
-          <div className="px-6 py-6 flex flex-col gap-5">
-            {links.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="text-sm tracking-[0.2em] uppercase"
-                style={{ color: INK }}
-              >
-                {l.label}
-              </a>
-            ))}
-            <PillButton onClick={onCta}>Começar agora</PillButton>
-          </div>
-        </motion.div>
-      )}
-    </motion.header>
+    <span ref={ref}>
+      {prefix}
+      {val.toLocaleString('pt-BR')}
+      {suffix}
+    </span>
   );
 }
 
@@ -169,17 +162,20 @@ function PillButton({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase transition-colors"
+      className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase"
       style={{
-        background: solid ? ACCENT : 'transparent',
-        color: solid ? '#fff8ef' : INK,
-        border: solid ? 'none' : `1px solid rgba(26,20,16,0.18)`,
+        background: solid ? INK : 'transparent',
+        color: solid ? BG : INK,
+        border: solid ? 'none' : `1px solid rgba(26,20,16,0.22)`,
       }}
     >
       <span>{children}</span>
       <span
         className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
-        style={{ background: solid ? '#1a1410' : ACCENT, color: solid ? ACCENT_SOFT : '#fff8ef' }}
+        style={{
+          background: solid ? ACCENT : INK,
+          color: solid ? '#fff8ef' : BG,
+        }}
       >
         <ArrowUpRight size={12} />
       </span>
@@ -187,151 +183,327 @@ function PillButton({
   );
 }
 
+/* ---------- Stripes background overlay ---------- */
+
+function Stripes() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-0"
+      aria-hidden
+      style={{
+        backgroundImage: `
+          linear-gradient(to right,
+            transparent 0, transparent calc(16.66% - 1px),
+            rgba(26,20,16,0.05) calc(16.66% - 1px), rgba(26,20,16,0.05) 16.66%,
+            transparent 16.66%, transparent calc(50% - 1px),
+            rgba(26,20,16,0.05) calc(50% - 1px), rgba(26,20,16,0.05) 50%,
+            transparent 50%, transparent calc(83.33% - 1px),
+            rgba(26,20,16,0.05) calc(83.33% - 1px), rgba(26,20,16,0.05) 83.33%,
+            transparent 83.33%)
+        `,
+      }}
+    />
+  );
+}
+
+/* ---------- Navbar ---------- */
+
+function Navbar({ onCta }: { onCta: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 40);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
+  const links = [
+    { label: 'Sistema', href: '#sistema' },
+    { label: 'Lojistas', href: '#lojistas' },
+    { label: 'Revendedoras', href: '#revendedoras' },
+    { label: 'Módulos', href: '#modulos' },
+    { label: 'Preços', href: '#precos' },
+  ];
+  return (
+    <>
+      <motion.header
+        initial={{ y: -30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500`}
+        style={{
+          background: scrolled ? 'rgba(246,241,234,0.82)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(14px)' : 'none',
+          borderBottom: scrolled ? '1px solid rgba(26,20,16,0.06)' : 'none',
+        }}
+      >
+        <div className="max-w-[1440px] mx-auto px-6 md:px-10 h-[76px] grid grid-cols-3 items-center">
+          <button
+            onClick={() => setOpen(true)}
+            className="justify-self-start inline-flex items-center gap-3 text-[11px] tracking-[0.3em] uppercase"
+            style={{ color: INK }}
+          >
+            <span>Menu</span>
+            <Menu size={16} />
+          </button>
+          <a
+            href="#top"
+            className="justify-self-center"
+            style={{
+              fontFamily: 'Cormorant Garamond, serif',
+              color: INK,
+              fontSize: 20,
+              letterSpacing: '0.35em',
+            }}
+          >
+            NEXSILES
+          </a>
+          <div className="justify-self-end hidden md:block">
+            <PillButton onClick={onCta}>Contato</PillButton>
+          </div>
+          <button
+            className="justify-self-end md:hidden"
+            onClick={() => setOpen(true)}
+            aria-label="menu"
+          >
+            <ArrowUpRight size={20} style={{ color: INK }} />
+          </button>
+        </div>
+      </motion.header>
+
+      {/* Fullscreen overlay menu */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="fixed inset-0 z-[60]"
+            style={{ background: INK }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-[76px] max-w-[1440px] mx-auto px-6 md:px-10 flex items-center justify-between">
+              <span
+                style={{
+                  fontFamily: 'Cormorant Garamond, serif',
+                  color: BG,
+                  fontSize: 20,
+                  letterSpacing: '0.35em',
+                }}
+              >
+                NEXSILES
+              </span>
+              <button
+                onClick={() => setOpen(false)}
+                className="inline-flex items-center gap-3 text-[11px] tracking-[0.3em] uppercase"
+                style={{ color: BG }}
+              >
+                <span>Fechar</span>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="h-full grid md:grid-cols-[1.2fr_1fr]">
+              <div className="flex flex-col justify-center px-8 md:px-16 gap-8">
+                <nav className="flex flex-col gap-4">
+                  {links.map((l, i) => (
+                    <motion.a
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setOpen(false)}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + i * 0.06, duration: 0.6 }}
+                      style={{
+                        fontFamily: 'Cormorant Garamond, serif',
+                        color: BG,
+                        fontSize: 'clamp(2.5rem, 7vw, 5.5rem)',
+                        lineHeight: 1,
+                        letterSpacing: '-0.03em',
+                      }}
+                      className="hover:opacity-70 transition-opacity"
+                    >
+                      {l.label}
+                    </motion.a>
+                  ))}
+                </nav>
+                <div
+                  className="mt-8 grid grid-cols-2 gap-8 text-[13px]"
+                  style={{ color: 'rgba(246,241,234,0.65)' }}
+                >
+                  <div>
+                    <div className="uppercase tracking-[0.25em] mb-3 text-[10px]">
+                      Contato
+                    </div>
+                    <div>contato@nexsiles.com</div>
+                    <div>+55 11 93768-7369</div>
+                  </div>
+                  <div>
+                    <div className="uppercase tracking-[0.25em] mb-3 text-[10px]">
+                      Redes
+                    </div>
+                    <div className="flex gap-4">
+                      <Instagram size={16} />
+                      <Youtube size={16} />
+                      <Linkedin size={16} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="hidden md:block relative overflow-hidden">
+                <img
+                  src={heroImg}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  style={{ filter: 'brightness(0.85)' }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
 /* ---------- Hero ---------- */
 
 function Hero({ onCta }: { onCta: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '25%']);
-  const imgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
-  const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-30%']);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  });
+  const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '18%']);
+  const imgScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+  const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-25%']);
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.85], [1, 0]);
 
   return (
-    <section ref={ref} id="top" className="relative h-[100svh] min-h-[720px] overflow-hidden" style={{ background: BG }}>
-      {/* Vertical stripes */}
-      <div className="absolute inset-0 grid grid-cols-6 pointer-events-none">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="border-r border-black/[0.04] h-full" />
-        ))}
-      </div>
-
-      {/* Background image */}
-      <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
-        <img
-          src={heroImg}
-          alt="Semi-jewelry"
-          className="w-full h-full object-cover"
-          style={{ filter: 'brightness(1.05) contrast(0.95) saturate(0.95)' }}
-        />
-        <div
-          className="absolute inset-0"
+    <section
+      id="top"
+      ref={ref}
+      className="relative overflow-hidden"
+      style={{ background: BG, minHeight: '100vh' }}
+    >
+      {/* Huge display title */}
+      <div className="relative z-10 pt-[140px] md:pt-[160px] pb-8 md:pb-12">
+        <motion.h1
           style={{
-            background:
-              'linear-gradient(180deg, rgba(246,241,234,0.35) 0%, rgba(246,241,234,0.15) 40%, rgba(246,241,234,0.95) 100%)',
+            fontFamily: 'Cormorant Garamond, serif',
+            color: INK,
+            fontSize: 'clamp(5rem, 22vw, 22rem)',
+            lineHeight: 0.85,
+            letterSpacing: '-0.06em',
+            fontWeight: 500,
+            textAlign: 'center',
+            y: titleY,
+            opacity: titleOpacity,
           }}
-        />
-      </motion.div>
-
-      {/* Content */}
-      <div className="relative h-full max-w-[1440px] mx-auto px-6 md:px-10 flex flex-col justify-end pb-16 md:pb-24">
-        <motion.div style={{ y: titleY, opacity: titleOpacity }}>
-          <motion.h1
-            initial={{ opacity: 0, y: 80 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-            className="font-serif leading-[0.85] tracking-[-0.02em]"
-            style={{
-              fontFamily: 'Cormorant Garamond, serif',
-              color: INK,
-              fontSize: 'clamp(5rem, 18vw, 20rem)',
-              fontWeight: 400,
-            }}
-          >
-            Nexsiles
-          </motion.h1>
-        </motion.div>
-
-        <div className="mt-10 md:mt-14 grid md:grid-cols-12 gap-8 md:gap-12 items-end">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.8 }}
-            className="md:col-span-5 md:col-start-6"
-          >
-            <p className="text-[15px] md:text-[17px] leading-relaxed" style={{ color: 'rgba(26,20,16,0.78)' }}>
-              O sistema completo para quem vive de semi-joias.
-              De estoque a maleta, de PDV a loja virtual — tudo em um só lugar,
-              feito com o cuidado que sua marca merece.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <PillButton onClick={onCta}>Começar agora</PillButton>
-              <PillButton onClick={() => document.getElementById('sistema')?.scrollIntoView({ behavior: 'smooth' })} variant="ghost">
-                Conhecer sistema
-              </PillButton>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 1.2 }}
-            className="md:col-span-3 md:col-start-1 md:row-start-1 hidden md:block"
-          >
-            <div className="text-[11px] tracking-[0.3em] uppercase" style={{ color: ACCENT }}>
-              [ Est. 2024 ]
-            </div>
-            <div className="mt-3 text-xs" style={{ color: MUTED }}>
-              Feito no Brasil, para o mundo das semi-joias.
-            </div>
-          </motion.div>
-        </div>
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+        >
+          NEXSILES
+        </motion.h1>
       </div>
 
-      {/* Scroll cue */}
+      {/* Content row */}
+      <div className="relative z-10 max-w-[1440px] mx-auto px-6 md:px-10 grid md:grid-cols-[1fr_auto] items-end gap-8 pb-16">
+        <div />
+        <Reveal delay={0.3}>
+          <div className="max-w-[31rem] flex flex-col gap-6">
+            <p
+              style={{
+                color: INK,
+                fontSize: 17,
+                lineHeight: 1.55,
+                letterSpacing: '-0.01em',
+              }}
+            >
+              O sistema completo para <em style={{ fontFamily: 'Cormorant Garamond, serif' }}>lojas de semijoias</em>: estoque,
+              PDV, maletas de revenda, loja virtual, IA de atendimento e CRM —
+              tudo em um único plano.
+            </p>
+            <div>
+              <PillButton onClick={onCta}>Assinar Nexsiles Prime</PillButton>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+
+      {/* Hero image */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.6, duration: 1 }}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] tracking-[0.3em] uppercase"
-        style={{ color: MUTED }}
+        style={{ y: imgY, scale: imgScale }}
+        className="relative z-0 mx-auto max-w-[1440px] px-6 md:px-10"
       >
-        role para descobrir
+        <ClipReveal className="rounded-[2px]">
+          <img
+            src={heroImg}
+            alt="Semijoias premium"
+            className="w-full h-[45vh] md:h-[65vh] object-cover"
+            style={{ filter: 'brightness(1.02) contrast(1.02)' }}
+          />
+        </ClipReveal>
       </motion.div>
     </section>
   );
 }
 
-/* ---------- Sobre + stats ---------- */
+/* ---------- Sobre + stats + partners ---------- */
 
 function Sobre() {
+  const numeros = [
+    { label: 'Peças gerenciadas', value: 120, suffix: 'k+' },
+    { label: 'Vendas processadas', value: 30, prefix: 'R$', suffix: 'M' },
+  ];
+  const modulos = ['Estoque', 'PDV', 'Maletas', 'Loja', 'CRM', 'Portal', 'IA Bella', 'Fiado'];
   return (
-    <section id="sistema" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG, color: INK }}>
-      <div className="max-w-[1440px] mx-auto">
-        <div className="grid md:grid-cols-12 gap-12 md:gap-20">
-          <div className="md:col-span-6">
+    <section id="sistema" className="relative" style={{ background: BG }}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-24 md:py-36">
+        <div className="grid md:grid-cols-[1.4fr_1fr] gap-16 md:gap-24">
+          <div className="flex flex-col gap-12">
             <Reveal>
-              <SectionTag>[ o sistema ]</SectionTag>
+              <SectionTag>Sobre nós</SectionTag>
             </Reveal>
             <Reveal delay={0.1}>
               <h2
-                className="mt-8 text-[2rem] md:text-[3.4rem] leading-[1.05] tracking-[-0.01em]"
-                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+                style={{
+                  fontFamily: 'Cormorant Garamond, serif',
+                  color: INK,
+                  fontSize: 'clamp(2rem, 4.5vw, 4rem)',
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.02em',
+                  fontWeight: 500,
+                }}
               >
-                Um só lugar para gerir suas peças, suas revendedoras
-                e a sua loja — com a{' '}
-                <span style={{ color: ACCENT, fontStyle: 'italic' }}>elegância</span> que sua marca pede.
+                Somos uma plataforma dedicada a entregar operação impecável para
+                lojistas, revendedoras e clientes finais de semijoias.
               </h2>
             </Reveal>
-
             <Reveal delay={0.2}>
-              <div className="mt-14 grid grid-cols-2 gap-8">
-                {[
-                  { n: 1200, s: '+', label: 'Peças gerenciadas por lojista' },
-                  { n: 25, s: '', label: 'Módulos inclusos no Prime' },
-                  { n: 99, s: '%', label: 'Uptime da plataforma' },
-                  { n: 129, s: '', prefix: 'R$', label: 'Mensal — tudo incluso' },
-                ].map((s, i) => (
-                  <div key={i} className="border-t border-black/10 pt-4">
+              <div className="grid grid-cols-2 gap-10 pt-6 border-t border-black/10">
+                {numeros.map((n) => (
+                  <div key={n.label} className="flex flex-col gap-3">
                     <div className="flex items-baseline gap-1">
-                      <div
-                        className="text-3xl md:text-5xl"
-                        style={{ fontFamily: 'Cormorant Garamond, serif', color: INK, fontWeight: 400 }}
+                      <span
+                        style={{
+                          fontFamily: 'Cormorant Garamond, serif',
+                          color: INK,
+                          fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+                          lineHeight: 1,
+                        }}
                       >
-                        <Counter to={s.n} suffix={s.s} prefix={s.prefix} />
-                      </div>
+                        <Counter to={n.value} prefix={n.prefix} />
+                      </span>
+                      <span style={{ color: ACCENT, fontSize: 20 }}>
+                        {n.suffix}
+                      </span>
                     </div>
-                    <div className="mt-2 text-xs tracking-[0.2em] uppercase" style={{ color: MUTED }}>
-                      {s.label}
+                    <div
+                      style={{ color: INK_SOFT, fontSize: 13 }}
+                      className="uppercase tracking-[0.15em]"
+                    >
+                      {n.label}
                     </div>
                   </div>
                 ))}
@@ -339,42 +511,31 @@ function Sobre() {
             </Reveal>
           </div>
 
-          <div className="md:col-span-6">
-            <Reveal delay={0.15}>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  'Estoque',
-                  'Maletas',
-                  'PDV',
-                  'Catálogo',
-                  'Loja Virtual',
-                  'IA Bella',
-                  'CRM',
-                  'Fidelidade',
-                  'Relatórios',
-                ].map((label, i) => (
-                  <motion.div
-                    key={label}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.05, duration: 0.6 }}
-                    className="aspect-[3/2] border border-black/10 flex items-center justify-center text-center px-3 relative overflow-hidden group cursor-default"
+          {/* Vertical modules list (mimics partners column) */}
+          <div className="flex flex-col divide-y divide-black/10 border-y border-black/10">
+            {modulos.map((m, i) => (
+              <Reveal key={m} delay={i * 0.05}>
+                <div
+                  className="py-5 flex items-center justify-between"
+                  style={{ color: INK }}
+                >
+                  <span
+                    style={{
+                      fontFamily: 'Cormorant Garamond, serif',
+                      fontSize: 26,
+                    }}
                   >
-                    <span
-                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ background: `linear-gradient(135deg, ${ACCENT}22, transparent)` }}
-                    />
-                    <span
-                      className="relative text-sm md:text-base tracking-wide"
-                      style={{ fontFamily: 'Cormorant Garamond, serif', color: INK }}
-                    >
-                      {label}
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            </Reveal>
+                    {m}
+                  </span>
+                  <span
+                    className="text-[11px] tracking-[0.25em] uppercase"
+                    style={{ color: INK_SOFT }}
+                  >
+                    0{i + 1}
+                  </span>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
       </div>
@@ -382,239 +543,459 @@ function Sobre() {
   );
 }
 
-/* ---------- Sellers / Buyers editorial ---------- */
+/* ---------- Sellers/Buyers editorial blocks ---------- */
 
-function Editorial({
-  tag,
-  title,
-  items,
-  img,
-  reverse = false,
+function EditorialBlock({
   id,
+  tag,
+  heading,
+  items,
+  image,
+  imageAlt,
+  reverse = false,
 }: {
+  id: string;
   tag: string;
-  title: string;
-  items: string[];
-  img: string;
+  heading: string;
+  items: { n: string; text: string }[];
+  image: string;
+  imageAlt: string;
   reverse?: boolean;
-  id?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], ['-8%', '8%']);
-
   return (
-    <section id={id} className="relative py-24 md:py-36 px-6 md:px-10" style={{ background: BG, color: INK }}>
-      <div className="max-w-[1440px] mx-auto">
-        <div className={`grid md:grid-cols-12 gap-10 md:gap-16 items-center ${reverse ? 'md:[direction:rtl]' : ''}`}>
-          <div className="md:col-span-7 md:[direction:ltr]" ref={ref}>
-            <div className="relative overflow-hidden aspect-[4/5] md:aspect-[5/6]">
-              <motion.img
-                src={img}
-                alt=""
-                style={{ y }}
-                className="absolute inset-0 w-full h-[115%] object-cover"
-                loading="lazy"
-              />
-            </div>
+    <section id={id} className="relative" style={{ background: BG_ALT }}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-24 md:py-32">
+        <div className="grid md:grid-cols-[1fr_1.2fr] gap-10 md:gap-16 items-start mb-16">
+          <Reveal>
+            <SectionTag>{tag}</SectionTag>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <h3
+              style={{
+                fontFamily: 'Cormorant Garamond, serif',
+                color: INK,
+                fontSize: 'clamp(1.75rem, 3.4vw, 3rem)',
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+                fontWeight: 500,
+              }}
+            >
+              {heading}
+            </h3>
+          </Reveal>
+        </div>
+
+        <div
+          className={`grid md:grid-cols-2 gap-10 md:gap-16 items-center ${
+            reverse ? 'md:[&>*:first-child]:order-2' : ''
+          }`}
+        >
+          <ClipReveal className="rounded-[2px]">
+            <img
+              src={image}
+              alt={imageAlt}
+              className="w-full h-[420px] md:h-[560px] object-cover"
+            />
+          </ClipReveal>
+
+          <div className="flex flex-col gap-8">
+            {items.map((it, i) => (
+              <Reveal key={i} delay={i * 0.1}>
+                <div className="flex gap-6 pb-6 border-b border-black/10">
+                  <span
+                    style={{
+                      color: ACCENT,
+                      fontFamily: 'Cormorant Garamond, serif',
+                      fontSize: 28,
+                    }}
+                  >
+                    [{it.n}]
+                  </span>
+                  <p
+                    style={{
+                      color: INK,
+                      fontSize: 16,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {it.text}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
           </div>
-          <div className="md:col-span-5 md:[direction:ltr]">
-            <Reveal>
-              <SectionTag>{tag}</SectionTag>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <h3
-                className="mt-8 text-[1.8rem] md:text-[2.6rem] leading-[1.1] tracking-[-0.01em]"
-                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-              >
-                {title}
-              </h3>
-            </Reveal>
-            <div className="mt-10 space-y-6">
-              {items.map((t, i) => (
-                <Reveal key={i} delay={0.15 + i * 0.08}>
-                  <div className="flex gap-6 border-t border-black/10 pt-5">
-                    <span className="text-xs tracking-[0.2em]" style={{ color: ACCENT }}>
-                      [{String(i + 1).padStart(2, '0')}]
-                    </span>
-                    <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(26,20,16,0.72)' }}>
-                      {t}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Módulos grid ---------- */
+
+function Modulos() {
+  const items = [
+    { icon: Boxes, name: 'Estoque inteligente', desc: 'Cadastro por SKU, categorias dinâmicas, códigos de barra e alertas de reposição.' },
+    { icon: ShoppingCart, name: 'PDV completo', desc: 'Frente de caixa reativa com PIX, cartão, fiado e vendas pendentes.' },
+    { icon: Package, name: 'Maletas de revenda', desc: 'Ciclo atômico: montagem, envio, conferência com wizard e acerto financeiro.' },
+    { icon: Store, name: 'Loja virtual', desc: 'E-commerce com Mercado Pago, PIX direto e checkout em 3 passos.' },
+    { icon: Users, name: 'Portal da revendedora', desc: 'PWA com pedidos, comissões e extrato em tempo real.' },
+    { icon: BarChart3, name: 'CRM & Analytics', desc: 'Métricas globais, MRR, funil de vendas e alertas inteligentes.' },
+    { icon: Sparkles, name: 'IA Bella', desc: 'Atendente 24/7 com DeepSeek, gestão de carrinho e mídia via WhatsApp.' },
+    { icon: MessageCircle, name: 'WhatsApp Automations', desc: 'Cobranças, aniversários, pós-venda e reativação automáticas.' },
+    { icon: Wallet, name: 'Fiado & Crédito', desc: 'Crédito da loja, parcelamentos e cobranças automáticas por WhatsApp.' },
+    { icon: Gift, name: 'Fidelidade', desc: 'Níveis Bronze, Prata e Ouro com pontos e descontos automáticos.' },
+    { icon: Bell, name: 'Alertas inteligentes', desc: 'Aniversários, estoque crítico e maletas próximas do vencimento.' },
+    { icon: ArrowUpRight, name: 'E muito mais', desc: 'Financeiro, relatórios, funcionários, permissões — tudo incluso.' },
+  ];
+  return (
+    <section id="modulos" className="relative" style={{ background: BG }}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-24 md:py-32">
+        <div className="flex flex-col items-center gap-8 mb-20">
+          <Reveal>
+            <SectionTag>Módulos</SectionTag>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <h2
+              className="text-center max-w-[47rem] uppercase"
+              style={{
+                fontFamily: 'Cormorant Garamond, serif',
+                color: INK,
+                fontSize: 'clamp(2rem, 5vw, 4.5rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                fontWeight: 500,
+              }}
+            >
+              Todos os recursos que sua loja de semijoias precisa
+            </h2>
+          </Reveal>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-6">
+          {items.map((it, i) => {
+            const offset = i % 2 === 0 ? 'md:mt-0' : 'md:mt-14';
+            const Icon = it.icon;
+            return (
+              <Reveal key={it.name} delay={(i % 3) * 0.05} className={offset}>
+                <motion.a
+                  whileHover={{ y: -6 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                  className="group block p-8 rounded-[2px] border border-black/10 h-full"
+                  style={{ background: BG_ALT }}
+                >
+                  <Icon size={36} style={{ color: ACCENT }} strokeWidth={1.2} />
+                  <div className="mt-8">
+                    <div
+                      style={{
+                        fontFamily: 'Cormorant Garamond, serif',
+                        color: INK,
+                        fontSize: 26,
+                        lineHeight: 1.15,
+                      }}
+                    >
+                      {it.name}
+                    </div>
+                    <p
+                      className="mt-3"
+                      style={{ color: INK_SOFT, fontSize: 14, lineHeight: 1.6 }}
+                    >
+                      {it.desc}
                     </p>
                   </div>
-                </Reveal>
+                  <div
+                    className="mt-8 inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.25em] transition-transform group-hover:translate-x-1"
+                    style={{ color: INK }}
+                  >
+                    <span>Explorar</span>
+                    <ArrowUpRight size={14} />
+                  </div>
+                </motion.a>
+              </Reveal>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Contact band (full-width dark) ---------- */
+
+function ContactBand({ onCta }: { onCta: () => void }) {
+  return (
+    <section className="relative" style={{ background: INK }}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-20 md:py-28">
+        <Reveal>
+          <h2
+            className="uppercase mb-16"
+            style={{
+              fontFamily: 'Cormorant Garamond, serif',
+              color: BG,
+              fontSize: 'clamp(2rem, 5vw, 4.5rem)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.03em',
+              fontWeight: 500,
+              maxWidth: '20ch',
+            }}
+          >
+            Liderando o mercado com foco total no lojista
+          </h2>
+        </Reveal>
+        <Reveal delay={0.15}>
+          <button
+            onClick={onCta}
+            className="group w-full flex items-center justify-between gap-6 py-8 border-t border-b border-white/15 text-left"
+          >
+            <span
+              style={{ color: BG, fontSize: 20, letterSpacing: '-0.01em' }}
+            >
+              Cuidamos de toda a operação. Da vitrine ao WhatsApp.
+            </span>
+            <span
+              style={{ color: BG }}
+              className="text-[11px] tracking-[0.3em] uppercase hidden md:inline"
+            >
+              Contato
+            </span>
+            <span
+              className="inline-flex items-center justify-center w-14 h-14 rounded-full transition-transform group-hover:rotate-45"
+              style={{ background: ACCENT_SOFT, color: INK }}
+            >
+              <ArrowUpRight size={22} />
+            </span>
+          </button>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Testimonials marquee ---------- */
+
+function Depoimentos() {
+  const items = [
+    {
+      quote:
+        'A Nexsiles unificou nossa loja física com o e-commerce e o portal das revendedoras. O acerto de maleta que levava horas hoje leva minutos.',
+      name: 'Amanda Ribeiro',
+      role: 'Lojista · São Paulo',
+    },
+    {
+      quote:
+        'A Bella (IA) responde clientes no WhatsApp de madrugada e fecha vendas. Ganhamos um vendedor que nunca dorme.',
+      name: 'Carla Menezes',
+      role: 'Empresária · BH',
+    },
+    {
+      quote:
+        'O portal da revendedora mudou minha rotina. Vejo comissão em tempo real, marco vendas na maleta e envio pedidos direto.',
+      name: 'Julia Andrade',
+      role: 'Revendedora',
+    },
+    {
+      quote:
+        'PDV rápido, PIX direto, fiado organizado. Nunca mais perdi uma venda por falta de estoque.',
+      name: 'Renata Souza',
+      role: 'Franqueada · Curitiba',
+    },
+    {
+      quote:
+        'Cadastrei 800 peças em uma tarde, com fotos e SKU automático. Painel bonito e sério.',
+      name: 'Priscila Nunes',
+      role: 'Lojista · Recife',
+    },
+    {
+      quote:
+        'Suporte humano de verdade. Migração feita em um final de semana.',
+      name: 'Débora Lima',
+      role: 'Diretora · RS',
+    },
+  ];
+  return (
+    <section
+      id="depoimentos"
+      className="relative overflow-hidden"
+      style={{ background: BG_DEEP }}
+    >
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 pt-24 pb-16">
+        <div className="grid md:grid-cols-2 gap-10 md:gap-16">
+          <Reveal>
+            <SectionTag>Depoimentos</SectionTag>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <h2
+              style={{
+                fontFamily: 'Cormorant Garamond, serif',
+                color: INK,
+                fontSize: 'clamp(1.75rem, 3.4vw, 3rem)',
+                lineHeight: 1.15,
+                letterSpacing: '-0.02em',
+                fontWeight: 500,
+              }}
+            >
+              A escolha de quem vive de semijoias todos os dias.
+            </h2>
+          </Reveal>
+        </div>
+      </div>
+
+      <div className="relative pb-24">
+        <div
+          className="flex gap-6"
+          style={{
+            width: 'max-content',
+            animation: 'nex-marquee 60s linear infinite',
+          }}
+        >
+          {[...items, ...items].map((t, i) => (
+            <div
+              key={i}
+              className="w-[380px] md:w-[460px] p-8 rounded-[2px] border border-black/10 flex flex-col justify-between gap-8"
+              style={{ background: BG, minHeight: 320 }}
+            >
+              <p
+                style={{
+                  color: INK,
+                  fontSize: 18,
+                  lineHeight: 1.5,
+                  fontFamily: 'Cormorant Garamond, serif',
+                }}
+              >
+                “{t.quote}”
+              </p>
+              <div>
+                <div style={{ color: INK, fontSize: 14, fontWeight: 500 }}>
+                  {t.name}
+                </div>
+                <div
+                  style={{ color: INK_SOFT, fontSize: 12 }}
+                  className="mt-1 uppercase tracking-[0.15em]"
+                >
+                  {t.role}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes nex-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+      `}</style>
+    </section>
+  );
+}
+
+/* ---------- Preços ---------- */
+
+function Precos({ onCta }: { onCta: () => void }) {
+  const nav = useNavigate();
+  const features = [
+    'Estoque ilimitado por SKU',
+    'PDV completo com PIX/cartão/fiado',
+    'Maletas de revenda com wizard',
+    'Loja virtual + checkout',
+    'Portal da revendedora (PWA)',
+    'CRM + relatórios avançados',
+    'IA Bella no WhatsApp',
+    'Automações e alertas',
+    'Programa de fidelidade',
+    'Até 25 funcionários',
+    'Suporte humano prioritário',
+    'Todas as atualizações inclusas',
+  ];
+  return (
+    <section id="precos" className="relative" style={{ background: BG }}>
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-24 md:py-32">
+        <div className="flex flex-col items-center gap-8 mb-16 text-center">
+          <Reveal>
+            <SectionTag>Plano único</SectionTag>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <h2
+              className="uppercase max-w-[40rem]"
+              style={{
+                fontFamily: 'Cormorant Garamond, serif',
+                color: INK,
+                fontSize: 'clamp(2rem, 5vw, 4.5rem)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                fontWeight: 500,
+              }}
+            >
+              Um preço. Tudo incluso.
+            </h2>
+          </Reveal>
+        </div>
+
+        <Reveal delay={0.15}>
+          <div
+            className="grid md:grid-cols-[1.1fr_1fr] rounded-[2px] overflow-hidden border border-black/10"
+            style={{ background: BG_ALT }}
+          >
+            <div className="p-10 md:p-14 flex flex-col justify-between gap-10">
+              <div>
+                <div
+                  className="text-[11px] tracking-[0.3em] uppercase mb-6"
+                  style={{ color: ACCENT }}
+                >
+                  Nexsiles Prime
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span
+                    style={{
+                      fontFamily: 'Cormorant Garamond, serif',
+                      color: INK,
+                      fontSize: 'clamp(4rem, 8vw, 7rem)',
+                      lineHeight: 1,
+                    }}
+                  >
+                    R$129
+                  </span>
+                  <span style={{ color: INK_SOFT, fontSize: 16 }}>/mês</span>
+                </div>
+                <p
+                  className="mt-6 max-w-[28rem]"
+                  style={{ color: INK, fontSize: 16, lineHeight: 1.6 }}
+                >
+                  Um plano único, completo, com todos os módulos do ecossistema
+                  Nexsiles. Sem pegadinhas, sem upgrades escondidos.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <PillButton onClick={onCta}>Assinar agora</PillButton>
+                <button
+                  onClick={() => nav('/minha-assinatura')}
+                  className="inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase border"
+                  style={{ borderColor: 'rgba(26,20,16,0.22)', color: INK }}
+                >
+                  Minha assinatura
+                </button>
+              </div>
+            </div>
+            <div
+              className="p-10 md:p-14 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 border-t md:border-t-0 md:border-l border-black/10"
+              style={{ background: BG }}
+            >
+              {features.map((f) => (
+                <div
+                  key={f}
+                  className="flex items-start gap-3 text-[14px]"
+                  style={{ color: INK }}
+                >
+                  <span
+                    style={{ color: ACCENT }}
+                    className="mt-[6px] inline-block w-1.5 h-1.5 rounded-full"
+                  />
+                  <span>{f}</span>
+                </div>
               ))}
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Marquee ---------- */
-
-function Marquee() {
-  const words = ['Estoque', 'Maletas', 'PDV', 'Catálogo público', 'Loja virtual', 'IA de atendimento', 'CRM', 'Fidelidade', 'Relatórios', 'Fiado'];
-  return (
-    <section className="py-10 border-y border-black/5 overflow-hidden" style={{ background: BG_ALT }}>
-      <motion.div
-        className="flex gap-16 whitespace-nowrap"
-        animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 40, ease: 'linear', repeat: Infinity }}
-      >
-        {[...words, ...words, ...words].map((w, i) => (
-          <span
-            key={i}
-            className="text-4xl md:text-6xl tracking-[-0.01em]"
-            style={{ fontFamily: 'Cormorant Garamond, serif', color: i % 2 === 0 ? INK : ACCENT, fontStyle: i % 3 === 0 ? 'italic' : 'normal' }}
-          >
-            {w} <span style={{ color: ACCENT_SOFT, opacity: 0.4 }}>✦</span>
-          </span>
-        ))}
-      </motion.div>
-    </section>
-  );
-}
-
-/* ---------- Recursos grid ---------- */
-
-const RECURSOS = [
-  { n: '01', t: 'Controle de estoque', d: 'Peças, categorias, banhos, códigos e etiquetas — organizadas do jeito que a semi-joia pede.' },
-  { n: '02', t: 'Sistema de Maletas', d: 'Ciclo completo: montagem, envio, conferência atômica, acerto financeiro e retorno automático ao estoque.' },
-  { n: '03', t: 'PDV completo', d: 'Vendas rápidas, fiado, cupons, fidelidade, impressora e modo offline. Feito para o balcão.' },
-  { n: '04', t: 'Loja Virtual', d: 'E-commerce próprio, checkout com Mercado Pago e Pix direto. Sua marca no ar em minutos.' },
-  { n: '05', t: 'IA Bella', d: 'Atendimento 24/7 no WhatsApp — carrinho, mídia, follow-up e conversão automatizada.' },
-  { n: '06', t: 'Portal da Revendedora', d: 'App dedicado com maletas, pedidos, vendas e comissão em tempo real.' },
-];
-
-function Recursos() {
-  return (
-    <section id="recursos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG, color: INK }}>
-      <div className="max-w-[1440px] mx-auto">
-        <div className="grid md:grid-cols-12 gap-10 mb-16 md:mb-24">
-          <div className="md:col-span-4">
-            <Reveal>
-              <SectionTag>[ recursos ]</SectionTag>
-            </Reveal>
-          </div>
-          <div className="md:col-span-8">
-            <Reveal delay={0.1}>
-              <h2
-                className="text-[2rem] md:text-[3.2rem] leading-[1.05] tracking-[-0.01em]"
-                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-              >
-                Cada módulo pensado para o dia-a-dia real de quem vende semi-joias — do balcão à revendedora.
-              </h2>
-            </Reveal>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black/10 border-y border-black/10">
-          {RECURSOS.map((r, i) => (
-            <motion.div
-              key={r.n}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ delay: (i % 3) * 0.1, duration: 0.8 }}
-              className={`p-8 md:p-12 group relative overflow-hidden ${
-                i >= 3 ? 'md:border-t md:border-black/10' : ''
-              }`}
-            >
-              <motion.div
-                className="absolute inset-0 pointer-events-none"
-                initial={{ opacity: 0 }}
-                whileHover={{ opacity: 1 }}
-                style={{ background: `radial-gradient(circle at 50% 100%, ${ACCENT}18, transparent 60%)` }}
-              />
-              <div className="relative">
-                <div className="text-xs tracking-[0.3em]" style={{ color: ACCENT }}>
-                  {r.n}
-                </div>
-                <h3
-                  className="mt-6 text-2xl md:text-3xl"
-                  style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-                >
-                  {r.t}
-                </h3>
-                <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
-                  {r.d}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Depoimentos ---------- */
-
-const DEPOIMENTOS = [
-  {
-    q: 'Em duas semanas eu tirei minhas planilhas do ar. O sistema entende como a semi-joia funciona.',
-    n: 'Carla M.',
-    r: 'Loja em Belo Horizonte',
-  },
-  {
-    q: 'A maleta digital mudou minhas revendedoras. Fecho acerto em minutos com fotos e tudo.',
-    n: 'Fernanda R.',
-    r: 'Atacadista, São Paulo',
-  },
-  {
-    q: 'O PDV com fiado e a loja virtual no mesmo lugar — parece feito para nós.',
-    n: 'Juliana S.',
-    r: 'Boutique, Curitiba',
-  },
-];
-
-function Depoimentos() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % DEPOIMENTOS.length), 6000);
-    return () => clearInterval(t);
-  }, []);
-  const d = DEPOIMENTOS[i];
-  return (
-    <section id="depoimentos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG_ALT, color: INK }}>
-      <div className="max-w-[1200px] mx-auto text-center">
-        <Reveal>
-          <SectionTag>[ vozes ]</SectionTag>
         </Reveal>
-        <motion.blockquote
-          key={i}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="mt-10 text-[1.6rem] md:text-[2.6rem] leading-[1.25] tracking-[-0.01em]"
-          style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-        >
-          <span style={{ color: ACCENT }}>“</span>
-          {d.q}
-          <span style={{ color: ACCENT }}>”</span>
-        </motion.blockquote>
-        <motion.div
-          key={`m-${i}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 1 }}
-          className="mt-8 text-xs tracking-[0.3em] uppercase"
-          style={{ color: MUTED }}
-        >
-          — {d.n} · {d.r}
-        </motion.div>
-        <div className="mt-10 flex justify-center gap-3">
-          {DEPOIMENTOS.map((_, k) => (
-            <button
-              key={k}
-              onClick={() => setI(k)}
-              className="w-8 h-px transition-all"
-              style={{ background: k === i ? ACCENT : 'rgba(26,20,16,0.2)' }}
-              aria-label={`depoimento ${k + 1}`}
-            />
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -623,211 +1004,55 @@ function Depoimentos() {
 /* ---------- CTA ---------- */
 
 function CTA({ onCta }: { onCta: () => void }) {
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const sx = useSpring(mx, { stiffness: 60, damping: 20 });
-  const sy = useSpring(my, { stiffness: 60, damping: 20 });
   return (
-    <section
-      className="relative py-32 md:py-48 px-6 md:px-10 overflow-hidden"
-      style={{ background: BG, color: INK }}
-      onMouseMove={(e) => {
-        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        mx.set(((e.clientX - r.left) / r.width - 0.5) * 40);
-        my.set(((e.clientY - r.top) / r.height - 0.5) * 40);
-      }}
-    >
-      <motion.div
-        style={{ x: sx, y: sy }}
-        className="absolute -inset-32 opacity-40 pointer-events-none"
-      >
-        <div
-          className="w-full h-full"
-          style={{
-            background: `radial-gradient(circle at 30% 40%, ${ACCENT}55, transparent 45%), radial-gradient(circle at 70% 70%, ${ACCENT_SOFT}33, transparent 50%)`,
-          }}
-        />
-      </motion.div>
-
-      <div className="relative max-w-[1200px] mx-auto text-center">
-        <Reveal>
-          <SectionTag>[ comece ]</SectionTag>
-        </Reveal>
-        <Reveal delay={0.1}>
-          <h2
-            className="mt-8 text-[2.6rem] md:text-[5.5rem] leading-[0.95] tracking-[-0.02em]"
-            style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-          >
-            Seu negócio de <span style={{ color: ACCENT, fontStyle: 'italic' }}>semi-joia</span>,
-            <br />
-            no padrão que ele merece.
-          </h2>
-        </Reveal>
-        <Reveal delay={0.2}>
-          <p className="mt-8 max-w-xl mx-auto text-[15px]" style={{ color: MUTED }}>
-            R$ 129/mês. Tudo incluso. Sem letras miúdas.
-          </p>
-        </Reveal>
-        <Reveal delay={0.3}>
-          <div className="mt-12 flex flex-wrap justify-center gap-4">
-            <PillButton onClick={onCta}>Assinar Nexsiles Prime</PillButton>
-            <PillButton onClick={() => window.open('https://wa.me/5511937687369', '_blank')} variant="ghost">
-              Falar com atendimento
-            </PillButton>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- Preços ---------- */
-
-const PRIME_FEATURES = [
-  'Estoque, categorias, banhos e etiquetas',
-  'Sistema de Maletas com conferência atômica',
-  'PDV completo, offline, fiado e fidelidade',
-  'Loja virtual com Mercado Pago e Pix direto',
-  'Catálogo público e portal da revendedora',
-  'IA Bella no WhatsApp — atendimento 24/7',
-  'CRM, campanhas e automações de vendas',
-  'Relatórios, metas e ranking de revendedoras',
-  'Até 25 usuários — funcionários inclusos',
-  'Suporte humano por WhatsApp',
-];
-
-function Precos({ onCta }: { onCta: () => void }) {
-  return (
-    <section id="precos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG, color: INK }}>
-      <div className="max-w-[1200px] mx-auto">
-        <div className="grid md:grid-cols-12 gap-10 mb-16 md:mb-20">
-          <div className="md:col-span-4">
+    <section className="relative" style={{ background: BG_ALT }}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-24 md:py-32">
+        <div className="grid md:grid-cols-2 gap-10 md:gap-16 items-center">
+          <div className="flex flex-col gap-8">
             <Reveal>
-              <SectionTag>[ investimento ]</SectionTag>
+              <SectionTag>Começar agora</SectionTag>
             </Reveal>
-          </div>
-          <div className="md:col-span-8">
             <Reveal delay={0.1}>
               <h2
-                className="text-[2rem] md:text-[3.2rem] leading-[1.05] tracking-[-0.01em]"
-                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+                className="uppercase"
+                style={{
+                  fontFamily: 'Cormorant Garamond, serif',
+                  color: INK,
+                  fontSize: 'clamp(2rem, 5vw, 4.5rem)',
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.03em',
+                  fontWeight: 500,
+                }}
               >
-                Um plano.{' '}
-                <span style={{ color: ACCENT, fontStyle: 'italic' }}>Tudo incluso.</span>
-                <br />
-                Sem letras miúdas, sem surpresas.
+                Agende uma demonstração
               </h2>
             </Reveal>
+            <Reveal delay={0.2}>
+              <p
+                style={{
+                  color: INK,
+                  fontSize: 16,
+                  lineHeight: 1.65,
+                  maxWidth: '31rem',
+                }}
+              >
+                Nossa equipe monta seu ambiente, importa seu catálogo e treina
+                sua operação em menos de uma semana. Você começa a vender no
+                primeiro dia.
+              </p>
+            </Reveal>
+            <Reveal delay={0.3}>
+              <PillButton onClick={onCta}>Fale conosco</PillButton>
+            </Reveal>
           </div>
+          <ClipReveal className="rounded-[2px]">
+            <img
+              src={ctaImg}
+              alt=""
+              className="w-full h-[440px] md:h-[560px] object-cover"
+            />
+          </ClipReveal>
         </div>
-
-        <Reveal delay={0.15}>
-          <motion.div
-            whileHover={{ y: -4 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-            className="relative overflow-hidden border p-8 md:p-14"
-            style={{ borderColor: 'rgba(26,20,16,0.15)', background: BG_ALT }}
-          >
-            {/* Accent corner */}
-            <div
-              className="absolute top-0 right-0 px-4 py-2 text-[10px] tracking-[0.3em] uppercase"
-              style={{ background: ACCENT, color: '#fff8ef' }}
-            >
-              Recomendado
-            </div>
-
-            <div className="grid md:grid-cols-12 gap-10 md:gap-14 items-start">
-              <div className="md:col-span-5">
-                <div className="text-xs tracking-[0.3em] uppercase" style={{ color: ACCENT }}>
-                  Nexsiles
-                </div>
-                <h3
-                  className="mt-3 text-5xl md:text-7xl leading-none"
-                  style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-                >
-                  Prime
-                </h3>
-
-                <div className="mt-8 flex items-baseline gap-2">
-                  <span className="text-sm" style={{ color: MUTED }}>
-                    R$
-                  </span>
-                  <span
-                    className="text-6xl md:text-7xl leading-none"
-                    style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
-                  >
-                    129
-                  </span>
-                  <span className="text-sm" style={{ color: MUTED }}>
-                    /mês
-                  </span>
-                </div>
-
-                <p className="mt-6 text-sm leading-relaxed" style={{ color: MUTED }}>
-                  Acesso completo a todos os módulos da plataforma. Sem cobrança por usuário,
-                  sem taxa de setup, cancele quando quiser.
-                </p>
-
-                <div className="mt-10 flex flex-col sm:flex-row gap-3">
-                  <PillButton onClick={onCta}>Assinar agora</PillButton>
-                  <PillButton
-                    variant="ghost"
-                    onClick={() => (window.location.href = '/minha-assinatura')}
-                  >
-                    Atualizar assinatura
-                  </PillButton>
-                </div>
-
-                <div className="mt-6 text-[11px] tracking-[0.2em] uppercase" style={{ color: MUTED }}>
-                  Pagamento via Mercado Pago · Pix, cartão ou boleto
-                </div>
-              </div>
-
-              <div className="md:col-span-7">
-                <div className="text-xs tracking-[0.3em] uppercase mb-6" style={{ color: ACCENT }}>
-                  o que está incluso
-                </div>
-                <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-                  {PRIME_FEATURES.map((f, i) => (
-                    <motion.li
-                      key={f}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.04, duration: 0.5 }}
-                      className="flex items-start gap-3 text-sm"
-                      style={{ color: 'rgba(26,20,16,0.82)' }}
-                    >
-                      <span
-                        className="mt-[6px] inline-block w-3 h-px flex-shrink-0"
-                        style={{ background: ACCENT }}
-                      />
-                      <span>{f}</span>
-                    </motion.li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </motion.div>
-        </Reveal>
-
-        <Reveal delay={0.25}>
-          <div
-            className="mt-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs tracking-[0.2em] uppercase"
-            style={{ color: MUTED }}
-          >
-            <span>Dúvidas sobre o plano?</span>
-            <a
-              href="https://wa.me/5511937687369"
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-4 hover:opacity-100 transition"
-              style={{ color: INK }}
-            >
-              Fale com a gente no WhatsApp →
-            </a>
-          </div>
-        </Reveal>
       </div>
     </section>
   );
@@ -837,28 +1062,85 @@ function Precos({ onCta }: { onCta: () => void }) {
 
 function Footer() {
   return (
-    <footer className="border-t border-black/10 py-14 px-6 md:px-10" style={{ background: BG, color: INK }}>
-      <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row justify-between gap-10">
-        <div>
-          <div
-            className="text-2xl tracking-[0.3em] uppercase"
-            style={{ fontFamily: 'Cormorant Garamond, serif' }}
-          >
-            Nexsiles
+    <footer className="relative overflow-hidden" style={{ background: INK }}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 pt-20 pb-10">
+        <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-10 mb-16">
+          <div>
+            <div
+              style={{
+                fontFamily: 'Cormorant Garamond, serif',
+                color: BG,
+                fontSize: 28,
+                letterSpacing: '0.25em',
+              }}
+            >
+              NEXSILES
+            </div>
+            <p
+              className="mt-6 max-w-[27rem]"
+              style={{
+                color: 'rgba(246,241,234,0.6)',
+                fontSize: 14,
+                lineHeight: 1.65,
+              }}
+            >
+              O sistema completo para lojas de semijoias — estoque, PDV,
+              maletas, e-commerce, IA e CRM em um só lugar.
+            </p>
           </div>
-          <div className="mt-2 text-xs" style={{ color: MUTED }}>
-            © {new Date().getFullYear()} — Feito com cuidado para o mercado de semi-joias.
+          {[
+            { title: 'Sistema', links: ['Módulos', 'Preços', 'Loja virtual', 'IA Bella'] },
+            { title: 'Recursos', links: ['Documentação', 'Blog', 'Novidades', 'Segurança'] },
+            { title: 'Contato', links: ['WhatsApp', 'Instagram', 'YouTube', 'LinkedIn'] },
+          ].map((col) => (
+            <div key={col.title}>
+              <div
+                className="text-[11px] uppercase tracking-[0.28em] mb-5"
+                style={{ color: ACCENT_SOFT }}
+              >
+                {col.title}
+              </div>
+              <ul className="flex flex-col gap-3">
+                {col.links.map((l) => (
+                  <li key={l}>
+                    <a
+                      href="#"
+                      className="text-[14px] hover:opacity-100"
+                      style={{ color: 'rgba(246,241,234,0.7)' }}
+                    >
+                      {l}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-[12px]"
+          style={{ color: 'rgba(246,241,234,0.5)' }}
+        >
+          <div>© {new Date().getFullYear()} Nexsiles — Todos os direitos reservados</div>
+          <div className="flex gap-6">
+            <a href="#">Termos</a>
+            <a href="#">Privacidade</a>
           </div>
         </div>
-        <div className="flex flex-wrap gap-8 text-xs tracking-[0.2em] uppercase" style={{ color: MUTED }}>
-          <a href="/planos" className="hover:opacity-100 transition">Planos</a>
-          <a href="/auth" className="hover:opacity-100 transition">Entrar</a>
-          <a href="/politica-privacidade" className="hover:opacity-100 transition">Privacidade</a>
-          <a href="/termos-de-uso" className="hover:opacity-100 transition">Termos</a>
-          <a href="https://wa.me/5511937687369" target="_blank" rel="noreferrer" className="hover:opacity-100 transition">
-            WhatsApp
-          </a>
-        </div>
+      </div>
+
+      {/* Giant wordmark visual */}
+      <div
+        aria-hidden
+        className="text-center leading-none pb-4 overflow-hidden select-none"
+        style={{
+          fontFamily: 'Cormorant Garamond, serif',
+          color: 'rgba(246,241,234,0.08)',
+          fontSize: 'clamp(6rem, 22vw, 22rem)',
+          letterSpacing: '-0.05em',
+        }}
+      >
+        NEXSILES
       </div>
     </footer>
   );
@@ -867,57 +1149,48 @@ function Footer() {
 /* ---------- Page ---------- */
 
 export default function LandingPage() {
-  const navigate = useNavigate();
-  const goCta = () => navigate('/planos');
-
-  useEffect(() => {
-    document.title = 'Nexsiles — Sistema completo para semi-joias';
-  }, []);
+  const nav = useNavigate();
+  const goPlanos = () => nav('/planos');
 
   return (
-    <div className="min-h-screen antialiased" style={{ background: BG, color: INK, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <Navbar onCta={goCta} />
-      <Hero onCta={goCta} />
-      <Sobre />
-      <Marquee />
-      <Editorial
-        id="lojistas"
-        tag="[ para lojistas ]"
-        title="Do balcão ao caixa, tudo pensado para o ritmo do seu dia."
-        items={[
-          'Estoque, PDV e loja virtual conectados em tempo real — sem planilhas, sem retrabalho.',
-          'Fiado, fidelidade, cupons e relatórios prontos para decidir com clareza.',
-          'Impressão de etiquetas, códigos e recibos — tudo pronto para o balcão.',
-        ]}
-        img={heroImg}
-      />
-      <Editorial
-        id="revendedoras"
-        tag="[ para revendedoras ]"
-        title="A maleta digital que fecha acerto em minutos, com prova e comissão automáticas."
-        items={[
-          'Portal exclusivo com maletas, pedidos e vendas — tudo na palma da mão.',
-          'Conferência atômica: cada peça marcada como vendida, devolvida ou perdida.',
-          'Fotos de evidência e acerto financeiro com múltiplas formas de pagamento.',
-        ]}
-        img={sellersImg}
-        reverse
-      />
-      <Recursos />
-      <Editorial
-        tag="[ atendimento com ia ]"
-        title="Bella, sua atendente 24/7 no WhatsApp — vende, encanta e converte enquanto você dorme."
-        items={[
-          'Reconhece a intenção, monta carrinho e envia fotos automaticamente.',
-          'Cai silenciosa quando você entra na conversa. Volta quando você quiser.',
-          'A/B testing de prompts e métricas de conversão em tempo real.',
-        ]}
-        img={buyersImg}
-      />
-      <Depoimentos />
-      <Precos onCta={goCta} />
-      <CTA onCta={goCta} />
-      <Footer />
+    <div className="relative" style={{ background: BG, color: INK }}>
+      <Stripes />
+      <div className="relative z-10">
+        <Navbar onCta={goPlanos} />
+        <Hero onCta={goPlanos} />
+        <Sobre />
+        <EditorialBlock
+          id="lojistas"
+          tag="Para lojistas"
+          heading="Da vitrine à cobrança — controle total sem sair de um único painel. Fluxos criados por quem entende de semijoias, não por consultores genéricos."
+          items={[
+            { n: '01', text: 'Cadastro de peças com SKU automático, categorias dinâmicas e fotos organizadas para catálogo e vitrine.' },
+            { n: '02', text: 'PDV reativo com PIX, cartão, fiado e vendas pendentes. Múltiplos caixas e permissões por funcionário.' },
+            { n: '03', text: 'Relatórios, metas, alertas de estoque crítico e integração automática com WhatsApp e e-commerce.' },
+          ]}
+          image={lojistaImg}
+          imageAlt="Lojista organizando semijoias"
+        />
+        <EditorialBlock
+          id="revendedoras"
+          tag="Para revendedoras"
+          heading="Um portal PWA feito para quem vende na rua. Maleta, comissão, extrato e pedidos — tudo no bolso, sempre atualizado."
+          items={[
+            { n: '01', text: 'Receba maletas com conferência assistida, código de barras e checklist item a item.' },
+            { n: '02', text: 'Marque vendas em tempo real, envie pedidos e acompanhe sua comissão sem depender da loja.' },
+            { n: '03', text: 'Acerto financeiro claro no fechamento — dinheiro, PIX ou parcelas, com histórico completo.' },
+          ]}
+          image={revendedoraImg}
+          imageAlt="Revendedora atendendo cliente"
+          reverse
+        />
+        <Modulos />
+        <ContactBand onCta={goPlanos} />
+        <Depoimentos />
+        <Precos onCta={goPlanos} />
+        <CTA onCta={goPlanos} />
+        <Footer />
+      </div>
     </div>
   );
 }
