@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { rateLimit } from "../_shared/rate-limit.ts";
+import { rateLimit, getClientIp } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
+import { captureError } from "../_shared/logger.ts";
 
 // Checkout público alinhado à documentação oficial do Mercado Pago (Checkout Pro).
 // Referências:
