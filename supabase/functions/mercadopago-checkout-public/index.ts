@@ -153,6 +153,13 @@ serve(async (req: Request) => {
     if (!mpResponse.ok) {
       const errorData = await mpResponse.text();
       console.error("Mercado Pago error:", mpResponse.status, errorData);
+      await captureError({
+        functionName: "mercadopago-checkout-public",
+        error: new Error(`MP ${mpResponse.status}: ${errorData}`),
+        requestPayload: { email, plano, periodo },
+        requestIp: clientIp,
+        statusCode: 502,
+      });
       return new Response(
         JSON.stringify({ error: "Erro ao criar preferência de pagamento", details: errorData }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
