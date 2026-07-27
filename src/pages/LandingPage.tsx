@@ -81,6 +81,7 @@ function Navbar({ onCta }: { onCta: () => void }) {
     { label: 'Sistema', href: '#sistema' },
     { label: 'Para você', href: '#lojistas' },
     { label: 'Recursos', href: '#recursos' },
+    { label: 'Preços', href: '#precos' },
     { label: 'Depoimentos', href: '#depoimentos' },
   ];
   return (
