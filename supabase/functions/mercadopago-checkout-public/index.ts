@@ -185,6 +185,13 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Error in mercadopago-checkout-public:", error);
+    await captureError({
+      functionName: "mercadopago-checkout-public",
+      error,
+      requestPayload: { email, plano, periodo },
+      requestIp: clientIp,
+      statusCode: 500,
+    });
     return new Response(JSON.stringify({ error: error.message ?? "Erro interno" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
