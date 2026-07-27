@@ -44,8 +44,14 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const rl = await rateLimit(req, "mercadopago-checkout-public", { maxRequests: 20 });
-  if (rl) return rl;
+  // Limite geral por IP: 20 req/min
+  const rlIp = await rateLimit(req, "mercadopago-checkout-public", { maxRequests: 20 });
+  if (rlIp) return rlIp;
+
+  const clientIp = getClientIp(req);
+  let email = "";
+  let plano = "nexsiles";
+  let periodo = "mensal";
 
   try {
     const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
@@ -56,7 +62,15 @@ serve(async (req: Request) => {
 
     const parsed = await parseJson(req, CheckoutBodySchema);
     if (parsed.error) return parsed.error;
-    const { email, plano, periodo } = parsed.data;
+    ({ email, plano, periodo } = parsed.data);
+
+    // Limite mais estrito por email: 20 tentativas/hora
+    const rlEmail = await rateLimit(req, "mercadopago-checkout-public:email", {
+      maxRequests: 20,
+      windowSeconds: 3600,
+      identifier: `email:${email}`,
+    });
+    if (rlEmail) return rlEmail;
 
     const planoInfo = PLANOS[plano] ?? PLANOS.nexsiles;
     const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
