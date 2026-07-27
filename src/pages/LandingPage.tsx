@@ -36,6 +36,8 @@ import ctaImg from '@/assets/landing-cta-bg.jpg';
 import dashboardImg from '@/assets/landing-dashboard-mockup.jpg';
 import pdvImg from '@/assets/landing-pdv-mockup.png';
 import lojaImg from '@/assets/landing-loja-mockup.png';
+import { PublicCheckoutDialog } from '@/components/landing/PublicCheckoutDialog';
+import { PaymentReturnDialog } from '@/components/landing/PaymentReturnDialog';
 
 /* =========================================================
    Nexsiles Landing — Editorial rebuild inspired by Eagle
