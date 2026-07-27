@@ -32,6 +32,7 @@ import {
   MessageCircle,
   GraduationCap,
   Shield,
+  Activity,
   HandCoins,
   Star,
   DollarSign,
