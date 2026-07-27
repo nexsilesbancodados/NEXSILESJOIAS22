@@ -557,7 +557,7 @@ function Hero({ onCta }: { onCta: () => void }) {
       className="relative overflow-hidden"
       style={{ background: BG, minHeight: '100vh' }}
     >
-      {/* Huge display title */}
+      {/* Huge display title with per-letter mask reveal */}
       <div className="relative z-10 pt-[140px] md:pt-[160px] pb-8 md:pb-12">
         <motion.h1
           style={{
@@ -571,13 +571,29 @@ function Hero({ onCta }: { onCta: () => void }) {
             y: titleY,
             opacity: titleOpacity,
           }}
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          className="flex justify-center"
         >
-          NEXSILES
+          <span className="sr-only">NEXSILES</span>
+          {'NEXSILES'.split('').map((ch, i) => (
+            <span key={i} className="inline-block overflow-hidden align-bottom">
+              <motion.span
+                aria-hidden
+                className="inline-block"
+                initial={{ y: '110%' }}
+                animate={{ y: '0%' }}
+                transition={{
+                  duration: 1.1,
+                  delay: 0.15 + i * 0.06,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
+                {ch}
+              </motion.span>
+            </span>
+          ))}
         </motion.h1>
       </div>
+
 
       {/* Content row */}
       <div className="relative z-10 max-w-[1440px] mx-auto px-6 md:px-10 grid md:grid-cols-[1fr_auto] items-end gap-8 pb-16">
