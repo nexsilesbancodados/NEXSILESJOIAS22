@@ -29,13 +29,13 @@ import {
   Linkedin,
 } from 'lucide-react';
 
-import heroImg from '@/assets/landing-hero-jewelry.jpg';
-import lojistaImg from '@/assets/landing-persona-lojista.jpg';
-import revendedoraImg from '@/assets/landing-persona-revendedora.jpg';
-import ctaImg from '@/assets/landing-cta-bg.jpg';
-import dashboardImg from '@/assets/landing-dashboard-mockup.jpg';
-import pdvImg from '@/assets/landing-pdv-mockup.png';
-import lojaImg from '@/assets/landing-loja-mockup.png';
+import heroImg from '@/assets/landing-hero-jewelry.webp';
+import lojistaImg from '@/assets/landing-persona-lojista.webp';
+import revendedoraImg from '@/assets/landing-persona-revendedora.webp';
+import ctaImg from '@/assets/landing-cta-bg.webp';
+import dashboardImg from '@/assets/landing-dashboard-mockup.webp';
+import pdvImg from '@/assets/landing-pdv-mockup.webp';
+import lojaImg from '@/assets/landing-loja-mockup.webp';
 import { PublicCheckoutDialog } from '@/components/landing/PublicCheckoutDialog';
 import { PaymentReturnDialog } from '@/components/landing/PaymentReturnDialog';
 
