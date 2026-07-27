@@ -29,13 +29,13 @@ import {
   Linkedin,
 } from 'lucide-react';
 
-import heroImg from '@/assets/landing-hero-jewelry.jpg';
-import lojistaImg from '@/assets/landing-persona-lojista.jpg';
-import revendedoraImg from '@/assets/landing-persona-revendedora.jpg';
-import ctaImg from '@/assets/landing-cta-bg.jpg';
-import dashboardImg from '@/assets/landing-dashboard-mockup.jpg';
-import pdvImg from '@/assets/landing-pdv-mockup.png';
-import lojaImg from '@/assets/landing-loja-mockup.png';
+import heroImg from '@/assets/landing-hero-jewelry.webp';
+import lojistaImg from '@/assets/landing-persona-lojista.webp';
+import revendedoraImg from '@/assets/landing-persona-revendedora.webp';
+import ctaImg from '@/assets/landing-cta-bg.webp';
+import dashboardImg from '@/assets/landing-dashboard-mockup.webp';
+import pdvImg from '@/assets/landing-pdv-mockup.webp';
+import lojaImg from '@/assets/landing-loja-mockup.webp';
 import { PublicCheckoutDialog } from '@/components/landing/PublicCheckoutDialog';
 import { PaymentReturnDialog } from '@/components/landing/PaymentReturnDialog';
 
@@ -527,6 +527,8 @@ function Navbar({ onCta }: { onCta: () => void }) {
                 <img
                   src={heroImg}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover"
                   style={{ filter: 'brightness(0.85)' }}
                 />
@@ -630,6 +632,8 @@ function Hero({ onCta }: { onCta: () => void }) {
           <img
             src={heroImg}
             alt="Semijoias premium"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-[45vh] md:h-[65vh] object-cover"
             style={{ filter: 'brightness(1.02) contrast(1.02)' }}
           />
@@ -784,6 +788,8 @@ function EditorialBlock({
             <img
               src={image}
               alt={imageAlt}
+              loading="lazy"
+              decoding="async"
               className="w-full h-[420px] md:h-[560px] object-cover"
             />
           </ClipReveal>
@@ -1239,6 +1245,8 @@ function CTA({ onCta }: { onCta: () => void }) {
             <img
               src={ctaImg}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="w-full h-[440px] md:h-[560px] object-cover"
             />
           </ClipReveal>
@@ -1457,6 +1465,8 @@ function StickyShowcase() {
                   key={i}
                   src={s.img}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   style={{ opacity, scale }}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
