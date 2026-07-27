@@ -36,6 +36,8 @@ import ctaImg from '@/assets/landing-cta-bg.jpg';
 import dashboardImg from '@/assets/landing-dashboard-mockup.jpg';
 import pdvImg from '@/assets/landing-pdv-mockup.png';
 import lojaImg from '@/assets/landing-loja-mockup.png';
+import { PublicCheckoutDialog } from '@/components/landing/PublicCheckoutDialog';
+import { PaymentReturnDialog } from '@/components/landing/PaymentReturnDialog';
 
 /* =========================================================
    Nexsiles Landing — Editorial rebuild inspired by Eagle
@@ -1503,8 +1505,8 @@ function StickyShowcase() {
 /* ---------- Page ---------- */
 
 export default function LandingPage() {
-  const nav = useNavigate();
-  const goPlanos = () => nav('/planos');
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const openCheckout = () => setCheckoutOpen(true);
 
   return (
     <div className="relative" style={{ background: BG, color: INK }}>
@@ -1514,8 +1516,8 @@ export default function LandingPage() {
       <CursorBlob />
       <div className="relative z-10">
 
-        <Navbar onCta={goPlanos} />
-        <Hero onCta={goPlanos} />
+        <Navbar onCta={openCheckout} />
+        <Hero onCta={openCheckout} />
         <Sobre />
         <StickyShowcase />
         <EditorialBlock
@@ -1544,12 +1546,15 @@ export default function LandingPage() {
           reverse
         />
         <Modulos />
-        <ContactBand onCta={goPlanos} />
+        <ContactBand onCta={openCheckout} />
         <Depoimentos />
-        <Precos onCta={goPlanos} />
-        <CTA onCta={goPlanos} />
+        <Precos onCta={openCheckout} />
+        <CTA onCta={openCheckout} />
         <Footer />
       </div>
+
+      <PublicCheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
+      <PaymentReturnDialog />
     </div>
   );
 }

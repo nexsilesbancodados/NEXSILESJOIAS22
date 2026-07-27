@@ -32,6 +32,24 @@ export default function AuthPage() {
       navigate('/', { replace: true });
     }
   }, [user, authLoading, navigate]);
+
+  // Prefill from URL (?codigo=XXXX&email=...) — used after public checkout
+  useEffect(() => {
+    const c = searchParams.get('codigo');
+    const e = searchParams.get('email');
+    if (c || e) {
+      setActiveTab('signup');
+      if (e) setSignupEmail(e);
+      if (c) {
+        const up = c.toUpperCase().slice(0, 12);
+        setSignupCodigo(up);
+        if (up.length === 12) {
+          setTimeout(() => validarCodigo(up), 100);
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
