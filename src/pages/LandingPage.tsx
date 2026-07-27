@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   motion,
   useScroll,
   useTransform,
   useInView,
+  useSpring,
+  useMotionValue,
   AnimatePresence,
 } from 'framer-motion';
 import {
