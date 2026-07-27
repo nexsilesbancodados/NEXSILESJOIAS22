@@ -1,678 +1,768 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { motion, useScroll, useTransform, useInView, useMotionValue, useSpring } from 'framer-motion';
+import { ArrowUpRight, Menu, X } from 'lucide-react';
+import heroImg from '@/assets/landing-hero-jewelry.jpg';
+import sellersImg from '@/assets/landing-sellers.jpg';
+import buyersImg from '@/assets/landing-buyers.jpg';
 
-import {
-  BarChart3, ShoppingCart, Users, Package, Shield, Star,
-  MessageSquare, TrendingUp, Smartphone, ArrowRight, Check,
-  Sparkles, Store, Bot, Crown, Menu, X,
-  Gem, ChevronLeft, ChevronRight,
-  AlertTriangle, XCircle, CheckCircle, Timer, Lock, Eye, Rocket, Play, Zap, Heart, Loader2, Mail
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import dashboardMockup from '@/assets/landing-dashboard-mockup.jpg';
-import heroSlide1 from '@/assets/hero-slide-1.jpg';
-import heroSlide2 from '@/assets/hero-slide-2.jpg';
-import heroSlide3 from '@/assets/hero-slide-3.jpg';
-import devicesMockup from '@/assets/landing-devices-mockup.jpg';
-import personaLojista from '@/assets/landing-persona-lojista.jpg';
-import personaRevendedora from '@/assets/landing-persona-revendedora.jpg';
-import personaCliente from '@/assets/landing-persona-cliente.jpg';
-import stepsBg from '@/assets/landing-steps-bg.jpg';
-import featuresBg from '@/assets/landing-features-bg.jpg';
-import ctaBg from '@/assets/landing-cta-bg.jpg';
-import logo from '@/assets/logo.png';
-import testimonialCarla from '@/assets/testimonial-carla.jpg';
-import testimonialFernanda from '@/assets/testimonial-fernanda.jpg';
-import testimonialJuliana from '@/assets/testimonial-juliana.jpg';
-import testimonialAmanda from '@/assets/testimonial-amanda.jpg';
-import testimonialPatricia from '@/assets/testimonial-patricia.jpg';
-import dashboardInsights from '@/assets/landing-dashboard-insights.png';
-import dashboardCharts from '@/assets/landing-dashboard-charts.png';
-import pecasMockup from '@/assets/landing-pecas-mockup.png';
-import pdvMockup from '@/assets/landing-pdv-mockup.png';
-import lojaMockup from '@/assets/landing-loja-mockup.png';
+/* ---------- Design tokens (local to landing) ----------
+   Editorial dark canvas + rose-gold accent.
+   Inspired by the Eagle real-estate reference (huge display type,
+   stripes, scroll-driven parallax, magazine cadence). */
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.12, duration: 0.6 } }),
-};
+const ACCENT = '#c9a27a';       // rose-gold
+const ACCENT_SOFT = '#e8c9a8';
+const BG = '#0b0a09';
+const INK = '#f5efe6';
+const MUTED = 'rgba(245,239,230,0.55)';
 
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.92 },
-  visible: (i: number) => ({ opacity: 1, scale: 1, transition: { delay: i * 0.1, duration: 0.5 } }),
-};
+/* ---------- Small primitives ---------- */
 
-const DORES = [
-  { icon: XCircle, text: 'Controla estoque em planilha e perde peças toda semana?' },
-  { icon: XCircle, text: 'Suas revendedoras pedem fotos e preços no WhatsApp o dia todo?' },
-  { icon: XCircle, text: 'Não sabe quanto realmente lucra em cada venda?' },
-  { icon: XCircle, text: 'Quer vender online mas não tem loja virtual?' },
+function SectionTag({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 text-[11px] tracking-[0.25em] uppercase" style={{ color: ACCENT }}>
+      <span className="inline-block w-6 h-px" style={{ background: ACCENT }} />
+      <span>{children}</span>
+    </div>
+  );
+}
+
+function Reveal({ children, delay = 0, y = 40 }: { children: React.ReactNode; delay?: number; y?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: '-80px' });
+  return (
+    <div ref={ref}>
+      <motion.div
+        initial={{ opacity: 0, y }}
+        animate={inView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.9, delay, ease: [0.16, 1, 0.3, 1] }}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+function Counter({ to, suffix = '', prefix = '' }: { to: number; suffix?: string; prefix?: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true });
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!inView) return;
+    const start = performance.now();
+    const dur = 1800;
+    let raf = 0;
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setVal(Math.round(to * eased));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, to]);
+  return <span ref={ref}>{prefix}{val.toLocaleString('pt-BR')}{suffix}</span>;
+}
+
+/* ---------- Navbar ---------- */
+
+function Navbar({ onCta }: { onCta: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 40);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
+  const links = [
+    { label: 'Sistema', href: '#sistema' },
+    { label: 'Para você', href: '#lojistas' },
+    { label: 'Recursos', href: '#recursos' },
+    { label: 'Depoimentos', href: '#depoimentos' },
+  ];
+  return (
+    <motion.header
+      initial={{ y: -30, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled ? 'backdrop-blur-xl bg-[rgba(11,10,9,0.72)] border-b border-white/5' : ''
+      }`}
+    >
+      <div className="max-w-[1440px] mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
+        <a href="#top" className="flex items-center gap-3 group">
+          <span
+            className="text-[13px] tracking-[0.35em] uppercase"
+            style={{ color: INK, fontFamily: 'Cormorant Garamond, serif' }}
+          >
+            Nexsiles
+          </span>
+        </a>
+        <nav className="hidden md:flex items-center gap-10">
+          {links.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="text-[12px] tracking-[0.22em] uppercase transition-colors hover:opacity-100"
+              style={{ color: MUTED }}
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+        <div className="hidden md:block">
+          <PillButton onClick={onCta}>Começar agora</PillButton>
+        </div>
+        <button
+          className="md:hidden p-2"
+          onClick={() => setOpen((v) => !v)}
+          aria-label="menu"
+          style={{ color: INK }}
+        >
+          {open ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      </div>
+      {open && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          className="md:hidden border-t border-white/5"
+          style={{ background: 'rgba(11,10,9,0.95)' }}
+        >
+          <div className="px-6 py-6 flex flex-col gap-5">
+            {links.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="text-sm tracking-[0.2em] uppercase"
+                style={{ color: INK }}
+              >
+                {l.label}
+              </a>
+            ))}
+            <PillButton onClick={onCta}>Começar agora</PillButton>
+          </div>
+        </motion.div>
+      )}
+    </motion.header>
+  );
+}
+
+function PillButton({
+  children,
+  onClick,
+  variant = 'solid',
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'solid' | 'ghost';
+}) {
+  const solid = variant === 'solid';
+  return (
+    <motion.button
+      onClick={onClick}
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      className="group relative inline-flex items-center gap-3 px-6 py-3 rounded-full text-[12px] tracking-[0.22em] uppercase transition-colors"
+      style={{
+        background: solid ? ACCENT : 'transparent',
+        color: solid ? '#1a1410' : INK,
+        border: solid ? 'none' : `1px solid rgba(245,239,230,0.2)`,
+      }}
+    >
+      <span>{children}</span>
+      <span
+        className="inline-flex items-center justify-center w-6 h-6 rounded-full transition-transform group-hover:rotate-45"
+        style={{ background: solid ? '#1a1410' : ACCENT, color: solid ? ACCENT : '#1a1410' }}
+      >
+        <ArrowUpRight size={12} />
+      </span>
+    </motion.button>
+  );
+}
+
+/* ---------- Hero ---------- */
+
+function Hero({ onCta }: { onCta: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+  const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '25%']);
+  const imgScale = useTransform(scrollYProgress, [0, 1], [1, 1.15]);
+  const titleY = useTransform(scrollYProgress, [0, 1], ['0%', '-30%']);
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
+  return (
+    <section ref={ref} id="top" className="relative h-[100svh] min-h-[720px] overflow-hidden" style={{ background: BG }}>
+      {/* Vertical stripes */}
+      <div className="absolute inset-0 grid grid-cols-6 pointer-events-none">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="border-r border-white/[0.03] h-full" />
+        ))}
+      </div>
+
+      {/* Background image */}
+      <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
+        <img
+          src={heroImg}
+          alt="Semi-jewelry"
+          className="w-full h-full object-cover"
+          style={{ filter: 'brightness(0.55) contrast(1.05)' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(11,10,9,0.55) 0%, rgba(11,10,9,0.35) 40%, rgba(11,10,9,0.85) 100%)',
+          }}
+        />
+      </motion.div>
+
+      {/* Content */}
+      <div className="relative h-full max-w-[1440px] mx-auto px-6 md:px-10 flex flex-col justify-end pb-16 md:pb-24">
+        <motion.div style={{ y: titleY, opacity: titleOpacity }}>
+          <motion.h1
+            initial={{ opacity: 0, y: 80 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+            className="font-serif leading-[0.85] tracking-[-0.02em]"
+            style={{
+              fontFamily: 'Cormorant Garamond, serif',
+              color: INK,
+              fontSize: 'clamp(5rem, 18vw, 20rem)',
+              fontWeight: 400,
+            }}
+          >
+            Nexsiles
+          </motion.h1>
+        </motion.div>
+
+        <div className="mt-10 md:mt-14 grid md:grid-cols-12 gap-8 md:gap-12 items-end">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.8 }}
+            className="md:col-span-5 md:col-start-6"
+          >
+            <p className="text-[15px] md:text-[17px] leading-relaxed" style={{ color: 'rgba(245,239,230,0.78)' }}>
+              O sistema completo para quem vive de semi-joias.
+              De estoque a maleta, de PDV a loja virtual — tudo em um só lugar,
+              feito com o cuidado que sua marca merece.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <PillButton onClick={onCta}>Começar agora</PillButton>
+              <PillButton onClick={() => document.getElementById('sistema')?.scrollIntoView({ behavior: 'smooth' })} variant="ghost">
+                Conhecer sistema
+              </PillButton>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 1.2 }}
+            className="md:col-span-3 md:col-start-1 md:row-start-1 hidden md:block"
+          >
+            <div className="text-[11px] tracking-[0.3em] uppercase" style={{ color: ACCENT }}>
+              [ Est. 2024 ]
+            </div>
+            <div className="mt-3 text-xs" style={{ color: MUTED }}>
+              Feito no Brasil, para o mundo das semi-joias.
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Scroll cue */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.6, duration: 1 }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] tracking-[0.3em] uppercase"
+        style={{ color: MUTED }}
+      >
+        role para descobrir
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------- Sobre + stats ---------- */
+
+function Sobre() {
+  return (
+    <section id="sistema" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG, color: INK }}>
+      <div className="max-w-[1440px] mx-auto">
+        <div className="grid md:grid-cols-12 gap-12 md:gap-20">
+          <div className="md:col-span-6">
+            <Reveal>
+              <SectionTag>[ o sistema ]</SectionTag>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <h2
+                className="mt-8 text-[2rem] md:text-[3.4rem] leading-[1.05] tracking-[-0.01em]"
+                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+              >
+                Um só lugar para gerir suas peças, suas revendedoras
+                e a sua loja — com a{' '}
+                <span style={{ color: ACCENT, fontStyle: 'italic' }}>elegância</span> que sua marca pede.
+              </h2>
+            </Reveal>
+
+            <Reveal delay={0.2}>
+              <div className="mt-14 grid grid-cols-2 gap-8">
+                {[
+                  { n: 1200, s: '+', label: 'Peças gerenciadas por lojista' },
+                  { n: 25, s: '', label: 'Módulos inclusos no Prime' },
+                  { n: 99, s: '%', label: 'Uptime da plataforma' },
+                  { n: 129, s: '', prefix: 'R$', label: 'Mensal — tudo incluso' },
+                ].map((s, i) => (
+                  <div key={i} className="border-t border-white/10 pt-4">
+                    <div className="flex items-baseline gap-1">
+                      <div
+                        className="text-3xl md:text-5xl"
+                        style={{ fontFamily: 'Cormorant Garamond, serif', color: INK, fontWeight: 400 }}
+                      >
+                        <Counter to={s.n} suffix={s.s} prefix={s.prefix} />
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs tracking-[0.2em] uppercase" style={{ color: MUTED }}>
+                      {s.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+
+          <div className="md:col-span-6">
+            <Reveal delay={0.15}>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  'Estoque',
+                  'Maletas',
+                  'PDV',
+                  'Catálogo',
+                  'Loja Virtual',
+                  'IA Bella',
+                  'CRM',
+                  'Fidelidade',
+                  'Relatórios',
+                ].map((label, i) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.05, duration: 0.6 }}
+                    className="aspect-[3/2] border border-white/10 flex items-center justify-center text-center px-3 relative overflow-hidden group cursor-default"
+                  >
+                    <span
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: `linear-gradient(135deg, ${ACCENT}22, transparent)` }}
+                    />
+                    <span
+                      className="relative text-sm md:text-base tracking-wide"
+                      style={{ fontFamily: 'Cormorant Garamond, serif', color: INK }}
+                    >
+                      {label}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Sellers / Buyers editorial ---------- */
+
+function Editorial({
+  tag,
+  title,
+  items,
+  img,
+  reverse = false,
+  id,
+}: {
+  tag: string;
+  title: string;
+  items: string[];
+  img: string;
+  reverse?: boolean;
+  id?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], ['-8%', '8%']);
+
+  return (
+    <section id={id} className="relative py-24 md:py-36 px-6 md:px-10" style={{ background: BG, color: INK }}>
+      <div className="max-w-[1440px] mx-auto">
+        <div className={`grid md:grid-cols-12 gap-10 md:gap-16 items-center ${reverse ? 'md:[direction:rtl]' : ''}`}>
+          <div className="md:col-span-7 md:[direction:ltr]" ref={ref}>
+            <div className="relative overflow-hidden aspect-[4/5] md:aspect-[5/6]">
+              <motion.img
+                src={img}
+                alt=""
+                style={{ y }}
+                className="absolute inset-0 w-full h-[115%] object-cover"
+                loading="lazy"
+              />
+            </div>
+          </div>
+          <div className="md:col-span-5 md:[direction:ltr]">
+            <Reveal>
+              <SectionTag>{tag}</SectionTag>
+            </Reveal>
+            <Reveal delay={0.1}>
+              <h3
+                className="mt-8 text-[1.8rem] md:text-[2.6rem] leading-[1.1] tracking-[-0.01em]"
+                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+              >
+                {title}
+              </h3>
+            </Reveal>
+            <div className="mt-10 space-y-6">
+              {items.map((t, i) => (
+                <Reveal key={i} delay={0.15 + i * 0.08}>
+                  <div className="flex gap-6 border-t border-white/10 pt-5">
+                    <span className="text-xs tracking-[0.2em]" style={{ color: ACCENT }}>
+                      [{String(i + 1).padStart(2, '0')}]
+                    </span>
+                    <p className="text-[15px] leading-relaxed" style={{ color: 'rgba(245,239,230,0.72)' }}>
+                      {t}
+                    </p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Marquee ---------- */
+
+function Marquee() {
+  const words = ['Estoque', 'Maletas', 'PDV', 'Catálogo público', 'Loja virtual', 'IA de atendimento', 'CRM', 'Fidelidade', 'Relatórios', 'Fiado'];
+  return (
+    <section className="py-10 border-y border-white/5 overflow-hidden" style={{ background: '#0d0c0b' }}>
+      <motion.div
+        className="flex gap-16 whitespace-nowrap"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ duration: 40, ease: 'linear', repeat: Infinity }}
+      >
+        {[...words, ...words, ...words].map((w, i) => (
+          <span
+            key={i}
+            className="text-4xl md:text-6xl tracking-[-0.01em]"
+            style={{ fontFamily: 'Cormorant Garamond, serif', color: i % 2 === 0 ? INK : ACCENT, fontStyle: i % 3 === 0 ? 'italic' : 'normal' }}
+          >
+            {w} <span style={{ color: ACCENT_SOFT, opacity: 0.4 }}>✦</span>
+          </span>
+        ))}
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------- Recursos grid ---------- */
+
+const RECURSOS = [
+  { n: '01', t: 'Controle de estoque', d: 'Peças, categorias, banhos, códigos e etiquetas — organizadas do jeito que a semi-joia pede.' },
+  { n: '02', t: 'Sistema de Maletas', d: 'Ciclo completo: montagem, envio, conferência atômica, acerto financeiro e retorno automático ao estoque.' },
+  { n: '03', t: 'PDV completo', d: 'Vendas rápidas, fiado, cupons, fidelidade, impressora e modo offline. Feito para o balcão.' },
+  { n: '04', t: 'Loja Virtual', d: 'E-commerce próprio, checkout com Mercado Pago e Pix direto. Sua marca no ar em minutos.' },
+  { n: '05', t: 'IA Bella', d: 'Atendimento 24/7 no WhatsApp — carrinho, mídia, follow-up e conversão automatizada.' },
+  { n: '06', t: 'Portal da Revendedora', d: 'App dedicado com maletas, pedidos, vendas e comissão em tempo real.' },
 ];
 
-const FEATURES = [
-  { icon: BarChart3, title: 'Dashboard Inteligente', desc: 'Vendas, estoque e métricas em tempo real.', gradient: 'from-violet-500 to-purple-600' },
-  { icon: ShoppingCart, title: 'PDV Completo', desc: 'Leitor de barras, descontos e recibo digital.', gradient: 'from-rose-500 to-pink-600' },
-  { icon: Package, title: 'Gestão de Estoque', desc: 'Alertas de reposição e importação CSV.', gradient: 'from-amber-500 to-orange-600' },
-  { icon: Users, title: 'Revendedoras & Maletas', desc: 'Portal exclusivo e comissões automáticas.', gradient: 'from-emerald-500 to-teal-600' },
-  { icon: Bot, title: 'Assistente IA 24h', desc: 'Chatbot no WhatsApp que vende sozinho.', gradient: 'from-blue-500 to-indigo-600' },
-  { icon: Store, title: 'Loja Virtual Premium', desc: 'E-commerce com PIX, cartão e SEO.', gradient: 'from-fuchsia-500 to-pink-600' },
-  { icon: MessageSquare, title: 'WhatsApp Integrado', desc: 'Catálogos e broadcast automático.', gradient: 'from-green-500 to-emerald-600' },
-  { icon: TrendingUp, title: 'Relatórios Completos', desc: 'Lucratividade e ranking de vendedoras.', gradient: 'from-cyan-500 to-blue-600' },
-  { icon: Shield, title: 'Segurança Total', desc: 'Dados isolados e backup automático.', gradient: 'from-slate-500 to-gray-600' },
+function Recursos() {
+  return (
+    <section id="recursos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: BG, color: INK }}>
+      <div className="max-w-[1440px] mx-auto">
+        <div className="grid md:grid-cols-12 gap-10 mb-16 md:mb-24">
+          <div className="md:col-span-4">
+            <Reveal>
+              <SectionTag>[ recursos ]</SectionTag>
+            </Reveal>
+          </div>
+          <div className="md:col-span-8">
+            <Reveal delay={0.1}>
+              <h2
+                className="text-[2rem] md:text-[3.2rem] leading-[1.05] tracking-[-0.01em]"
+                style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+              >
+                Cada módulo pensado para o dia-a-dia real de quem vende semi-joias — do balcão à revendedora.
+              </h2>
+            </Reveal>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10 border-y border-white/10">
+          {RECURSOS.map((r, i) => (
+            <motion.div
+              key={r.n}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ delay: (i % 3) * 0.1, duration: 0.8 }}
+              className={`p-8 md:p-12 group relative overflow-hidden ${
+                i >= 3 ? 'md:border-t md:border-white/10' : ''
+              }`}
+            >
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                initial={{ opacity: 0 }}
+                whileHover={{ opacity: 1 }}
+                style={{ background: `radial-gradient(circle at 50% 100%, ${ACCENT}18, transparent 60%)` }}
+              />
+              <div className="relative">
+                <div className="text-xs tracking-[0.3em]" style={{ color: ACCENT }}>
+                  {r.n}
+                </div>
+                <h3
+                  className="mt-6 text-2xl md:text-3xl"
+                  style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+                >
+                  {r.t}
+                </h3>
+                <p className="mt-4 text-sm leading-relaxed" style={{ color: MUTED }}>
+                  {r.d}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Depoimentos ---------- */
+
+const DEPOIMENTOS = [
+  {
+    q: 'Em duas semanas eu tirei minhas planilhas do ar. O sistema entende como a semi-joia funciona.',
+    n: 'Carla M.',
+    r: 'Loja em Belo Horizonte',
+  },
+  {
+    q: 'A maleta digital mudou minhas revendedoras. Fecho acerto em minutos com fotos e tudo.',
+    n: 'Fernanda R.',
+    r: 'Atacadista, São Paulo',
+  },
+  {
+    q: 'O PDV com fiado e a loja virtual no mesmo lugar — parece feito para nós.',
+    n: 'Juliana S.',
+    r: 'Boutique, Curitiba',
+  },
 ];
 
-const PLANOS = [
-  { nome: 'E-commerce', tier: 'E-COMMERCE', preco: 129, destaque: false, icon: Store, desc: 'Apenas venda online', gradient: 'from-rose-400 to-pink-500', slug: 'ecommerce', recursos: ['Loja virtual completa', 'Checkout PIX, Cartão, Boleto', 'Gestão de estoque', 'Carrinho com cupons', 'Cálculo de frete automático', 'SEO otimizado', 'Catálogo digital'] },
-  { nome: 'Bronze', tier: 'BRONZE', preco: 189, destaque: false, icon: Sparkles, desc: 'Gestão completa', gradient: 'from-amber-400 to-orange-500', slug: 'bronze', recursos: ['Dashboard inteligente', 'PDV completo', 'Estoque ilimitado', 'Revendedoras & Maletas', 'Catálogos digitais', 'Relatórios completos', 'Programa de fidelidade', 'WhatsApp'] },
-  { nome: 'Prata', tier: 'PRATA', preco: 239, destaque: true, icon: Bot, desc: 'Mais vendido! Gestão + IA', gradient: 'from-rose-500 to-pink-600', slug: 'prata', recursos: ['Tudo do Bronze', 'Assistente IA WhatsApp', 'Chatbot 24h', 'Respostas automáticas', 'Sugestões de vendas IA', 'Estoque inteligente', 'Atendimento automático', 'Relatórios com IA'] },
-  { nome: 'Diamante', tier: 'DIAMANTE', preco: 299, destaque: false, icon: Crown, desc: 'Tudo incluído', gradient: 'from-violet-400 to-purple-600', slug: 'diamante', recursos: ['Tudo do Prata', 'Loja virtual completa', 'Checkout integrado', 'Carrinho com cupons', 'Gestão de pedidos', 'Cálculo de frete', 'SEO otimizado', 'Campanhas'] },
-];
+function Depoimentos() {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % DEPOIMENTOS.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+  const d = DEPOIMENTOS[i];
+  return (
+    <section id="depoimentos" className="relative py-28 md:py-40 px-6 md:px-10" style={{ background: '#0d0c0b', color: INK }}>
+      <div className="max-w-[1200px] mx-auto text-center">
+        <Reveal>
+          <SectionTag>[ vozes ]</SectionTag>
+        </Reveal>
+        <motion.blockquote
+          key={i}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1 }}
+          className="mt-10 text-[1.6rem] md:text-[2.6rem] leading-[1.25] tracking-[-0.01em]"
+          style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+        >
+          <span style={{ color: ACCENT }}>“</span>
+          {d.q}
+          <span style={{ color: ACCENT }}>”</span>
+        </motion.blockquote>
+        <motion.div
+          key={`m-${i}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 1 }}
+          className="mt-8 text-xs tracking-[0.3em] uppercase"
+          style={{ color: MUTED }}
+        >
+          — {d.n} · {d.r}
+        </motion.div>
+        <div className="mt-10 flex justify-center gap-3">
+          {DEPOIMENTOS.map((_, k) => (
+            <button
+              key={k}
+              onClick={() => setI(k)}
+              className="w-8 h-px transition-all"
+              style={{ background: k === i ? ACCENT : 'rgba(245,239,230,0.2)' }}
+              aria-label={`depoimento ${k + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-const TESTIMONIALS = [
-  { name: 'Carla M.', role: 'Loja de semijoias', text: 'Parei de perder horas controlando estoque no caderno. Agora sei exatamente quanto lucro.', img: testimonialCarla, rating: 5 },
-  { name: 'Fernanda S.', role: 'Revendedora', text: 'O portal é muito prático. Minhas revendedoras acompanham comissões sozinhas.', img: testimonialFernanda, rating: 5 },
-  { name: 'Juliana R.', role: 'E-commerce de joias', text: 'A IA no WhatsApp atende de madrugada! Vendas aumentaram 40%.', img: testimonialJuliana, rating: 5 },
-  { name: 'Amanda L.', role: 'Atacadista', text: 'Reduzi 80% das mensagens no WhatsApp com o portal!', img: testimonialAmanda, rating: 5 },
-  { name: 'Patrícia K.', role: 'Loja + E-commerce', text: 'Gerencio loja física e virtual num só lugar!', img: testimonialPatricia, rating: 5 },
-];
+/* ---------- CTA ---------- */
 
-const PASSOS = [
-  { num: '01', titulo: 'Crie sua conta', desc: 'Cadastro rápido em 2 minutos.', icon: Smartphone },
-  { num: '02', titulo: 'Configure', desc: 'Importe peças e personalize.', icon: Package },
-  { num: '03', titulo: 'Lucre', desc: 'Venda de qualquer lugar.', icon: TrendingUp },
-];
+function CTA({ onCta }: { onCta: () => void }) {
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const sx = useSpring(mx, { stiffness: 60, damping: 20 });
+  const sy = useSpring(my, { stiffness: 60, damping: 20 });
+  return (
+    <section
+      className="relative py-32 md:py-48 px-6 md:px-10 overflow-hidden"
+      style={{ background: BG, color: INK }}
+      onMouseMove={(e) => {
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        mx.set(((e.clientX - r.left) / r.width - 0.5) * 40);
+        my.set(((e.clientY - r.top) / r.height - 0.5) * 40);
+      }}
+    >
+      <motion.div
+        style={{ x: sx, y: sy }}
+        className="absolute -inset-32 opacity-40 pointer-events-none"
+      >
+        <div
+          className="w-full h-full"
+          style={{
+            background: `radial-gradient(circle at 30% 40%, ${ACCENT}55, transparent 45%), radial-gradient(circle at 70% 70%, ${ACCENT_SOFT}33, transparent 50%)`,
+          }}
+        />
+      </motion.div>
+
+      <div className="relative max-w-[1200px] mx-auto text-center">
+        <Reveal>
+          <SectionTag>[ comece ]</SectionTag>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <h2
+            className="mt-8 text-[2.6rem] md:text-[5.5rem] leading-[0.95] tracking-[-0.02em]"
+            style={{ fontFamily: 'Cormorant Garamond, serif', fontWeight: 400 }}
+          >
+            Seu negócio de <span style={{ color: ACCENT, fontStyle: 'italic' }}>semi-joia</span>,
+            <br />
+            no padrão que ele merece.
+          </h2>
+        </Reveal>
+        <Reveal delay={0.2}>
+          <p className="mt-8 max-w-xl mx-auto text-[15px]" style={{ color: MUTED }}>
+            R$ 129/mês. Tudo incluso. Sem letras miúdas.
+          </p>
+        </Reveal>
+        <Reveal delay={0.3}>
+          <div className="mt-12 flex flex-wrap justify-center gap-4">
+            <PillButton onClick={onCta}>Assinar Nexsiles Prime</PillButton>
+            <PillButton onClick={() => window.open('https://wa.me/5511937687369', '_blank')} variant="ghost">
+              Falar com atendimento
+            </PillButton>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Footer ---------- */
+
+function Footer() {
+  return (
+    <footer className="border-t border-white/10 py-14 px-6 md:px-10" style={{ background: BG, color: INK }}>
+      <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row justify-between gap-10">
+        <div>
+          <div
+            className="text-2xl tracking-[0.3em] uppercase"
+            style={{ fontFamily: 'Cormorant Garamond, serif' }}
+          >
+            Nexsiles
+          </div>
+          <div className="mt-2 text-xs" style={{ color: MUTED }}>
+            © {new Date().getFullYear()} — Feito com cuidado para o mercado de semi-joias.
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-8 text-xs tracking-[0.2em] uppercase" style={{ color: MUTED }}>
+          <a href="/planos" className="hover:opacity-100 transition">Planos</a>
+          <a href="/auth" className="hover:opacity-100 transition">Entrar</a>
+          <a href="/politica-privacidade" className="hover:opacity-100 transition">Privacidade</a>
+          <a href="/termos-de-uso" className="hover:opacity-100 transition">Termos</a>
+          <a href="https://wa.me/5511937687369" target="_blank" rel="noreferrer" className="hover:opacity-100 transition">
+            WhatsApp
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ---------- Page ---------- */
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const planosRef = useRef<HTMLDivElement>(null);
-  const [heroIndex, setHeroIndex] = useState(0);
-  const [heroDir, setHeroDir] = useState(0);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [checkoutPlano, setCheckoutPlano] = useState<typeof PLANOS[0] | null>(null);
-  const [checkoutEmail, setCheckoutEmail] = useState('');
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const goCta = () => navigate('/planos');
 
-  const heroSlides = [
-    { img: heroSlide1, title: 'O sistema nº1 para semijoias no Brasil', subtitle: 'Estoque, PDV, revendedoras, loja virtual e IA — tudo num só lugar.' },
-    { img: heroSlide2, title: 'Pare de perder vendas por falta de controle', subtitle: 'Dashboard, relatórios e alertas automáticos para nunca ter prejuízo.' },
-    { img: heroSlide3, title: 'Sua loja vende sozinha com IA', subtitle: 'Assistente no WhatsApp que atende, vende e agenda 24h por dia.' },
-  ];
-
-  const nextHero = useCallback(() => { setHeroDir(1); setHeroIndex(i => (i + 1) % heroSlides.length); }, [heroSlides.length]);
-  useEffect(() => { const t = setInterval(nextHero, 5000); return () => clearInterval(t); }, [nextHero]);
-
-  const scrollToPlanos = () => planosRef.current?.scrollIntoView({ behavior: 'smooth' });
-
-  const openCheckout = (plano: typeof PLANOS[0]) => {
-    setCheckoutPlano(plano);
-    setCheckoutEmail('');
-    setCheckoutOpen(true);
-  };
-
-  const handleCheckout = async () => {
-    if (!checkoutEmail || !checkoutPlano) return;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(checkoutEmail)) {
-      toast.error('Digite um e-mail válido');
-      return;
-    }
-    setCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('mercadopago-checkout-public', {
-        body: { email: checkoutEmail, plano: checkoutPlano.slug, periodo: 'mensal' },
-      });
-      if (error) throw error;
-      if (data?.initPoint) {
-        window.location.href = data.initPoint;
-      } else if (data?.sandboxInitPoint) {
-        window.location.href = data.sandboxInitPoint;
-      } else {
-        toast.error('Erro ao gerar link de pagamento');
-      }
-    } catch (err: any) {
-      console.error('Checkout error:', err);
-      toast.error(err?.message || 'Erro ao processar pagamento');
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
+  useEffect(() => {
+    document.title = 'Nexsiles — Sistema completo para semi-joias';
+  }, []);
 
   return (
-    <div className="lp-root">
-      
-      {/* ═══ NAVBAR ═══ */}
-      <nav className="lp-nav">
-        <div className="lp-nav-inner">
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="Nexsiles" className="lp-nav-logo" />
-            <span className="lp-nav-brand">Nexsiles</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            {[
-              { id: 'problema', label: 'Por que?' },
-              { id: 'funcionalidades', label: 'Funcionalidades' },
-              { id: 'planos', label: 'Planos' },
-              { id: 'depoimentos', label: 'Depoimentos' },
-            ].map(link => (
-              <a key={link.id} href={`#${link.id}`} className="lp-nav-link">{link.label}</a>
-            ))}
-          </div>
-          <div className="hidden md:flex items-center gap-3">
-            <Button className="lp-btn-primary" onClick={scrollToPlanos}>
-              Começar agora <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          </div>
-          <button className="md:hidden lp-touch flex items-center justify-center lp-nav-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }} 
-              animate={{ height: 'auto', opacity: 1 }} 
-              exit={{ height: 0, opacity: 0 }}
-              className="md:hidden overflow-hidden lp-mobile-menu"
-            >
-              <div className="px-5 py-4 space-y-1">
-                {['problema', 'funcionalidades', 'planos', 'depoimentos'].map(id => (
-                  <a key={id} href={`#${id}`} onClick={() => setMobileMenuOpen(false)} 
-                    className="block py-2.5 lp-nav-link capitalize lp-touch">
-                    {id === 'problema' ? 'Por que?' : id}
-                  </a>
-                ))}
-                <Button className="w-full lp-btn-primary mt-3" onClick={scrollToPlanos}>Começar agora</Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-
-      {/* ═══ HERO ═══ */}
-      <section className="lp-hero">
-        <AnimatePresence initial={false} custom={heroDir} mode="popLayout">
-          <motion.div key={heroIndex} custom={heroDir}
-            variants={{
-              enter: (dir: number) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0 }),
-              center: { x: 0, opacity: 1 },
-              exit: (dir: number) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 0 }),
-            }}
-            initial="enter" animate="center" exit="exit"
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0">
-            <img src={heroSlides[heroIndex].img} alt="" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
-            <div className="absolute inset-0 lp-hero-overlay" />
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="relative z-10 h-full flex flex-col justify-center lp-hero-content">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }} key={`text-${heroIndex}`}>
-            <div className="lp-hero-badge">
-              <Gem className="w-3.5 h-3.5" />
-              <span>A plataforma #1 para semijoias</span>
-            </div>
-            <h1 className="lp-hero-title">
-              {heroSlides[heroIndex].title}
-            </h1>
-            <p className="lp-hero-subtitle">
-              {heroSlides[heroIndex].subtitle}
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-              <Button className="lp-btn-hero-primary lp-touch" onClick={scrollToPlanos}>
-                Quero Assinar Agora <ArrowRight className="w-4 h-4 ml-1.5" />
-              </Button>
-              <Button variant="outline" className="lp-btn-hero-outline lp-touch" onClick={scrollToPlanos}>
-                Ver Planos e Preços
-              </Button>
-            </div>
-            <div className="lp-hero-trust">
-              {['Pagamento seguro', 'Acesso imediato', 'Suporte dedicado'].map(t => (
-                <span key={t} className="flex items-center gap-1.5">
-                  <Check className="w-3.5 h-3.5 text-emerald-400" /> {t}
-                </span>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        <button onClick={() => { setHeroDir(-1); setHeroIndex(i => (i - 1 + heroSlides.length) % heroSlides.length); }}
-          className="lp-hero-arrow lp-hero-arrow-left lp-touch">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button onClick={() => { setHeroDir(1); setHeroIndex(i => (i + 1) % heroSlides.length); }}
-          className="lp-hero-arrow lp-hero-arrow-right lp-touch">
-          <ChevronRight className="w-5 h-5" />
-        </button>
-
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2.5">
-          {heroSlides.map((_, i) => (
-            <button key={i} onClick={() => { setHeroDir(i > heroIndex ? 1 : -1); setHeroIndex(i); }}
-              className={`lp-hero-dot ${i === heroIndex ? 'lp-hero-dot-active' : ''}`} />
-          ))}
-        </div>
-      </section>
-
-      {/* ═══ SOCIAL PROOF STRIP ═══ */}
-      <section className="lp-social-proof">
-        <div className="lp-container-lg">
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { num: '500+', label: 'Empreendedoras', icon: Users },
-              { num: '50k+', label: 'Peças gerenciadas', icon: Gem },
-              { num: '4.9', label: 'Satisfação', icon: Star },
-              { num: '24h', label: 'Suporte', icon: Heart },
-            ].map(s => (
-              <div key={s.label} className="lp-stat-item">
-                <s.icon className="lp-stat-icon" />
-                <p className="lp-stat-num">{s.num}</p>
-                <p className="lp-stat-label">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ PAIN POINTS ═══ */}
-      <section id="problema" className="lp-section">
-        <div className="lp-container-md">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center lp-section-header">
-            <span className="lp-label lp-label-red">
-              <AlertTriangle className="w-3.5 h-3.5" /> Você se identifica?
-            </span>
-            <h2 className="lp-title">
-              Se controla semijoias assim, está <span className="lp-text-danger">perdendo dinheiro</span>
-            </h2>
-          </motion.div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
-            {DORES.map((d, i) => (
-              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.1}
-                className="lp-pain-card">
-                <d.icon className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <p className="lp-pain-text">{d.text}</p>
-              </motion.div>
-            ))}
-          </div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={scaleIn} custom={0.5}
-            className="lp-solution-card">
-            <div className="lp-solution-icon">
-              <CheckCircle className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="lp-solution-title">A solução existe — e é simples.</h3>
-            <p className="lp-solution-text">O Nexsiles resolve tudo em um só sistema.</p>
-            <Button className="lp-btn-success lp-touch" onClick={scrollToPlanos}>
-              Quero Resolver Agora <ArrowRight className="w-4 h-4 ml-1" />
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══ SCREENSHOTS ═══ */}
-      <section className="lp-section lp-section-alt">
-        <div className="lp-container-lg">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center lp-section-header">
-            <span className="lp-label lp-label-rose">
-              <Eye className="w-3.5 h-3.5" /> Veja com seus olhos
-            </span>
-            <h2 className="lp-title">Isso é o que você vai usar</h2>
-            <p className="lp-subtitle">Capturas reais do sistema — sem surpresas.</p>
-          </motion.div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={scaleIn} custom={0.1}
-            className="lp-screenshot-hero">
-            <div className="aspect-[16/10] overflow-hidden">
-              <img src={dashboardMockup} alt="Dashboard Nexsiles" className="w-full h-full object-cover object-top" loading="lazy" />
-            </div>
-            <div className="lp-screenshot-hero-overlay">
-              <Badge className="lp-screenshot-badge">📊 Dashboard completo</Badge>
-            </div>
-          </motion.div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-5">
-            {[
-              { img: dashboardInsights, label: '💡 Insights', pos: 'object-left-top' },
-              { img: pecasMockup, label: '💎 Estoque', pos: 'object-left-top' },
-              { img: pdvMockup, label: '🛒 PDV', pos: 'object-right-top' },
-              { img: dashboardCharts, label: '📈 Gráficos', pos: 'object-top' },
-              { img: lojaMockup, label: '🏪 Loja', pos: 'object-top' },
-              { img: devicesMockup, label: '📱 Mobile', pos: 'object-top' },
-            ].map((item, i) => (
-              <motion.div key={item.label} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-30px" }} variants={scaleIn} custom={i * 0.08}
-                className="lp-screenshot-card group">
-                <div className="aspect-[16/10] overflow-hidden">
-                  <img src={item.img} alt={item.label} className={`w-full h-full object-cover ${item.pos} transition-transform duration-700 group-hover:scale-110`} loading="lazy" />
-                </div>
-                <div className="lp-screenshot-label">
-                  <span>{item.label}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ FEATURES ═══ */}
-      <section id="funcionalidades" className="lp-section">
-        <div className="lp-container-lg">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center lp-section-header">
-            <span className="lp-label lp-label-rose">
-              <Zap className="w-3.5 h-3.5" /> Funcionalidades
-            </span>
-            <h2 className="lp-title">Tudo num só lugar</h2>
-            <p className="lp-subtitle">+20 módulos integrados para seu negócio de semijoias.</p>
-          </motion.div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {FEATURES.map((f, i) => (
-              <motion.div key={f.title} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-30px" }} variants={fadeUp} custom={i * 0.06}>
-                <div className="lp-feature-card group">
-                  <div className={`lp-feature-icon bg-gradient-to-br ${f.gradient}`}>
-                    <f.icon className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="lp-feature-title">{f.title}</h3>
-                  <p className="lp-feature-desc hidden sm:block">{f.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-8 sm:mt-12">
-            <Button className="lp-btn-primary lp-btn-lg lp-touch" onClick={scrollToPlanos}>
-              Escolher Meu Plano <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══ HOW IT WORKS ═══ */}
-      <section className="lp-section lp-section-dark">
-        <div className="absolute inset-0">
-          <img src={stepsBg} alt="" className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 lp-dark-overlay" />
-        </div>
-        <div className="relative z-10 lp-container-md">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center lp-section-header">
-            <h2 className="lp-title text-white">Comece em 2 minutos</h2>
-            <p className="lp-subtitle text-white/60">3 passos simples.</p>
-          </motion.div>
-          <div className="relative">
-            <div className="hidden sm:block absolute left-[16%] right-[16%] border-t-2 border-dashed border-white/20 z-0" style={{ top: '48px' }} />
-            <div className="grid grid-cols-3 gap-4 sm:gap-8 relative z-10">
-              {PASSOS.map((p, i) => (
-                <motion.div key={p.num} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.2}
-                  className="flex flex-col items-center text-center">
-                  <div className="relative mb-4 sm:mb-6">
-                    <div className="lp-step-num">{p.num}</div>
-                    <div className={`lp-step-icon ${i === 1 ? 'lp-step-icon-active' : ''}`}>
-                      <p.icon className="lp-step-icon-svg" strokeWidth={1.5} />
-                    </div>
-                  </div>
-                  <h3 className="lp-step-title">{p.titulo}</h3>
-                  <p className="lp-step-desc">{p.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1} className="text-center mt-8 sm:mt-14">
-            <Button className="lp-btn-white lp-btn-lg lp-touch" onClick={scrollToPlanos}>
-              Quero Começar Agora <ArrowRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══ PRICING ═══ */}
-      <section id="planos" ref={planosRef} className="lp-section">
-        <div className="lp-container-lg">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center lp-section-header">
-            <span className="lp-label lp-label-rose">
-              <Crown className="w-3.5 h-3.5" /> Planos & Preços
-            </span>
-            <h2 className="lp-title">Invista no seu negócio</h2>
-            <p className="lp-subtitle">Escolha o plano ideal e comece hoje mesmo.</p>
-          </motion.div>
-
-          {/* Mobile/Tablet: 2x2 grid */}
-          <div className="grid grid-cols-2 gap-3 lg:hidden">
-            {PLANOS.map((plano, i) => (
-              <motion.div key={plano.nome} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={scaleIn} custom={i * 0.1}>
-                <div className={`lp-plan-card ${plano.destaque ? 'lp-plan-card-featured' : ''}`}>
-                  {plano.destaque && (
-                    <div className="lp-plan-badge">
-                      <Star className="w-3 h-3" /> Mais Vendido
-                    </div>
-                  )}
-                  <div className="lp-plan-content">
-                    <div className={`lp-plan-icon-wrap bg-gradient-to-br ${plano.gradient}`}>
-                      <plano.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <h3 className="lp-plan-name">{plano.nome}</h3>
-                    <p className="lp-plan-desc">{plano.desc}</p>
-                    <div className="lp-plan-price">
-                      <span className="lp-plan-currency">R$</span>
-                      <span className="lp-plan-amount">{plano.preco}</span>
-                      <span className="lp-plan-period">/mês</span>
-                    </div>
-                    <ul className="lp-plan-features">
-                      {plano.recursos.slice(0, 4).map((r) => (
-                        <li key={r}><Check className="w-3 h-3 text-emerald-500 flex-shrink-0" /><span className="line-clamp-1">{r}</span></li>
-                      ))}
-                      {plano.recursos.length > 4 && (
-                        <li className="lp-plan-more">+{plano.recursos.length - 4} recursos</li>
-                      )}
-                    </ul>
-                    <Button className={`w-full lp-touch rounded-full text-xs font-semibold ${plano.destaque ? 'lp-btn-primary' : 'lp-btn-outline-rose'}`} onClick={() => openCheckout(plano)}>
-                      Assinar
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Desktop: 4-col grid */}
-          <div className="hidden lg:grid lg:grid-cols-4 gap-6">
-            {PLANOS.map((plano, i) => (
-              <motion.div key={plano.nome} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.15}>
-                <div className={`lp-plan-card-lg ${plano.destaque ? 'lp-plan-card-lg-featured' : ''}`}>
-                  {plano.destaque && (
-                    <div className="lp-plan-badge-lg">
-                      <Star className="w-3.5 h-3.5" /> Mais Vendido
-                    </div>
-                  )}
-                  <div className="p-6 pt-8 flex flex-col h-full">
-                    <div className={`lp-plan-icon-wrap-lg bg-gradient-to-br ${plano.gradient}`}>
-                      <plano.icon className="w-5 h-5 text-white" />
-                    </div>
-                    <Badge variant="outline" className="w-fit text-xs border-rose-200 text-rose-500 mb-2">{plano.tier}</Badge>
-                    <h3 className="text-xl font-bold text-rose-950 mb-1">{plano.nome}</h3>
-                    <p className="text-xs text-rose-500/50 mb-5">{plano.desc}</p>
-                    <div className="mb-6">
-                      <span className="text-sm text-rose-400">R$</span>
-                      <span className="text-4xl font-extrabold text-rose-950 mx-1">{plano.preco}</span>
-                      <span className="text-sm text-rose-400">/mês</span>
-                    </div>
-                    <ul className="space-y-2.5 mb-8 flex-1">
-                      {plano.recursos.map((r) => (
-                        <li key={r} className="flex items-start gap-2 text-sm text-rose-700/60">
-                          <Check className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />{r}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button className={`w-full rounded-full font-semibold lp-touch ${plano.destaque ? 'lp-btn-primary' : 'lp-btn-outline-rose'}`} onClick={() => openCheckout(plano)}>
-                      Assinar {plano.nome}
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0.5} className="text-center mt-6 sm:mt-10">
-            <div className="lp-trust-badges">
-              <span><Lock className="w-3.5 h-3.5" /> Pagamento seguro</span>
-              <span><Timer className="w-3.5 h-3.5" /> Cancele quando quiser</span>
-              <span><Shield className="w-3.5 h-3.5" /> Dados protegidos</span>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══ TESTIMONIALS ═══ */}
-      <section id="depoimentos" className="lp-section lp-section-alt">
-        <div className="lp-container-lg">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center lp-section-header">
-            <span className="lp-label lp-label-rose">
-              <Heart className="w-3.5 h-3.5" /> Depoimentos
-            </span>
-            <h2 className="lp-title">Quem usa, recomenda</h2>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {TESTIMONIALS.map((t, i) => (
-              <motion.div key={t.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.1}
-                className={`${i >= 3 ? 'hidden lg:block' : ''}`}>
-                <div className="lp-testimonial-card">
-                  <div className="lp-testimonial-header">
-                    <img src={t.img} alt={t.name} className="lp-testimonial-avatar" loading="lazy" />
-                    <div>
-                      <p className="lp-testimonial-name">{t.name}</p>
-                      <p className="lp-testimonial-role">{t.role}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-0.5 mb-2">
-                    {Array.from({ length: t.rating }).map((_, j) => (
-                      <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="lp-testimonial-text">"{t.text}"</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ FINAL CTA ═══ */}
-      <section className="lp-section lp-section-dark">
-        <div className="absolute inset-0">
-          <img src={ctaBg} alt="" className="w-full h-full object-cover" loading="lazy" />
-          <div className="absolute inset-0 lp-cta-overlay" />
-        </div>
-        <div className="relative z-10 lp-container-md text-center">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={scaleIn} custom={0}>
-            <div className="lp-cta-badge">
-              <Gem className="w-3.5 h-3.5" /> Oferta por tempo limitado
-            </div>
-            <h2 className="lp-cta-title">
-              Não perca mais vendas.<br />Comece agora.
-            </h2>
-            <p className="lp-cta-text">
-              Junte-se a centenas de empreendedoras que já transformaram seus negócios.
-            </p>
-            <Button className="lp-btn-white lp-btn-xl lp-touch" onClick={scrollToPlanos}>
-              Escolher Meu Plano Agora <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <p className="lp-cta-disclaimer">Cadastro rápido • Acesso imediato • Pagamento seguro</p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ═══ FOOTER ═══ */}
-      <footer className="lp-footer">
-        <div className="lp-container-lg">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-            <div className="flex items-center gap-2">
-              <img src={logo} alt="Nexsiles" className="h-6 w-auto" />
-              <span className="font-bold text-rose-800 text-sm">Nexsiles</span>
-            </div>
-            <div className="flex flex-wrap justify-center gap-4 text-xs text-rose-500/60">
-              <a href="#funcionalidades" className="hover:text-rose-600 transition-colors lp-touch flex items-center">Funcionalidades</a>
-              <a href="#planos" className="hover:text-rose-600 transition-colors lp-touch flex items-center">Planos</a>
-              <a href="#depoimentos" className="hover:text-rose-600 transition-colors lp-touch flex items-center">Depoimentos</a>
-            </div>
-          </div>
-          <div className="lp-footer-divider" />
-          <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-            <div className="flex flex-wrap justify-center gap-4 text-xs text-rose-500/50">
-              <a href="/politica-privacidade" className="hover:text-rose-600 underline transition-colors">Privacidade</a>
-              <a href="/termos-de-uso" className="hover:text-rose-600 underline transition-colors">Termos</a>
-              <a href="mailto:contato@nexsiles.com.br" className="hover:text-rose-600 transition-colors">Contato</a>
-            </div>
-            <p className="text-xs text-rose-400/40">© {new Date().getFullYear()} Nexsiles</p>
-          </div>
-          <p className="text-[10px] text-rose-400/30 text-center mt-4 max-w-xl mx-auto leading-relaxed">
-            Nexsiles é uma plataforma de gestão de semijoias. Resultados podem variar. Este site não faz parte do Facebook/Meta Inc.
-          </p>
-        </div>
-      </footer>
-
-      {/* Mobile sticky CTA */}
-      <div className="lp-sticky-cta sm:hidden">
-        <Button className="w-full lp-btn-primary py-3 rounded-full text-xs font-bold shadow-2xl lp-touch" onClick={scrollToPlanos}>
-          Assinar Agora — A partir de R$ 129/mês <ArrowRight className="w-3.5 h-3.5 ml-1" />
-        </Button>
-      </div>
-
-      {/* WhatsApp floating */}
-      <a
-        href="https://wa.me/5511937687369?text=Ol%C3%A1%2C%20quero%20saber%20mais%20sobre%20o%20Nexsiles!"
-        target="_top"
-        className="lp-whatsapp lp-touch"
-        aria-label="Fale conosco no WhatsApp"
-      >
-        <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-      </a>
-
-      {/* ═══ CHECKOUT DIALOG ═══ */}
-      <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              Assinar {checkoutPlano?.nome}
-            </DialogTitle>
-            <DialogDescription>
-              Plano {checkoutPlano?.nome} por <strong>R$ {checkoutPlano?.preco}/mês</strong>. Insira seu e-mail para continuar.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="email"
-                placeholder="seu@email.com"
-                value={checkoutEmail}
-                onChange={(e) => setCheckoutEmail(e.target.value)}
-                className="pl-10"
-                onKeyDown={(e) => e.key === 'Enter' && handleCheckout()}
-                autoFocus
-              />
-            </div>
-            <Button
-              className="w-full lp-btn-primary rounded-full font-semibold"
-              onClick={handleCheckout}
-              disabled={checkoutLoading || !checkoutEmail}
-            >
-              {checkoutLoading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processando...</>
-              ) : (
-                <>Ir para Pagamento <ArrowRight className="w-4 h-4 ml-2" /></>
-              )}
-            </Button>
-            <p className="text-xs text-center text-muted-foreground">
-              <Lock className="w-3 h-3 inline mr-1" />
-              Pagamento seguro via Mercado Pago
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+    <div className="min-h-screen antialiased" style={{ background: BG, color: INK, fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <Navbar onCta={goCta} />
+      <Hero onCta={goCta} />
+      <Sobre />
+      <Marquee />
+      <Editorial
+        id="lojistas"
+        tag="[ para lojistas ]"
+        title="Do balcão ao caixa, tudo pensado para o ritmo do seu dia."
+        items={[
+          'Estoque, PDV e loja virtual conectados em tempo real — sem planilhas, sem retrabalho.',
+          'Fiado, fidelidade, cupons e relatórios prontos para decidir com clareza.',
+          'Impressão de etiquetas, códigos e recibos — tudo pronto para o balcão.',
+        ]}
+        img={heroImg}
+      />
+      <Editorial
+        id="revendedoras"
+        tag="[ para revendedoras ]"
+        title="A maleta digital que fecha acerto em minutos, com prova e comissão automáticas."
+        items={[
+          'Portal exclusivo com maletas, pedidos e vendas — tudo na palma da mão.',
+          'Conferência atômica: cada peça marcada como vendida, devolvida ou perdida.',
+          'Fotos de evidência e acerto financeiro com múltiplas formas de pagamento.',
+        ]}
+        img={sellersImg}
+        reverse
+      />
+      <Recursos />
+      <Editorial
+        tag="[ atendimento com ia ]"
+        title="Bella, sua atendente 24/7 no WhatsApp — vende, encanta e converte enquanto você dorme."
+        items={[
+          'Reconhece a intenção, monta carrinho e envia fotos automaticamente.',
+          'Cai silenciosa quando você entra na conversa. Volta quando você quiser.',
+          'A/B testing de prompts e métricas de conversão em tempo real.',
+        ]}
+        img={buyersImg}
+      />
+      <Depoimentos />
+      <CTA onCta={goCta} />
+      <Footer />
     </div>
   );
 }
