@@ -632,6 +632,8 @@ function Hero({ onCta }: { onCta: () => void }) {
           <img
             src={heroImg}
             alt="Semijoias premium"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-[45vh] md:h-[65vh] object-cover"
             style={{ filter: 'brightness(1.02) contrast(1.02)' }}
           />
