@@ -293,6 +293,7 @@ function AppRoutes() {
                           <Route path="/campanhas" element={<CampanhasPage />} />
                           <Route path="/tutorial" element={<TutorialPage />} />
                           <Route path="/super-admin" element={<SuperAdminPage />} />
+                          <Route path="/observabilidade" element={<ObservabilityPage />} />
                           <Route path="/crm" element={<CRMPage />} />
                           <Route path="/fiado" element={<FiadoPage />} />
                           <Route path="/entregas" element={<EntregasPage />} />
