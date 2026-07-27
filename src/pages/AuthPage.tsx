@@ -39,8 +39,14 @@ export default function AuthPage() {
     const e = searchParams.get('email');
     if (c || e) {
       setActiveTab('signup');
-      if (c) setSignupCodigo(c.toUpperCase().slice(0, 12));
       if (e) setSignupEmail(e);
+      if (c) {
+        const up = c.toUpperCase().slice(0, 12);
+        setSignupCodigo(up);
+        if (up.length === 12) {
+          setTimeout(() => validarCodigo(up), 100);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
