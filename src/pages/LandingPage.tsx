@@ -11,11 +11,12 @@ import buyersImg from '@/assets/landing-buyers.jpg';
    Inspired by the Eagle real-estate reference (huge display type,
    stripes, scroll-driven parallax, magazine cadence). */
 
-const ACCENT = '#c9a27a';       // rose-gold
+const ACCENT = '#b07a4c';       // rose-gold escuro para contraste em fundo claro
 const ACCENT_SOFT = '#e8c9a8';
-const BG = '#0b0a09';
-const INK = '#f5efe6';
-const MUTED = 'rgba(245,239,230,0.55)';
+const BG = '#f6f1ea';           // creme editorial
+const BG_ALT = '#efe7dc';       // creme mais quente para faixas
+const INK = '#1a1410';          // tinta quase preta
+const MUTED = 'rgba(26,20,16,0.6)';
 
 /* ---------- Small primitives ---------- */
 
