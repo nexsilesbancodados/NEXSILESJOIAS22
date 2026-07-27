@@ -2099,6 +2099,50 @@ export type Database = {
           },
         ]
       }
+      edge_function_errors: {
+        Row: {
+          created_at: string
+          error_message: string
+          error_stack: string | null
+          function_name: string
+          id: string
+          organization_id: string | null
+          request_ip: string | null
+          request_payload: Json | null
+          status_code: number | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          error_stack?: string | null
+          function_name: string
+          id?: string
+          organization_id?: string | null
+          request_ip?: string | null
+          request_payload?: Json | null
+          status_code?: number | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          error_stack?: string | null
+          function_name?: string
+          id?: string
+          organization_id?: string | null
+          request_ip?: string | null
+          request_payload?: Json | null
+          status_code?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edge_function_errors_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           aberto_at: string | null

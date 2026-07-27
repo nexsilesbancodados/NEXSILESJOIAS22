@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
-import { rateLimit } from "../_shared/rate-limit.ts";
+import { rateLimit, getClientIp } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
+import { captureError } from "../_shared/logger.ts";
 
 // Checkout público alinhado à documentação oficial do Mercado Pago (Checkout Pro).
 // Referências:
@@ -43,8 +44,14 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const rl = await rateLimit(req, "mercadopago-checkout-public", { maxRequests: 20 });
-  if (rl) return rl;
+  // Limite geral por IP: 20 req/min
+  const rlIp = await rateLimit(req, "mercadopago-checkout-public", { maxRequests: 20 });
+  if (rlIp) return rlIp;
+
+  const clientIp = getClientIp(req);
+  let email = "";
+  let plano = "nexsiles";
+  let periodo = "mensal";
 
   try {
     const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
@@ -55,7 +62,15 @@ serve(async (req: Request) => {
 
     const parsed = await parseJson(req, CheckoutBodySchema);
     if (parsed.error) return parsed.error;
-    const { email, plano, periodo } = parsed.data;
+    ({ email, plano, periodo } = parsed.data);
+
+    // Limite mais estrito por email: 20 tentativas/hora
+    const rlEmail = await rateLimit(req, "mercadopago-checkout-public:email", {
+      maxRequests: 20,
+      windowSeconds: 3600,
+      identifier: `email:${email}`,
+    });
+    if (rlEmail) return rlEmail;
 
     const planoInfo = PLANOS[plano] ?? PLANOS.nexsiles;
     const valor = periodo === "anual" ? planoInfo.valor_anual : planoInfo.valor_mensal;
@@ -138,6 +153,13 @@ serve(async (req: Request) => {
     if (!mpResponse.ok) {
       const errorData = await mpResponse.text();
       console.error("Mercado Pago error:", mpResponse.status, errorData);
+      await captureError({
+        functionName: "mercadopago-checkout-public",
+        error: new Error(`MP ${mpResponse.status}: ${errorData}`),
+        requestPayload: { email, plano, periodo },
+        requestIp: clientIp,
+        statusCode: 502,
+      });
       return new Response(
         JSON.stringify({ error: "Erro ao criar preferência de pagamento", details: errorData }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -163,6 +185,13 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Error in mercadopago-checkout-public:", error);
+    await captureError({
+      functionName: "mercadopago-checkout-public",
+      error,
+      requestPayload: { email, plano, periodo },
+      requestIp: clientIp,
+      statusCode: 500,
+    });
     return new Response(JSON.stringify({ error: error.message ?? "Erro interno" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
