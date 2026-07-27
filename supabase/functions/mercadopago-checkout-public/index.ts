@@ -65,11 +65,16 @@ serve(async (req: Request) => {
     const externalReference = `nx:${plano}:${periodo}:${email}:${Date.now()}`;
 
     // Validade da preferência: 24h (janela para o usuário finalizar)
+    // MP exige formato "yyyy-MM-ddTHH:mm:ss.SSS-03:00" representando o horário
+    // real em São Paulo. Simplesmente trocar "Z" por "-03:00" faz o MP achar
+    // que o horário está 3h no futuro e bloqueia a compra ("disponível a partir de...").
+    const toMpDate = (d: Date) => {
+      const sp = new Date(d.getTime() - 3 * 60 * 60 * 1000); // UTC -> BRT wall clock
+      return sp.toISOString().replace("Z", "-03:00");
+    };
     const now = new Date();
     const expiration = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    // MP requer offset -03:00 no formato ISO
-    const toMpDate = (d: Date) =>
-      d.toISOString().replace("Z", "-03:00");
+
 
     // Estrutura conforme /checkout/preferences (Checkout Pro)
     const preferenceData = {
