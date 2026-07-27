@@ -19,10 +19,10 @@ import revImg from '@/assets/landing-persona-revendedora.webp';
    Font: Archivo Black (display) · Hind (body)
 ====================================== */
 
-const INK = '#0a0a0a';
-const MINT = '#00ff88';
-const CORAL = '#e94560';
-const BONE = '#f4f4f0';
+const INK = '#ffffff';
+const MINT = '#e11d48';
+const CORAL = '#2563eb';
+const BONE = '#0f172a';
 
 /* ---------- utilities ---------- */
 const Magnetic = ({ children, strength = 0.3 }: { children: React.ReactNode; strength?: number }) => {
@@ -89,7 +89,7 @@ const Grain = () => (
 );
 
 const Badge = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex items-center gap-2 px-3 py-1 border border-white/15 rounded-full text-[10px] uppercase tracking-[0.25em] text-white/70 font-medium">
+  <span className="inline-flex items-center gap-2 px-3 py-1 border border-slate-900/15 rounded-full text-[10px] uppercase tracking-[0.25em] text-slate-900/70 font-medium">
     <span className="h-1.5 w-1.5 rounded-full" style={{ background: MINT }} />
     {children}
   </span>
@@ -120,9 +120,9 @@ export default function LandingPage() {
       <Grain />
 
       {/* NAVBAR */}
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-black/40 border-b border-white/5">
+      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-white/70 border-b border-slate-900/5">
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
-          <button onClick={() => setMenuOpen(true)} className="text-xs uppercase tracking-[0.3em] text-white/80 hover:text-white flex items-center gap-2">
+          <button onClick={() => setMenuOpen(true)} className="text-xs uppercase tracking-[0.3em] text-slate-900/80 hover:text-slate-950 flex items-center gap-2">
             <span className="flex flex-col gap-1">
               <span className="h-px w-5 bg-current" />
               <span className="h-px w-5 bg-current" />
@@ -131,7 +131,7 @@ export default function LandingPage() {
           </button>
           <Link to="/" className="font-display text-xl uppercase">Nexsiles</Link>
           <div className="flex items-center gap-3">
-            <Link to="/auth" className="hidden md:inline text-xs uppercase tracking-[0.3em] text-white/60 hover:text-white">Entrar</Link>
+            <Link to="/auth" className="hidden md:inline text-xs uppercase tracking-[0.3em] text-slate-900/60 hover:text-slate-950">Entrar</Link>
             <Magnetic>
               <button
                 onClick={() => setCheckoutOpen(true)}
@@ -152,7 +152,7 @@ export default function LandingPage() {
           className="fixed inset-0 z-[120] flex flex-col"
           style={{ background: INK }}
         >
-          <div className="h-16 border-b border-white/10 px-6 lg:px-12 flex items-center justify-between">
+          <div className="h-16 border-b border-slate-900/10 px-6 lg:px-12 flex items-center justify-between">
             <span className="font-display uppercase text-xl">Nexsiles</span>
             <button onClick={() => setMenuOpen(false)} className="text-xs uppercase tracking-[0.3em] flex items-center gap-2">
               <Plus className="h-4 w-4 rotate-45" /> Fechar
@@ -173,7 +173,7 @@ export default function LandingPage() {
                   href={href}
                   onClick={() => setMenuOpen(false)}
                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
-                  className="group font-display text-5xl lg:text-7xl uppercase text-white/40 hover:text-white transition-colors flex items-center gap-4"
+                  className="group font-display text-5xl lg:text-7xl uppercase text-slate-900/40 hover:text-slate-950 transition-colors flex items-center gap-4"
                 >
                   <span className="text-xs font-body tracking-[0.3em]" style={{ color: MINT }}>0{i + 1}</span>
                   {label}
@@ -247,7 +247,7 @@ function Hero({ onCta }: { onCta: () => void }) {
       <motion.div style={{ y }} className="relative max-w-[1600px] mx-auto px-6 lg:px-12 pt-24 lg:pt-32">
         <div className="flex items-center gap-3 mb-10">
           <Badge>Nexsiles Studio · SaaS 2026</Badge>
-          <span className="hidden md:inline text-xs uppercase tracking-[0.25em] text-white/40">v3.0 — Prime</span>
+          <span className="hidden md:inline text-xs uppercase tracking-[0.25em] text-slate-900/40">v3.0 — Prime</span>
         </div>
 
         <h1 className="font-display uppercase leading-[0.85] text-[15vw] md:text-[13vw] lg:text-[11rem]">
@@ -262,7 +262,7 @@ function Hero({ onCta }: { onCta: () => void }) {
         <div className="mt-12 grid md:grid-cols-12 gap-8 items-end">
           <motion.p
             initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}
-            className="md:col-span-6 lg:col-span-5 text-lg md:text-xl text-white/70 leading-relaxed"
+            className="md:col-span-6 lg:col-span-5 text-lg md:text-xl text-slate-900/70 leading-relaxed"
           >
             A plataforma que reúne <span className="text-white">PDV, estoque, maletas, loja virtual, CRM e IA</span> em um único sistema — para lojistas que tratam a operação como marca.
           </motion.p>
@@ -282,7 +282,7 @@ function Hero({ onCta }: { onCta: () => void }) {
               </button>
             </Magnetic>
             <Magnetic>
-              <a href="#produto" className="flex items-center gap-3 px-7 py-4 rounded-full font-display uppercase text-sm tracking-wider border border-white/20 hover:border-white/60 transition">
+              <a href="#produto" className="flex items-center gap-3 px-7 py-4 rounded-full font-display uppercase text-sm tracking-wider border border-slate-900/20 hover:border-slate-900/60 transition">
                 Ver plataforma
               </a>
             </Magnetic>
@@ -291,7 +291,7 @@ function Hero({ onCta }: { onCta: () => void }) {
 
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-          className="mt-24 flex items-center justify-between text-[10px] uppercase tracking-[0.3em] text-white/40 border-t border-white/10 pt-6"
+          className="mt-24 flex items-center justify-between text-[10px] uppercase tracking-[0.3em] text-slate-900/40 border-t border-slate-900/10 pt-6"
         >
           <span>Scroll ↓</span>
           <span>São Paulo · Brasil</span>
@@ -305,12 +305,12 @@ function Hero({ onCta }: { onCta: () => void }) {
 function Marquee() {
   const items = ['PDV', 'Estoque', 'Maletas', 'Loja Virtual', 'CRM', 'IA · Bella', 'Financeiro', 'Fiado', 'Metas', 'Multi-loja'];
   return (
-    <div className="border-y border-white/10 py-6 overflow-hidden" style={{ background: '#0d0d10' }}>
+    <div className="border-y border-slate-900/10 py-6 overflow-hidden" style={{ background: '#fdf2f8' }}>
       <div className="flex gap-16 animate-marquee whitespace-nowrap font-display uppercase text-3xl md:text-5xl">
         {[...items, ...items, ...items].map((it, i) => (
           <span key={i} className="flex items-center gap-16">
-            <span className={i % 3 === 1 ? 'text-white/30' : ''} style={i % 3 === 2 ? { color: MINT } : {}}>{it}</span>
-            <span className="text-white/20">✦</span>
+            <span className={i % 3 === 1 ? 'text-slate-900/30' : ''} style={i % 3 === 2 ? { color: MINT } : {}}>{it}</span>
+            <span className="text-slate-900/20">✦</span>
           </span>
         ))}
       </div>
@@ -341,18 +341,18 @@ function Intro() {
               da sua marca.
             </h2>
           </div>
-          <div className="lg:col-span-6 lg:col-start-7 text-white/70 text-lg leading-relaxed space-y-6">
+          <div className="lg:col-span-6 lg:col-start-7 text-slate-900/70 text-lg leading-relaxed space-y-6">
             <p>
               O Nexsiles é o <span className="text-white">sistema operacional das marcas de semijoias</span>: cada módulo foi desenhado para o dia-a-dia real de quem vende no PDV, consigna maletas, envia catálogos e opera loja virtual.
             </p>
             <p>
               Nada de módulos extras cobrados à parte. Uma assinatura — <span className="text-white">tudo liberado</span> — sem letra miúda.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8 border-t border-white/10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8 border-t border-slate-900/10">
               {stats.map((s) => (
                 <div key={s.l}>
                   <div className="font-display text-3xl md:text-4xl">{s.n}</div>
-                  <div className="text-[11px] uppercase tracking-[0.2em] text-white/50 mt-2">{s.l}</div>
+                  <div className="text-[11px] uppercase tracking-[0.2em] text-slate-900/50 mt-2">{s.l}</div>
                 </div>
               ))}
             </div>
@@ -373,30 +373,30 @@ function Services() {
     { n: '06', t: 'Analytics', d: 'Dashboards em tempo real de vendas, margem, top produtos e performance de revendedoras.' },
   ];
   return (
-    <section id="servicos" className="py-32 lg:py-48 border-t border-white/10">
+    <section id="servicos" className="py-32 lg:py-48 border-t border-slate-900/10">
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="flex items-end justify-between mb-16 flex-wrap gap-6">
           <div>
             <Badge>Serviços</Badge>
             <h2 className="mt-6 font-display uppercase text-5xl md:text-7xl">O que entregamos</h2>
           </div>
-          <p className="text-white/50 max-w-md">Seis pilares. Um único assinatura. Zero plano-versão-pro escondido.</p>
+          <p className="text-slate-900/50 max-w-md">Seis pilares. Um único assinatura. Zero plano-versão-pro escondido.</p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px" style={{ background: 'rgba(15,23,42,0.08)' }}>
           {services.map((s, i) => (
             <motion.div
               key={s.n}
               initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }}
               transition={{ delay: (i % 3) * 0.1, duration: 0.6 }}
-              className="group relative p-8 lg:p-10 hover:bg-white/[0.02] transition-colors min-h-[280px] flex flex-col"
+              className="group relative p-8 lg:p-10 hover:bg-slate-900/[0.02] transition-colors min-h-[280px] flex flex-col"
               style={{ background: INK }}
             >
               <div className="flex items-start justify-between">
                 <span className="font-display text-sm tracking-widest" style={{ color: MINT }}>{s.n}</span>
-                <ArrowUpRight className="h-5 w-5 text-white/30 group-hover:text-white group-hover:-translate-y-1 group-hover:translate-x-1 transition" />
+                <ArrowUpRight className="h-5 w-5 text-slate-900/30 group-hover:text-slate-950 group-hover:-translate-y-1 group-hover:translate-x-1 transition" />
               </div>
               <h3 className="mt-8 font-display uppercase text-2xl lg:text-3xl">{s.t}</h3>
-              <p className="mt-4 text-white/60 leading-relaxed">{s.d}</p>
+              <p className="mt-4 text-slate-900/60 leading-relaxed">{s.d}</p>
               <div className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-500" style={{ background: MINT }} />
             </motion.div>
           ))}
@@ -414,7 +414,7 @@ function Cases() {
     { title: 'Studio POS', tag: 'PDV multi-loja', img: pdvImg, result: '3s por venda média', color: CORAL },
   ];
   return (
-    <section id="cases" className="py-32 lg:py-48 border-t border-white/10">
+    <section id="cases" className="py-32 lg:py-48 border-t border-slate-900/10">
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="mb-16 max-w-3xl">
           <Badge>Cases selecionados</Badge>
@@ -429,17 +429,17 @@ function Cases() {
               transition={{ delay: (i % 2) * 0.15, duration: 0.7 }}
               className={`group relative block ${i % 2 === 1 ? 'md:mt-24' : ''}`}
             >
-              <div className="relative overflow-hidden aspect-[4/5] bg-white/5 rounded-sm">
+              <div className="relative overflow-hidden aspect-[4/5] bg-slate-900/5 rounded-sm">
                 <img src={c.img} alt={c.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-[1200ms] group-hover:scale-105 grayscale group-hover:grayscale-0" />
                 <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, transparent 50%, ${INK} 100%)` }} />
                 <div className="absolute top-6 left-6 right-6 flex justify-between text-[10px] uppercase tracking-[0.3em]">
-                  <span className="text-white/80">{c.tag}</span>
+                  <span className="text-slate-900/80">{c.tag}</span>
                   <span style={{ color: c.color }}>0{i + 1} / 04</span>
                 </div>
                 <div className="absolute bottom-6 left-6 right-6">
                   <h3 className="font-display uppercase text-4xl md:text-5xl">{c.title}</h3>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-white/70">{c.result}</span>
+                    <span className="text-slate-900/70">{c.result}</span>
                     <ArrowUpRight className="h-6 w-6 transition group-hover:-translate-y-1 group-hover:translate-x-1" style={{ color: c.color }} />
                   </div>
                 </div>
@@ -460,7 +460,7 @@ function Process() {
     { n: '04', t: 'Escale', d: 'Multi-loja, revendedoras, CRM e analytics para crescer sem trocar de sistema.' },
   ];
   return (
-    <section id="processo" className="py-32 lg:py-48 border-t border-white/10 relative overflow-hidden">
+    <section id="processo" className="py-32 lg:py-48 border-t border-slate-900/10 relative overflow-hidden">
       <img src={showcaseImg} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-10" />
       <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, ${INK} 0%, transparent 40%, transparent 60%, ${INK} 100%)` }} />
       <div className="relative max-w-[1600px] mx-auto px-6 lg:px-12">
@@ -468,7 +468,7 @@ function Process() {
           <Badge>Como funciona</Badge>
           <h2 className="mt-6 font-display uppercase text-5xl md:text-7xl">Do assinar ao escalar<br />em <span style={{ color: MINT }}>4 passos</span>.</h2>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px" style={{ background: 'rgba(255,255,255,0.1)' }}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px" style={{ background: 'rgba(15,23,42,0.1)' }}>
           {steps.map((s, i) => (
             <motion.div
               key={s.n}
@@ -477,10 +477,10 @@ function Process() {
               className="p-8 lg:p-10 min-h-[260px] flex flex-col justify-between"
               style={{ background: INK }}
             >
-              <span className="font-display text-6xl" style={{ color: i === 0 ? MINT : 'rgba(255,255,255,0.2)' }}>{s.n}</span>
+              <span className="font-display text-6xl" style={{ color: i === 0 ? MINT : 'rgba(15,23,42,0.2)' }}>{s.n}</span>
               <div>
                 <h3 className="font-display uppercase text-2xl">{s.t}</h3>
-                <p className="mt-3 text-white/60">{s.d}</p>
+                <p className="mt-3 text-slate-900/60">{s.d}</p>
               </div>
             </motion.div>
           ))}
@@ -497,7 +497,7 @@ function Testimonials() {
     { q: 'A Bella (IA) responde as clientes 24h por dia. Já fechei venda às 3 da manhã. Isso pagou o plano no primeiro mês.', a: 'Juliana T.', r: 'Aurora Store · MG' },
   ];
   return (
-    <section className="py-32 lg:py-48 border-t border-white/10">
+    <section className="py-32 lg:py-48 border-t border-slate-900/10">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <Badge>Provas sociais</Badge>
         <div className="mt-16 grid md:grid-cols-3 gap-8">
@@ -506,14 +506,14 @@ function Testimonials() {
               key={i}
               initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
               transition={{ delay: i * 0.15 }}
-              className="p-8 border border-white/10 rounded-sm relative"
-              style={{ background: 'rgba(255,255,255,0.02)' }}
+              className="p-8 border border-slate-900/10 rounded-sm relative"
+              style={{ background: 'rgba(15,23,42,0.03)' }}
             >
               <span className="font-display text-6xl absolute -top-6 left-6" style={{ color: MINT }}>“</span>
-              <p className="text-white/80 leading-relaxed pt-4">{t.q}</p>
-              <footer className="mt-6 pt-6 border-t border-white/10">
+              <p className="text-slate-900/80 leading-relaxed pt-4">{t.q}</p>
+              <footer className="mt-6 pt-6 border-t border-slate-900/10">
                 <div className="font-display uppercase">{t.a}</div>
-                <div className="text-xs uppercase tracking-[0.2em] text-white/40 mt-1">{t.r}</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-slate-900/40 mt-1">{t.r}</div>
               </footer>
             </motion.blockquote>
           ))}
@@ -530,7 +530,7 @@ function Pricing({ onCta }: { onCta: () => void }) {
     'Analytics real-time', 'Suporte prioritário', 'Atualizações contínuas',
   ];
   return (
-    <section id="preco" className="py-32 lg:py-48 border-t border-white/10">
+    <section id="preco" className="py-32 lg:py-48 border-t border-slate-900/10">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
         <div className="text-center mb-20">
           <Badge>Nexsiles Prime</Badge>
@@ -539,19 +539,19 @@ function Pricing({ onCta }: { onCta: () => void }) {
         <motion.div
           initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           className="relative max-w-4xl mx-auto p-10 lg:p-16 rounded-lg border overflow-hidden"
-          style={{ background: '#111114', borderColor: 'rgba(0,255,136,0.3)' }}
+          style={{ background: '#fff1f2', borderColor: 'rgba(225,29,72,0.3)' }}
         >
           <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full blur-[100px] opacity-30" style={{ background: MINT }} />
           <div className="relative grid md:grid-cols-2 gap-10">
             <div>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-white/50">Assinatura mensal</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-slate-900/50">Assinatura mensal</div>
               <h3 className="font-display uppercase text-5xl mt-2">Prime</h3>
               <div className="mt-8 flex items-baseline gap-3">
-                <span className="text-2xl text-white/50">R$</span>
+                <span className="text-2xl text-slate-900/50">R$</span>
                 <span className="font-display text-8xl leading-none" style={{ color: MINT }}>129</span>
-                <span className="text-white/50">/mês</span>
+                <span className="text-slate-900/50">/mês</span>
               </div>
-              <p className="mt-6 text-white/60">Cancele quando quiser. Sem fidelidade. Sem taxa de setup.</p>
+              <p className="mt-6 text-slate-900/60">Cancele quando quiser. Sem fidelidade. Sem taxa de setup.</p>
               <Magnetic>
                 <button onClick={onCta} className="mt-10 flex items-center gap-3 px-8 py-4 rounded-full font-display uppercase text-sm tracking-wider" style={{ background: MINT, color: INK }}>
                   Assinar Prime <ArrowRight className="h-4 w-4" />
@@ -559,10 +559,10 @@ function Pricing({ onCta }: { onCta: () => void }) {
               </Magnetic>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-white/50 mb-4">Tudo incluso</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-slate-900/50 mb-4">Tudo incluso</div>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-white/80 text-sm">
+                  <li key={f} className="flex items-start gap-2 text-slate-900/80 text-sm">
                     <Check className="h-4 w-4 mt-0.5 shrink-0" style={{ color: MINT }} />
                     {f}
                   </li>
@@ -578,7 +578,7 @@ function Pricing({ onCta }: { onCta: () => void }) {
 
 function BigCta({ onCta }: { onCta: () => void }) {
   return (
-    <section id="contato" className="py-32 lg:py-48 border-t border-white/10 relative overflow-hidden">
+    <section id="contato" className="py-32 lg:py-48 border-t border-slate-900/10 relative overflow-hidden">
       <div aria-hidden className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(circle at 50% 50%, ${MINT} 0%, transparent 60%)` }} />
       <div className="relative max-w-[1600px] mx-auto px-6 lg:px-12 text-center">
         <motion.h2
@@ -587,14 +587,14 @@ function BigCta({ onCta }: { onCta: () => void }) {
         >
           Pronta<br /> pra <span style={{ color: MINT }}>escalar?</span>
         </motion.h2>
-        <p className="mt-8 text-white/70 max-w-xl mx-auto text-lg">Comece agora. Em 10 minutos você tem PDV, estoque e loja virtual rodando.</p>
+        <p className="mt-8 text-slate-900/70 max-w-xl mx-auto text-lg">Comece agora. Em 10 minutos você tem PDV, estoque e loja virtual rodando.</p>
         <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
           <Magnetic>
             <button onClick={onCta} className="px-10 py-5 rounded-full font-display uppercase text-sm tracking-wider" style={{ background: MINT, color: INK }}>
               Assinar por R$ 129 / mês
             </button>
           </Magnetic>
-          <a href="https://wa.me/5511937687369" target="_blank" rel="noreferrer" className="px-10 py-5 rounded-full font-display uppercase text-sm tracking-wider border border-white/20 hover:border-white transition">
+          <a href="https://wa.me/5511937687369" target="_blank" rel="noreferrer" className="px-10 py-5 rounded-full font-display uppercase text-sm tracking-wider border border-slate-900/20 hover:border-slate-900 transition">
             Falar com vendas
           </a>
         </div>
@@ -605,22 +605,22 @@ function BigCta({ onCta }: { onCta: () => void }) {
 
 function Footer() {
   return (
-    <footer className="pt-32 pb-10 border-t border-white/10 relative overflow-hidden">
+    <footer className="pt-32 pb-10 border-t border-slate-900/10 relative overflow-hidden">
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="grid md:grid-cols-4 gap-10 mb-20">
           <div className="md:col-span-2">
             <div className="font-display uppercase text-3xl">Nexsiles</div>
-            <p className="mt-4 text-white/50 max-w-sm">O sistema operacional das marcas de semijoias. Feito no Brasil, para o mundo.</p>
+            <p className="mt-4 text-slate-900/50 max-w-sm">O sistema operacional das marcas de semijoias. Feito no Brasil, para o mundo.</p>
           </div>
           {[
             { t: 'Produto', l: [['Plataforma', '#produto'], ['Serviços', '#servicos'], ['Preço', '#preco']] },
             { t: 'Empresa', l: [['Cases', '#cases'], ['Contato', 'https://wa.me/5511937687369'], ['Entrar', '/auth']] },
           ].map((col) => (
             <div key={col.t}>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-white/40 mb-4">{col.t}</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-slate-900/40 mb-4">{col.t}</div>
               <ul className="space-y-2">
                 {col.l.map(([label, href]) => (
-                  <li key={label}><a href={href} className="text-white/80 hover:text-white transition">{label}</a></li>
+                  <li key={label}><a href={href} className="text-slate-900/80 hover:text-slate-950 transition">{label}</a></li>
                 ))}
               </ul>
             </div>
@@ -628,12 +628,12 @@ function Footer() {
         </div>
 
         <div className="relative">
-          <div className="font-display uppercase text-[20vw] leading-[0.85] text-center select-none" style={{ color: 'rgba(255,255,255,0.04)' }}>
+          <div className="font-display uppercase text-[20vw] leading-[0.85] text-center select-none" style={{ color: 'rgba(225,29,72,0.06)' }}>
             NEXSILES
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-wrap justify-between items-center gap-4 text-xs uppercase tracking-[0.2em] text-white/40">
+        <div className="mt-12 pt-6 border-t border-slate-900/10 flex flex-wrap justify-between items-center gap-4 text-xs uppercase tracking-[0.2em] text-slate-900/40">
           <span>© 2026 Nexsiles Studio</span>
           <span>São Paulo · Brasil</span>
           <span className="flex items-center gap-2">Status: <span className="h-1.5 w-1.5 rounded-full" style={{ background: MINT }} /> Operacional</span>
