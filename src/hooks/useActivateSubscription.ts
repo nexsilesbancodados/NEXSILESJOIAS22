@@ -122,12 +122,16 @@ export function useActivateSubscription() {
           return;
         }
 
-        // 3. Determine subscription duration based on plan
+        // 3. Determine subscription duration based on plan period
         const now = new Date();
+        const periodo = (codeData as any).periodo === 'anual' ? 'anual' : 'mensal';
+        const dias = periodo === 'anual' ? 365 : 30;
         const dataVencimento = new Date();
-        dataVencimento.setDate(dataVencimento.getDate() + 30);
+        dataVencimento.setDate(dataVencimento.getDate() + dias);
 
-        const valorMensal = 129;
+        // valor_pago é o total pago. Guardamos o equivalente mensal em `valor_mensal`.
+        const valorPago = Number(codeData.valor_pago) || 129;
+        const valorMensal = periodo === 'anual' ? Number((valorPago / 12).toFixed(2)) : valorPago;
 
         // 4. Create the subscription (plano único Nexsiles Prime)
         const { error: subError } = await supabase
@@ -170,16 +174,16 @@ export function useActivateSubscription() {
         // Send welcome email
         enviarNotificacaoEmail('boas_vindas' as any, {
           plano_nome: planoNome,
-          dias_validade: 30,
+          dias_validade: dias,
           is_trial: false,
         });
 
         toast.success(`🎉 Assinatura ${planoNome} ativada!`, {
-          description: 'Seu plano está ativo por 30 dias.',
+          description: `Seu plano está ativo por ${dias} dias.`,
           duration: 6000,
         });
 
-        console.log('Subscription activated for user:', user.id, 'plan:', codeData.plano);
+        console.log('Subscription activated for user:', user.id, 'plan:', codeData.plano, 'periodo:', periodo);
       } catch (error) {
         console.error('Error activating subscription:', error);
         processedRef.current = false;

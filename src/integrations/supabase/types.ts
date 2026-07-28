@@ -1242,6 +1242,7 @@ export type Database = {
           email: string
           id: string
           mercadopago_payment_id: string | null
+          periodo: string
           plano: string
           updated_at: string | null
           usado: boolean | null
@@ -1256,6 +1257,7 @@ export type Database = {
           email: string
           id?: string
           mercadopago_payment_id?: string | null
+          periodo?: string
           plano: string
           updated_at?: string | null
           usado?: boolean | null
@@ -1270,6 +1272,7 @@ export type Database = {
           email?: string
           id?: string
           mercadopago_payment_id?: string | null
+          periodo?: string
           plano?: string
           updated_at?: string | null
           usado?: boolean | null
@@ -5931,6 +5934,14 @@ export type Database = {
       gerar_slug_loja: {
         Args: { p_nome: string; p_org_id: string }
         Returns: string
+      }
+      get_pending_access_code: {
+        Args: { p_email: string }
+        Returns: {
+          codigo: string
+          periodo: string
+          plano: string
+        }[]
       }
       get_user_organization_id: { Args: never; Returns: string }
       get_user_organization_ids: { Args: never; Returns: string[] }

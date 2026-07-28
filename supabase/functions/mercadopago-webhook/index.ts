@@ -75,6 +75,18 @@ serve(async (req: Request) => {
     }
 
     log.info("Webhook enqueued");
+
+    // Fire-and-forget: dispara o processador imediatamente para não esperar 1 min do cron.
+    // Sem await — devolve 200 rápido pro MP não retentar por timeout.
+    try {
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? supabaseServiceKey;
+      fetch(`${supabaseUrl}/functions/v1/process-webhook-queue`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json" },
+        body: "{}",
+      }).catch((e) => log.warn("process-webhook-queue trigger failed", { error: e?.message }));
+    } catch (_) { /* no-op */ }
+
     return new Response("OK", { status: 200, headers: corsHeaders });
   } catch (err: any) {
     log.error("Webhook error", { error: err.message });

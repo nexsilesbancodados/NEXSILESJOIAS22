@@ -33,16 +33,10 @@ export function PaymentReturnDialog() {
       if (cancelled) return;
       attempts++;
       try {
-        const { data } = await supabase
-          .from('codigos_acesso')
-          .select('codigo')
-          .eq('email', email.toLowerCase())
-          .eq('usado', false)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (data?.codigo && !cancelled) {
-          setCodigo(data.codigo);
+        const { data } = await supabase.rpc('get_pending_access_code', { p_email: email.toLowerCase() });
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row?.codigo && !cancelled) {
+          setCodigo(row.codigo);
           setPolling(false);
           return;
         }
@@ -50,7 +44,7 @@ export function PaymentReturnDialog() {
         console.warn('poll error', err);
       }
       if (attempts < 30 && !cancelled) {
-        setTimeout(tick, 4000);
+        setTimeout(tick, 3000);
       } else {
         setPolling(false);
       }

@@ -42,6 +42,7 @@ interface GerarCodigoRequest {
   plano: 'nexsiles' | 'nexsiles_max';
   valor_pago: number;
   mercadopago_payment_id?: string;
+  periodo?: 'mensal' | 'anual';
 }
 
 interface ValidarCodigoRequest {
@@ -73,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (action === "gerar") {
       const body: GerarCodigoRequest = await req.json();
-      const { email, plano, valor_pago, mercadopago_payment_id } = body;
+      const { email, plano, valor_pago, mercadopago_payment_id, periodo = 'mensal' } = body;
 
       if (!email || !plano || valor_pago === undefined) {
         return new Response(
@@ -86,12 +87,13 @@ const handler = async (req: Request): Promise<Response> => {
       if (codigoError) throw codigoError;
 
       const codigo = codigoData as string;
+      const dias = periodo === 'anual' ? 365 : 30;
       const validoAte = new Date();
-      validoAte.setDate(validoAte.getDate() + 30);
+      validoAte.setDate(validoAte.getDate() + dias);
 
       const { error: insertError } = await supabase
         .from('codigos_acesso')
-        .insert({ codigo, email, plano, valor_pago, mercadopago_payment_id, valido_ate: validoAte.toISOString() });
+        .insert({ codigo, email, plano, periodo, valor_pago, mercadopago_payment_id, valido_ate: validoAte.toISOString() });
 
       if (insertError) throw insertError;
 
