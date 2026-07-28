@@ -824,6 +824,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
           <History className="w-4 h-4 mr-2" />
           Histórico
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setAtividadesOpen(true)}>
+          <Sparkles className="w-4 h-4 mr-2" />
+          Atividades
+        </Button>
         {maleta.status === 'aberta' && items.length > 0 && (
           <>
             <Button variant="outline" size="sm" onClick={() => setAssinaturaOpen(true)}>
