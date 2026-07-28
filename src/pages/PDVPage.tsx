@@ -52,7 +52,8 @@ import {
   Minimize,
   Package,
   AlertTriangle,
-  HandCoins
+  HandCoins,
+  Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReciboVenda } from '@/components/recibo/ReciboVenda';
@@ -131,6 +132,24 @@ export default function PDVPage() {
   const addFiado = useAddFiado();
   const { isFullscreen, isSupported: fullscreenSupported, toggleFullscreen } = useFullscreen();
   const { enqueue: enqueueOfflineVenda } = useOfflineSync();
+
+  // Prefetch peças pro IndexedDB (permite PDV usar catálogo em cold-start offline)
+  useEffect(() => {
+    if (!pecas.length) return;
+    import('@/lib/indexeddb').then(({ cachePecas }) => {
+      cachePecas(
+        pecas.map((p) => ({
+          id: p.id,
+          codigo: p.codigo || '',
+          nome: p.nome,
+          preco_venda: p.preco_venda || 0,
+          quantidade: (p as any).estoque || 0,
+          categoria: p.categoria || '',
+          imagem_url: p.imagem_url || null,
+        })) as any,
+      ).catch(() => null);
+    });
+  }, [pecas]);
 
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1271,9 +1290,23 @@ export default function PDVPage() {
             )}
           </div>
 
-          <DialogFooter className="no-print gap-2">
+          <DialogFooter className="no-print gap-2 flex-wrap">
             <Button variant="outline" onClick={() => setIsVendaConcluidaOpen(false)}>
               Fechar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!ultimaVenda) return;
+                const linhas = ultimaVenda.itens.map(
+                  (i) => `• ${i.quantidade}x ${i.peca.nome} — ${formatCurrency((i.peca.preco_venda || 0) * i.quantidade)}`,
+                ).join('\n');
+                const msg = `🧾 *Recibo de Venda*\n${new Date().toLocaleString('pt-BR')}\n\n${linhas}\n\n*Total: ${formatCurrency(ultimaVenda.total)}*\n\nObrigado pela preferência! 💎`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              WhatsApp
             </Button>
             <Button onClick={handlePrint} className="btn-gold">
               <Printer className="w-4 h-4 mr-2" />
@@ -1282,6 +1315,7 @@ export default function PDVPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Modal Sangria */}
       <Dialog open={isSangriaOpen} onOpenChange={setIsSangriaOpen}>

@@ -28,6 +28,7 @@ import { InsightsCard } from '@/components/dashboard/InsightsCard';
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard';
 import { PedidosPendentesCard } from '@/components/dashboard/PedidosPendentesCard';
 import { AcoesDeHojeCard } from '@/components/dashboard/AcoesDeHojeCard';
+import { MetasRankingWidget } from '@/components/revendedoras/MetasRankingWidget';
 import { TimelineAtividades } from '@/components/timeline/TimelineAtividades';
 import { InteractiveTour } from '@/components/onboarding/InteractiveTour';
 import { useTourManager, DASHBOARD_TOUR_STEPS } from '@/hooks/useTourManager';
@@ -247,6 +248,11 @@ export default function DashboardPage() {
 
       {/* Ações de hoje - agrupa alertas críticos */}
       <AcoesDeHojeCard />
+
+      {/* Metas & ranking gamificado das revendedoras */}
+      <MetasRankingWidget />
+
+
 
       {/* Quick Actions - Glass Morphism Style */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
