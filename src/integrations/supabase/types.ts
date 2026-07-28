@@ -5928,6 +5928,10 @@ export type Database = {
         }[]
       }
       gerar_codigo_acesso: { Args: never; Returns: string }
+      gerar_slug_loja: {
+        Args: { p_nome: string; p_org_id: string }
+        Returns: string
+      }
       get_user_organization_id: { Args: never; Returns: string }
       get_user_organization_ids: { Args: never; Returns: string[] }
       has_role: {
@@ -6084,6 +6088,10 @@ export type Database = {
           p_status: string
         }
         Returns: boolean
+      }
+      provisionar_ecommerce_config: {
+        Args: { p_nome: string; p_org_id: string }
+        Returns: string
       }
       ranking_revendedoras_mes: {
         Args: { p_ano: number; p_mes: number; p_organization_id: string }
