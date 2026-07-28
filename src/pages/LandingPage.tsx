@@ -1,733 +1,1065 @@
-import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
-import { ArrowUpRight, Plus, Minus } from 'lucide-react';
-import { PublicCheckoutDialog } from '@/components/landing/PublicCheckoutDialog';
-import { PaymentReturnDialog } from '@/components/landing/PaymentReturnDialog';
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValue,
+  useVelocity,
+  useAnimationFrame,
+  AnimatePresence,
+  wrap,
+} from "framer-motion";
+import {
+  ArrowUpRight,
+  ArrowRight,
+  Sparkles,
+  Check,
+  Star,
+  Instagram,
+  Play,
+  Zap,
+  Heart,
+} from "lucide-react";
 
-import heroImg from '@/assets/landing-hero-jewelry.webp';
-import pdvImg from '@/assets/landing-pdv-mockup.webp';
-import dashImg from '@/assets/landing-dashboard-mockup.webp';
-import lojaImg from '@/assets/landing-loja-mockup.webp';
-import lojistaImg from '@/assets/landing-persona-lojista.webp';
-import revImg from '@/assets/landing-persona-revendedora.webp';
-import t1 from '@/assets/testimonial-amanda.jpg';
-import t2 from '@/assets/testimonial-carla.jpg';
-import t3 from '@/assets/testimonial-fernanda.jpg';
-import t4 from '@/assets/testimonial-juliana.jpg';
-import t5 from '@/assets/testimonial-patricia.jpg';
+import warm01 from "@/assets/landing-warm-01.jpg";
+import warm02 from "@/assets/landing-warm-02.jpg";
+import warm03 from "@/assets/landing-warm-03.jpg";
+import warm04 from "@/assets/landing-warm-04.jpg";
+import warm05 from "@/assets/landing-warm-05.jpg";
+import warm06 from "@/assets/landing-warm-06.jpg";
+import heroJewel from "@/assets/landing-hero-jewelry.webp";
+import dashMock from "@/assets/landing-dashboard-mockup.webp";
+import pdvMock from "@/assets/landing-pdv-mockup.webp";
+import lojaMock from "@/assets/landing-loja-mockup.webp";
+import personaLoj from "@/assets/landing-persona-lojista.webp";
+import personaRev from "@/assets/landing-persona-revendedora.webp";
+import tAmanda from "@/assets/testimonial-amanda.jpg";
+import tCarla from "@/assets/testimonial-carla.jpg";
+import tFernanda from "@/assets/testimonial-fernanda.jpg";
+import tJuliana from "@/assets/testimonial-juliana.jpg";
+import tPatricia from "@/assets/testimonial-patricia.jpg";
 
-/* =========================================================
-   NEXSILES — AGENCY EDITION
-   Palette:  Bone #f4f1ec · Ink #0b0b0d · Rose #e11d48
-   Type:     DM Serif Display (display) · Fira Sans (body) · JetBrains Mono (labels)
-   ========================================================= */
-const BONE = '#f4f1ec';
-const INK = '#0b0b0d';
-const ROSE = '#e11d48';
+/* ---------- palette (warm on white) ----------
+   bg      #ffffff
+   ink     #1a0f0a
+   ember   #ea580c  (primary warm)
+   coral   #f43f5e
+   amber   #f59e0b
+   sand    #fef3c7 / #fde68a
+------------------------------------------------- */
 
-const serif = { fontFamily: '"DM Serif Display", "Times New Roman", serif' };
-const sans = { fontFamily: '"Fira Sans", system-ui, sans-serif' };
-const mono = { fontFamily: '"JetBrains Mono", ui-monospace, monospace' };
+const EASE = [0.22, 1, 0.36, 1] as const;
 
-/* ---------- primitives ---------- */
-const Reveal = ({ children, delay = 0, y = 30 }: { children: React.ReactNode; delay?: number; y?: number }) => (
-  <motion.div
-    initial={{ opacity: 0, y }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: '-60px' }}
-    transition={{ duration: 0.8, delay, ease: [0.22, 0.61, 0.36, 1] }}
-  >
-    {children}
-  </motion.div>
-);
-
-const SplitLine = ({ text, className = '', delay = 0, style }: { text: string; className?: string; delay?: number; style?: React.CSSProperties }) => (
-  <span className={`inline-block overflow-hidden align-bottom ${className}`}>
-    <motion.span
-      className="inline-block"
-      initial={{ y: '100%' }}
-      whileInView={{ y: '0%' }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.9, delay, ease: [0.22, 0.61, 0.36, 1] }}
-      style={style}
-    >
-      {text}
-    </motion.span>
-  </span>
-);
-
-const ScrollProgress = () => {
-  const { scrollYProgress } = useScroll();
-  const w = useTransform(scrollYProgress, [0, 1], ['0%', '100%']);
-  return <motion.div style={{ width: w, background: INK }} className="fixed top-0 left-0 z-[120] h-[2px]" />;
-};
-
-const CursorDot = () => {
+/* ============ CURSOR ============ */
+function Cursor() {
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const sx = useSpring(x, { stiffness: 500, damping: 40 });
-  const sy = useSpring(y, { stiffness: 500, damping: 40 });
+  const sx = useSpring(x, { stiffness: 400, damping: 35 });
+  const sy = useSpring(y, { stiffness: 400, damping: 35 });
+  const [hover, setHover] = useState(false);
   useEffect(() => {
-    const h = (e: MouseEvent) => { x.set(e.clientX); y.set(e.clientY); };
-    window.addEventListener('mousemove', h);
-    return () => window.removeEventListener('mousemove', h);
+    const move = (e: MouseEvent) => {
+      x.set(e.clientX);
+      y.set(e.clientY);
+      const t = e.target as HTMLElement;
+      setHover(!!t.closest("a,button,[data-cursor]"));
+    };
+    window.addEventListener("mousemove", move);
+    return () => window.removeEventListener("mousemove", move);
   }, [x, y]);
   return (
     <motion.div
-      aria-hidden
-      style={{ x: sx, y: sy, translateX: '-50%', translateY: '-50%' }}
-      className="pointer-events-none fixed top-0 left-0 z-[130] hidden md:block h-2 w-2 rounded-full mix-blend-difference"
-      // white so it inverts nicely on both light bone and dark sections
-      children={<div className="h-full w-full rounded-full bg-white" />}
+      className="pointer-events-none fixed left-0 top-0 z-[100] hidden md:block"
+      style={{ x: sx, y: sy }}
+    >
+      <motion.div
+        className="rounded-full bg-[#ea580c] mix-blend-multiply"
+        animate={{
+          width: hover ? 56 : 14,
+          height: hover ? 56 : 14,
+          x: hover ? -28 : -7,
+          y: hover ? -28 : -7,
+          opacity: hover ? 0.9 : 0.7,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      />
+    </motion.div>
+  );
+}
+
+/* ============ SCROLL PROGRESS ============ */
+function ScrollBar() {
+  const { scrollYProgress } = useScroll();
+  const w = useSpring(scrollYProgress, { stiffness: 120, damping: 20 });
+  return (
+    <motion.div
+      className="fixed left-0 top-0 z-[90] h-[3px] w-full origin-left bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#f43f5e]"
+      style={{ scaleX: w }}
     />
   );
-};
+}
 
-const Marker = ({ children }: { children: React.ReactNode }) => (
-  <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]" style={mono}>
-    <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROSE }} />
-    {children}
-  </span>
-);
-
-/* ---------- top bar ---------- */
-const TopBar = () => {
-  const [time, setTime] = useState('');
+/* ============ NAV ============ */
+function Nav() {
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const tick = () => {
-      const d = new Date();
-      const t = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'America/Sao_Paulo' }).format(d);
-      setTime(t);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
+    const onS = () => setScrolled(window.scrollY > 40);
+    onS();
+    window.addEventListener("scroll", onS);
+    return () => window.removeEventListener("scroll", onS);
   }, []);
   return (
-    <div className="fixed top-0 inset-x-0 z-[100] border-b border-black/10 bg-[color:var(--bone,#f4f1ec)]/80 backdrop-blur" style={{ ['--bone' as any]: BONE }}>
-      <div className="max-w-[1440px] mx-auto px-6 h-9 flex items-center justify-between text-[10px] uppercase tracking-[0.25em]" style={{ ...mono, color: INK }}>
-        <span>Nexsiles · Studio de Software para Joalherias</span>
-        <span className="hidden md:inline">São Paulo, BR — {time}</span>
-        <span>v. 26.7</span>
+    <motion.header
+      initial={{ y: -60, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: EASE }}
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+        scrolled
+          ? "bg-white/80 backdrop-blur-xl border-b border-[#1a0f0a]/8"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 lg:px-10">
+        <Link to="/landing" className="flex items-center gap-2" data-cursor>
+          <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#f59e0b] to-[#ea580c] text-white">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <span className="text-lg font-semibold tracking-tight text-[#1a0f0a]">
+            Nexsiles
+          </span>
+        </Link>
+        <nav className="hidden items-center gap-8 md:flex">
+          {[
+            ["Sobre", "#sobre"],
+            ["Recursos", "#recursos"],
+            ["Depoimentos", "#depoimentos"],
+            ["Plano", "#plano"],
+            ["FAQ", "#faq"],
+          ].map(([l, h]) => (
+            <a
+              key={h}
+              href={h}
+              className="group relative text-sm text-[#1a0f0a]/70 transition hover:text-[#1a0f0a]"
+              data-cursor
+            >
+              {l}
+              <span className="absolute -bottom-1 left-0 h-[1px] w-0 bg-[#ea580c] transition-all duration-300 group-hover:w-full" />
+            </a>
+          ))}
+        </nav>
+        <Link
+          to="/auth"
+          className="group inline-flex items-center gap-2 rounded-full bg-[#1a0f0a] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#ea580c]"
+          data-cursor
+        >
+          Começar
+          <ArrowUpRight className="h-4 w-4 transition-transform group-hover:rotate-45" />
+        </Link>
       </div>
+    </motion.header>
+  );
+}
+
+/* ============ REVEAL TEXT ============ */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+  as: As = "div",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+  as?: any;
+}) {
+  return (
+    <motion.div
+      initial={{ y: 40, opacity: 0 }}
+      whileInView={{ y: 0, opacity: 1 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.9, ease: EASE, delay }}
+      className={className}
+    >
+      <As>{children}</As>
+    </motion.div>
+  );
+}
+
+/* ============ SPLIT WORDS ============ */
+function SplitWords({ text, className = "" }: { text: string; className?: string }) {
+  const words = text.split(" ");
+  return (
+    <span className={className}>
+      {words.map((w, i) => (
+        <span key={i} className="inline-block overflow-hidden pr-[0.25em] align-bottom">
+          <motion.span
+            className="inline-block"
+            initial={{ y: "110%" }}
+            whileInView={{ y: "0%" }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.9, ease: EASE, delay: i * 0.06 }}
+          >
+            {w}
+          </motion.span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/* ============ VELOCITY MARQUEE ============ */
+function Marquee({
+  children,
+  baseVelocity = 40,
+  className = "",
+}: {
+  children: React.ReactNode;
+  baseVelocity?: number;
+  className?: string;
+}) {
+  const baseX = useMotionValue(0);
+  const { scrollY } = useScroll();
+  const scrollVelocity = useVelocity(scrollY);
+  const smooth = useSpring(scrollVelocity, { damping: 50, stiffness: 400 });
+  const vFactor = useTransform(smooth, [0, 1000], [0, 5], { clamp: false });
+  const x = useTransform(baseX, (v) => `${wrap(-25, -75, v)}%`);
+  const dir = useRef(1);
+  useAnimationFrame((_t, delta) => {
+    let m = ((baseVelocity * delta) / 1000) * dir.current;
+    if (vFactor.get() < 0) dir.current = -1;
+    else if (vFactor.get() > 0) dir.current = 1;
+    m += dir.current * m * vFactor.get();
+    baseX.set(baseX.get() + m);
+  });
+  return (
+    <div className={`overflow-hidden whitespace-nowrap ${className}`}>
+      <motion.div className="flex whitespace-nowrap" style={{ x }}>
+        <span className="mr-12 inline-block">{children}</span>
+        <span className="mr-12 inline-block">{children}</span>
+        <span className="mr-12 inline-block">{children}</span>
+        <span className="mr-12 inline-block">{children}</span>
+      </motion.div>
     </div>
   );
-};
+}
 
-/* ---------- nav ---------- */
-const Nav = ({ onBuy }: { onBuy: () => void }) => {
-  const [open, setOpen] = useState(false);
-  const links = [
-    { href: '#trabalho', n: '01', label: 'Trabalho' },
-    { href: '#capacidades', n: '02', label: 'Capacidades' },
-    { href: '#processo', n: '03', label: 'Processo' },
-    { href: '#vozes', n: '04', label: 'Vozes' },
-    { href: '#preco', n: '05', label: 'Preço' },
-    { href: '#faq', n: '06', label: 'FAQ' },
-  ];
-  return (
-    <>
-      <nav className="fixed top-9 inset-x-0 z-[99] border-b border-black/10" style={{ background: `${BONE}` }}>
-        <div className="max-w-[1440px] mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/landing" className="flex items-center gap-2">
-            <span className="text-xl leading-none" style={{ ...serif, color: INK }}>Nexsiles</span>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROSE }} />
-          </Link>
-          <div className="hidden lg:flex items-center gap-8" style={{ ...mono, color: INK }}>
-            {links.map(l => (
-              <a key={l.href} href={l.href} className="text-[11px] uppercase tracking-[0.2em] group relative">
-                <span className="opacity-40 mr-1.5">{l.n}</span>{l.label}
-                <span className="absolute -bottom-1 left-0 h-px w-0 group-hover:w-full transition-all duration-500" style={{ background: INK }} />
-              </a>
-            ))}
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to="/auth" className="hidden sm:inline text-[11px] uppercase tracking-[0.2em]" style={{ ...mono, color: INK }}>Entrar</Link>
-            <button onClick={onBuy} className="group text-[11px] uppercase tracking-[0.2em] px-4 py-2.5 rounded-full text-white flex items-center gap-2 hover:pl-5 transition-all" style={{ ...mono, background: INK }}>
-              Assinar <ArrowUpRight className="w-3 h-3 group-hover:rotate-45 transition-transform" />
-            </button>
-            <button className="lg:hidden p-2" onClick={() => setOpen(true)} aria-label="menu">
-              <Plus className="w-4 h-4" style={{ color: INK }} />
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[140]" style={{ background: INK }}>
-            <div className="h-9 border-b border-white/10 flex items-center justify-between px-6" style={{ ...mono, color: BONE }}>
-              <span className="text-[10px] uppercase tracking-[0.25em]">Menu</span>
-              <button onClick={() => setOpen(false)}><Minus className="w-4 h-4" /></button>
-            </div>
-            <div className="p-8 flex flex-col gap-4">
-              {links.map((l, i) => (
-                <motion.a key={l.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} href={l.href} onClick={() => setOpen(false)} className="flex items-baseline gap-4 border-b border-white/10 pb-4" style={{ color: BONE }}>
-                  <span className="text-xs opacity-50" style={mono}>{l.n}</span>
-                  <span className="text-3xl" style={serif}>{l.label}</span>
-                </motion.a>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-};
-
-/* ---------- HERO ---------- */
-const Hero = ({ onBuy }: { onBuy: () => void }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
-  const y = useTransform(scrollYProgress, [0, 1], [0, 180]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+/* ============ HERO ============ */
+function Hero() {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, -220]);
+  const y3 = useTransform(scrollYProgress, [0, 1], [0, -60]);
+  const rot = useTransform(scrollYProgress, [0, 1], [0, 12]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
   return (
-    <section ref={ref} className="relative pt-32 md:pt-40 pb-16 md:pb-24 border-b border-black/10" style={{ background: BONE }}>
-      <div className="max-w-[1440px] mx-auto px-6">
-        <div className="grid grid-cols-12 gap-6 items-end mb-10">
-          <div className="col-span-12 md:col-span-6 flex items-center gap-4">
-            <Marker>[ 2026 — Software para Joalherias ]</Marker>
-          </div>
-          <div className="col-span-12 md:col-span-6 text-right hidden md:block" style={mono}>
-            <div className="text-[10px] uppercase tracking-[0.25em] opacity-60">Desde 2023 · Mais de 1.500 lojistas</div>
-          </div>
-        </div>
+    <section
+      ref={ref}
+      className="relative min-h-[100vh] overflow-hidden bg-white pb-24 pt-32 lg:pt-40"
+    >
+      {/* radial glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-br from-[#fef3c7] via-[#fed7aa]/50 to-transparent blur-3xl" />
+        <div className="absolute -right-40 top-1/3 h-[500px] w-[500px] rounded-full bg-[#f43f5e]/10 blur-3xl" />
+      </div>
 
-        {/* Big display */}
-        <h1 className="leading-[0.86] tracking-[-0.02em] mb-10" style={{ ...serif, color: INK }}>
-          <div className="text-[clamp(56px,13vw,220px)]">
-            <SplitLine text="Estúdio" />{' '}
-            <SplitLine text="digital" delay={0.05} />
+      {/* floating jewel images */}
+      <motion.img
+        src={warm01}
+        alt=""
+        style={{ y: y1, rotate: rot }}
+        className="absolute right-[4%] top-[18%] hidden h-52 w-40 rounded-2xl object-cover shadow-2xl md:block lg:h-72 lg:w-56"
+      />
+      <motion.img
+        src={warm04}
+        alt=""
+        style={{ y: y2 }}
+        className="absolute left-[3%] top-[60%] hidden h-44 w-36 rounded-2xl object-cover shadow-xl md:block lg:h-60 lg:w-48"
+      />
+      <motion.img
+        src={warm06}
+        alt=""
+        style={{ y: y3, scale }}
+        className="absolute right-[8%] top-[72%] hidden h-36 w-36 rounded-full object-cover shadow-xl lg:block"
+      />
+
+      <motion.div
+        style={{ opacity }}
+        className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-10"
+      >
+        <Reveal className="mb-8 flex items-center gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#ea580c]/20 bg-[#fef3c7]/60 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-[#9a3412]">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ea580c]" />
+            Sistema completo · Semijoias
+          </span>
+        </Reveal>
+
+        <h1 className="max-w-5xl font-serif text-[clamp(3rem,10vw,10rem)] font-normal leading-[0.95] tracking-[-0.03em] text-[#1a0f0a]">
+          <div className="overflow-hidden">
+            <SplitWords text="Sua marca," />
           </div>
-          <div className="text-[clamp(48px,10.5vw,180px)] italic">
-            <SplitLine text="para joias" delay={0.1} />{' '}
-            <SplitLine text="que vendem." delay={0.15} style={{ color: ROSE }} />
+          <div className="overflow-hidden">
+            <SplitWords
+              text="brilhando"
+              className="italic text-transparent bg-clip-text bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#f43f5e]"
+            />
+          </div>
+          <div className="overflow-hidden">
+            <SplitWords text="sem parar." />
           </div>
         </h1>
 
-        <div className="grid grid-cols-12 gap-6 items-start">
-          <div className="col-span-12 md:col-span-5">
-            <Reveal delay={0.3}>
-              <p className="text-base md:text-lg text-black/70 leading-relaxed max-w-md" style={sans}>
-                Somos o sistema por trás das joalherias que crescem no Brasil.
-                Estoque, PDV, revendedoras, loja virtual, IA de atendimento e CRM — 
-                um plano único, sem limites artificiais, feito com o cuidado de quem entende do ofício.
-              </p>
-            </Reveal>
-          </div>
-
-          <div className="col-span-12 md:col-span-3 md:col-start-9">
-            <Reveal delay={0.4}>
-              <div className="flex flex-col gap-3" style={mono}>
-                <button onClick={onBuy} className="group flex items-center justify-between border-b border-black pb-3 text-left">
-                  <span className="text-sm uppercase tracking-[0.2em]" style={{ color: INK }}>Assinar Prime</span>
-                  <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" style={{ color: INK }} />
-                </button>
-                <Link to="/auth" className="group flex items-center justify-between border-b border-black/30 pb-3">
-                  <span className="text-sm uppercase tracking-[0.2em]" style={{ color: INK }}>Área do cliente</span>
-                  <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" style={{ color: INK }} />
-                </Link>
-              </div>
-            </Reveal>
-          </div>
+        <div className="mt-12 grid gap-10 lg:grid-cols-[1.4fr,1fr] lg:items-end">
+          <Reveal delay={0.4}>
+            <p className="max-w-xl text-lg text-[#1a0f0a]/70 lg:text-xl">
+              O sistema que gerencia estoque, PDV, revendedoras, maletas em consignação,
+              catálogos e loja online — tudo em um só lugar, feito para quem vive de
+              semijoia.
+            </p>
+          </Reveal>
+          <Reveal delay={0.5}>
+            <div className="flex flex-col items-start gap-4 sm:flex-row lg:justify-end">
+              <Link
+                to="/auth"
+                className="group inline-flex items-center gap-3 rounded-full bg-[#1a0f0a] px-7 py-4 text-sm font-medium text-white transition hover:bg-[#ea580c]"
+                data-cursor
+              >
+                Começar agora
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-white/15 transition group-hover:rotate-45">
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </span>
+              </Link>
+              <a
+                href="#recursos"
+                className="inline-flex items-center gap-2 text-sm font-medium text-[#1a0f0a] underline-offset-4 hover:underline"
+                data-cursor
+              >
+                <Play className="h-4 w-4" /> Ver como funciona
+              </a>
+            </div>
+          </Reveal>
         </div>
 
-        {/* Hero image band */}
-        <Reveal delay={0.4} y={60}>
-          <div className="mt-16 md:mt-24 relative overflow-hidden rounded-sm">
-            <motion.div style={{ y, scale }} className="relative aspect-[21/9] w-full">
-              <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.4))' }} />
-              <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-white" style={mono}>
-                <span className="text-[10px] uppercase tracking-[0.3em]">Fig. 001 — Coleção 26</span>
-                <span className="text-[10px] uppercase tracking-[0.3em]">Rolagem →</span>
+        {/* stats */}
+        <Reveal delay={0.7} className="mt-24 grid grid-cols-2 gap-8 border-t border-[#1a0f0a]/10 pt-10 md:grid-cols-4">
+          {[
+            ["+2.4k", "lojistas ativas"],
+            ["R$ 38M", "processados/mês"],
+            ["99.9%", "uptime garantido"],
+            ["4.9★", "avaliação média"],
+          ].map(([n, l]) => (
+            <div key={l}>
+              <div className="font-serif text-4xl text-[#1a0f0a] lg:text-5xl">{n}</div>
+              <div className="mt-1 text-xs uppercase tracking-widest text-[#1a0f0a]/50">
+                {l}
               </div>
-            </motion.div>
-          </div>
+            </div>
+          ))}
         </Reveal>
-      </div>
-    </section>
-  );
-};
-
-/* ---------- Marquee ---------- */
-const Marquee = () => {
-  const words = ['Estoque', 'PDV', 'Revendedoras', 'Maletas', 'Loja Virtual', 'IA Bella', 'CRM', 'Fiado', 'Catálogo', 'Metas'];
-  return (
-    <section className="border-b border-black/10 overflow-hidden py-6" style={{ background: INK }}>
-      <motion.div className="flex gap-16 whitespace-nowrap" animate={{ x: ['0%', '-50%'] }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}>
-        {[...words, ...words, ...words].map((w, i) => (
-          <span key={i} className="flex items-center gap-16 text-5xl md:text-7xl" style={{ ...serif, color: BONE }}>
-            {w}
-            <span className="text-[8px]" style={{ color: ROSE }}>●</span>
-          </span>
-        ))}
       </motion.div>
     </section>
   );
-};
+}
 
-/* ---------- Manifesto ---------- */
-const Manifesto = () => (
-  <section className="py-24 md:py-36 border-b border-black/10 px-6" style={{ background: BONE }}>
-    <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-6">
-      <div className="col-span-12 md:col-span-3">
-        <Marker>[ Manifesto — 01 ]</Marker>
-      </div>
-      <div className="col-span-12 md:col-span-9">
-        <h2 className="text-[clamp(36px,5.5vw,84px)] leading-[1] tracking-[-0.02em]" style={{ ...serif, color: INK }}>
-          <Reveal>Software não deveria pesar. </Reveal>
-          <Reveal delay={0.1}><span className="italic" style={{ color: ROSE }}>Deveria brilhar.</span></Reveal>
-          <Reveal delay={0.2}> Construímos a única</Reveal>
-          <Reveal delay={0.3}> plataforma pensada</Reveal>
-          <Reveal delay={0.4}> para quem vive de </Reveal>
-          <Reveal delay={0.5}>vender semijoias.</Reveal>
-        </h2>
-      </div>
-    </div>
-  </section>
-);
-
-/* ---------- Work / Cases ---------- */
-const Work = () => {
-  const items = [
-    { n: '01', tag: 'PDV', title: 'Vendas em segundos, offline ou online.', text: 'Interface responsiva, código de barras, PIX na hora, fiado, cupons, impressão térmica.', img: pdvImg },
-    { n: '02', tag: 'Dashboard', title: 'Números que contam a história do seu negócio.', text: 'Metas, ranking, faturamento em tempo real, insights de IA e alertas inteligentes.', img: dashImg },
-    { n: '03', tag: 'Loja Virtual', title: 'Sua vitrine digital, no seu domínio.', text: 'Checkout Mercado Pago, PIX direto, cupons, banners animados e SEO dinâmico.', img: lojaImg },
-  ];
-  const [hovered, setHovered] = useState<number | null>(null);
+/* ============ MARQUEE STRIP ============ */
+function Strip() {
   return (
-    <section id="trabalho" className="border-b border-black/10" style={{ background: BONE }}>
-      <div className="max-w-[1440px] mx-auto px-6 pt-24 pb-8">
-        <div className="grid grid-cols-12 gap-6 items-end mb-10">
-          <div className="col-span-6"><Marker>[ Trabalho selecionado — 02 ]</Marker></div>
-          <div className="col-span-6 text-right hidden md:block" style={mono}><span className="text-[10px] uppercase tracking-[0.25em] opacity-60">03 módulos em destaque</span></div>
-        </div>
-      </div>
+    <section className="relative border-y border-[#1a0f0a]/10 bg-gradient-to-r from-[#fef3c7] via-white to-[#fed7aa]/60 py-8">
+      <Marquee baseVelocity={30}>
+        <span className="flex items-center gap-8 font-serif text-4xl italic text-[#1a0f0a] md:text-6xl">
+          Estoque
+          <Sparkles className="h-6 w-6 text-[#ea580c]" />
+          Maletas
+          <Sparkles className="h-6 w-6 text-[#f43f5e]" />
+          Revendedoras
+          <Sparkles className="h-6 w-6 text-[#f59e0b]" />
+          Catálogo Online
+          <Sparkles className="h-6 w-6 text-[#ea580c]" />
+          PDV
+          <Sparkles className="h-6 w-6 text-[#f43f5e]" />
+          Loja Virtual
+          <Sparkles className="h-6 w-6 text-[#f59e0b]" />
+        </span>
+      </Marquee>
+    </section>
+  );
+}
 
-      <div className="border-t border-black/10">
-        {items.map((it, i) => (
-          <a key={it.n} href="#capacidades" onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)} className="group block border-b border-black/10 relative">
-            <div className="max-w-[1440px] mx-auto px-6 py-8 md:py-12 grid grid-cols-12 gap-6 items-center relative z-10 transition-colors" style={{ color: hovered === i ? ROSE : INK }}>
-              <div className="col-span-1 text-[10px] uppercase tracking-[0.25em]" style={mono}>{it.n}</div>
-              <div className="col-span-11 md:col-span-5 text-[clamp(28px,4vw,56px)] leading-[1.05] tracking-[-0.01em]" style={serif}>{it.title}</div>
-              <div className="hidden md:block col-span-3 text-sm text-black/60 group-hover:text-black/80 transition" style={sans}>{it.text}</div>
-              <div className="hidden md:flex col-span-2 items-center justify-end">
-                <span className="text-[10px] uppercase tracking-[0.25em]" style={mono}>{it.tag}</span>
-              </div>
-              <div className="hidden md:flex col-span-1 justify-end">
-                <ArrowUpRight className="w-6 h-6 transition-transform group-hover:translate-x-2 group-hover:-translate-y-2" />
-              </div>
+/* ============ ABOUT ============ */
+function About() {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const imgY = useTransform(scrollYProgress, [0, 1], [80, -80]);
+  return (
+    <section ref={ref} id="sobre" className="relative bg-white py-32 lg:py-44">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+        <div className="grid gap-16 lg:grid-cols-[1fr,1.3fr] lg:gap-24">
+          <Reveal>
+            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
+              ( 01 ) Sobre
             </div>
-
-            {/* image reveal on hover */}
-            <AnimatePresence>
-              {hovered === i && (
-                <motion.div
-                  key="preview"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.25 }}
-                  className="hidden lg:block pointer-events-none absolute right-[8%] top-1/2 -translate-y-1/2 w-[320px] aspect-[4/3] overflow-hidden rounded-sm shadow-2xl z-20"
+            <h2 className="mt-8 font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
+              Nascemos <em className="italic text-[#ea580c]">dentro</em> do balcão da
+              semijoia.
+            </h2>
+            <p className="mt-8 max-w-md text-[#1a0f0a]/70">
+              Cansadas de planilhas, cadernos e apps genéricos, criamos o Nexsiles com
+              lojistas reais — cada tela, cada botão, cada relatório resolve uma dor que
+              nasceu no chão de loja.
+            </p>
+            <div className="mt-10 flex flex-wrap gap-3">
+              {["Feito no Brasil", "Suporte humano", "Atualizações semanais"].map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full border border-[#1a0f0a]/15 px-4 py-2 text-xs text-[#1a0f0a]/70"
                 >
-                  <img src={it.img} alt="" className="w-full h-full object-cover" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </a>
-        ))}
-      </div>
-    </section>
-  );
-};
-
-/* ---------- Capacidades (features grid) ---------- */
-const Capacities = () => {
-  const items = [
-    ['Gestão', ['Estoque ilimitado', 'Códigos de barras', 'Categorias dinâmicas', 'Histórico de preços', 'Importação em massa']],
-    ['Vendas', ['PDV offline', 'PIX na hora', 'Fiado & cupons', 'Impressão térmica', 'Troca e devolução']],
-    ['Rede', ['Maletas com portal PWA', 'Comissão automática', 'Assinatura digital', 'Ranking de vendedoras', 'Extrato transparente']],
-    ['Digital', ['Loja virtual pronta', 'Catálogos animados', 'QR Code de vitrines', 'Checkout Mercado Pago', 'SEO dinâmico']],
-    ['Inteligência', ['IA Bella no WhatsApp', 'Follow-up automático', 'Insights de vendas', 'Alertas smart', 'A/B testing de prompt']],
-    ['Financeiro', ['CRM completo', 'Metas & indicadores', 'Lucratividade por peça', 'Aniversariantes', 'Relatórios PDF/CSV']],
-  ];
-  return (
-    <section id="capacidades" className="border-b border-black/10 py-24 md:py-32 px-6" style={{ background: BONE }}>
-      <div className="max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-12 gap-6 mb-14">
-          <div className="col-span-12 md:col-span-3"><Marker>[ Capacidades — 03 ]</Marker></div>
-          <div className="col-span-12 md:col-span-9">
-            <h2 className="text-[clamp(36px,6vw,84px)] leading-[0.95] tracking-[-0.02em]" style={{ ...serif, color: INK }}>
-              <Reveal>Um plano.</Reveal>{' '}
-              <Reveal delay={0.1}><span className="italic">Tudo dentro.</span></Reveal>
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-black/10">
-          {items.map(([title, list], i) => (
-            <Reveal key={title as string} delay={i * 0.05}>
-              <div className="border-r border-b border-black/10 p-8 min-h-[280px] flex flex-col justify-between group hover:bg-black hover:text-[color:var(--bone,#f4f1ec)] transition-colors duration-500" style={{ ['--bone' as any]: BONE }}>
-                <div className="flex items-center justify-between mb-8">
-                  <span className="text-[10px] uppercase tracking-[0.25em]" style={mono}>{String(i + 1).padStart(2, '0')}</span>
-                  <Plus className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-500" />
-                </div>
-                <div>
-                  <div className="text-3xl md:text-4xl mb-5" style={serif}>{title as string}</div>
-                  <ul className="space-y-1.5" style={sans}>
-                    {(list as string[]).map((li) => (
-                      <li key={li} className="text-sm opacity-70 group-hover:opacity-100 transition-opacity">— {li}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-/* ---------- Processo ---------- */
-const Process = () => {
-  const steps = [
-    ['01', 'Assine', 'R$ 129/mês via Mercado Pago. PIX, cartão ou boleto. Acesso liberado em segundos.'],
-    ['02', 'Configure', 'Cadastro guiado com IA de setup. Importe seu estoque em minutos. Suporte humano no WhatsApp.'],
-    ['03', 'Venda', 'PDV, loja virtual, revendedoras e IA respondendo WhatsApp 24/7. Você foca no que importa.'],
-  ];
-  return (
-    <section id="processo" className="border-b border-white/10 py-24 md:py-32 px-6" style={{ background: INK, color: BONE }}>
-      <div className="max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-12 gap-6 mb-14">
-          <div className="col-span-12 md:col-span-3">
-            <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]" style={mono}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROSE }} />
-              [ Processo — 04 ]
-            </span>
-          </div>
-          <div className="col-span-12 md:col-span-9">
-            <h2 className="text-[clamp(36px,6vw,84px)] leading-[0.95] tracking-[-0.02em]" style={serif}>
-              <Reveal>Do assine ao</Reveal>{' '}
-              <Reveal delay={0.1}><span className="italic" style={{ color: ROSE }}>primeiro venda</span></Reveal>
-              <Reveal delay={0.2}> em minutos.</Reveal>
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-px" style={{ background: 'rgba(255,255,255,0.1)' }}>
-          {steps.map(([n, title, text], i) => (
-            <Reveal key={n} delay={i * 0.1}>
-              <div className="p-8 md:p-10 min-h-[280px] flex flex-col justify-between" style={{ background: INK }}>
-                <span className="text-[10px] uppercase tracking-[0.25em] opacity-60" style={mono}>{n}</span>
-                <div>
-                  <div className="text-4xl md:text-5xl mb-4" style={serif}>{title}</div>
-                  <p className="text-sm opacity-70 max-w-xs" style={sans}>{text}</p>
-                </div>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
-/* ---------- Personas ---------- */
-const Personas = () => {
-  const cards = [
-    { img: lojistaImg, tag: 'Para lojistas', title: 'Você no controle.', text: 'Sem planilha, sem chute. Estoque preciso, vendas em segundos, relatórios que decidem.' },
-    { img: revImg, tag: 'Para revendedoras', title: 'Portal exclusivo.', text: 'Maletas digitais, vendas no celular, extrato transparente e comissão sempre certa.' },
-  ];
-  return (
-    <section className="border-b border-black/10 grid md:grid-cols-2" style={{ background: BONE }}>
-      {cards.map((c, i) => (
-        <Reveal key={c.tag} delay={i * 0.1}>
-          <div className={`relative aspect-[4/5] md:aspect-auto md:min-h-[720px] overflow-hidden group ${i === 0 ? 'md:border-r' : ''} border-black/10`}>
-            <img src={c.img} alt={c.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 grayscale group-hover:grayscale-0" />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.75))' }} />
-            <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-between text-white">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em]" style={mono}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: ROSE }} />
-                {c.tag}
-              </div>
-              <div>
-                <div className="text-4xl md:text-6xl leading-[0.95] mb-3" style={serif}>{c.title}</div>
-                <p className="text-sm max-w-xs opacity-90" style={sans}>{c.text}</p>
-              </div>
+                  {t}
+                </span>
+              ))}
             </div>
+          </Reveal>
+
+          <div className="relative">
+            <motion.img
+              src={warm05}
+              alt="Lojista de semijoia"
+              style={{ y: imgY }}
+              className="aspect-[4/5] w-full rounded-2xl object-cover shadow-2xl"
+              loading="lazy"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, rotate: -6 }}
+              whileInView={{ opacity: 1, scale: 1, rotate: -3 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: EASE, delay: 0.3 }}
+              className="absolute -bottom-6 -left-6 w-64 rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-[#1a0f0a]/5"
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-[#fef3c7]">
+                  <Heart className="h-5 w-5 text-[#ea580c]" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-widest text-[#1a0f0a]/50">
+                    Satisfação
+                  </div>
+                  <div className="font-serif text-2xl text-[#1a0f0a]">98%</div>
+                </div>
+              </div>
+              <p className="mt-3 text-xs text-[#1a0f0a]/60">
+                das lojistas indicam o Nexsiles pra outra colega.
+              </p>
+            </motion.div>
           </div>
-        </Reveal>
-      ))}
-    </section>
-  );
-};
-
-/* ---------- Vozes ---------- */
-const Voices = () => {
-  const items = [
-    { img: t1, name: 'Amanda R.', role: 'Belo Horizonte', text: 'Tirei 3 planilhas e um caderno da minha vida. As vendas cresceram 40%.' },
-    { img: t2, name: 'Carla M.', role: '4 revendedoras', text: 'O portal das revendedoras é lindo. Comissão sai sozinha, sem discussão.' },
-    { img: t3, name: 'Fernanda L.', role: 'Loja híbrida', text: 'PIX cai direto, a IA responde WhatsApp enquanto durmo. Perfeito.' },
-    { img: t4, name: 'Juliana P.', role: 'São Paulo', text: 'Suporte rápido, atualizações constantes. Vale cada centavo.' },
-    { img: t5, name: 'Patrícia S.', role: 'Franqueada', text: 'O ranking virou competição saudável. Bateu meta 3 meses seguidos.' },
-  ];
-  return (
-    <section id="vozes" className="border-b border-black/10 py-24 md:py-32 px-6 overflow-hidden" style={{ background: BONE }}>
-      <div className="max-w-[1440px] mx-auto mb-14">
-        <div className="grid grid-cols-12 gap-6 items-end">
-          <div className="col-span-6"><Marker>[ Vozes — 05 ]</Marker></div>
-          <div className="col-span-6 text-right hidden md:block" style={mono}><span className="text-[10px] uppercase tracking-[0.25em] opacity-60">4.9 / 5.0 · +1500 lojistas</span></div>
-        </div>
-        <Reveal>
-          <h2 className="mt-8 text-[clamp(36px,6vw,84px)] leading-[0.95] tracking-[-0.02em]" style={{ ...serif, color: INK }}>
-            Quem usa, <span className="italic" style={{ color: ROSE }}>fala.</span>
-          </h2>
-        </Reveal>
-      </div>
-
-      <div className="max-w-[1440px] mx-auto grid md:grid-cols-3 gap-px border-t border-l border-black/10">
-        {items.slice(0, 3).map((t, i) => (
-          <Reveal key={t.name} delay={i * 0.05}>
-            <figure className="border-r border-b border-black/10 p-8 min-h-[320px] flex flex-col justify-between bg-transparent">
-              <blockquote className="text-xl md:text-2xl leading-snug" style={{ ...serif, color: INK }}>“{t.text}”</blockquote>
-              <figcaption className="flex items-center gap-3 mt-6">
-                <img src={t.img} alt={t.name} className="h-10 w-10 rounded-full object-cover grayscale" />
-                <div style={mono}>
-                  <div className="text-[11px] uppercase tracking-[0.15em]" style={{ color: INK }}>{t.name}</div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] opacity-60">{t.role}</div>
-                </div>
-              </figcaption>
-            </figure>
-          </Reveal>
-        ))}
-        {items.slice(3).map((t, i) => (
-          <Reveal key={t.name} delay={i * 0.05}>
-            <figure className="border-r border-b border-black/10 p-8 min-h-[280px] flex flex-col justify-between md:col-span-1">
-              <blockquote className="text-xl md:text-2xl leading-snug" style={{ ...serif, color: INK }}>“{t.text}”</blockquote>
-              <figcaption className="flex items-center gap-3 mt-6">
-                <img src={t.img} alt={t.name} className="h-10 w-10 rounded-full object-cover grayscale" />
-                <div style={mono}>
-                  <div className="text-[11px] uppercase tracking-[0.15em]" style={{ color: INK }}>{t.name}</div>
-                  <div className="text-[10px] uppercase tracking-[0.15em] opacity-60">{t.role}</div>
-                </div>
-              </figcaption>
-            </figure>
-          </Reveal>
-        ))}
-        <div className="border-r border-b border-black/10 p-8 min-h-[280px] flex flex-col justify-between" style={{ background: INK, color: BONE }}>
-          <div className="text-6xl md:text-7xl leading-none" style={serif}>4.9<span style={{ color: ROSE }}>.</span></div>
-          <div style={mono}><div className="text-[10px] uppercase tracking-[0.2em] opacity-70">Avaliação média</div><div className="text-[10px] uppercase tracking-[0.2em] opacity-70">Google & App Store</div></div>
         </div>
       </div>
     </section>
   );
-};
+}
 
-/* ---------- Pricing ---------- */
-const Pricing = ({ onBuy }: { onBuy: () => void }) => {
-  const features = [
-    'Estoque, PDV, Fiado e Cupons ilimitados',
-    'Até 25 funcionários com permissões',
-    'Revendedoras com portal PWA',
-    'Loja virtual + checkout Mercado Pago',
-    'IA Bella 24/7 no WhatsApp',
-    'CRM, metas, ranking, relatórios',
-    'Catálogos digitais e QR Code',
-    'Suporte humano no WhatsApp',
-  ];
+/* ============ FEATURES ============ */
+const FEATURES = [
+  {
+    n: "01",
+    t: "Estoque em tempo real",
+    d: "Cada peça rastreada com custo, margem e alertas de reposição inteligente.",
+    img: warm03,
+  },
+  {
+    n: "02",
+    t: "PDV que voa",
+    d: "Venda em 3 toques, com fiado, PIX, cartão e comprovante no WhatsApp.",
+    img: pdvMock,
+  },
+  {
+    n: "03",
+    t: "Maletas em consignação",
+    d: "Assinatura digital, fechamento automático e comissão sem dor de cabeça.",
+    img: warm01,
+  },
+  {
+    n: "04",
+    t: "Loja online própria",
+    d: "Catálogo público com checkout Mercado Pago e PIX direto pra sua conta.",
+    img: lojaMock,
+  },
+  {
+    n: "05",
+    t: "Revendedoras conectadas",
+    d: "App PWA exclusivo pra sua rede vender de onde estiver.",
+    img: warm02,
+  },
+  {
+    n: "06",
+    t: "IA Bella 24/7",
+    d: "Vendedora virtual no WhatsApp com carrinho, catálogo e persona da sua marca.",
+    img: dashMock,
+  },
+];
+
+function Features() {
   return (
-    <section id="preco" className="border-b border-black/10 py-24 md:py-32 px-6" style={{ background: BONE }}>
-      <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-6">
-        <div className="col-span-12 md:col-span-4">
-          <Marker>[ Preço — 06 ]</Marker>
-          <h2 className="mt-6 text-[clamp(40px,6vw,96px)] leading-[0.9] tracking-[-0.02em]" style={{ ...serif, color: INK }}>
-            Um plano. <br /><span className="italic" style={{ color: ROSE }}>Sem asterisco.</span>
-          </h2>
-          <p className="mt-8 text-black/70 max-w-xs" style={sans}>
-            Sem fidelidade. Sem taxa de setup. Cancele quando quiser, direto no Mercado Pago.
+    <section id="recursos" className="relative bg-[#fffaf3] py-32 lg:py-44">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+        <div className="mb-20 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
+              ( 02 ) Recursos
+            </div>
+            <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
+              Tudo o que você precisa,{" "}
+              <em className="italic text-[#ea580c]">nada</em> que atrapalhe.
+            </h2>
+          </div>
+          <p className="max-w-sm text-[#1a0f0a]/70">
+            Um único painel — do estoque à loja online — pensado pra lojista real, não
+            pra manual de software.
           </p>
         </div>
 
-        <div className="col-span-12 md:col-span-8">
-          <Reveal>
-            <div className="border-t border-black">
-              <div className="py-8 border-b border-black/10 flex items-end justify-between">
-                <div style={mono} className="text-[10px] uppercase tracking-[0.25em] opacity-60">Nexsiles Prime</div>
-                <div className="flex items-end gap-1" style={{ color: INK }}>
-                  <span className="text-6xl md:text-8xl leading-none" style={serif}>R$ 129</span>
-                  <span className="text-sm pb-2" style={mono}>/mês</span>
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f, i) => (
+            <motion.article
+              key={f.n}
+              initial={{ y: 60, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.8, ease: EASE, delay: (i % 3) * 0.1 }}
+              whileHover={{ y: -8 }}
+              className="group relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#1a0f0a]/5 transition-all hover:shadow-2xl"
+              data-cursor
+            >
+              <div className="relative mb-6 aspect-[4/3] overflow-hidden rounded-2xl bg-[#fef3c7]">
+                <motion.img
+                  src={f.img}
+                  alt={f.t}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  whileHover={{ scale: 1.08 }}
+                  transition={{ duration: 0.7, ease: EASE }}
+                />
+                <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-medium tracking-widest text-[#1a0f0a] backdrop-blur">
+                  {f.n}
                 </div>
               </div>
-              <ul className="grid sm:grid-cols-2">
-                {features.map((f, i) => (
-                  <li key={f} className={`py-4 border-b border-black/10 flex items-baseline gap-3 ${i % 2 === 0 ? 'sm:border-r sm:pr-6' : 'sm:pl-6'}`} style={sans}>
-                    <span className="text-[10px] pt-1" style={{ ...mono, color: ROSE }}>{String(i + 1).padStart(2, '0')}</span>
-                    <span className="text-sm text-black/80">{f}</span>
-                  </li>
+              <h3 className="font-serif text-2xl text-[#1a0f0a]">{f.t}</h3>
+              <p className="mt-3 text-sm text-[#1a0f0a]/60">{f.d}</p>
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-[#ea580c]">
+                Explorar
+                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============ STICKY SHOWCASE ============ */
+const SHOWCASE = [
+  { t: "Dashboard", d: "KPIs de venda, margem e ticket médio em tempo real.", img: dashMock },
+  { t: "PDV", d: "Venda com fiado, PIX, cartão e comprovante instantâneo.", img: pdvMock },
+  { t: "Loja Online", d: "Vitrine premium com checkout Mercado Pago.", img: lojaMock },
+];
+
+function StickyShowcase() {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    return scrollYProgress.on("change", (v) => {
+      const i = Math.min(SHOWCASE.length - 1, Math.floor(v * SHOWCASE.length));
+      setActive(i);
+    });
+  }, [scrollYProgress]);
+  return (
+    <section
+      ref={ref}
+      className="relative bg-white"
+      style={{ height: `${SHOWCASE.length * 100}vh` }}
+    >
+      <div className="sticky top-0 flex h-screen items-center overflow-hidden">
+        <div className="mx-auto grid w-full max-w-[1400px] gap-16 px-6 lg:grid-cols-2 lg:px-10">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
+              ( 03 ) Módulos
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active}
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -20, opacity: 0 }}
+                transition={{ duration: 0.5, ease: EASE }}
+              >
+                <h3 className="mt-6 font-serif text-6xl text-[#1a0f0a] lg:text-8xl">
+                  {SHOWCASE[active].t}
+                </h3>
+                <p className="mt-6 max-w-md text-lg text-[#1a0f0a]/70">
+                  {SHOWCASE[active].d}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+            <div className="mt-10 flex gap-2">
+              {SHOWCASE.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1 w-12 rounded-full transition-all ${
+                    i === active ? "bg-[#ea580c]" : "bg-[#1a0f0a]/10"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-[#fef3c7] via-[#fed7aa]/50 to-[#fecaca]/50" />
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={active}
+                src={SHOWCASE[active].img}
+                alt={SHOWCASE[active].t}
+                loading="lazy"
+                initial={{ y: 60, opacity: 0, scale: 0.95 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: -60, opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.7, ease: EASE }}
+                className="relative z-10 max-h-[75vh] w-[90%] rounded-2xl object-contain shadow-2xl"
+              />
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============ PERSONAS ============ */
+function Personas() {
+  return (
+    <section className="relative bg-[#1a0f0a] py-32 text-white lg:py-44">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+        <div className="mb-16">
+          <div className="text-xs uppercase tracking-[0.3em] text-[#f59e0b]">
+            ( 04 ) Pra quem é
+          </div>
+          <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[1.05] lg:text-7xl">
+            Feito pra{" "}
+            <em className="italic text-transparent bg-clip-text bg-gradient-to-r from-[#f59e0b] to-[#f43f5e]">
+              mulheres
+            </em>{" "}
+            que empreendem.
+          </h2>
+        </div>
+        <div className="grid gap-8 md:grid-cols-2">
+          {[
+            {
+              img: personaLoj,
+              t: "Lojistas",
+              d: "Você controla estoque, revendedoras, maletas e loja online sem virar refém de planilha.",
+              tags: ["Multi-loja", "Multi-usuário", "Relatórios"],
+            },
+            {
+              img: personaRev,
+              t: "Revendedoras",
+              d: "Um app PWA feito pra sua rede vender com maleta, tirar pedido e receber comissão.",
+              tags: ["PWA", "Comissão auto", "WhatsApp"],
+            },
+          ].map((p) => (
+            <motion.div
+              key={p.t}
+              initial={{ y: 60, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.9, ease: EASE }}
+              className="group relative overflow-hidden rounded-3xl"
+              data-cursor
+            >
+              <motion.img
+                src={p.img}
+                alt={p.t}
+                loading="lazy"
+                className="aspect-[4/5] w-full object-cover"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.9, ease: EASE }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1a0f0a] via-[#1a0f0a]/40 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-8">
+                <h3 className="font-serif text-5xl">{p.t}</h3>
+                <p className="mt-3 max-w-md text-white/70">{p.d}</p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {p.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/80"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============ TESTIMONIALS ============ */
+const T = [
+  {
+    n: "Amanda R.",
+    r: "Lojista · Goiânia",
+    q: "Em 60 dias meu faturamento subiu 32%. O controle de maletas é surreal.",
+    img: tAmanda,
+  },
+  {
+    n: "Carla M.",
+    r: "Fundadora · Fortaleza",
+    q: "Larguei 4 planilhas e um caderno. Nunca mais.",
+    img: tCarla,
+  },
+  {
+    n: "Fernanda L.",
+    r: "Loja + Revenda · SP",
+    q: "Minhas revendedoras adoraram o app. Vendas subiram sozinhas.",
+    img: tFernanda,
+  },
+  {
+    n: "Juliana P.",
+    r: "Lojista · Rio",
+    q: "O PDV é rápido demais. Fila zerada, cliente feliz.",
+    img: tJuliana,
+  },
+  {
+    n: "Patrícia S.",
+    r: "Marketplace · MG",
+    q: "A Bella (IA) fecha venda enquanto eu durmo. Sério.",
+    img: tPatricia,
+  },
+];
+
+function Testimonials() {
+  return (
+    <section id="depoimentos" className="relative overflow-hidden bg-white py-32 lg:py-44">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+        <div className="mb-16 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+          <div>
+            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
+              ( 05 ) Vozes
+            </div>
+            <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
+              +2.400 lojistas.{" "}
+              <em className="italic text-[#ea580c]">Uma</em> só voz.
+            </h2>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-[#1a0f0a]/60">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star key={s} className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
+            ))}
+            <span className="ml-2">4.9 · avaliação média</span>
+          </div>
+        </div>
+      </div>
+      <Marquee baseVelocity={20} className="py-4">
+        <div className="flex gap-6">
+          {[...T, ...T].map((t, i) => (
+            <div
+              key={i}
+              className="flex w-[380px] flex-shrink-0 flex-col gap-5 rounded-3xl border border-[#1a0f0a]/10 bg-gradient-to-br from-white to-[#fffaf3] p-8 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
                 ))}
-              </ul>
-              <div className="pt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button onClick={onBuy} className="group flex-1 flex items-center justify-between px-6 py-5 rounded-full text-white transition-all hover:pl-8" style={{ background: INK }}>
-                  <span className="text-sm uppercase tracking-[0.2em]" style={mono}>Assinar agora — R$ 129/mês</span>
-                  <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
-                </button>
-                <div className="flex items-center justify-center gap-3 px-4 text-[10px] uppercase tracking-[0.2em]" style={{ ...mono, color: INK }}>
-                  PIX · Cartão · Boleto
+              </div>
+              <p className="font-serif text-2xl leading-snug text-[#1a0f0a]">"{t.q}"</p>
+              <div className="mt-auto flex items-center gap-3">
+                <img
+                  src={t.img}
+                  alt={t.n}
+                  loading="lazy"
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+                <div>
+                  <div className="text-sm font-medium text-[#1a0f0a]">{t.n}</div>
+                  <div className="text-xs text-[#1a0f0a]/50">{t.r}</div>
                 </div>
               </div>
             </div>
-          </Reveal>
+          ))}
         </div>
+      </Marquee>
+    </section>
+  );
+}
+
+/* ============ PRICING ============ */
+function Pricing() {
+  const features = [
+    "Estoque + custo + margem",
+    "PDV completo (PIX, cartão, fiado)",
+    "Maletas em consignação",
+    "Catálogo público + loja online",
+    "App pra revendedoras",
+    "IA Bella no WhatsApp",
+    "Até 25 usuários",
+    "Suporte humano no WhatsApp",
+    "Atualizações semanais",
+  ];
+  return (
+    <section id="plano" className="relative bg-[#fffaf3] py-32 lg:py-44">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+        <div className="mb-16 text-center">
+          <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
+            ( 06 ) Plano
+          </div>
+          <h2 className="mx-auto mt-8 max-w-4xl font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
+            Um plano. <em className="italic text-[#ea580c]">Tudo</em> incluso.
+          </h2>
+          <p className="mx-auto mt-6 max-w-xl text-[#1a0f0a]/70">
+            Chega de "essa função é do plano maior". Aqui é tudo pra todo mundo.
+          </p>
+        </div>
+
+        <motion.div
+          initial={{ y: 60, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.9, ease: EASE }}
+          className="mx-auto max-w-4xl overflow-hidden rounded-[2.5rem] bg-white shadow-2xl ring-1 ring-[#1a0f0a]/5"
+        >
+          <div className="grid gap-0 md:grid-cols-2">
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#f59e0b] via-[#ea580c] to-[#f43f5e] p-10 text-white lg:p-14">
+              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs uppercase tracking-widest backdrop-blur">
+                  <Zap className="h-3 w-3" /> Nexsiles Prime
+                </div>
+                <div className="mt-8 flex items-end gap-2">
+                  <span className="font-serif text-7xl leading-none">R$129</span>
+                  <span className="pb-2 text-sm text-white/70">/mês</span>
+                </div>
+                <p className="mt-4 max-w-xs text-white/80">
+                  Tudo o que a Nexsiles oferece, sem cobrança extra por módulo, sem
+                  limite de peça.
+                </p>
+                <Link
+                  to="/auth"
+                  className="mt-10 inline-flex items-center gap-3 rounded-full bg-white px-6 py-3.5 text-sm font-medium text-[#1a0f0a] transition hover:bg-[#1a0f0a] hover:text-white"
+                  data-cursor
+                >
+                  Começar agora
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+            <div className="p-10 lg:p-14">
+              <ul className="space-y-4">
+                {features.map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-[#1a0f0a]">
+                    <div className="mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-[#fef3c7]">
+                      <Check className="h-3 w-3 text-[#ea580c]" />
+                    </div>
+                    <span className="text-sm">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
-};
+}
 
-/* ---------- FAQ ---------- */
-const FAQ = () => {
-  const items = [
-    { q: 'Preciso instalar algo?', a: 'Não. Roda 100% no navegador. Funciona como app (PWA) no celular e no PDV.' },
-    { q: 'E se eu quiser cancelar?', a: 'Sem burocracia. Cancele a qualquer momento pelo Mercado Pago — sem multa, sem fidelidade.' },
-    { q: 'É seguro?', a: 'Hospedagem em nuvem enterprise, backups automáticos, isolamento total entre organizações (multi-tenant com RLS).' },
-    { q: 'A IA responde no meu WhatsApp?', a: 'Sim. A IA "Bella" atende, envia catálogo, gera pedidos e transfere pra você quando precisa de humano.' },
-    { q: 'Tem suporte?', a: 'Suporte humano via WhatsApp em horário comercial e base de ajuda 24/7.' },
-  ];
+/* ============ FAQ ============ */
+const FAQS = [
+  ["Preciso de cartão pra começar?", "Sim, o plano Prime é R$129/mês via Mercado Pago. Você cancela quando quiser."],
+  ["Funciona no celular?", "Sim, é 100% responsivo e as revendedoras têm PWA dedicado."],
+  ["Consigo importar meu estoque?", "Sim, temos importação CSV e nossa equipe ajuda no onboarding."],
+  ["A loja online tem custo extra?", "Não. Loja, catálogo, PDV e app das revendedoras estão inclusos."],
+  ["E se eu quiser cancelar?", "Cancela direto no painel. Sem multa, sem burocracia."],
+];
+function Faq() {
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="border-b border-black/10 py-24 md:py-32 px-6" style={{ background: BONE }}>
-      <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-6">
-        <div className="col-span-12 md:col-span-4">
-          <Marker>[ FAQ — 07 ]</Marker>
-          <h2 className="mt-6 text-[clamp(40px,6vw,84px)] leading-[0.9] tracking-[-0.02em]" style={{ ...serif, color: INK }}>
-            Dúvidas <span className="italic">honestas.</span>
+    <section id="faq" className="relative bg-white py-32 lg:py-44">
+      <div className="mx-auto max-w-[1000px] px-6 lg:px-10">
+        <div className="mb-16">
+          <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
+            ( 07 ) Dúvidas
+          </div>
+          <h2 className="mt-8 font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
+            Perguntas <em className="italic text-[#ea580c]">honestas</em>.
           </h2>
         </div>
-        <div className="col-span-12 md:col-span-8 border-t border-black">
-          {items.map((it, i) => {
-            const isOpen = open === i;
-            return (
-              <div key={it.q} className="border-b border-black/10">
-                <button onClick={() => setOpen(isOpen ? null : i)} className="w-full flex items-center justify-between py-6 text-left group">
-                  <span className="flex items-baseline gap-4">
-                    <span className="text-[10px] uppercase tracking-[0.25em] opacity-50" style={mono}>{String(i + 1).padStart(2, '0')}</span>
-                    <span className="text-xl md:text-2xl" style={{ ...serif, color: INK }}>{it.q}</span>
-                  </span>
-                  <motion.span animate={{ rotate: isOpen ? 45 : 0 }} transition={{ duration: 0.25 }}>
-                    <Plus className="w-5 h-5" style={{ color: ROSE }} />
-                  </motion.span>
-                </button>
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <p className="pb-6 pl-10 pr-10 text-sm text-black/70 max-w-2xl" style={sans}>{it.a}</p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+        <div className="divide-y divide-[#1a0f0a]/10 border-y border-[#1a0f0a]/10">
+          {FAQS.map(([q, a], i) => (
+            <div key={i}>
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                className="flex w-full items-center justify-between py-6 text-left"
+                data-cursor
+              >
+                <span className="font-serif text-2xl text-[#1a0f0a] lg:text-3xl">{q}</span>
+                <motion.span
+                  animate={{ rotate: open === i ? 45 : 0 }}
+                  className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full border border-[#1a0f0a]/15 text-[#ea580c]"
+                >
+                  +
+                </motion.span>
+              </button>
+              <AnimatePresence>
+                {open === i && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.4, ease: EASE }}
+                    className="overflow-hidden"
+                  >
+                    <p className="pb-6 pr-16 text-[#1a0f0a]/70">{a}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
         </div>
       </div>
     </section>
   );
-};
+}
 
-/* ---------- Final CTA ---------- */
-const FinalCTA = ({ onBuy }: { onBuy: () => void }) => (
-  <section className="py-24 md:py-40 px-6 border-b border-white/10 relative overflow-hidden" style={{ background: INK, color: BONE }}>
-    <div className="max-w-[1440px] mx-auto text-center">
-      <Reveal>
-        <div className="text-[10px] uppercase tracking-[0.3em] opacity-60 mb-8" style={mono}>[ Comece hoje ]</div>
-      </Reveal>
-      <h2 className="leading-[0.86] tracking-[-0.02em]" style={serif}>
-        <div className="text-[clamp(56px,13vw,220px)]"><SplitLine text="Faça sua" /></div>
-        <div className="text-[clamp(56px,13vw,220px)] italic" style={{ color: ROSE }}><SplitLine text="joia brilhar." delay={0.1} /></div>
-      </h2>
-      <Reveal delay={0.4}>
-        <button onClick={onBuy} className="group mt-12 inline-flex items-center gap-3 px-8 py-5 rounded-full bg-white text-black transition-all hover:gap-5">
-          <span className="text-sm uppercase tracking-[0.2em]" style={mono}>Assinar Nexsiles Prime</span>
-          <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
-        </button>
-      </Reveal>
-    </div>
-  </section>
-);
-
-/* ---------- Footer ---------- */
-const Footer = () => (
-  <footer className="px-6 py-16" style={{ background: INK, color: BONE }}>
-    <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-6">
-      <div className="col-span-12 md:col-span-5">
-        <div className="text-6xl md:text-8xl leading-none" style={serif}>Nexsiles<span style={{ color: ROSE }}>.</span></div>
-        <p className="mt-6 text-sm opacity-70 max-w-sm" style={sans}>
-          Estúdio de software para joalherias e semijoias. Feito com carinho no Brasil.
-        </p>
-      </div>
-      <div className="col-span-6 md:col-span-2" style={mono}>
-        <div className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Produto</div>
-        <ul className="space-y-2 text-sm">
-          <li><a href="#trabalho" className="hover:opacity-70">Trabalho</a></li>
-          <li><a href="#capacidades" className="hover:opacity-70">Capacidades</a></li>
-          <li><a href="#preco" className="hover:opacity-70">Preço</a></li>
-          <li><Link to="/auth" className="hover:opacity-70">Entrar</Link></li>
-        </ul>
-      </div>
-      <div className="col-span-6 md:col-span-2" style={mono}>
-        <div className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Legal</div>
-        <ul className="space-y-2 text-sm">
-          <li><Link to="/politica-privacidade" className="hover:opacity-70">Privacidade</Link></li>
-          <li><Link to="/termos-de-uso" className="hover:opacity-70">Termos</Link></li>
-        </ul>
-      </div>
-      <div className="col-span-12 md:col-span-3" style={mono}>
-        <div className="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-4">Contato</div>
-        <ul className="space-y-2 text-sm">
-          <li><a href="https://wa.me/5511937687369" target="_blank" rel="noreferrer" className="hover:opacity-70">WhatsApp · (11) 93768-7369</a></li>
-          <li className="opacity-60">São Paulo — Brasil</li>
-        </ul>
-      </div>
-    </div>
-    <div className="max-w-[1440px] mx-auto mt-16 pt-6 border-t border-white/10 flex flex-wrap justify-between text-[10px] uppercase tracking-[0.25em] opacity-60" style={mono}>
-      <span>© {new Date().getFullYear()} Nexsiles Studio.</span>
-      <span>Todos os direitos reservados.</span>
-    </div>
-  </footer>
-);
-
-/* ---------- PAGE ---------- */
-export default function LandingPage() {
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-  useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth';
-    return () => { document.documentElement.style.scrollBehavior = ''; };
-  }, []);
-  const openBuy = () => setCheckoutOpen(true);
-
+/* ============ CTA ============ */
+function CTA() {
   return (
-    <div className="min-h-screen antialiased selection:bg-black selection:text-white" style={{ background: BONE, color: INK, ...sans }}>
-      <ScrollProgress />
-      <CursorDot />
-      <TopBar />
-      <Nav onBuy={openBuy} />
-      <Hero onBuy={openBuy} />
-      <Marquee />
-      <Manifesto />
-      <Work />
-      <Capacities />
-      <Process />
-      <Personas />
-      <Voices />
-      <Pricing onBuy={openBuy} />
-      <FAQ />
-      <FinalCTA onBuy={openBuy} />
-      <Footer />
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#fef3c7] via-[#fed7aa] to-[#fecaca] py-32 lg:py-44">
+      <motion.div
+        initial={{ scale: 1.2, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 0.6 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1.4, ease: EASE }}
+        className="absolute inset-0"
+      >
+        <img
+          src={warm03}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover opacity-30 mix-blend-multiply"
+        />
+      </motion.div>
+      <div className="relative mx-auto max-w-[1400px] px-6 text-center lg:px-10">
+        <div className="mx-auto max-w-4xl">
+          <SplitWords
+            text="Comece hoje."
+            className="block font-serif text-[clamp(3.5rem,12vw,11rem)] leading-[0.95] text-[#1a0f0a]"
+          />
+          <SplitWords
+            text="Brilhe amanhã."
+            className="block font-serif text-[clamp(3.5rem,12vw,11rem)] italic leading-[0.95] text-[#ea580c]"
+          />
+        </div>
+        <Reveal delay={0.4} className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <Link
+            to="/auth"
+            className="group inline-flex items-center gap-3 rounded-full bg-[#1a0f0a] px-8 py-4 text-sm font-medium text-white transition hover:bg-[#ea580c]"
+            data-cursor
+          >
+            Ativar Nexsiles Prime
+            <ArrowUpRight className="h-4 w-4 transition group-hover:rotate-45" />
+          </Link>
+          <span className="text-sm text-[#1a0f0a]/60">R$129/mês · sem fidelidade</span>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
 
-      <PublicCheckoutDialog open={checkoutOpen} onOpenChange={setCheckoutOpen} />
-      <PaymentReturnDialog />
+/* ============ FOOTER ============ */
+function Footer() {
+  return (
+    <footer className="border-t border-[#1a0f0a]/10 bg-white py-16">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
+        <div className="grid gap-10 md:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#f59e0b] to-[#ea580c] text-white">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <span className="font-serif text-xl text-[#1a0f0a]">Nexsiles</span>
+            </div>
+            <p className="mt-4 max-w-xs text-sm text-[#1a0f0a]/60">
+              O sistema completo para lojistas e revendedoras de semijoia.
+            </p>
+          </div>
+          {[
+            ["Produto", ["Recursos", "Plano", "Depoimentos", "FAQ"]],
+            ["Empresa", ["Sobre", "Blog", "Contato", "Suporte"]],
+            ["Legal", ["Termos", "Privacidade", "LGPD"]],
+          ].map(([title, items]) => (
+            <div key={title as string}>
+              <div className="text-xs uppercase tracking-widest text-[#1a0f0a]/50">
+                {title}
+              </div>
+              <ul className="mt-4 space-y-2 text-sm text-[#1a0f0a]/80">
+                {(items as string[]).map((i) => (
+                  <li key={i}>
+                    <a href="#" className="hover:text-[#ea580c]" data-cursor>
+                      {i}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-[#1a0f0a]/10 pt-8 text-xs text-[#1a0f0a]/50 md:flex-row">
+          <span>© {new Date().getFullYear()} Nexsiles. Todos os direitos reservados.</span>
+          <div className="flex items-center gap-3">
+            <a
+              href="https://instagram.com"
+              target="_blank"
+              rel="noreferrer"
+              className="grid h-9 w-9 place-items-center rounded-full border border-[#1a0f0a]/10 hover:border-[#ea580c] hover:text-[#ea580c]"
+              data-cursor
+            >
+              <Instagram className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ============ PAGE ============ */
+export default function LandingPage() {
+  return (
+    <div className="relative min-h-screen overflow-x-hidden bg-white text-[#1a0f0a] antialiased">
+      <Cursor />
+      <ScrollBar />
+      <Nav />
+      <main>
+        <Hero />
+        <Strip />
+        <About />
+        <Features />
+        <StickyShowcase />
+        <Personas />
+        <Testimonials />
+        <Pricing />
+        <Faq />
+        <CTA />
+      </main>
+      <Footer />
     </div>
   );
 }
