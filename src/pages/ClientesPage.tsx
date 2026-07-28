@@ -262,6 +262,10 @@ export default function ClientesPage() {
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTimelineCliente(cliente)}>
+                        <History className="w-4 h-4 mr-2" />
+                        Histórico
+                      </DropdownMenuItem>
                       {cliente.telefone && (
                         <DropdownMenuItem onClick={() => openWhatsApp(cliente.telefone!, `Olá ${cliente.nome}!`)}>
                           <MessageCircle className="w-4 h-4 mr-2" />
