@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { captureError } from '../_shared/logger.ts';
+import { rateLimit, getClientIp } from '../_shared/rate-limit.ts';
 
 const FUNCTION_NAME = 'admin-assinaturas';
 
@@ -16,6 +17,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Rate limit by IP - admin endpoint should not be hammered
+  const rl = await rateLimit(req, FUNCTION_NAME, { maxRequests: 120, windowSeconds: 60 });
+  if (rl) return rl;
+
+
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
