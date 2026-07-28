@@ -5852,7 +5852,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_edge_function_errors: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cleanup_webhook_queue: { Args: never; Returns: undefined }
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
       criar_interesse_maleta: {
         Args: {
