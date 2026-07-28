@@ -4,9 +4,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/cors.ts";
-import { createLogger } from "../_shared/logger.ts";
+import { createLogger, captureError } from "../_shared/logger.ts";
 
 const log = createLogger("process-webhook-queue");
+const FUNCTION_NAME = "process-webhook-queue";
 const MAX_ATTEMPTS = 5;
 const BATCH_SIZE = 25;
 
@@ -143,6 +144,7 @@ serve(async (_req: Request) => {
       const finalStatus = newAttempts >= MAX_ATTEMPTS ? "failed" : "pending";
       await supabase.from("webhook_queue").update({ status: finalStatus, last_error: err.message?.slice(0, 500) }).eq("id", it.id);
       log.error("Process failed", { id: it.id, attempts: newAttempts, error: err.message });
+      await captureError({ functionName: FUNCTION_NAME, error: err, statusCode: finalStatus === "failed" ? 500 : 202, requestPayload: { queue_id: it.id, source: it.source, attempts: newAttempts } });
       fail++;
     }
   }

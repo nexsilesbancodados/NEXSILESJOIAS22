@@ -4,6 +4,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
 import { computeOrderTotals } from "../_shared/pricing.ts";
+import { captureError } from "../_shared/logger.ts";
+
+const FUNCTION_NAME = "ecommerce-checkout";
 
 const CheckoutSchema = z.object({
   items: z.array(z.object({
@@ -318,6 +321,7 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Error in ecommerce-checkout:", error);
+    await captureError({ functionName: FUNCTION_NAME, error, statusCode: 400, requestIp: req.headers.get("x-forwarded-for") ?? undefined });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
