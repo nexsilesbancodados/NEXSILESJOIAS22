@@ -375,43 +375,81 @@ export default function PDVPage() {
     }
 
     const vendaId = crypto.randomUUID();
-    
-    // Increment coupon usage if applied
-    if (cupomAplicado?.id) {
-      await usarCupom.mutateAsync(cupomAplicado.id);
-    }
-    
-    // Build venda object matching actual database schema
-    const vendaData = await addVenda.mutateAsync({
-      venda: {
-        valor_total: totalCarrinho,
+
+    const vendaPayload = {
+      valor_total: totalCarrinho,
+      subtotal: subtotalCarrinho,
+      desconto: totalDesconto,
+      cliente_id: clienteSelecionado?.id || null,
+      revendedora_id: null as string | null,
+      status: 'finalizada',
+      observacoes: isFiado
+        ? `Fiado - Vence: ${fiadoVencimento}${cupomAplicado ? ` | Cupom: ${cupomAplicado.nome}` : ''}`
+        : (cupomAplicado ? `Cupom: ${cupomAplicado.nome}` : null),
+      forma_pagamento: isFiado ? 'fiado' : (pagamentos[0]?.metodo || 'dinheiro'),
+      parcelas: 1,
+    };
+
+    const itemsPayload = carrinho.map(item => ({
+      peca_id: item.peca.id,
+      quantidade: item.quantidade,
+      preco_unitario: item.peca.preco_venda || 0,
+      subtotal: (item.peca.preco_venda || 0) * item.quantidade,
+    }));
+
+    const fiadoPayload = (isFiado && clienteSelecionado)
+      ? {
+          cliente_id: clienteSelecionado.id,
+          valor_total: totalCarrinho,
+          data_vencimento: fiadoVencimento,
+          observacoes: `Venda PDV - ${new Date().toLocaleDateString('pt-BR')}`,
+        }
+      : undefined;
+
+    let vendaData: any = null;
+
+    if (!navigator.onLine) {
+      // OFFLINE — save locally, sync when connection returns
+      await enqueueOfflineVenda({
+        id: vendaId,
+        itens: carrinho.map((item) => ({
+          peca_id: item.peca.id,
+          peca_nome: item.peca.nome,
+          quantidade: item.quantidade,
+          preco_unitario: item.peca.preco_venda || 0,
+        })),
+        pagamentos: isFiado ? [{ metodo: 'fiado', valor: totalCarrinho }] : [...pagamentos],
+        total: totalCarrinho,
         subtotal: subtotalCarrinho,
         desconto: totalDesconto,
-        cliente_id: clienteSelecionado?.id || null,
-        revendedora_id: null,
-        status: 'finalizada',
-        observacoes: isFiado ? `Fiado - Vence: ${fiadoVencimento}${cupomAplicado ? ` | Cupom: ${cupomAplicado.nome}` : ''}` : (cupomAplicado ? `Cupom: ${cupomAplicado.nome}` : null),
-        forma_pagamento: isFiado ? 'fiado' : (pagamentos[0]?.metodo || 'dinheiro'),
-        parcelas: 1,
-      },
-      items: carrinho.map(item => ({
-        peca_id: item.peca.id,
-        quantidade: item.quantidade,
-        preco_unitario: item.peca.preco_venda || 0,
-        subtotal: (item.peca.preco_venda || 0) * item.quantidade,
-      })),
-      caixaSessaoId: caixaAtual.id,
-    });
-
-    // Registrar fiado se for pagamento a prazo
-    if (isFiado && clienteSelecionado) {
-      await addFiado.mutateAsync({
-        cliente_id: clienteSelecionado.id,
-        venda_id: vendaData?.id || null,
-        valor_total: totalCarrinho,
-        data_vencimento: fiadoVencimento,
-        observacoes: `Venda PDV - ${new Date().toLocaleDateString('pt-BR')}`,
+        cliente_nome: clienteSelecionado?.nome || null,
+        created_at: new Date().toISOString(),
+        synced: false,
+        payload: {
+          venda: vendaPayload,
+          items: itemsPayload,
+          caixaSessaoId: caixaAtual.id,
+          cupomId: cupomAplicado?.id,
+          fiado: fiadoPayload,
+        },
       });
+      toast.success('Sem conexão — venda salva localmente e será sincronizada.');
+    } else {
+      // ONLINE — normal flow
+      if (cupomAplicado?.id) {
+        await usarCupom.mutateAsync(cupomAplicado.id);
+      }
+      vendaData = await addVenda.mutateAsync({
+        venda: vendaPayload,
+        items: itemsPayload,
+        caixaSessaoId: caixaAtual.id,
+      });
+      if (fiadoPayload) {
+        await addFiado.mutateAsync({
+          ...fiadoPayload,
+          venda_id: vendaData?.id || null,
+        } as any);
+      }
     }
 
     const vendaLocal: VendaLocal = {
