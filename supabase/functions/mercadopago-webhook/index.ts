@@ -9,9 +9,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyMercadoPagoSignature } from "../_shared/hmac.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
-import { createLogger } from "../_shared/logger.ts";
+import { createLogger, captureError } from "../_shared/logger.ts";
 
 const log = createLogger("mercadopago-webhook");
+const FUNCTION_NAME = "mercadopago-webhook";
+const IS_PROD = (Deno.env.get("MERCADOPAGO_ENV") ?? "").toLowerCase() === "production"
+  || (Deno.env.get("ENVIRONMENT") ?? "").toLowerCase() === "production";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
