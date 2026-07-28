@@ -2,6 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
+import { captureError } from "../_shared/logger.ts";
+
+const FUNCTION_NAME = "criar-codigo-externo";
 
 const BodySchema = z.object({
   email: z.string().email().max(255),
