@@ -69,6 +69,7 @@ import { ConsultaPrecoModal } from '@/components/pdv/ConsultaPrecoModal';
 import { TrocaDevolucaoModal } from '@/components/pdv/TrocaDevolucaoModal';
 import { OfflineIndicator } from '@/components/pdv/OfflineIndicator';
 import { OfflineSyncDashboard } from '@/components/pdv/OfflineSyncDashboard';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { FechamentoCaixaReport } from '@/components/pdv/FechamentoCaixaReport';
 import { toast } from 'sonner';
 import { CupomInput } from '@/components/pdv/CupomInput';
