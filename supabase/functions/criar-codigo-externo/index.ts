@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
 
     if (error) {
       console.error("Error inserting codigo:", error);
+      await captureError({ functionName: FUNCTION_NAME, error, statusCode: 500, requestPayload: { email, plano } });
       return new Response(
         JSON.stringify({ error: "Failed to create access code", details: error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("Unexpected error:", err);
+    await captureError({ functionName: FUNCTION_NAME, error: err, statusCode: 500, requestIp: req.headers.get("x-forwarded-for") ?? undefined });
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
