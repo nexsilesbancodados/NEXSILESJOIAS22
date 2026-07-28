@@ -133,6 +133,24 @@ export default function PDVPage() {
   const { isFullscreen, isSupported: fullscreenSupported, toggleFullscreen } = useFullscreen();
   const { enqueue: enqueueOfflineVenda } = useOfflineSync();
 
+  // Prefetch peças pro IndexedDB (permite PDV usar catálogo em cold-start offline)
+  useEffect(() => {
+    if (!pecas.length) return;
+    import('@/lib/indexeddb').then(({ cachePecas }) => {
+      cachePecas(
+        pecas.map((p) => ({
+          id: p.id,
+          codigo: p.codigo || '',
+          nome: p.nome,
+          preco_venda: p.preco_venda || 0,
+          quantidade: p.quantidade || 0,
+          categoria: p.categoria || '',
+          imagem_url: p.imagem_url || null,
+        })) as any,
+      ).catch(() => null);
+    });
+  }, [pecas]);
+
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstoque, setFilterEstoque] = useState<'all' | 'disponivel' | 'baixo'>('disponivel');
