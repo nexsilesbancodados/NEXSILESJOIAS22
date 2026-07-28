@@ -249,6 +249,11 @@ export default function DashboardPage() {
       {/* Ações de hoje - agrupa alertas críticos */}
       <AcoesDeHojeCard />
 
+      {/* Metas & ranking gamificado das revendedoras */}
+      <MetasRankingWidget />
+
+
+
       {/* Quick Actions - Glass Morphism Style */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
