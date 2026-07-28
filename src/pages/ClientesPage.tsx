@@ -419,6 +419,25 @@ export default function ClientesPage() {
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
       />
+
+      {/* Timeline Cliente */}
+      <Dialog open={!!timelineCliente} onOpenChange={(o) => !o && setTimelineCliente(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">
+              Histórico — {timelineCliente?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          {timelineCliente && (
+            <TimelineAtividades
+              tabela="clientes"
+              registroId={timelineCliente.id}
+              height={480}
+              title="Atividades do cliente"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
