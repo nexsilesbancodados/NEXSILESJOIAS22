@@ -248,27 +248,12 @@ function Hero() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.7 }}
-              className="mt-12 flex items-center gap-6 text-sm text-[#1a0f0a]/60"
+              className="mt-12 flex items-center gap-3 text-sm text-[#1a0f0a]/60"
             >
-              <div className="flex -space-x-2">
-                {[tAmanda, tCarla, tFernanda, tJuliana].map((s, i) => (
-                  <img
-                    key={i}
-                    src={s}
-                    alt=""
-                    className="w-9 h-9 rounded-full border-2 border-white object-cover"
-                  />
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center gap-1 text-[#f59e0b]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                  ))}
-                </div>
-                <div>+2.000 lojistas confiam</div>
-              </div>
+              <Check className="w-4 h-4 text-[#ea580c]" />
+              Sem fidelidade · Cancele quando quiser · Suporte humano
             </motion.div>
+
           </div>
 
           {/* right visual — collage */}
@@ -302,8 +287,8 @@ function Hero() {
                 <BarChart3 className="w-5 h-5 text-[#ea580c]" />
               </div>
               <div>
-                <div className="text-xs text-[#1a0f0a]/60">Vendas hoje</div>
-                <div className="font-serif text-lg text-[#1a0f0a]">R$ 4.280</div>
+                <div className="text-xs text-[#1a0f0a]/60">Dashboard</div>
+                <div className="font-serif text-lg text-[#1a0f0a]">Vendas em tempo real</div>
               </div>
             </motion.div>
             <motion.div
@@ -316,8 +301,9 @@ function Hero() {
                 <Package className="w-5 h-5 text-[#f43f5e]" />
               </div>
               <div>
-                <div className="text-xs text-[#1a0f0a]/60">Peças em estoque</div>
-                <div className="font-serif text-lg text-[#1a0f0a]">1.284</div>
+                <div className="text-xs text-[#1a0f0a]/60">Estoque</div>
+                <div className="font-serif text-lg text-[#1a0f0a]">Controle total</div>
+
               </div>
             </motion.div>
           </div>
@@ -327,34 +313,35 @@ function Hero() {
   );
 }
 
-/* ============ LOGO MARQUEE / STATS ============ */
+/* ============ PILLARS ============ */
 function Stats() {
   const items = [
-    ["+2.000", "Lojistas ativos"],
-    ["R$ 48M", "Vendas processadas"],
-    ["99.9%", "Uptime garantido"],
-    ["24/7", "Suporte humano"],
+    ["Tudo integrado", "Estoque, PDV, catálogo e loja virtual em um só painel."],
+    ["Feito para semijoias", "Cada tela pensada para o giro, a maleta e a revendedora."],
+    ["Sem taxa por venda", "Você paga a mensalidade. O lucro é todo seu."],
+    ["Suporte humano", "Atendimento por WhatsApp com gente que conhece o produto."],
   ];
   return (
     <section className="py-20 md:py-28 border-y border-[#1a0f0a]/8 bg-[#fffaf5]">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-10 grid grid-cols-2 md:grid-cols-4 gap-8">
-        {items.map(([v, l], i) => (
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-10">
+        {items.map(([t, d], i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: EASE, delay: i * 0.1 }}
-            className="text-center md:text-left"
           >
-            <div className="font-serif text-4xl md:text-6xl text-[#1a0f0a] tracking-tight">{v}</div>
-            <div className="mt-2 text-sm text-[#1a0f0a]/60 uppercase tracking-[0.15em]">{l}</div>
+            <div className="w-10 h-[1px] bg-[#ea580c] mb-5" />
+            <div className="font-serif text-2xl md:text-3xl text-[#1a0f0a] tracking-tight leading-tight">{t}</div>
+            <div className="mt-3 text-sm text-[#1a0f0a]/60 leading-relaxed">{d}</div>
           </motion.div>
         ))}
       </div>
     </section>
   );
 }
+
 
 /* ============ FEATURES GRID ============ */
 function Features() {
