@@ -1812,6 +1812,20 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         comissaoPercentual={comissaoPercentual}
         onFechado={onClose}
       />
+
+      <Dialog open={atividadesOpen} onOpenChange={setAtividadesOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Atividades da maleta</DialogTitle>
+          </DialogHeader>
+          <TimelineAtividades
+            tabela="maletas"
+            registroId={maleta.id}
+            height={500}
+            title={maleta.nome || `Maleta #${maleta.id.slice(-4)}`}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });
