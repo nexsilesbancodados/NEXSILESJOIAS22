@@ -6,21 +6,21 @@ import {
   useTransform,
   useSpring,
   useMotionValue,
-  useVelocity,
-  useAnimationFrame,
   AnimatePresence,
-  wrap,
 } from "framer-motion";
 import {
   ArrowUpRight,
   ArrowRight,
-  Sparkles,
   Check,
   Star,
   Instagram,
-  Play,
-  Zap,
-  Heart,
+  Sparkles,
+  Store,
+  Package,
+  Users,
+  ShoppingBag,
+  BarChart3,
+  Smartphone,
 } from "lucide-react";
 
 import warm01 from "@/assets/landing-warm-01.jpg";
@@ -44,10 +44,10 @@ import tPatricia from "@/assets/testimonial-patricia.jpg";
 /* ---------- palette (warm on white) ----------
    bg      #ffffff
    ink     #1a0f0a
-   ember   #ea580c  (primary warm)
+   ember   #ea580c  primary
    coral   #f43f5e
    amber   #f59e0b
-   sand    #fef3c7 / #fde68a
+   sand    #fef3c7
 ------------------------------------------------- */
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -75,28 +75,22 @@ function Cursor() {
       style={{ x: sx, y: sy }}
     >
       <motion.div
-        className="rounded-full bg-[#ea580c] mix-blend-multiply"
-        animate={{
-          width: hover ? 56 : 14,
-          height: hover ? 56 : 14,
-          x: hover ? -28 : -7,
-          y: hover ? -28 : -7,
-          opacity: hover ? 0.9 : 0.7,
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="rounded-full bg-[#ea580c] mix-blend-multiply -translate-x-1/2 -translate-y-1/2"
+        animate={{ width: hover ? 56 : 12, height: hover ? 56 : 12, opacity: hover ? 0.35 : 0.9 }}
+        transition={{ duration: 0.25, ease: EASE }}
       />
     </motion.div>
   );
 }
 
 /* ============ SCROLL PROGRESS ============ */
-function ScrollBar() {
+function Progress() {
   const { scrollYProgress } = useScroll();
   const w = useSpring(scrollYProgress, { stiffness: 120, damping: 20 });
   return (
     <motion.div
-      className="fixed left-0 top-0 z-[90] h-[3px] w-full origin-left bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#f43f5e]"
       style={{ scaleX: w }}
+      className="fixed top-0 left-0 right-0 h-[2px] origin-left z-[90] bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#f43f5e]"
     />
   );
 }
@@ -105,456 +99,299 @@ function ScrollBar() {
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
-    const onS = () => setScrolled(window.scrollY > 40);
-    onS();
-    window.addEventListener("scroll", onS);
-    return () => window.removeEventListener("scroll", onS);
+    const s = () => setScrolled(window.scrollY > 20);
+    s();
+    window.addEventListener("scroll", s);
+    return () => window.removeEventListener("scroll", s);
   }, []);
+  const links = [
+    ["Recursos", "#recursos"],
+    ["Módulos", "#modulos"],
+    ["Clientes", "#clientes"],
+    ["Preço", "#preco"],
+    ["FAQ", "#faq"],
+  ];
   return (
-    <motion.header
-      initial={{ y: -60, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: EASE }}
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+    <header
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-white/80 backdrop-blur-xl border-b border-[#1a0f0a]/8"
-          : "bg-transparent"
+          ? "bg-white/85 backdrop-blur-xl border-b border-[#1a0f0a]/8 py-3"
+          : "bg-transparent py-5"
       }`}
     >
-      <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-4 lg:px-10">
-        <Link to="/landing" className="flex items-center gap-2" data-cursor>
-          <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#f59e0b] to-[#ea580c] text-white">
-            <Sparkles className="h-4 w-4" />
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 flex items-center justify-between">
+        <Link to="/landing" className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f59e0b] to-[#f43f5e] flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-white" />
           </div>
-          <span className="text-lg font-semibold tracking-tight text-[#1a0f0a]">
-            Nexsiles
-          </span>
+          <span className="font-serif text-xl text-[#1a0f0a] tracking-tight">Nexsiles</span>
         </Link>
-        <nav className="hidden items-center gap-8 md:flex">
-          {[
-            ["Sobre", "#sobre"],
-            ["Recursos", "#recursos"],
-            ["Depoimentos", "#depoimentos"],
-            ["Plano", "#plano"],
-            ["FAQ", "#faq"],
-          ].map(([l, h]) => (
-            <a
-              key={h}
-              href={h}
-              className="group relative text-sm text-[#1a0f0a]/70 transition hover:text-[#1a0f0a]"
-              data-cursor
-            >
+        <nav className="hidden md:flex items-center gap-8 text-sm text-[#1a0f0a]/70">
+          {links.map(([l, h]) => (
+            <a key={h} href={h} className="hover:text-[#ea580c] transition-colors">
               {l}
-              <span className="absolute -bottom-1 left-0 h-[1px] w-0 bg-[#ea580c] transition-all duration-300 group-hover:w-full" />
             </a>
           ))}
         </nav>
-        <Link
-          to="/auth"
-          className="group inline-flex items-center gap-2 rounded-full bg-[#1a0f0a] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#ea580c]"
-          data-cursor
-        >
-          Começar
-          <ArrowUpRight className="h-4 w-4 transition-transform group-hover:rotate-45" />
-        </Link>
-      </div>
-    </motion.header>
-  );
-}
-
-/* ============ REVEAL TEXT ============ */
-function Reveal({
-  children,
-  delay = 0,
-  className = "",
-  as: As = "div",
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-  as?: any;
-}) {
-  return (
-    <motion.div
-      initial={{ y: 40, opacity: 0 }}
-      whileInView={{ y: 0, opacity: 1 }}
-      viewport={{ once: true, margin: "-80px" }}
-      transition={{ duration: 0.9, ease: EASE, delay }}
-      className={className}
-    >
-      <As>{children}</As>
-    </motion.div>
-  );
-}
-
-/* ============ SPLIT WORDS ============ */
-function SplitWords({ text, className = "" }: { text: string; className?: string }) {
-  const words = text.split(" ");
-  return (
-    <span className={className}>
-      {words.map((w, i) => (
-        <span key={i} className="inline-block overflow-hidden pr-[0.25em] align-bottom">
-          <motion.span
-            className="inline-block"
-            initial={{ y: "110%" }}
-            whileInView={{ y: "0%" }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.9, ease: EASE, delay: i * 0.06 }}
+        <div className="flex items-center gap-3">
+          <Link
+            to="/auth"
+            className="hidden sm:inline text-sm text-[#1a0f0a]/70 hover:text-[#ea580c]"
           >
-            {w}
-          </motion.span>
-        </span>
-      ))}
-    </span>
-  );
-}
-
-/* ============ VELOCITY MARQUEE ============ */
-function Marquee({
-  children,
-  baseVelocity = 40,
-  className = "",
-}: {
-  children: React.ReactNode;
-  baseVelocity?: number;
-  className?: string;
-}) {
-  const baseX = useMotionValue(0);
-  const { scrollY } = useScroll();
-  const scrollVelocity = useVelocity(scrollY);
-  const smooth = useSpring(scrollVelocity, { damping: 50, stiffness: 400 });
-  const vFactor = useTransform(smooth, [0, 1000], [0, 5], { clamp: false });
-  const x = useTransform(baseX, (v) => `${wrap(-25, -75, v)}%`);
-  const dir = useRef(1);
-  useAnimationFrame((_t, delta) => {
-    let m = ((baseVelocity * delta) / 1000) * dir.current;
-    if (vFactor.get() < 0) dir.current = -1;
-    else if (vFactor.get() > 0) dir.current = 1;
-    m += dir.current * m * vFactor.get();
-    baseX.set(baseX.get() + m);
-  });
-  return (
-    <div className={`overflow-hidden whitespace-nowrap ${className}`}>
-      <motion.div className="flex whitespace-nowrap" style={{ x }}>
-        <span className="mr-12 inline-block">{children}</span>
-        <span className="mr-12 inline-block">{children}</span>
-        <span className="mr-12 inline-block">{children}</span>
-        <span className="mr-12 inline-block">{children}</span>
-      </motion.div>
-    </div>
+            Entrar
+          </Link>
+          <a
+            href="#preco"
+            className="text-sm bg-[#1a0f0a] text-white px-5 py-2.5 rounded-full hover:bg-[#ea580c] transition-colors inline-flex items-center gap-1.5"
+          >
+            Começar <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
+      </div>
+    </header>
   );
 }
 
 /* ============ HERO ============ */
 function Hero() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start start", "end start"],
-  });
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
   const y1 = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const y2 = useTransform(scrollYProgress, [0, 1], [0, -220]);
-  const y3 = useTransform(scrollYProgress, [0, 1], [0, -60]);
-  const rot = useTransform(scrollYProgress, [0, 1], [0, 12]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+  const y3 = useTransform(scrollYProgress, [0, 1], [0, -80]);
   const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
   return (
-    <section
-      ref={ref}
-      className="relative min-h-[100vh] overflow-hidden bg-white pb-24 pt-32 lg:pt-40"
-    >
-      {/* radial glow */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-1/2 h-[900px] w-[900px] -translate-x-1/2 rounded-full bg-gradient-to-br from-[#fef3c7] via-[#fed7aa]/50 to-transparent blur-3xl" />
-        <div className="absolute -right-40 top-1/3 h-[500px] w-[500px] rounded-full bg-[#f43f5e]/10 blur-3xl" />
+    <section ref={ref} className="relative pt-32 md:pt-40 pb-24 md:pb-32 overflow-hidden">
+      {/* soft warm background */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#fff7ed] via-white to-white" />
+        <div className="absolute top-1/4 -left-40 w-[500px] h-[500px] rounded-full bg-[#fed7aa] blur-[120px] opacity-60" />
+        <div className="absolute top-1/3 -right-40 w-[500px] h-[500px] rounded-full bg-[#fecdd3] blur-[120px] opacity-60" />
       </div>
 
-      {/* floating jewel images */}
-      <motion.img
-        src={warm01}
-        alt=""
-        style={{ y: y1, rotate: rot }}
-        className="absolute right-[4%] top-[18%] hidden h-52 w-40 rounded-2xl object-cover shadow-2xl md:block lg:h-72 lg:w-56"
-      />
-      <motion.img
-        src={warm04}
-        alt=""
-        style={{ y: y2 }}
-        className="absolute left-[3%] top-[60%] hidden h-44 w-36 rounded-2xl object-cover shadow-xl md:block lg:h-60 lg:w-48"
-      />
-      <motion.img
-        src={warm06}
-        alt=""
-        style={{ y: y3, scale }}
-        className="absolute right-[8%] top-[72%] hidden h-36 w-36 rounded-full object-cover shadow-xl lg:block"
-      />
-
-      <motion.div
-        style={{ opacity }}
-        className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-10"
-      >
-        <Reveal className="mb-8 flex items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#ea580c]/20 bg-[#fef3c7]/60 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-[#9a3412]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#ea580c]" />
-            Sistema completo · Semijoias
-          </span>
-        </Reveal>
-
-        <h1 className="max-w-5xl font-serif text-[clamp(3rem,10vw,10rem)] font-normal leading-[0.95] tracking-[-0.03em] text-[#1a0f0a]">
-          <div className="overflow-hidden">
-            <SplitWords text="Sua marca," />
-          </div>
-          <div className="overflow-hidden">
-            <SplitWords
-              text="brilhando"
-              className="italic text-transparent bg-clip-text bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#f43f5e]"
-            />
-          </div>
-          <div className="overflow-hidden">
-            <SplitWords text="sem parar." />
-          </div>
-        </h1>
-
-        <div className="mt-12 grid gap-10 lg:grid-cols-[1.4fr,1fr] lg:items-end">
-          <Reveal delay={0.4}>
-            <p className="max-w-xl text-lg text-[#1a0f0a]/70 lg:text-xl">
-              O sistema que gerencia estoque, PDV, revendedoras, maletas em consignação,
-              catálogos e loja online — tudo em um só lugar, feito para quem vive de
-              semijoia.
-            </p>
-          </Reveal>
-          <Reveal delay={0.5}>
-            <div className="flex flex-col items-start gap-4 sm:flex-row lg:justify-end">
-              <Link
-                to="/auth"
-                className="group inline-flex items-center gap-3 rounded-full bg-[#1a0f0a] px-7 py-4 text-sm font-medium text-white transition hover:bg-[#ea580c]"
-                data-cursor
-              >
-                Começar agora
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-white/15 transition group-hover:rotate-45">
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </span>
-              </Link>
-              <a
-                href="#recursos"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#1a0f0a] underline-offset-4 hover:underline"
-                data-cursor
-              >
-                <Play className="h-4 w-4" /> Ver como funciona
-              </a>
-            </div>
-          </Reveal>
-        </div>
-
-        {/* stats */}
-        <Reveal delay={0.7} className="mt-24 grid grid-cols-2 gap-8 border-t border-[#1a0f0a]/10 pt-10 md:grid-cols-4">
-          {[
-            ["+2.4k", "lojistas ativas"],
-            ["R$ 38M", "processados/mês"],
-            ["99.9%", "uptime garantido"],
-            ["4.9★", "avaliação média"],
-          ].map(([n, l]) => (
-            <div key={l}>
-              <div className="font-serif text-4xl text-[#1a0f0a] lg:text-5xl">{n}</div>
-              <div className="mt-1 text-xs uppercase tracking-widest text-[#1a0f0a]/50">
-                {l}
-              </div>
-            </div>
-          ))}
-        </Reveal>
-      </motion.div>
-    </section>
-  );
-}
-
-/* ============ MARQUEE STRIP ============ */
-function Strip() {
-  return (
-    <section className="relative border-y border-[#1a0f0a]/10 bg-gradient-to-r from-[#fef3c7] via-white to-[#fed7aa]/60 py-8">
-      <Marquee baseVelocity={30}>
-        <span className="flex items-center gap-8 font-serif text-4xl italic text-[#1a0f0a] md:text-6xl">
-          Estoque
-          <Sparkles className="h-6 w-6 text-[#ea580c]" />
-          Maletas
-          <Sparkles className="h-6 w-6 text-[#f43f5e]" />
-          Revendedoras
-          <Sparkles className="h-6 w-6 text-[#f59e0b]" />
-          Catálogo Online
-          <Sparkles className="h-6 w-6 text-[#ea580c]" />
-          PDV
-          <Sparkles className="h-6 w-6 text-[#f43f5e]" />
-          Loja Virtual
-          <Sparkles className="h-6 w-6 text-[#f59e0b]" />
-        </span>
-      </Marquee>
-    </section>
-  );
-}
-
-/* ============ ABOUT ============ */
-function About() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const imgY = useTransform(scrollYProgress, [0, 1], [80, -80]);
-  return (
-    <section ref={ref} id="sobre" className="relative bg-white py-32 lg:py-44">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
-        <div className="grid gap-16 lg:grid-cols-[1fr,1.3fr] lg:gap-24">
-          <Reveal>
-            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
-              ( 01 ) Sobre
-            </div>
-            <h2 className="mt-8 font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
-              Nascemos <em className="italic text-[#ea580c]">dentro</em> do balcão da
-              semijoia.
-            </h2>
-            <p className="mt-8 max-w-md text-[#1a0f0a]/70">
-              Cansadas de planilhas, cadernos e apps genéricos, criamos o Nexsiles com
-              lojistas reais — cada tela, cada botão, cada relatório resolve uma dor que
-              nasceu no chão de loja.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              {["Feito no Brasil", "Suporte humano", "Atualizações semanais"].map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full border border-[#1a0f0a]/15 px-4 py-2 text-xs text-[#1a0f0a]/70"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </Reveal>
-
-          <div className="relative">
-            <motion.img
-              src={warm05}
-              alt="Lojista de semijoia"
-              style={{ y: imgY }}
-              className="aspect-[4/5] w-full rounded-2xl object-cover shadow-2xl"
-              loading="lazy"
-            />
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <motion.div style={{ opacity }} className="grid md:grid-cols-12 gap-10 items-center">
+          {/* left copy */}
+          <div className="md:col-span-7">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotate: -6 }}
-              whileInView={{ opacity: 1, scale: 1, rotate: -3 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, ease: EASE, delay: 0.3 }}
-              className="absolute -bottom-6 -left-6 w-64 rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-[#1a0f0a]/5"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: EASE }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[#1a0f0a]/10 shadow-sm text-xs uppercase tracking-[0.15em] text-[#1a0f0a]/70 mb-8"
             >
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-[#fef3c7]">
-                  <Heart className="h-5 w-5 text-[#ea580c]" />
-                </div>
-                <div>
-                  <div className="text-xs uppercase tracking-widest text-[#1a0f0a]/50">
-                    Satisfação
-                  </div>
-                  <div className="font-serif text-2xl text-[#1a0f0a]">98%</div>
-                </div>
+              <span className="w-1.5 h-1.5 rounded-full bg-[#ea580c] animate-pulse" />
+              Plataforma nº1 para semijoias no Brasil
+            </motion.div>
+
+            <h1 className="font-serif text-[52px] md:text-[88px] lg:text-[104px] leading-[0.92] tracking-[-0.03em] text-[#1a0f0a]">
+              <motion.span
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: EASE }}
+                className="block"
+              >
+                Sua loja de
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: EASE, delay: 0.1 }}
+                className="block italic"
+              >
+                <span className="bg-gradient-to-r from-[#f59e0b] via-[#ea580c] to-[#f43f5e] bg-clip-text text-transparent">
+                  semijoias
+                </span>
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease: EASE, delay: 0.2 }}
+                className="block"
+              >
+                em um só lugar.
+              </motion.span>
+            </h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: EASE, delay: 0.35 }}
+              className="mt-8 text-lg md:text-xl text-[#1a0f0a]/70 max-w-xl leading-relaxed"
+            >
+              Estoque, PDV, revendedoras, catálogo digital e loja virtual — tudo integrado,
+              bonito e feito para quem vive de brilho.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: EASE, delay: 0.45 }}
+              className="mt-10 flex flex-wrap items-center gap-4"
+            >
+              <a
+                href="#preco"
+                className="group inline-flex items-center gap-2 bg-[#1a0f0a] text-white px-8 py-4 rounded-full hover:bg-[#ea580c] transition-colors"
+              >
+                Começar por R$129/mês
+                <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+              </a>
+              <a
+                href="#modulos"
+                className="inline-flex items-center gap-2 text-[#1a0f0a] px-6 py-4 rounded-full border border-[#1a0f0a]/15 hover:border-[#ea580c] hover:text-[#ea580c] transition-colors"
+              >
+                Ver módulos
+              </a>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.7 }}
+              className="mt-12 flex items-center gap-6 text-sm text-[#1a0f0a]/60"
+            >
+              <div className="flex -space-x-2">
+                {[tAmanda, tCarla, tFernanda, tJuliana].map((s, i) => (
+                  <img
+                    key={i}
+                    src={s}
+                    alt=""
+                    className="w-9 h-9 rounded-full border-2 border-white object-cover"
+                  />
+                ))}
               </div>
-              <p className="mt-3 text-xs text-[#1a0f0a]/60">
-                das lojistas indicam o Nexsiles pra outra colega.
-              </p>
+              <div>
+                <div className="flex items-center gap-1 text-[#f59e0b]">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-3.5 h-3.5 fill-current" />
+                  ))}
+                </div>
+                <div>+2.000 lojistas confiam</div>
+              </div>
             </motion.div>
           </div>
-        </div>
+
+          {/* right visual — collage */}
+          <div className="md:col-span-5 relative h-[520px] md:h-[640px]">
+            <motion.div
+              style={{ y: y1 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: EASE, delay: 0.2 }}
+              className="absolute top-0 right-0 w-[75%] aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <img src={heroJewel} alt="" className="w-full h-full object-cover" />
+            </motion.div>
+            <motion.div
+              style={{ y: y2 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: EASE, delay: 0.4 }}
+              className="absolute bottom-8 left-0 w-[60%] aspect-square rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
+            >
+              <img src={warm02} alt="" className="w-full h-full object-cover" />
+            </motion.div>
+            <motion.div
+              style={{ y: y3 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.7 }}
+              className="absolute top-10 left-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-[#1a0f0a]/5"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#fef3c7] flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-[#ea580c]" />
+              </div>
+              <div>
+                <div className="text-xs text-[#1a0f0a]/60">Vendas hoje</div>
+                <div className="font-serif text-lg text-[#1a0f0a]">R$ 4.280</div>
+              </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.9 }}
+              className="absolute bottom-4 right-8 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3 border border-[#1a0f0a]/5"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#fecdd3] flex items-center justify-center">
+                <Package className="w-5 h-5 text-[#f43f5e]" />
+              </div>
+              <div>
+                <div className="text-xs text-[#1a0f0a]/60">Peças em estoque</div>
+                <div className="font-serif text-lg text-[#1a0f0a]">1.284</div>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
 }
 
-/* ============ FEATURES ============ */
-const FEATURES = [
-  {
-    n: "01",
-    t: "Estoque em tempo real",
-    d: "Cada peça rastreada com custo, margem e alertas de reposição inteligente.",
-    img: warm03,
-  },
-  {
-    n: "02",
-    t: "PDV que voa",
-    d: "Venda em 3 toques, com fiado, PIX, cartão e comprovante no WhatsApp.",
-    img: pdvMock,
-  },
-  {
-    n: "03",
-    t: "Maletas em consignação",
-    d: "Assinatura digital, fechamento automático e comissão sem dor de cabeça.",
-    img: warm01,
-  },
-  {
-    n: "04",
-    t: "Loja online própria",
-    d: "Catálogo público com checkout Mercado Pago e PIX direto pra sua conta.",
-    img: lojaMock,
-  },
-  {
-    n: "05",
-    t: "Revendedoras conectadas",
-    d: "App PWA exclusivo pra sua rede vender de onde estiver.",
-    img: warm02,
-  },
-  {
-    n: "06",
-    t: "IA Bella 24/7",
-    d: "Vendedora virtual no WhatsApp com carrinho, catálogo e persona da sua marca.",
-    img: dashMock,
-  },
-];
-
-function Features() {
+/* ============ LOGO MARQUEE / STATS ============ */
+function Stats() {
+  const items = [
+    ["+2.000", "Lojistas ativos"],
+    ["R$ 48M", "Vendas processadas"],
+    ["99.9%", "Uptime garantido"],
+    ["24/7", "Suporte humano"],
+  ];
   return (
-    <section id="recursos" className="relative bg-[#fffaf3] py-32 lg:py-44">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
-        <div className="mb-20 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
-              ( 02 ) Recursos
-            </div>
-            <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
-              Tudo o que você precisa,{" "}
-              <em className="italic text-[#ea580c]">nada</em> que atrapalhe.
-            </h2>
-          </div>
-          <p className="max-w-sm text-[#1a0f0a]/70">
-            Um único painel — do estoque à loja online — pensado pra lojista real, não
-            pra manual de software.
-          </p>
-        </div>
+    <section className="py-20 md:py-28 border-y border-[#1a0f0a]/8 bg-[#fffaf5]">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+        {items.map(([v, l], i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: EASE, delay: i * 0.1 }}
+            className="text-center md:text-left"
+          >
+            <div className="font-serif text-4xl md:text-6xl text-[#1a0f0a] tracking-tight">{v}</div>
+            <div className="mt-2 text-sm text-[#1a0f0a]/60 uppercase tracking-[0.15em]">{l}</div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <motion.article
-              key={f.n}
-              initial={{ y: 60, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.8, ease: EASE, delay: (i % 3) * 0.1 }}
-              whileHover={{ y: -8 }}
-              className="group relative overflow-hidden rounded-3xl bg-white p-6 shadow-sm ring-1 ring-[#1a0f0a]/5 transition-all hover:shadow-2xl"
-              data-cursor
+/* ============ FEATURES GRID ============ */
+function Features() {
+  const items = [
+    { icon: Store, title: "PDV completo", desc: "Vendas rápidas, cupom fiscal, formas de pagamento e caixa fechado no clique." },
+    { icon: Package, title: "Estoque real", desc: "Movimentações automáticas, alertas de baixa e histórico de preços." },
+    { icon: Users, title: "Revendedoras", desc: "Maletas, comissões, portal PWA e conferência com scanner." },
+    { icon: ShoppingBag, title: "Loja virtual", desc: "Vitrine pública, checkout Mercado Pago e PIX direto para você." },
+    { icon: BarChart3, title: "Relatórios", desc: "Métricas de lucro, giro, top vendedoras e projeção de estoque." },
+    { icon: Smartphone, title: "Multiplataforma", desc: "Web, tablet e celular. PWA offline para o PDV e para a revendedora." },
+  ];
+  return (
+    <section id="recursos" className="py-28 md:py-36">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <div className="max-w-3xl mb-16 md:mb-20">
+          <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c] mb-4">01 — Recursos</div>
+          <h2 className="font-serif text-4xl md:text-6xl leading-[1.05] tracking-tight text-[#1a0f0a]">
+            Tudo o que sua loja precisa,
+            <span className="italic text-[#ea580c]"> nada que ela não precise.</span>
+          </h2>
+        </div>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((it, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6, ease: EASE, delay: (i % 3) * 0.1 }}
+              className="group p-8 rounded-3xl bg-white border border-[#1a0f0a]/8 hover:border-[#ea580c]/40 hover:shadow-xl transition-all"
             >
-              <div className="relative mb-6 aspect-[4/3] overflow-hidden rounded-2xl bg-[#fef3c7]">
-                <motion.img
-                  src={f.img}
-                  alt={f.t}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                  whileHover={{ scale: 1.08 }}
-                  transition={{ duration: 0.7, ease: EASE }}
-                />
-                <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-medium tracking-widest text-[#1a0f0a] backdrop-blur">
-                  {f.n}
-                </div>
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#fed7aa] to-[#fecdd3] flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                <it.icon className="w-5 h-5 text-[#1a0f0a]" />
               </div>
-              <h3 className="font-serif text-2xl text-[#1a0f0a]">{f.t}</h3>
-              <p className="mt-3 text-sm text-[#1a0f0a]/60">{f.d}</p>
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium text-[#ea580c]">
-                Explorar
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
-              </div>
-            </motion.article>
+              <h3 className="font-serif text-2xl text-[#1a0f0a] mb-2">{it.title}</h3>
+              <p className="text-[#1a0f0a]/65 leading-relaxed">{it.desc}</p>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -562,78 +399,81 @@ function Features() {
   );
 }
 
-/* ============ STICKY SHOWCASE ============ */
-const SHOWCASE = [
-  { t: "Dashboard", d: "KPIs de venda, margem e ticket médio em tempo real.", img: dashMock },
-  { t: "PDV", d: "Venda com fiado, PIX, cartão e comprovante instantâneo.", img: pdvMock },
-  { t: "Loja Online", d: "Vitrine premium com checkout Mercado Pago.", img: lojaMock },
-];
-
-function StickyShowcase() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const [active, setActive] = useState(0);
-  useEffect(() => {
-    return scrollYProgress.on("change", (v) => {
-      const i = Math.min(SHOWCASE.length - 1, Math.floor(v * SHOWCASE.length));
-      setActive(i);
-    });
-  }, [scrollYProgress]);
+/* ============ MODULES SHOWCASE (alternating) ============ */
+function Modules() {
+  const rows = [
+    {
+      tag: "Gestão",
+      title: "Um dashboard que fala com você.",
+      desc: "Veja em segundos o que vendeu, o que está parado e onde está seu lucro. Cards vivos, gráficos limpos e insights com IA.",
+      img: dashMock,
+      bullets: ["Vendas em tempo real", "Alertas inteligentes", "Metas e ranking"],
+    },
+    {
+      tag: "Ponto de venda",
+      title: "PDV que voa, mesmo sem internet.",
+      desc: "Interface pensada para o toque, atalhos de teclado, leitor de código de barras e sincronização offline.",
+      img: pdvMock,
+      bullets: ["Modo offline", "Cupom fiscal", "Fidelidade & fiado"],
+    },
+    {
+      tag: "Loja virtual",
+      title: "Sua vitrine online, pronta em minutos.",
+      desc: "Domínio próprio, checkout completo, PIX direto e SEO otimizado — sem depender de marketplace.",
+      img: lojaMock,
+      bullets: ["Checkout MP + PIX", "SEO dinâmico", "Cupons e frete"],
+    },
+  ];
   return (
-    <section
-      ref={ref}
-      className="relative bg-white"
-      style={{ height: `${SHOWCASE.length * 100}vh` }}
-    >
-      <div className="sticky top-0 flex h-screen items-center overflow-hidden">
-        <div className="mx-auto grid w-full max-w-[1400px] gap-16 px-6 lg:grid-cols-2 lg:px-10">
-          <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
-              ( 03 ) Módulos
-            </div>
-            <AnimatePresence mode="wait">
+    <section id="modulos" className="py-28 md:py-36 bg-[#fffaf5]">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <div className="max-w-3xl mb-20">
+          <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c] mb-4">02 — Módulos</div>
+          <h2 className="font-serif text-4xl md:text-6xl leading-[1.05] tracking-tight text-[#1a0f0a]">
+            Três produtos.
+            <span className="italic"> Uma assinatura.</span>
+          </h2>
+        </div>
+
+        <div className="space-y-28 md:space-y-40">
+          {rows.map((r, i) => (
+            <div key={i} className={`grid md:grid-cols-2 gap-12 md:gap-20 items-center ${i % 2 ? "md:[direction:rtl]" : ""}`}>
               <motion.div
-                key={active}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
-                transition={{ duration: 0.5, ease: EASE }}
+                initial={{ opacity: 0, x: i % 2 ? 40 : -40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, ease: EASE }}
+                className="[direction:ltr]"
               >
-                <h3 className="mt-6 font-serif text-6xl text-[#1a0f0a] lg:text-8xl">
-                  {SHOWCASE[active].t}
-                </h3>
-                <p className="mt-6 max-w-md text-lg text-[#1a0f0a]/70">
-                  {SHOWCASE[active].d}
-                </p>
+                <div className="rounded-3xl overflow-hidden shadow-2xl border border-[#1a0f0a]/8 bg-white">
+                  <img src={r.img} alt={r.title} className="w-full h-auto" />
+                </div>
               </motion.div>
-            </AnimatePresence>
-            <div className="mt-10 flex gap-2">
-              {SHOWCASE.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1 w-12 rounded-full transition-all ${
-                    i === active ? "bg-[#ea580c]" : "bg-[#1a0f0a]/10"
-                  }`}
-                />
-              ))}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, ease: EASE, delay: 0.15 }}
+                className="[direction:ltr]"
+              >
+                <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c] mb-4">{r.tag}</div>
+                <h3 className="font-serif text-3xl md:text-5xl text-[#1a0f0a] leading-[1.05] tracking-tight mb-6">
+                  {r.title}
+                </h3>
+                <p className="text-lg text-[#1a0f0a]/70 leading-relaxed mb-8">{r.desc}</p>
+                <ul className="space-y-3">
+                  {r.bullets.map((b) => (
+                    <li key={b} className="flex items-center gap-3 text-[#1a0f0a]">
+                      <div className="w-5 h-5 rounded-full bg-[#ea580c]/10 flex items-center justify-center">
+                        <Check className="w-3 h-3 text-[#ea580c]" />
+                      </div>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
             </div>
-          </div>
-          <div className="relative flex items-center justify-center">
-            <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-[#fef3c7] via-[#fed7aa]/50 to-[#fecaca]/50" />
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={active}
-                src={SHOWCASE[active].img}
-                alt={SHOWCASE[active].t}
-                loading="lazy"
-                initial={{ y: 60, opacity: 0, scale: 0.95 }}
-                animate={{ y: 0, opacity: 1, scale: 1 }}
-                exit={{ y: -60, opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.7, ease: EASE }}
-                className="relative z-10 max-h-[75vh] w-[90%] rounded-2xl object-contain shadow-2xl"
-              />
-            </AnimatePresence>
-          </div>
+          ))}
         </div>
       </div>
     </section>
@@ -642,67 +482,35 @@ function StickyShowcase() {
 
 /* ============ PERSONAS ============ */
 function Personas() {
+  const items = [
+    { img: personaLoj, tag: "Para lojistas", title: "Controle total da sua operação", desc: "Do estoque ao lucro, com relatórios que valem por um gerente." },
+    { img: personaRev, tag: "Para revendedoras", title: "Um portal só para elas", desc: "Maleta, comissão, pedidos e histórico — no celular, offline." },
+  ];
   return (
-    <section className="relative bg-[#1a0f0a] py-32 text-white lg:py-44">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
-        <div className="mb-16">
-          <div className="text-xs uppercase tracking-[0.3em] text-[#f59e0b]">
-            ( 04 ) Pra quem é
-          </div>
-          <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[1.05] lg:text-7xl">
-            Feito pra{" "}
-            <em className="italic text-transparent bg-clip-text bg-gradient-to-r from-[#f59e0b] to-[#f43f5e]">
-              mulheres
-            </em>{" "}
-            que empreendem.
+    <section id="clientes" className="py-28 md:py-36">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <div className="max-w-3xl mb-16">
+          <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c] mb-4">03 — Para quem</div>
+          <h2 className="font-serif text-4xl md:text-6xl leading-[1.05] tracking-tight text-[#1a0f0a]">
+            Feito para <span className="italic">os dois lados</span> do balcão.
           </h2>
         </div>
-        <div className="grid gap-8 md:grid-cols-2">
-          {[
-            {
-              img: personaLoj,
-              t: "Lojistas",
-              d: "Você controla estoque, revendedoras, maletas e loja online sem virar refém de planilha.",
-              tags: ["Multi-loja", "Multi-usuário", "Relatórios"],
-            },
-            {
-              img: personaRev,
-              t: "Revendedoras",
-              d: "Um app PWA feito pra sua rede vender com maleta, tirar pedido e receber comissão.",
-              tags: ["PWA", "Comissão auto", "WhatsApp"],
-            },
-          ].map((p) => (
+        <div className="grid md:grid-cols-2 gap-8">
+          {items.map((p, i) => (
             <motion.div
-              key={p.t}
-              initial={{ y: 60, opacity: 0 }}
-              whileInView={{ y: 0, opacity: 1 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.9, ease: EASE }}
-              className="group relative overflow-hidden rounded-3xl"
-              data-cursor
+              key={i}
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.8, ease: EASE, delay: i * 0.1 }}
+              className="group relative rounded-3xl overflow-hidden aspect-[4/5] md:aspect-[3/4]"
             >
-              <motion.img
-                src={p.img}
-                alt={p.t}
-                loading="lazy"
-                className="aspect-[4/5] w-full object-cover"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.9, ease: EASE }}
-              />
+              <img src={p.img} alt={p.tag} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1200ms]" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a0f0a] via-[#1a0f0a]/40 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-8">
-                <h3 className="font-serif text-5xl">{p.t}</h3>
-                <p className="mt-3 max-w-md text-white/70">{p.d}</p>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {p.tags.map((t) => (
-                    <span
-                      key={t}
-                      className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/80"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
+              <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 text-white">
+                <div className="text-xs uppercase tracking-[0.2em] text-white/70 mb-3">{p.tag}</div>
+                <h3 className="font-serif text-3xl md:text-4xl leading-tight mb-3">{p.title}</h3>
+                <p className="text-white/80 max-w-md">{p.desc}</p>
               </div>
             </motion.div>
           ))}
@@ -713,166 +521,142 @@ function Personas() {
 }
 
 /* ============ TESTIMONIALS ============ */
-const T = [
-  {
-    n: "Amanda R.",
-    r: "Lojista · Goiânia",
-    q: "Em 60 dias meu faturamento subiu 32%. O controle de maletas é surreal.",
-    img: tAmanda,
-  },
-  {
-    n: "Carla M.",
-    r: "Fundadora · Fortaleza",
-    q: "Larguei 4 planilhas e um caderno. Nunca mais.",
-    img: tCarla,
-  },
-  {
-    n: "Fernanda L.",
-    r: "Loja + Revenda · SP",
-    q: "Minhas revendedoras adoraram o app. Vendas subiram sozinhas.",
-    img: tFernanda,
-  },
-  {
-    n: "Juliana P.",
-    r: "Lojista · Rio",
-    q: "O PDV é rápido demais. Fila zerada, cliente feliz.",
-    img: tJuliana,
-  },
-  {
-    n: "Patrícia S.",
-    r: "Marketplace · MG",
-    q: "A Bella (IA) fecha venda enquanto eu durmo. Sério.",
-    img: tPatricia,
-  },
-];
-
 function Testimonials() {
+  const items = [
+    { img: tAmanda, name: "Amanda R.", role: "Loja em SP", text: "Em 2 meses dobrei o faturamento. O PDV é o mais rápido que já usei." },
+    { img: tCarla, name: "Carla M.", role: "Rede com 3 lojas", text: "Consegui integrar todas as unidades e ver o estoque em tempo real." },
+    { img: tFernanda, name: "Fernanda S.", role: "Revendedora", text: "O portal me organizou. Recebo pedidos e vejo minha comissão no dia." },
+    { img: tJuliana, name: "Juliana P.", role: "Loja em MG", text: "A loja virtual me trouxe clientes de outros estados. Vale cada centavo." },
+    { img: tPatricia, name: "Patrícia L.", role: "Franqueada", text: "Suporte humano e rápido. Nunca fiquei na mão em dia de venda." },
+  ];
   return (
-    <section id="depoimentos" className="relative overflow-hidden bg-white py-32 lg:py-44">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
-        <div className="mb-16 flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
-          <div>
-            <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
-              ( 05 ) Vozes
-            </div>
-            <h2 className="mt-8 max-w-3xl font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
-              +2.400 lojistas.{" "}
-              <em className="italic text-[#ea580c]">Uma</em> só voz.
-            </h2>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-[#1a0f0a]/60">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
-            ))}
-            <span className="ml-2">4.9 · avaliação média</span>
-          </div>
+    <section className="py-28 md:py-36 bg-[#1a0f0a] text-white overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10">
+        <div className="max-w-3xl mb-16">
+          <div className="text-xs uppercase tracking-[0.2em] text-[#f59e0b] mb-4">04 — Vozes</div>
+          <h2 className="font-serif text-4xl md:text-6xl leading-[1.05] tracking-tight">
+            Quem usa, <span className="italic text-[#f59e0b]">indica.</span>
+          </h2>
         </div>
-      </div>
-      <Marquee baseVelocity={20} className="py-4">
-        <div className="flex gap-6">
-          {[...T, ...T].map((t, i) => (
-            <div
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((t, i) => (
+            <motion.div
               key={i}
-              className="flex w-[380px] flex-shrink-0 flex-col gap-5 rounded-3xl border border-[#1a0f0a]/10 bg-gradient-to-br from-white to-[#fffaf3] p-8 shadow-sm"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6, ease: EASE, delay: (i % 3) * 0.1 }}
+              className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur"
             >
-              <div className="flex items-center gap-3">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star key={s} className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />
-                ))}
+              <div className="flex items-center gap-1 text-[#f59e0b] mb-4">
+                {[...Array(5)].map((_, s) => <Star key={s} className="w-3.5 h-3.5 fill-current" />)}
               </div>
-              <p className="font-serif text-2xl leading-snug text-[#1a0f0a]">"{t.q}"</p>
-              <div className="mt-auto flex items-center gap-3">
-                <img
-                  src={t.img}
-                  alt={t.n}
-                  loading="lazy"
-                  className="h-12 w-12 rounded-full object-cover"
-                />
+              <p className="text-lg leading-relaxed mb-6 text-white/90">"{t.text}"</p>
+              <div className="flex items-center gap-3">
+                <img src={t.img} alt={t.name} className="w-10 h-10 rounded-full object-cover" />
                 <div>
-                  <div className="text-sm font-medium text-[#1a0f0a]">{t.n}</div>
-                  <div className="text-xs text-[#1a0f0a]/50">{t.r}</div>
+                  <div className="text-sm">{t.name}</div>
+                  <div className="text-xs text-white/60">{t.role}</div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </Marquee>
+      </div>
+    </section>
+  );
+}
+
+/* ============ GALLERY MARQUEE ============ */
+function Gallery() {
+  const imgs = [warm01, warm02, warm03, warm04, warm05, warm06];
+  const track = [...imgs, ...imgs];
+  return (
+    <section className="py-20 overflow-hidden">
+      <motion.div
+        className="flex gap-6"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 40, ease: "linear", repeat: Infinity }}
+      >
+        {track.map((src, i) => (
+          <div key={i} className="shrink-0 w-[280px] md:w-[380px] aspect-[4/5] rounded-3xl overflow-hidden">
+            <img src={src} alt="" className="w-full h-full object-cover" />
+          </div>
+        ))}
+      </motion.div>
     </section>
   );
 }
 
 /* ============ PRICING ============ */
 function Pricing() {
-  const features = [
-    "Estoque + custo + margem",
-    "PDV completo (PIX, cartão, fiado)",
-    "Maletas em consignação",
-    "Catálogo público + loja online",
-    "App pra revendedoras",
-    "IA Bella no WhatsApp",
-    "Até 25 usuários",
-    "Suporte humano no WhatsApp",
-    "Atualizações semanais",
+  const feats = [
+    "Usuários ilimitados",
+    "Até 25 funcionários",
+    "PDV + Estoque + Revendedoras",
+    "Loja virtual com checkout MP",
+    "Portal PWA da revendedora",
+    "Relatórios avançados & IA",
+    "Suporte humano 24/7",
+    "Backup automático diário",
   ];
   return (
-    <section id="plano" className="relative bg-[#fffaf3] py-32 lg:py-44">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
-        <div className="mb-16 text-center">
-          <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
-            ( 06 ) Plano
-          </div>
-          <h2 className="mx-auto mt-8 max-w-4xl font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
-            Um plano. <em className="italic text-[#ea580c]">Tudo</em> incluso.
+    <section id="preco" className="py-28 md:py-36 bg-gradient-to-b from-white to-[#fff7ed]">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c] mb-4">05 — Preço</div>
+          <h2 className="font-serif text-4xl md:text-6xl leading-[1.05] tracking-tight text-[#1a0f0a]">
+            Um plano. <span className="italic">Tudo dentro.</span>
           </h2>
-          <p className="mx-auto mt-6 max-w-xl text-[#1a0f0a]/70">
-            Chega de "essa função é do plano maior". Aqui é tudo pra todo mundo.
+          <p className="mt-6 text-lg text-[#1a0f0a]/70">
+            Sem pegadinha. Sem upsell. Sem taxa por transação da assinatura.
           </p>
         </div>
 
         <motion.div
-          initial={{ y: 60, opacity: 0 }}
-          whileInView={{ y: 0, opacity: 1 }}
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.9, ease: EASE }}
-          className="mx-auto max-w-4xl overflow-hidden rounded-[2.5rem] bg-white shadow-2xl ring-1 ring-[#1a0f0a]/5"
+          transition={{ duration: 0.8, ease: EASE }}
+          className="relative max-w-2xl mx-auto p-1 rounded-[32px] bg-gradient-to-br from-[#f59e0b] via-[#ea580c] to-[#f43f5e] shadow-2xl"
         >
-          <div className="grid gap-0 md:grid-cols-2">
-            <div className="relative overflow-hidden bg-gradient-to-br from-[#f59e0b] via-[#ea580c] to-[#f43f5e] p-10 text-white lg:p-14">
-              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-              <div className="relative">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs uppercase tracking-widest backdrop-blur">
-                  <Zap className="h-3 w-3" /> Nexsiles Prime
-                </div>
-                <div className="mt-8 flex items-end gap-2">
-                  <span className="font-serif text-7xl leading-none">R$129</span>
-                  <span className="pb-2 text-sm text-white/70">/mês</span>
-                </div>
-                <p className="mt-4 max-w-xs text-white/80">
-                  Tudo o que a Nexsiles oferece, sem cobrança extra por módulo, sem
-                  limite de peça.
-                </p>
-                <Link
-                  to="/auth"
-                  className="mt-10 inline-flex items-center gap-3 rounded-full bg-white px-6 py-3.5 text-sm font-medium text-[#1a0f0a] transition hover:bg-[#1a0f0a] hover:text-white"
-                  data-cursor
-                >
-                  Começar agora
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
+          <div className="bg-white rounded-[28px] p-10 md:p-14">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c]">Nexsiles Prime</div>
+                <div className="font-serif text-3xl text-[#1a0f0a] mt-1">Plano único</div>
+              </div>
+              <div className="text-xs px-3 py-1.5 rounded-full bg-[#fef3c7] text-[#92400e]">
+                Melhor valor
               </div>
             </div>
-            <div className="p-10 lg:p-14">
-              <ul className="space-y-4">
-                {features.map((f) => (
-                  <li key={f} className="flex items-start gap-3 text-[#1a0f0a]">
-                    <div className="mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-[#fef3c7]">
-                      <Check className="h-3 w-3 text-[#ea580c]" />
-                    </div>
-                    <span className="text-sm">{f}</span>
-                  </li>
-                ))}
-              </ul>
+
+            <div className="flex items-end gap-2 mb-8">
+              <span className="font-serif text-7xl md:text-8xl text-[#1a0f0a] tracking-tight">R$129</span>
+              <span className="text-[#1a0f0a]/60 pb-3">/mês</span>
             </div>
+
+            <ul className="grid sm:grid-cols-2 gap-3 mb-10">
+              {feats.map((f) => (
+                <li key={f} className="flex items-center gap-3 text-[#1a0f0a]">
+                  <div className="w-5 h-5 rounded-full bg-[#ea580c]/10 flex items-center justify-center shrink-0">
+                    <Check className="w-3 h-3 text-[#ea580c]" />
+                  </div>
+                  <span className="text-sm">{f}</span>
+                </li>
+              ))}
+            </ul>
+
+            <Link
+              to="/auth"
+              className="group flex items-center justify-center gap-2 w-full bg-[#1a0f0a] text-white py-4 rounded-full hover:bg-[#ea580c] transition-colors"
+            >
+              Começar agora
+              <ArrowUpRight className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+            </Link>
+            <p className="text-center text-xs text-[#1a0f0a]/50 mt-4">
+              Cancele quando quiser. Sem multa.
+            </p>
           </div>
         </motion.div>
       </div>
@@ -881,38 +665,35 @@ function Pricing() {
 }
 
 /* ============ FAQ ============ */
-const FAQS = [
-  ["Preciso de cartão pra começar?", "Sim, o plano Prime é R$129/mês via Mercado Pago. Você cancela quando quiser."],
-  ["Funciona no celular?", "Sim, é 100% responsivo e as revendedoras têm PWA dedicado."],
-  ["Consigo importar meu estoque?", "Sim, temos importação CSV e nossa equipe ajuda no onboarding."],
-  ["A loja online tem custo extra?", "Não. Loja, catálogo, PDV e app das revendedoras estão inclusos."],
-  ["E se eu quiser cancelar?", "Cancela direto no painel. Sem multa, sem burocracia."],
-];
-function Faq() {
+function FAQ() {
+  const items = [
+    ["Preciso de cartão para começar?", "Sim, a assinatura é ativada logo após o pagamento via Mercado Pago (PIX, cartão ou boleto)."],
+    ["Consigo migrar meu estoque atual?", "Sim. Importamos CSV/Excel e ajudamos na configuração inicial gratuitamente."],
+    ["Funciona sem internet?", "O PDV e o portal da revendedora têm modo offline com sincronização automática."],
+    ["Posso cancelar quando quiser?", "Sim, sem multa. Seus dados ficam disponíveis por 30 dias após o cancelamento."],
+    ["Tem limite de vendas ou peças?", "Não. Vendas, peças e clientes são ilimitados no plano Prime."],
+  ];
   const [open, setOpen] = useState<number | null>(0);
   return (
-    <section id="faq" className="relative bg-white py-32 lg:py-44">
-      <div className="mx-auto max-w-[1000px] px-6 lg:px-10">
-        <div className="mb-16">
-          <div className="text-xs uppercase tracking-[0.3em] text-[#ea580c]">
-            ( 07 ) Dúvidas
-          </div>
-          <h2 className="mt-8 font-serif text-5xl leading-[1.05] text-[#1a0f0a] lg:text-7xl">
-            Perguntas <em className="italic text-[#ea580c]">honestas</em>.
+    <section id="faq" className="py-28 md:py-36">
+      <div className="max-w-[900px] mx-auto px-6 md:px-10">
+        <div className="max-w-2xl mb-14">
+          <div className="text-xs uppercase tracking-[0.2em] text-[#ea580c] mb-4">06 — Dúvidas</div>
+          <h2 className="font-serif text-4xl md:text-6xl leading-[1.05] tracking-tight text-[#1a0f0a]">
+            Perguntas <span className="italic">frequentes.</span>
           </h2>
         </div>
         <div className="divide-y divide-[#1a0f0a]/10 border-y border-[#1a0f0a]/10">
-          {FAQS.map(([q, a], i) => (
-            <div key={i}>
+          {items.map(([q, a], i) => (
+            <div key={i} className="py-6">
               <button
                 onClick={() => setOpen(open === i ? null : i)}
-                className="flex w-full items-center justify-between py-6 text-left"
-                data-cursor
+                className="w-full flex items-center justify-between text-left gap-6"
               >
-                <span className="font-serif text-2xl text-[#1a0f0a] lg:text-3xl">{q}</span>
+                <span className="font-serif text-xl md:text-2xl text-[#1a0f0a]">{q}</span>
                 <motion.span
                   animate={{ rotate: open === i ? 45 : 0 }}
-                  className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-full border border-[#1a0f0a]/15 text-[#ea580c]"
+                  className="w-8 h-8 rounded-full border border-[#1a0f0a]/20 flex items-center justify-center text-[#ea580c] shrink-0"
                 >
                   +
                 </motion.span>
@@ -923,10 +704,10 @@ function Faq() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.4, ease: EASE }}
+                    transition={{ duration: 0.35, ease: EASE }}
                     className="overflow-hidden"
                   >
-                    <p className="pb-6 pr-16 text-[#1a0f0a]/70">{a}</p>
+                    <p className="pt-4 text-[#1a0f0a]/70 leading-relaxed max-w-2xl">{a}</p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -941,43 +722,36 @@ function Faq() {
 /* ============ CTA ============ */
 function CTA() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#fef3c7] via-[#fed7aa] to-[#fecaca] py-32 lg:py-44">
-      <motion.div
-        initial={{ scale: 1.2, opacity: 0 }}
-        whileInView={{ scale: 1, opacity: 0.6 }}
-        viewport={{ once: true }}
-        transition={{ duration: 1.4, ease: EASE }}
-        className="absolute inset-0"
-      >
-        <img
-          src={warm03}
-          alt=""
-          loading="lazy"
-          className="h-full w-full object-cover opacity-30 mix-blend-multiply"
-        />
-      </motion.div>
-      <div className="relative mx-auto max-w-[1400px] px-6 text-center lg:px-10">
-        <div className="mx-auto max-w-4xl">
-          <SplitWords
-            text="Comece hoje."
-            className="block font-serif text-[clamp(3.5rem,12vw,11rem)] leading-[0.95] text-[#1a0f0a]"
-          />
-          <SplitWords
-            text="Brilhe amanhã."
-            className="block font-serif text-[clamp(3.5rem,12vw,11rem)] italic leading-[0.95] text-[#ea580c]"
-          />
-        </div>
-        <Reveal delay={0.4} className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+    <section className="py-28 md:py-40 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#f59e0b] via-[#ea580c] to-[#f43f5e]" />
+      <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{ backgroundImage: `url(${warm05})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+      <div className="relative max-w-[1200px] mx-auto px-6 md:px-10 text-center text-white">
+        <motion.h2
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.9, ease: EASE }}
+          className="font-serif text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight"
+        >
+          Comece hoje.
+          <br />
+          <span className="italic">Brilhe amanhã.</span>
+        </motion.h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="mt-12"
+        >
           <Link
             to="/auth"
-            className="group inline-flex items-center gap-3 rounded-full bg-[#1a0f0a] px-8 py-4 text-sm font-medium text-white transition hover:bg-[#ea580c]"
-            data-cursor
+            className="group inline-flex items-center gap-3 bg-white text-[#1a0f0a] px-10 py-5 rounded-full font-medium hover:bg-[#1a0f0a] hover:text-white transition-colors"
           >
             Ativar Nexsiles Prime
-            <ArrowUpRight className="h-4 w-4 transition group-hover:rotate-45" />
+            <ArrowUpRight className="w-5 h-5 group-hover:rotate-45 transition-transform" />
           </Link>
-          <span className="text-sm text-[#1a0f0a]/60">R$129/mês · sem fidelidade</span>
-        </Reveal>
+        </motion.div>
       </div>
     </section>
   );
@@ -986,55 +760,43 @@ function CTA() {
 /* ============ FOOTER ============ */
 function Footer() {
   return (
-    <footer className="border-t border-[#1a0f0a]/10 bg-white py-16">
-      <div className="mx-auto max-w-[1400px] px-6 lg:px-10">
-        <div className="grid gap-10 md:grid-cols-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#f59e0b] to-[#ea580c] text-white">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <span className="font-serif text-xl text-[#1a0f0a]">Nexsiles</span>
+    <footer className="bg-[#1a0f0a] text-white/70 py-16">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 grid md:grid-cols-4 gap-10">
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f59e0b] to-[#f43f5e] flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <p className="mt-4 max-w-xs text-sm text-[#1a0f0a]/60">
-              O sistema completo para lojistas e revendedoras de semijoia.
-            </p>
+            <span className="font-serif text-xl text-white">Nexsiles</span>
           </div>
-          {[
-            ["Produto", ["Recursos", "Plano", "Depoimentos", "FAQ"]],
-            ["Empresa", ["Sobre", "Blog", "Contato", "Suporte"]],
-            ["Legal", ["Termos", "Privacidade", "LGPD"]],
-          ].map(([title, items]) => (
-            <div key={title as string}>
-              <div className="text-xs uppercase tracking-widest text-[#1a0f0a]/50">
-                {title}
-              </div>
-              <ul className="mt-4 space-y-2 text-sm text-[#1a0f0a]/80">
-                {(items as string[]).map((i) => (
-                  <li key={i}>
-                    <a href="#" className="hover:text-[#ea580c]" data-cursor>
-                      {i}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <p className="text-sm">A plataforma completa para lojas de semijoias.</p>
         </div>
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-[#1a0f0a]/10 pt-8 text-xs text-[#1a0f0a]/50 md:flex-row">
-          <span>© {new Date().getFullYear()} Nexsiles. Todos os direitos reservados.</span>
-          <div className="flex items-center gap-3">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noreferrer"
-              className="grid h-9 w-9 place-items-center rounded-full border border-[#1a0f0a]/10 hover:border-[#ea580c] hover:text-[#ea580c]"
-              data-cursor
-            >
-              <Instagram className="h-4 w-4" />
-            </a>
-          </div>
+        <div>
+          <div className="text-white text-sm mb-4">Produto</div>
+          <ul className="space-y-2 text-sm">
+            <li><a href="#recursos" className="hover:text-[#f59e0b]">Recursos</a></li>
+            <li><a href="#modulos" className="hover:text-[#f59e0b]">Módulos</a></li>
+            <li><a href="#preco" className="hover:text-[#f59e0b]">Preço</a></li>
+          </ul>
         </div>
+        <div>
+          <div className="text-white text-sm mb-4">Empresa</div>
+          <ul className="space-y-2 text-sm">
+            <li><Link to="/politica-privacidade" className="hover:text-[#f59e0b]">Privacidade</Link></li>
+            <li><Link to="/termos" className="hover:text-[#f59e0b]">Termos</Link></li>
+            <li><a href="https://wa.me/5511937687369" className="hover:text-[#f59e0b]">Contato</a></li>
+          </ul>
+        </div>
+        <div>
+          <div className="text-white text-sm mb-4">Social</div>
+          <a href="#" className="inline-flex items-center gap-2 hover:text-[#f59e0b]">
+            <Instagram className="w-4 h-4" /> @nexsiles
+          </a>
+        </div>
+      </div>
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 mt-12 pt-8 border-t border-white/10 text-xs flex flex-col md:flex-row items-center justify-between gap-3">
+        <div>© {new Date().getFullYear()} Nexsiles. Todos os direitos reservados.</div>
+        <div>Feito com brilho no Brasil.</div>
       </div>
     </footer>
   );
@@ -1043,22 +805,20 @@ function Footer() {
 /* ============ PAGE ============ */
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-white text-[#1a0f0a] antialiased">
+    <div className="min-h-screen bg-white text-[#1a0f0a] font-body antialiased overflow-x-hidden">
       <Cursor />
-      <ScrollBar />
+      <Progress />
       <Nav />
-      <main>
-        <Hero />
-        <Strip />
-        <About />
-        <Features />
-        <StickyShowcase />
-        <Personas />
-        <Testimonials />
-        <Pricing />
-        <Faq />
-        <CTA />
-      </main>
+      <Hero />
+      <Stats />
+      <Features />
+      <Modules />
+      <Personas />
+      <Gallery />
+      <Testimonials />
+      <Pricing />
+      <FAQ />
+      <CTA />
       <Footer />
     </div>
   );
