@@ -13,6 +13,7 @@ import { useUserPreferences, useSaveUserPreference, PREFERENCE_KEYS } from '@/ho
 
 // Lazy load heavy components
 const NotificationBell = lazy(() => import('@/components/notifications/NotificationBell').then(m => ({ default: m.NotificationBell })));
+const CommandPalette = lazy(() => import('@/components/command/CommandPalette').then(m => ({ default: m.CommandPalette })));
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -290,6 +291,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         >
           {children}
         </main>
+
+        {user && (
+          <Suspense fallback={null}>
+            <CommandPalette />
+          </Suspense>
+        )}
       </div>
     </TooltipProvider>
   );
