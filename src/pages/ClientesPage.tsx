@@ -10,7 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, Plus, MoreHorizontal, Pencil, Trash2, Cake, MessageCircle, Loader2, UserCircle, MessageSquare, Upload } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Pencil, Trash2, Cake, MessageCircle, Loader2, UserCircle, MessageSquare, Upload, History } from 'lucide-react';
+import { TimelineAtividades } from '@/components/timeline/TimelineAtividades';
 import { useClientes, useAddCliente, useUpdateCliente, useDeleteCliente, Cliente } from '@/hooks/useClientes';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -36,6 +37,7 @@ export default function ClientesPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [timelineCliente, setTimelineCliente] = useState<Cliente | null>(null);
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -260,6 +262,10 @@ export default function ClientesPage() {
                         <Pencil className="w-4 h-4 mr-2" />
                         Editar
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTimelineCliente(cliente)}>
+                        <History className="w-4 h-4 mr-2" />
+                        Histórico
+                      </DropdownMenuItem>
                       {cliente.telefone && (
                         <DropdownMenuItem onClick={() => openWhatsApp(cliente.telefone!, `Olá ${cliente.nome}!`)}>
                           <MessageCircle className="w-4 h-4 mr-2" />
@@ -413,6 +419,25 @@ export default function ClientesPage() {
         open={isImportModalOpen}
         onOpenChange={setIsImportModalOpen}
       />
+
+      {/* Timeline Cliente */}
+      <Dialog open={!!timelineCliente} onOpenChange={(o) => !o && setTimelineCliente(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">
+              Histórico — {timelineCliente?.nome}
+            </DialogTitle>
+          </DialogHeader>
+          {timelineCliente && (
+            <TimelineAtividades
+              tabela="clientes"
+              registroId={timelineCliente.id}
+              height={480}
+              title="Atividades do cliente"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,248 +1,129 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { db, supabase } from '@/lib/supabase-db';
-import { useAuth } from '@/contexts/AuthContext';
 import {
-  initDB,
   addPendingVenda,
-  getPendingVendas,
-  markVendaSynced,
-  markVendaFailed,
-  cleanupSyncedVendas,
-  cachePecas,
-  getCachedPecas,
+  getAllPendingVendas,
   getPendingVendasCount,
-  setSyncMeta,
   getSyncMeta,
+  markVendaFailed,
+  markVendaSynced,
+  setSyncMeta,
   type OfflineVenda,
-  type CachedPeca,
+  type OfflineVendaPayload,
 } from '@/lib/indexeddb';
+import { useAddVenda } from '@/hooks/useSupabaseData';
+import { useAddFiado } from '@/hooks/useFiado';
+import { useUsarCupom } from '@/hooks/useCampanhas';
 
-interface UseOfflineSyncReturn {
-  isOnline: boolean;
-  pendingCount: number;
-  isSyncing: boolean;
-  lastSyncTime: Date | null;
-  syncNow: () => Promise<void>;
-  addOfflineVenda: (venda: Omit<OfflineVenda, 'synced'>) => Promise<void>;
-  getCachedProducts: () => Promise<CachedPeca[]>;
-  cacheProducts: (pecas: CachedPeca[]) => Promise<void>;
-}
+const LAST_SYNC_KEY = 'last_sync_time';
 
-export function useOfflineSync(): UseOfflineSyncReturn {
-  const { user } = useAuth();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+/**
+ * Offline PDV sync hook.
+ * - Tracks online status and pending sales count
+ * - Auto-flushes queued vendas when connectivity returns
+ * - Exposes manual sync and enqueue helpers
+ */
+export function useOfflineSync() {
+  const addVenda = useAddVenda();
+  const addFiado = useAddFiado();
+  const usarCupom = useUsarCupom();
+
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true,
+  );
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const runningRef = useRef(false);
 
-  // Initialize IndexedDB and load state
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await initDB();
-        const count = await getPendingVendasCount();
-        setPendingCount(count);
-        
-        const lastSync = await getSyncMeta('lastSyncTime');
-        if (lastSync) {
-          setLastSyncTime(new Date(lastSync));
-        }
-      } catch (error) {
-        console.error('Failed to initialize IndexedDB:', error);
-      }
-    };
-    
-    init();
+  const refreshCount = useCallback(async () => {
+    try {
+      setPendingCount(await getPendingVendasCount());
+    } catch {
+      // ignore
+    }
   }, []);
 
-  // Listen for online/offline events
+  const syncNow = useCallback(async () => {
+    if (runningRef.current || !navigator.onLine) return;
+    runningRef.current = true;
+    setIsSyncing(true);
+    let ok = 0;
+    let fail = 0;
+
+    try {
+      const pending = await getAllPendingVendas();
+      const replayable = pending.filter((v) => !!v.payload && !v.syncError);
+
+      for (const item of replayable) {
+        const payload = item.payload as OfflineVendaPayload;
+        try {
+          if (payload.cupomId) {
+            await usarCupom.mutateAsync(payload.cupomId).catch(() => null);
+          }
+          const venda = await addVenda.mutateAsync({
+            venda: payload.venda as any,
+            items: payload.items,
+            caixaSessaoId: payload.caixaSessaoId,
+          });
+          if (payload.fiado) {
+            await addFiado
+              .mutateAsync({ ...payload.fiado, venda_id: venda?.id || null } as any)
+              .catch(() => null);
+          }
+          await markVendaSynced(item.id);
+          ok += 1;
+        } catch (err: any) {
+          await markVendaFailed(item.id, err?.message || 'Falha ao sincronizar');
+          fail += 1;
+        }
+      }
+
+      const now = new Date();
+      await setSyncMeta(LAST_SYNC_KEY, now.toISOString());
+      setLastSyncTime(now);
+    } finally {
+      runningRef.current = false;
+      setIsSyncing(false);
+      await refreshCount();
+      window.dispatchEvent(new CustomEvent('offline-queue-changed'));
+      if (ok > 0) toast.success(`${ok} venda(s) offline sincronizada(s)`);
+      if (fail > 0) toast.error(`${fail} venda(s) com erro — verifique o painel`);
+    }
+  }, [addVenda, addFiado, usarCupom, refreshCount]);
+
+  const enqueue = useCallback(async (venda: OfflineVenda) => {
+    await addPendingVenda(venda);
+    await refreshCount();
+    window.dispatchEvent(new CustomEvent('offline-queue-changed'));
+  }, [refreshCount]);
+
   useEffect(() => {
-    const handleOnline = () => {
+    const onOnline = () => {
       setIsOnline(true);
-      toast.success('Conexão restabelecida', {
-        description: 'Sincronizando vendas pendentes...',
-      });
       syncNow();
     };
+    const onOffline = () => setIsOnline(false);
+    const onChange = () => refreshCount();
 
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.warning('Você está offline', {
-        description: 'As vendas serão salvas localmente',
-      });
-    };
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('offline-queue-changed', onChange);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    (async () => {
+      await refreshCount();
+      const stored = await getSyncMeta(LAST_SYNC_KEY).catch(() => null);
+      if (stored) setLastSyncTime(new Date(stored));
+      if (navigator.onLine) syncNow();
+    })();
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('offline-queue-changed', onChange);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync pending sales
-  const syncNow = useCallback(async () => {
-    if (!isOnline || isSyncing || !user) return;
-
-    setIsSyncing(true);
-    
-    try {
-      const pendingVendas = await getPendingVendas();
-      
-      if (pendingVendas.length === 0) {
-        setIsSyncing(false);
-        return;
-      }
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const venda of pendingVendas) {
-        try {
-          // Insert venda with organization_id from user's membership
-          const { data: membership } = await db
-            .from('memberships')
-            .select('organization_id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          
-          const { data: vendaData, error: vendaError } = await db
-            .from('vendas')
-            .insert({
-              organization_id: membership?.organization_id,
-              valor_total: venda.total,
-              subtotal: venda.total,
-              desconto: venda.desconto,
-              status: 'finalizada',
-              forma_pagamento: venda.pagamentos[0]?.metodo || 'dinheiro',
-            })
-            .select()
-            .single();
-
-          if (vendaError) throw vendaError;
-          if (!vendaData) throw new Error('Venda não criada');
-
-          // Insert venda items
-          const { error: itensError } = await db
-            .from('venda_itens')
-            .insert(
-              venda.itens.map(item => ({
-                venda_id: vendaData.id,
-                peca_id: item.peca_id,
-                peca_nome: item.peca_nome,
-                quantidade: item.quantidade,
-                preco_unitario: item.preco_unitario,
-              }))
-            );
-
-          if (itensError) throw itensError;
-
-          // Update stock - fetch current and decrement
-          for (const item of venda.itens) {
-            const { data: peca } = await db
-              .from('pecas')
-              .select('estoque')
-              .eq('id', item.peca_id)
-              .single();
-            
-            if (peca) {
-              await db
-                .from('pecas')
-                .update({ estoque: Math.max(0, peca.estoque - item.quantidade) })
-                .eq('id', item.peca_id);
-            }
-          }
-
-          await markVendaSynced(venda.id);
-          successCount++;
-        } catch (error: any) {
-          await markVendaFailed(venda.id, error.message);
-          errorCount++;
-        }
-      }
-
-      // Update pending count
-      const newCount = await getPendingVendasCount();
-      setPendingCount(newCount);
-
-      // Update last sync time
-      const now = new Date();
-      setLastSyncTime(now);
-      await setSyncMeta('lastSyncTime', now.toISOString());
-
-      // Cleanup old synced sales
-      await cleanupSyncedVendas(7);
-
-      if (successCount > 0) {
-        toast.success(`${successCount} venda(s) sincronizada(s)`);
-      }
-      if (errorCount > 0) {
-        toast.error(`${errorCount} venda(s) com erro de sincronização`);
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-      toast.error('Erro ao sincronizar vendas');
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [isOnline, isSyncing, user]);
-
-  // Auto-sync every 5 minutes when online
-  useEffect(() => {
-    if (!isOnline) return;
-
-    const interval = setInterval(() => {
-      syncNow();
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [isOnline, syncNow]);
-
-  // Add a sale to offline storage
-  const addOfflineVenda = useCallback(async (vendaData: Omit<OfflineVenda, 'synced'>) => {
-    try {
-      const venda: OfflineVenda = {
-        ...vendaData,
-        synced: false,
-      };
-
-      await addPendingVenda(venda);
-      
-      const count = await getPendingVendasCount();
-      setPendingCount(count);
-
-      if (!isOnline) {
-        toast.info('Venda salva localmente', {
-          description: 'Será sincronizada quando a conexão for restabelecida',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to save offline sale:', error);
-      throw error;
-    }
-  }, [isOnline]);
-
-  // Get cached products
-  const getCachedProducts = useCallback(async (): Promise<CachedPeca[]> => {
-    return getCachedPecas();
-  }, []);
-
-  // Cache products for offline use
-  const cacheProducts = useCallback(async (pecas: CachedPeca[]) => {
-    await cachePecas(pecas);
-    await setSyncMeta('productsCachedAt', new Date().toISOString());
-  }, []);
-
-  return {
-    isOnline,
-    pendingCount,
-    isSyncing,
-    lastSyncTime,
-    syncNow,
-    addOfflineVenda,
-    getCachedProducts,
-    cacheProducts,
-  };
+  return { isOnline, pendingCount, isSyncing, lastSyncTime, syncNow, enqueue };
 }

@@ -59,6 +59,7 @@ import {
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
 import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
 import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
+import { TimelineAtividades } from '@/components/timeline/TimelineAtividades';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
 import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
 import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
@@ -127,6 +128,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   const [fotosOpen, setFotosOpen] = useState(false);
   const [acertoOpen, setAcertoOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [atividadesOpen, setAtividadesOpen] = useState(false);
   const [quantidadeVenda, setQuantidadeVenda] = useState(1);
   const [novaQuantidade, setNovaQuantidade] = useState(1);
   const [quantidadeRepor, setQuantidadeRepor] = useState(1);
@@ -822,6 +824,10 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         <Button variant="outline" size="sm" onClick={() => setHistoricoOpen(true)}>
           <History className="w-4 h-4 mr-2" />
           Histórico
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setAtividadesOpen(true)}>
+          <Sparkles className="w-4 h-4 mr-2" />
+          Atividades
         </Button>
         {maleta.status === 'aberta' && items.length > 0 && (
           <>
@@ -1806,6 +1812,20 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         comissaoPercentual={comissaoPercentual}
         onFechado={onClose}
       />
+
+      <Dialog open={atividadesOpen} onOpenChange={setAtividadesOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Atividades da maleta</DialogTitle>
+          </DialogHeader>
+          <TimelineAtividades
+            tabela="maletas"
+            registroId={maleta.id}
+            height={500}
+            title={maleta.nome || `Maleta #${maleta.id.slice(-4)}`}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

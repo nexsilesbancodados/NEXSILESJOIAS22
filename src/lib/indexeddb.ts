@@ -6,6 +6,34 @@
 const DB_NAME = 'nexsile_pdv_offline';
 const DB_VERSION = 1;
 
+export interface OfflineVendaPayload {
+  venda: {
+    valor_total: number;
+    subtotal: number;
+    desconto: number;
+    cliente_id: string | null;
+    revendedora_id: string | null;
+    status: string;
+    observacoes: string | null;
+    forma_pagamento: string;
+    parcelas: number;
+  };
+  items: Array<{
+    peca_id: string;
+    quantidade: number;
+    preco_unitario: number;
+    subtotal: number;
+  }>;
+  caixaSessaoId: string;
+  cupomId?: string;
+  fiado?: {
+    cliente_id: string;
+    valor_total: number;
+    data_vencimento: string;
+    observacoes?: string;
+  };
+}
+
 export interface OfflineVenda {
   id: string;
   itens: Array<{
@@ -25,6 +53,8 @@ export interface OfflineVenda {
   created_at: string;
   synced: boolean;
   syncError?: string;
+  /** Full payload required to replay the sale on the server */
+  payload?: OfflineVendaPayload;
 }
 
 export interface CachedPeca {
