@@ -59,6 +59,7 @@ import {
 import { BarcodeScannerDialog } from './BarcodeScannerDialog';
 import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
 import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
+import { TimelineAtividades } from '@/components/timeline/TimelineAtividades';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
 import { ReabrirMaletaDialog } from './ReabrirMaletaDialog';
 import { AssinaturaRetiradaDialog } from './AssinaturaRetiradaDialog';
