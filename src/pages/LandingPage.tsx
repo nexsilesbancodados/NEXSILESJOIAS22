@@ -248,27 +248,12 @@ function Hero() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.7 }}
-              className="mt-12 flex items-center gap-6 text-sm text-[#1a0f0a]/60"
+              className="mt-12 flex items-center gap-3 text-sm text-[#1a0f0a]/60"
             >
-              <div className="flex -space-x-2">
-                {[tAmanda, tCarla, tFernanda, tJuliana].map((s, i) => (
-                  <img
-                    key={i}
-                    src={s}
-                    alt=""
-                    className="w-9 h-9 rounded-full border-2 border-white object-cover"
-                  />
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center gap-1 text-[#f59e0b]">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                  ))}
-                </div>
-                <div>+2.000 lojistas confiam</div>
-              </div>
+              <Check className="w-4 h-4 text-[#ea580c]" />
+              Sem fidelidade · Cancele quando quiser · Suporte humano
             </motion.div>
+
           </div>
 
           {/* right visual — collage */}
