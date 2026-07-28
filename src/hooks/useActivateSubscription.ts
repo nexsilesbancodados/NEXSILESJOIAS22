@@ -122,12 +122,16 @@ export function useActivateSubscription() {
           return;
         }
 
-        // 3. Determine subscription duration based on plan
+        // 3. Determine subscription duration based on plan period
         const now = new Date();
+        const periodo = (codeData as any).periodo === 'anual' ? 'anual' : 'mensal';
+        const dias = periodo === 'anual' ? 365 : 30;
         const dataVencimento = new Date();
-        dataVencimento.setDate(dataVencimento.getDate() + 30);
+        dataVencimento.setDate(dataVencimento.getDate() + dias);
 
-        const valorMensal = 129;
+        // valor_pago é o total pago. Guardamos o equivalente mensal em `valor_mensal`.
+        const valorPago = Number(codeData.valor_pago) || 129;
+        const valorMensal = periodo === 'anual' ? Number((valorPago / 12).toFixed(2)) : valorPago;
 
         // 4. Create the subscription (plano único Nexsiles Prime)
         const { error: subError } = await supabase
