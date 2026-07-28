@@ -1,7 +1,8 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
+
 import { toast } from 'sonner';
 
 // Use loose typing to bypass schema validation until migrations are applied
@@ -73,6 +74,10 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
     },
   });
 
+  // Keep a stable ref to the mutation so verificarMaletas doesn't get a new identity on every render
+  const criarNotificacaoRef = useRef(criarNotificacao);
+  criarNotificacaoRef.current = criarNotificacao;
+
   const verificarMaletas = useCallback(async () => {
     if (!userId) return;
 
@@ -95,12 +100,14 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
 
       // Get reseller profiles
       const resellerIds = [...new Set(maletas.map((m: any) => m.revendedora_id).filter(Boolean))];
-      const { data: profiles } = await db
-        .from('revendedoras')
-        .select('id, nome')
-        .in('id', resellerIds as string[]);
-
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      let profileMap = new Map<string, any>();
+      if (resellerIds.length > 0) {
+        const { data: profiles } = await db
+          .from('revendedoras')
+          .select('id, nome')
+          .in('id', resellerIds as string[]);
+        profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      }
 
       // Check each maleta
       for (const maleta of maletas) {
@@ -116,8 +123,7 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
         const nomeRevendedora = (revendedora as any)?.nome || 'Revendedora';
 
         if (diasRestantes < 0) {
-          // Already overdue
-          await criarNotificacao.mutateAsync({
+          await criarNotificacaoRef.current.mutateAsync({
             tipo: 'maleta_vencida',
             titulo: '🚨 Maleta Vencida',
             mensagem: `A maleta "${nomeMaleta}" de ${nomeRevendedora} está vencida há ${Math.abs(diasRestantes)} dia(s)!`,
@@ -131,11 +137,10 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
             },
           });
         } else if (diasRestantes <= diasAlerta) {
-          // About to expire
-          await criarNotificacao.mutateAsync({
+          await criarNotificacaoRef.current.mutateAsync({
             tipo: 'maleta_vencendo',
             titulo: '⚠️ Maleta Vencendo',
-            mensagem: diasRestantes === 0 
+            mensagem: diasRestantes === 0
               ? `A maleta "${nomeMaleta}" de ${nomeRevendedora} vence HOJE!`
               : `A maleta "${nomeMaleta}" de ${nomeRevendedora} vence em ${diasRestantes} dia(s)!`,
             user_id: userId,
@@ -152,23 +157,27 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
     } catch (error) {
       console.error('Error checking maletas:', error);
     }
-  }, [userId, diasAlerta, criarNotificacao]);
+    // Intentionally omit criarNotificacao from deps — using ref to keep this stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, diasAlerta]);
 
-  // Run on mount and every hour
+  // Run once per session load, then every hour. Guard prevents duplicate intervals on remount storms.
+  const ranOnceRef = useRef(false);
   useEffect(() => {
     if (!userId) return;
 
-    // Initial check
-    verificarMaletas();
+    if (!ranOnceRef.current) {
+      ranOnceRef.current = true;
+      verificarMaletas();
+    }
 
-    // Check every hour
     const interval = setInterval(verificarMaletas, 60 * 60 * 1000);
-
     return () => clearInterval(interval);
   }, [userId, verificarMaletas]);
 
   return { verificarMaletas };
 }
+
 
 // Hook to get maletas that are expiring soon
 export function useMaletasVencendo(diasAlerta = 3) {
