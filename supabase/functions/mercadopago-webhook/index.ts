@@ -69,6 +69,7 @@ serve(async (req: Request) => {
 
     if (error) {
       log.error("Failed to enqueue", { error: error.message });
+      await captureError({ functionName: FUNCTION_NAME, error, statusCode: 500, requestPayload: { source: "mercadopago" } });
       // Ainda retornamos 200 para o MP não bombardear com retries
       return new Response("OK", { status: 200, headers: corsHeaders });
     }
@@ -77,6 +78,10 @@ serve(async (req: Request) => {
     return new Response("OK", { status: 200, headers: corsHeaders });
   } catch (err: any) {
     log.error("Webhook error", { error: err.message });
+    await captureError({ functionName: FUNCTION_NAME, error: err, statusCode: 500, requestIp: req.headers.get("x-forwarded-for") ?? undefined });
+    return new Response("OK", { status: 200, headers: corsHeaders });
+  }
+});
     return new Response("OK", { status: 200, headers: corsHeaders });
   }
 });
