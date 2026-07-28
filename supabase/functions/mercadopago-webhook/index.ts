@@ -37,10 +37,15 @@ serve(async (req: Request) => {
       const ok = await verifyMercadoPagoSignature(req, rawBody, mpSecret);
       if (!ok) {
         log.warn("Invalid MP signature");
+        await captureError({ functionName: FUNCTION_NAME, error: new Error("Invalid MP signature"), statusCode: 401, requestIp: req.headers.get("x-forwarded-for") ?? undefined });
         return new Response("Invalid signature", { status: 401, headers: corsHeaders });
       }
+    } else if (IS_PROD) {
+      log.error("MERCADOPAGO_WEBHOOK_SECRET missing in production — rejecting");
+      await captureError({ functionName: FUNCTION_NAME, error: new Error("MERCADOPAGO_WEBHOOK_SECRET not configured in production"), statusCode: 500 });
+      return new Response("Server misconfigured", { status: 500, headers: corsHeaders });
     } else {
-      log.warn("MERCADOPAGO_WEBHOOK_SECRET not set — signature check skipped");
+      log.warn("MERCADOPAGO_WEBHOOK_SECRET not set — signature check skipped (non-prod)");
     }
 
     // Capture headers + query params for the processor
