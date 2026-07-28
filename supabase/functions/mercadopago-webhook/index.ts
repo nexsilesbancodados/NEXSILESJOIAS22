@@ -82,6 +82,3 @@ serve(async (req: Request) => {
     return new Response("OK", { status: 200, headers: corsHeaders });
   }
 });
-    return new Response("OK", { status: 200, headers: corsHeaders });
-  }
-});
