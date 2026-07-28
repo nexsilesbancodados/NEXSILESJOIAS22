@@ -52,7 +52,8 @@ import {
   Minimize,
   Package,
   AlertTriangle,
-  HandCoins
+  HandCoins,
+  Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ReciboVenda } from '@/components/recibo/ReciboVenda';
