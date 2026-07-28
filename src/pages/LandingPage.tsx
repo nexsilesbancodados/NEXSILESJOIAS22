@@ -287,8 +287,8 @@ function Hero() {
                 <BarChart3 className="w-5 h-5 text-[#ea580c]" />
               </div>
               <div>
-                <div className="text-xs text-[#1a0f0a]/60">Vendas hoje</div>
-                <div className="font-serif text-lg text-[#1a0f0a]">R$ 4.280</div>
+                <div className="text-xs text-[#1a0f0a]/60">Dashboard</div>
+                <div className="font-serif text-lg text-[#1a0f0a]">Vendas em tempo real</div>
               </div>
             </motion.div>
             <motion.div
@@ -301,8 +301,9 @@ function Hero() {
                 <Package className="w-5 h-5 text-[#f43f5e]" />
               </div>
               <div>
-                <div className="text-xs text-[#1a0f0a]/60">Peças em estoque</div>
-                <div className="font-serif text-lg text-[#1a0f0a]">1.284</div>
+                <div className="text-xs text-[#1a0f0a]/60">Estoque</div>
+                <div className="font-serif text-lg text-[#1a0f0a]">Controle total</div>
+
               </div>
             </motion.div>
           </div>
