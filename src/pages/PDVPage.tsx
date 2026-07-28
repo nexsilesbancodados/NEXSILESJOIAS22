@@ -143,7 +143,7 @@ export default function PDVPage() {
           codigo: p.codigo || '',
           nome: p.nome,
           preco_venda: p.preco_venda || 0,
-          quantidade: p.quantidade || 0,
+          quantidade: (p as any).estoque || 0,
           categoria: p.categoria || '',
           imagem_url: p.imagem_url || null,
         })) as any,
