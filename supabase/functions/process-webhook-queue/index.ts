@@ -78,13 +78,15 @@ async function processMercadoPago(supabase: any, payload: any, query: Record<str
   const { data: codigoData, error: codigoErr } = await supabase.rpc("gerar_codigo_acesso");
   if (codigoErr) throw codigoErr;
 
+  const dias = periodo === "anual" ? 365 : 30;
   const validoAte = new Date();
-  validoAte.setDate(validoAte.getDate() + 30);
+  validoAte.setDate(validoAte.getDate() + dias);
 
   const { error: insErr } = await supabase.from("codigos_acesso").insert({
     codigo: codigoData,
     email: payerEmail,
     plano,
+    periodo: periodo === "anual" ? "anual" : "mensal",
     valor_pago: valor || payment.transaction_amount || 0,
     mercadopago_payment_id: String(paymentId),
     valido_ate: validoAte.toISOString(),
