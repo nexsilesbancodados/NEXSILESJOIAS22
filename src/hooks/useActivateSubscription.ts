@@ -174,16 +174,16 @@ export function useActivateSubscription() {
         // Send welcome email
         enviarNotificacaoEmail('boas_vindas' as any, {
           plano_nome: planoNome,
-          dias_validade: 30,
+          dias_validade: dias,
           is_trial: false,
         });
 
         toast.success(`🎉 Assinatura ${planoNome} ativada!`, {
-          description: 'Seu plano está ativo por 30 dias.',
+          description: `Seu plano está ativo por ${dias} dias.`,
           duration: 6000,
         });
 
-        console.log('Subscription activated for user:', user.id, 'plan:', codeData.plano);
+        console.log('Subscription activated for user:', user.id, 'plan:', codeData.plano, 'periodo:', periodo);
       } catch (error) {
         console.error('Error activating subscription:', error);
         processedRef.current = false;
