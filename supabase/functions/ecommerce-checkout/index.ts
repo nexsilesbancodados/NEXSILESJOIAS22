@@ -321,6 +321,7 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Error in ecommerce-checkout:", error);
+    await captureError({ functionName: FUNCTION_NAME, error, statusCode: 400, requestIp: req.headers.get("x-forwarded-for") ?? undefined });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
