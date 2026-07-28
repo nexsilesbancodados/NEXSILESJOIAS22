@@ -37,6 +37,7 @@ export default function ClientesPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isWhatsAppTemplatesOpen, setIsWhatsAppTemplatesOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [timelineCliente, setTimelineCliente] = useState<Cliente | null>(null);
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
