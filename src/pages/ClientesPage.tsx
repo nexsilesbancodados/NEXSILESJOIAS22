@@ -10,7 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, Plus, MoreHorizontal, Pencil, Trash2, Cake, MessageCircle, Loader2, UserCircle, MessageSquare, Upload } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Pencil, Trash2, Cake, MessageCircle, Loader2, UserCircle, MessageSquare, Upload, History } from 'lucide-react';
+import { TimelineAtividades } from '@/components/timeline/TimelineAtividades';
 import { useClientes, useAddCliente, useUpdateCliente, useDeleteCliente, Cliente } from '@/hooks/useClientes';
 import { openWhatsApp } from '@/lib/whatsapp';
 import { PageHeader } from '@/components/layout/PageHeader';
