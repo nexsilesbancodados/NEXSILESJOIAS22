@@ -144,6 +144,7 @@ serve(async (_req: Request) => {
       const finalStatus = newAttempts >= MAX_ATTEMPTS ? "failed" : "pending";
       await supabase.from("webhook_queue").update({ status: finalStatus, last_error: err.message?.slice(0, 500) }).eq("id", it.id);
       log.error("Process failed", { id: it.id, attempts: newAttempts, error: err.message });
+      await captureError({ functionName: FUNCTION_NAME, error: err, statusCode: finalStatus === "failed" ? 500 : 202, requestPayload: { queue_id: it.id, source: it.source, attempts: newAttempts } });
       fail++;
     }
   }
