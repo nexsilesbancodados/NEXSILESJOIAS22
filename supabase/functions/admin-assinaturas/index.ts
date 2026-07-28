@@ -376,6 +376,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
+    await captureError({ functionName: FUNCTION_NAME, error, statusCode: 500, requestIp: req.headers.get('x-forwarded-for') ?? undefined });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
