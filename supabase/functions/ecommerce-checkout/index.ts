@@ -4,6 +4,9 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
 import { computeOrderTotals } from "../_shared/pricing.ts";
+import { captureError } from "../_shared/logger.ts";
+
+const FUNCTION_NAME = "ecommerce-checkout";
 
 const CheckoutSchema = z.object({
   items: z.array(z.object({
