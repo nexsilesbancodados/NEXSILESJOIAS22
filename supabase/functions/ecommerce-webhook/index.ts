@@ -270,6 +270,7 @@ serve(async (req: Request) => {
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (error: any) {
     console.error("Error in ecommerce-webhook:", error);
+    await captureError({ functionName: FUNCTION_NAME, error, statusCode: 500, requestIp: req.headers.get("x-forwarded-for") ?? undefined });
     // Always return 200 to prevent MP from retrying on our errors
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
