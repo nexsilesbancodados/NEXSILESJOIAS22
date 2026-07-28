@@ -129,6 +129,7 @@ export default function PDVPage() {
   const addCliente = useAddCliente();
   const addFiado = useAddFiado();
   const { isFullscreen, isSupported: fullscreenSupported, toggleFullscreen } = useFullscreen();
+  const { enqueue: enqueueOfflineVenda } = useOfflineSync();
 
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
