@@ -16,6 +16,7 @@ import { ReadOnlyBanner } from "@/components/subscription/ReadOnlyBanner";
 import { OrganizationGuard } from "@/components/OrganizationGuard";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { PlanRouteGuard } from "@/components/subscription/PlanRouteGuard";
+import { CookieConsentBanner } from "@/components/lgpd/CookieConsentBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivateSubscription } from "@/hooks/useActivateSubscription";
 
@@ -61,6 +62,8 @@ const PoliticaPrivacidadePage = lazy(() => import("./pages/PoliticaPrivacidadePa
 const TermosDeUsoPage = lazy(() => import("./pages/TermosDeUsoPage"));
 const CRMPage = lazy(() => import("./pages/CRMPage"));
 const MinhaAssinaturaPage = lazy(() => import("./pages/MinhaAssinaturaPage"));
+const CookiesPage = lazy(() => import("./pages/CookiesPage"));
+const MeusDadosPage = lazy(() => import("./pages/MeusDadosPage"));
 
 // Detecta subdomínio loja.* e serve a loja pública
 function LojaSubdomainRedirect() {
@@ -169,6 +172,7 @@ function AppRoutes() {
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/politica-privacidade" element={<PoliticaPrivacidadePage />} />
           <Route path="/termos-de-uso" element={<TermosDeUsoPage />} />
+          <Route path="/cookies" element={<CookiesPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/planos-landing" element={<LandingPlanosPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -301,6 +305,7 @@ function AppRoutes() {
                           <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                           <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
                           <Route path="/minha-assinatura" element={<MinhaAssinaturaPage />} />
+                          <Route path="/meus-dados" element={<MeusDadosPage />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </Suspense>
@@ -322,6 +327,7 @@ function AppRoutes() {
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/politica-privacidade" element={<PoliticaPrivacidadePage />} />
         <Route path="/termos-de-uso" element={<TermosDeUsoPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
         
         {/* Auth pages - Public */}
         <Route path="/auth" element={<AuthPage />} />
@@ -421,6 +427,7 @@ function AppRoutes() {
                       <Route path="/historico-precos" element={<HistoricoPrecosPage />} />
                       <Route path="/pedidos-loja" element={<PedidosLojaPage />} />
                       <Route path="/minha-assinatura" element={<MinhaAssinaturaPage />} />
+                      <Route path="/meus-dados" element={<MeusDadosPage />} />
                       {/* Loja Virtual moved to standalone route above */}
                       <Route path="*" element={<NotFound />} />
                     </Routes>
@@ -449,6 +456,7 @@ function App() {
             <BrowserRouter future={{ v7_relativeSplatPath: true }}>
               <AuthProvider>
                 <AppRoutes />
+                <CookieConsentBanner />
               </AuthProvider>
             </BrowserRouter>
           </TooltipProvider>
