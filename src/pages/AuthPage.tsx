@@ -67,6 +67,7 @@ export default function AuthPage() {
   const [validandoCodigo, setValidandoCodigo] = useState(false);
   const [signupTouched, setSignupTouched] = useState<Record<string, boolean>>({});
   const [signupErrors, setSignupErrors] = useState<Record<string, string>>({});
+  const [signupConsent, setSignupConsent] = useState(false);
 
   // Reset password form
   const [resetEmail, setResetEmail] = useState('');
@@ -245,6 +246,11 @@ export default function AuthPage() {
       return;
     }
 
+    if (!signupConsent) {
+      toast.error('Você precisa aceitar os Termos de Uso e a Política de Privacidade');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -258,6 +264,20 @@ export default function AuthPage() {
           toast.error('Erro ao criar conta. Tente novamente.');
         }
         return;
+      }
+
+      // Registrar consentimento LGPD (best-effort, não bloqueia o cadastro)
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData.session?.user?.id;
+        if (uid) {
+          await supabase.from('user_consents' as never).insert([
+            { user_id: uid, finalidade: 'termos_de_uso', versao: '2026.07.28', aceito: true, user_agent: navigator.userAgent },
+            { user_id: uid, finalidade: 'politica_privacidade', versao: '2026.07.28', aceito: true, user_agent: navigator.userAgent },
+          ] as never);
+        }
+      } catch (consentErr) {
+        console.warn('Falha ao registrar consentimento LGPD:', consentErr);
       }
 
       // Store pending activation info
@@ -724,10 +744,26 @@ export default function AuthPage() {
                             className="h-11 pl-10 bg-white/80 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700/50 focus:border-amber-500 rounded-xl text-sm disabled:opacity-50"
                           />
                         </div>
+                        <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={signupConsent}
+                            onChange={(e) => setSignupConsent(e.target.checked)}
+                            className="mt-0.5 accent-amber-500"
+                            required
+                          />
+                          <span>
+                            Li e concordo com os{' '}
+                            <a href="/termos-de-uso" target="_blank" rel="noreferrer" className="underline text-amber-700 dark:text-amber-400">Termos de Uso</a>
+                            {' '}e a{' '}
+                            <a href="/politica-privacidade" target="_blank" rel="noreferrer" className="underline text-amber-700 dark:text-amber-400">Política de Privacidade</a>
+                            {' '}(LGPD).
+                          </span>
+                        </label>
                         <Button 
                           type="submit" 
                           className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium rounded-xl shadow-lg shadow-amber-500/30 transition-all mt-2" 
-                          disabled={loading || (!isTrialMode && !codigoValidado?.valido)}
+                          disabled={loading || (!isTrialMode && !codigoValidado?.valido) || !signupConsent}
                         >
                           {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
