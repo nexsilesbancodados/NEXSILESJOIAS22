@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
 import { verifyHmacSha256 } from "../_shared/hmac.ts";
+import { timingSafeEqual } from "../_shared/auth.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { createLogger } from "../_shared/logger.ts";
 
@@ -133,18 +134,29 @@ serve(async (req) => {
   try {
     const rawBody = await req.text();
 
-    // ===== HMAC SIGNATURE (Evolution custom header) =====
+    // ===== AUTENTICAÇÃO DO WEBHOOK =====
+    // Duas formas aceitas, nesta ordem:
+    //   1. HMAC-SHA256 do corpo em `x-hub-signature-256` (padrão, mais forte);
+    //   2. token estático em `x-webhook-token` igual ao segredo.
+    //
+    // A segunda existe porque a Evolution API não calcula HMAC do corpo — ela só
+    // permite enviar cabeçalhos fixos no webhook. Sem essa opção o segredo não
+    // teria como ser configurado e o webhook ficaria permanentemente rejeitado
+    // (foi o que aconteceu: o agente de IA não recebia mensagem nenhuma).
     const waSecret = Deno.env.get("WHATSAPP_WEBHOOK_SECRET");
     if (waSecret) {
       const sig = req.headers.get("x-hub-signature-256") || req.headers.get("x-signature");
-      const ok = await verifyHmacSha256(rawBody, sig, waSecret);
-      if (!ok) {
-        log.warn("Invalid WhatsApp webhook signature");
+      const token = req.headers.get("x-webhook-token");
+
+      const assinaturaOk = sig ? await verifyHmacSha256(rawBody, sig, waSecret) : false;
+      const tokenOk = !!token && timingSafeEqual(token, waSecret);
+
+      if (!assinaturaOk && !tokenOk) {
+        log.warn("WhatsApp webhook sem assinatura nem token válidos");
         return new Response("Invalid signature", { status: 401, headers: corsHeaders });
       }
     } else {
       // Fail-closed: sem segredo configurado não há como validar a origem do webhook.
-      // Configure WHATSAPP_WEBHOOK_SECRET e a assinatura (x-hub-signature-256) no Evolution.
       log.error("WHATSAPP_WEBHOOK_SECRET não configurado — webhook rejeitado.");
       return new Response("Webhook secret not configured", { status: 503, headers: corsHeaders });
     }
