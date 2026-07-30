@@ -4521,6 +4521,39 @@ export type Database = {
         }
         Relationships: []
       }
+      public_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          last_seen_at: string
+          organization_id: string | null
+          subject_id: string
+          subject_type: string
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          last_seen_at?: string
+          organization_id?: string | null
+          subject_id: string
+          subject_type: string
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          last_seen_at?: string
+          organization_id?: string | null
+          subject_id?: string
+          subject_type?: string
+          token_hash?: string
+        }
+        Relationships: []
+      }
       purchases: {
         Row: {
           access_code: string
@@ -4968,6 +5001,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_consents: {
+        Row: {
+          aceito: boolean
+          created_at: string
+          finalidade: string
+          id: string
+          ip: string | null
+          user_agent: string | null
+          user_id: string
+          versao: string
+        }
+        Insert: {
+          aceito?: boolean
+          created_at?: string
+          finalidade: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          user_id: string
+          versao?: string
+        }
+        Update: {
+          aceito?: boolean
+          created_at?: string
+          finalidade?: string
+          id?: string
+          ip?: string | null
+          user_agent?: string | null
+          user_id?: string
+          versao?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
@@ -5842,6 +5908,15 @@ export type Database = {
       }
     }
     Functions: {
+      ajustar_estoque_peca: {
+        Args: {
+          p_delta: number
+          p_peca_id: string
+          p_permitir_negativo?: boolean
+        }
+        Returns: number
+      }
+      ativar_codigo_acesso: { Args: { p_codigo: string }; Returns: Json }
       calcular_comissao_peca: {
         Args: { p_peca_id: string; p_revendedora_id: string }
         Returns: number
@@ -5858,6 +5933,54 @@ export type Database = {
       cleanup_edge_function_errors: { Args: never; Returns: undefined }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       cleanup_webhook_queue: { Args: never; Returns: undefined }
+      cliente_fetch_pedido_itens: {
+        Args: { p_pedido_id: string; p_token: string }
+        Returns: {
+          id: string
+          peca_codigo: string
+          peca_imagem_url: string
+          peca_nome: string
+          preco_unitario: number
+          quantidade: number
+        }[]
+      }
+      cliente_fetch_pedidos: {
+        Args: { p_token: string }
+        Returns: {
+          codigo_rastreio: string
+          created_at: string
+          id: string
+          metodo_pagamento: string
+          numero_pedido: number
+          status: string
+          transportadora: string
+          valor_desconto: number
+          valor_frete: number
+          valor_total: number
+        }[]
+      }
+      cliente_login: {
+        Args: { p_email: string; p_organization_id: string; p_senha: string }
+        Returns: {
+          cliente_email: string
+          cliente_id: string
+          cliente_nome: string
+          token: string
+        }[]
+      }
+      cliente_registrar_com_sessao: {
+        Args: {
+          p_email: string
+          p_nome: string
+          p_organization_id: string
+          p_senha: string
+          p_telefone: string
+        }
+        Returns: {
+          cliente_id: string
+          token: string
+        }[]
+      }
       criar_dados_exemplo: { Args: { p_user_id: string }; Returns: undefined }
       criar_interesse_maleta: {
         Args: {
@@ -5902,32 +6025,6 @@ export type Database = {
           created_at: string
           id: string
           nota: number
-        }[]
-      }
-      fetch_cliente_pedido_itens: {
-        Args: { p_pedido_id: string }
-        Returns: {
-          id: string
-          peca_codigo: string
-          peca_imagem_url: string
-          peca_nome: string
-          preco_unitario: number
-          quantidade: number
-        }[]
-      }
-      fetch_cliente_pedidos: {
-        Args: { p_cliente_email: string; p_organization_id: string }
-        Returns: {
-          codigo_rastreio: string
-          created_at: string
-          id: string
-          metodo_pagamento: string
-          numero_pedido: number
-          status: string
-          transportadora: string
-          valor_desconto: number
-          valor_frete: number
-          valor_total: number
         }[]
       }
       gerar_codigo_acesso: { Args: never; Returns: string }
@@ -6016,12 +6113,12 @@ export type Database = {
         Args: {
           p_maleta_peca_id: string
           p_quantidade_desfazer: number
-          p_revendedora_id: string
+          p_token: string
         }
         Returns: boolean
       }
       portal_fetch_interesse_itens: {
-        Args: { p_interesse_id: string; p_revendedora_id: string }
+        Args: { p_interesse_id: string; p_token: string }
         Returns: {
           id: string
           peca_codigo: string
@@ -6032,7 +6129,7 @@ export type Database = {
         }[]
       }
       portal_fetch_interesses: {
-        Args: { p_revendedora_id: string }
+        Args: { p_token: string }
         Returns: {
           cliente_email: string
           cliente_nome: string
@@ -6046,7 +6143,7 @@ export type Database = {
         }[]
       }
       portal_fetch_maleta_pecas: {
-        Args: { p_maleta_id: string; p_revendedora_id: string }
+        Args: { p_maleta_id: string; p_token: string }
         Returns: {
           data_venda: string
           id: string
@@ -6062,7 +6159,7 @@ export type Database = {
         }[]
       }
       portal_fetch_maletas: {
-        Args: { p_revendedora_id: string }
+        Args: { p_token: string }
         Returns: {
           created_at: string
           id: string
@@ -6074,30 +6171,38 @@ export type Database = {
           updated_at: string
         }[]
       }
-      portal_login_lookup: {
-        Args: { p_email: string }
+      portal_fetch_notificacoes: {
+        Args: { p_token: string }
+        Returns: {
+          cliente_nome: string
+          created_at: string
+          id: string
+          maleta_id: string
+          maleta_nome: string
+          status: string
+        }[]
+      }
+      portal_login: {
+        Args: { p_email: string; p_senha: string }
         Returns: {
           comissao_percentual: number
           email: string
           id: string
           nome: string
           telefone: string
+          token: string
         }[]
       }
       portal_marcar_vendida: {
         Args: {
           p_maleta_peca_id: string
           p_quantidade_venda: number
-          p_revendedora_id: string
+          p_token: string
         }
         Returns: boolean
       }
       portal_update_interesse_status: {
-        Args: {
-          p_interesse_id: string
-          p_revendedora_id: string
-          p_status: string
-        }
+        Args: { p_interesse_id: string; p_status: string; p_token: string }
         Returns: boolean
       }
       provisionar_ecommerce_config: {
@@ -6135,6 +6240,21 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: undefined
       }
+      session_close: { Args: { p_token: string }; Returns: undefined }
+      session_hash: { Args: { p_token: string }; Returns: string }
+      session_open: {
+        Args: {
+          p_organization_id?: string
+          p_subject_id: string
+          p_subject_type: string
+          p_ttl_hours?: number
+        }
+        Returns: string
+      }
+      session_subject: {
+        Args: { p_subject_type: string; p_token: string }
+        Returns: string
+      }
       submeter_avaliacao: {
         Args: {
           p_cliente_email: string
@@ -6171,6 +6291,10 @@ export type Database = {
       usar_cupom: { Args: { p_cupom_id: string }; Returns: undefined }
       user_belongs_to_org: { Args: { _org_id: string }; Returns: boolean }
       user_is_member_of_org: { Args: { org_id: string }; Returns: boolean }
+      usuarios_mesma_organizacao: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       validar_cupom: {
         Args: {
           p_codigo: string
@@ -6195,17 +6319,6 @@ export type Database = {
           cliente_id: string
           cliente_nome: string
         }[]
-      }
-      verify_portal_password: {
-        Args: { p_email: string; p_password: string }
-        Returns: {
-          revendedora_id: string
-          revendedora_nome: string
-        }[]
-      }
-      verify_portal_password_by_id: {
-        Args: { p_password: string; p_revendedora_id: string }
-        Returns: boolean
       }
     }
     Enums: {
