@@ -114,42 +114,36 @@ export default function AuthPage() {
     return '';
   };
 
-  // Validate access code against local database only
+  // Valida o código de acesso pela Edge Function validate-access.
+  // (Antes esta tela lia `codigos_acesso` direto do banco como visitante não
+  //  autenticado — a policy da tabela só permite o dono autenticado, então a
+  //  consulta voltava vazia e o cadastro pago nunca validava.)
   const validarCodigo = async (codigo: string) => {
     if (codigo.length !== 12) return;
-    
+
     setValidandoCodigo(true);
     const codigoUpper = codigo.toUpperCase();
-    
+
     try {
-      const { data, error } = await supabase
-        .from('codigos_acesso')
-        .select('codigo, email, plano, usado, valido_ate')
-        .eq('codigo', codigoUpper)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('validate-access', {
+        body: { access_code: codigoUpper },
+      });
 
-      if (error) throw error;
+      if (error && !data) throw error;
 
-      if (!data) {
+      if (!data?.valid) {
         setCodigoValidado({ valido: false });
-        setSignupErrors(prev => ({ ...prev, codigo: 'Código não encontrado' }));
+        const msg = data?.used
+          ? 'Código já foi utilizado'
+          : data?.expired
+            ? 'Código expirado'
+            : 'Código não encontrado';
+        setSignupErrors(prev => ({ ...prev, codigo: msg }));
         return;
       }
 
-      if (data.usado) {
-        setCodigoValidado({ valido: false });
-        setSignupErrors(prev => ({ ...prev, codigo: 'Código já foi utilizado' }));
-        return;
-      }
-
-      if (new Date(data.valido_ate) < new Date()) {
-        setCodigoValidado({ valido: false });
-        setSignupErrors(prev => ({ ...prev, codigo: 'Código expirado' }));
-        return;
-      }
-
-      setCodigoValidado({ valido: true, plano: data.plano, email: data.email });
-      setSignupEmail(data.email);
+      setCodigoValidado({ valido: true, plano: data.user.plano, email: data.user.email });
+      setSignupEmail(data.user.email);
       setSignupErrors(prev => ({ ...prev, codigo: '' }));
       toast.success('Código validado!', { description: `Plano: ${data.plano === 'nexsiles_commerce' ? 'Nexsiles Commerce' : data.plano === 'nexsiles_ysis' ? 'Nexsiles Ysis' : 'Nexsiles'}` });
     } catch (error) {

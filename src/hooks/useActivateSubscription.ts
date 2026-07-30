@@ -90,86 +90,42 @@ export function useActivateSubscription() {
 
     const activateCode = async () => {
       try {
-        // 1. Fetch the access code details
-        const { data: codeData, error: codeError } = await supabase
-          .from('codigos_acesso')
-          .select('*')
-          .eq('codigo', pendingCode!)
-          .eq('usado', false)
-          .maybeSingle();
+        // Ativação inteira no banco: uma RPC transacional que valida o código,
+        // exige que o e-mail do código seja o do usuário logado, cria/atualiza a
+        // assinatura e marca o código como usado. É idempotente.
+        //
+        // Antes isso era feito daqui com SELECT + UPDATE direto em
+        // codigos_acesso, sem amarrar o código ao e-mail — quem conhecesse um
+        // código válido ativava o plano na própria conta.
+        const { data: result, error: rpcError } = await (supabase as any).rpc(
+          'ativar_codigo_acesso',
+          { p_codigo: pendingCode! }
+        );
 
-        if (codeError || !codeData) {
-          console.log('Access code not found or already used:', pendingCode);
-          localStorage.removeItem('pending_access_code');
-          return;
-        }
-
-        // 2. Check if user already has an active subscription
-        const { data: existingSub } = await supabase
-          .from('assinaturas')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('status', 'ativo')
-          .maybeSingle();
-
-        if (existingSub) {
-          console.log('User already has active subscription');
-          await supabase
-            .from('codigos_acesso')
-            .update({ usado: true, usado_em: new Date().toISOString(), usado_por: user.id })
-            .eq('id', codeData.id);
-          localStorage.removeItem('pending_access_code');
-          return;
-        }
-
-        // 3. Determine subscription duration based on plan period
-        const now = new Date();
-        const periodo = (codeData as any).periodo === 'anual' ? 'anual' : 'mensal';
-        const dias = periodo === 'anual' ? 365 : 30;
-        const dataVencimento = new Date();
-        dataVencimento.setDate(dataVencimento.getDate() + dias);
-
-        // valor_pago é o total pago. Guardamos o equivalente mensal em `valor_mensal`.
-        const valorPago = Number(codeData.valor_pago) || 129;
-        const valorMensal = periodo === 'anual' ? Number((valorPago / 12).toFixed(2)) : valorPago;
-
-        // 4. Create the subscription (plano único Nexsiles Prime)
-        const { error: subError } = await supabase
-          .from('assinaturas')
-          .upsert({
-            user_id: user.id,
-            plano: 'nexsiles',
-            status: 'ativo',
-            data_inicio: now.toISOString(),
-            data_vencimento: dataVencimento.toISOString(),
-            valor_mensal: valorMensal,
-            metodo_pagamento: 'pix',
-            mercadopago_payment_id: codeData.mercadopago_payment_id,
-          }, {
-            onConflict: 'user_id',
-          });
-
-        if (subError) {
-          console.error('Error creating subscription:', subError);
+        if (rpcError) {
+          console.error('Error activating access code:', rpcError);
           processedRef.current = false;
           return;
         }
 
-        // 5. Mark code as used
-        await supabase
-          .from('codigos_acesso')
-          .update({
-            usado: true,
-            usado_em: new Date().toISOString(),
-            usado_por: user.id,
-          })
-          .eq('id', codeData.id);
+        if (!result?.ok) {
+          console.log('Access code not activated:', result?.erro);
+          if (result?.erro === 'email_divergente') {
+            toast.error('O código pertence a outro e-mail', {
+              description: 'Entre com o mesmo e-mail usado na compra ou fale com o suporte.',
+              duration: 8000,
+            });
+          }
+          localStorage.removeItem('pending_access_code');
+          return;
+        }
 
-        // 6. Cleanup and notify
+        // Cleanup and notify
         localStorage.removeItem('pending_access_code');
         queryClient.invalidateQueries({ queryKey: ['assinatura'] });
-        
+
         const planoNome = 'Nexsiles Prime';
+        const dias = result?.periodo === 'anual' ? 365 : 30;
 
         // Send welcome email
         enviarNotificacaoEmail('boas_vindas' as any, {
@@ -178,12 +134,12 @@ export function useActivateSubscription() {
           is_trial: false,
         });
 
-        toast.success(`🎉 Assinatura ${planoNome} ativada!`, {
-          description: `Seu plano está ativo por ${dias} dias.`,
-          duration: 6000,
-        });
-
-        console.log('Subscription activated for user:', user.id, 'plan:', codeData.plano, 'periodo:', periodo);
+        if (!result?.reaproveitado) {
+          toast.success(`🎉 Assinatura ${planoNome} ativada!`, {
+            description: `Seu plano está ativo por ${dias} dias.`,
+            duration: 6000,
+          });
+        }
       } catch (error) {
         console.error('Error activating subscription:', error);
         processedRef.current = false;

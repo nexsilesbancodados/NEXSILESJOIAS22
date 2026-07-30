@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { portalRpc, PortalSessionExpired } from '@/lib/portal-session';
 
 interface PortalNotification {
   id: string;
@@ -17,11 +17,26 @@ interface UsePortalNotificationsProps {
   enabled: boolean;
 }
 
+const POLL_INTERVAL_MS = 60_000;
+
+/**
+ * Notificações do portal (pedidos feitos nas maletas da revendedora).
+ *
+ * Antes este hook lia `maletas` e `maleta_interesses` direto do banco com a
+ * chave anon, filtrando por revendedora_id — o que dependia de policies
+ * permissivas e expunha PII de clientes de outros tenants. Agora usa a RPC
+ * portal_fetch_notificacoes, que deriva a revendedora do token de sessão.
+ *
+ * Como a assinatura realtime dependia daquele mesmo acesso anônimo, a
+ * atualização passa a ser por polling (1 min) — o portal é uma tela de uso
+ * pontual, o custo é irrelevante e o comportamento visível é o mesmo.
+ */
 export function usePortalNotifications({ revendedoraId, enabled }: UsePortalNotificationsProps) {
   const [notifications, setNotifications] = useState<PortalNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
-  const processedIdsRef = useRef<Set<string>>(new Set());
+  const knownIdsRef = useRef<Set<string>>(new Set());
+  const primeiraCargaRef = useRef(true);
 
   // Request browser notification permission
   const requestNotificationPermission = useCallback(async () => {
@@ -49,188 +64,107 @@ export function usePortalNotifications({ revendedoraId, enabled }: UsePortalNoti
         }
       };
 
-      // Vibrate if supported
       if ('vibrate' in navigator) {
         navigator.vibrate([200, 100, 200]);
       }
     }
   }, []);
 
-  // Fetch notifications from maleta_interesses (as portal doesn't use auth)
-  const fetchNotifications = useCallback(async () => {
-    if (!revendedoraId) return;
-    
-    setLoading(true);
-    try {
-      // Get maleta IDs for this revendedora
-      const { data: maletasData } = await supabase
-        .from('maletas')
-        .select('id')
-        .eq('revendedora_id', revendedoraId);
-
-      if (!maletasData || maletasData.length === 0) {
-        setNotifications([]);
-        setUnreadCount(0);
-        return;
-      }
-
-      const maletaIds = maletasData.map(m => m.id);
-
-      // Get recent interests as notifications
-      const { data, error } = await supabase
-        .from('maleta_interesses')
-        .select(`
-          id,
-          cliente_nome,
-          status,
-          created_at,
-          maleta:maletas(id, nome)
-        `)
-        .in('maleta_id', maletaIds)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      const formattedNotifications: PortalNotification[] = (data || []).map(interesse => {
-        const maleta = Array.isArray(interesse.maleta) ? interesse.maleta[0] : interesse.maleta;
-        return {
-          id: interesse.id,
-          tipo: 'novo_pedido',
-          titulo: interesse.status === 'pendente' ? '🛒 Novo Pedido!' : '📦 Pedido',
-          mensagem: `${interesse.cliente_nome} fez um pedido na maleta "${maleta?.nome || 'Maleta'}"`,
-          lida: interesse.status !== 'pendente',
-          created_at: interesse.created_at || new Date().toISOString(),
-        };
-      });
-
-      setNotifications(formattedNotifications);
-      setUnreadCount(formattedNotifications.filter(n => !n.lida).length);
-    } catch (error) {
-      console.error('Error fetching portal notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [revendedoraId]);
-
-  // Handle new interesse
-  const handleNewInteresse = useCallback((payload: any) => {
-    const interesse = payload.new;
-    
-    // Skip if already processed
-    if (processedIdsRef.current.has(interesse.id)) {
-      return;
-    }
-    processedIdsRef.current.add(interesse.id);
-
-    // Keep set size manageable
-    if (processedIdsRef.current.size > 50) {
-      const arr = Array.from(processedIdsRef.current);
-      processedIdsRef.current = new Set(arr.slice(-25));
-    }
-
-    console.log('New interesse received:', interesse);
-
-    // Show toast notification
-    toast.success('🛒 Novo Pedido Recebido!', {
-      description: `${interesse.cliente_nome} fez um pedido. Clique para revisar.`,
-      duration: 10000,
-      action: {
-        label: 'Ver Pedidos',
-        onClick: () => {
-          // Scroll to pedidos tab or refresh
-          window.location.reload();
-        },
-      },
-    });
-
-    // Show browser push notification if app is in background
-    if (document.hidden) {
-      showPushNotification(
-        '🛒 Novo Pedido Recebido!',
-        `${interesse.cliente_nome} fez um novo pedido. Acesse o portal para aprovar.`,
-        '/portal/login'
-      );
-    }
-
-    // Play notification sound
+  const tocarSom = useCallback(() => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
       oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.1);
       oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-      
+
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-      
+
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.4);
-    } catch (e) {
-      console.log('Audio not supported');
+    } catch {
+      /* áudio não suportado */
+    }
+  }, []);
+
+  const avisarNovoPedido = useCallback((clienteNome: string) => {
+    toast.success('🛒 Novo Pedido Recebido!', {
+      description: `${clienteNome} fez um pedido. Clique para revisar.`,
+      duration: 10000,
+      action: {
+        label: 'Ver Pedidos',
+        onClick: () => window.location.reload(),
+      },
+    });
+
+    if (document.hidden) {
+      showPushNotification(
+        '🛒 Novo Pedido Recebido!',
+        `${clienteNome} fez um novo pedido. Acesse o portal para aprovar.`,
+        '/portal/login'
+      );
     }
 
-    // Refresh notifications
-    fetchNotifications();
-  }, [fetchNotifications, showPushNotification]);
+    tocarSom();
+  }, [showPushNotification, tocarSom]);
 
-  // Setup realtime subscription
+  const fetchNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await portalRpc<any[]>('portal_fetch_notificacoes');
+
+      const formatted: PortalNotification[] = (data || []).map((row: any) => ({
+        id: row.id,
+        tipo: 'novo_pedido',
+        titulo: row.status === 'pendente' ? '🛒 Novo Pedido!' : '📦 Pedido',
+        mensagem: `${row.cliente_nome} fez um pedido na maleta "${row.maleta_nome || 'Maleta'}"`,
+        lida: row.status !== 'pendente',
+        created_at: row.created_at || new Date().toISOString(),
+        clienteNome: row.cliente_nome,
+      })) as PortalNotification[];
+
+      // Avisa apenas o que chegou depois da primeira carga.
+      if (!primeiraCargaRef.current) {
+        for (const n of formatted) {
+          if (!knownIdsRef.current.has(n.id) && !n.lida) {
+            avisarNovoPedido((n as any).clienteNome || 'Cliente');
+          }
+        }
+      }
+
+      knownIdsRef.current = new Set(formatted.map((n) => n.id));
+      primeiraCargaRef.current = false;
+
+      setNotifications(formatted);
+      setUnreadCount(formatted.filter((n) => !n.lida).length);
+    } catch (error) {
+      if (error instanceof PortalSessionExpired) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
+      console.error('Error fetching portal notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [avisarNovoPedido]);
+
+  // Carga inicial + polling
   useEffect(() => {
     if (!enabled || !revendedoraId) return;
 
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    primeiraCargaRef.current = true;
+    fetchNotifications();
+    requestNotificationPermission();
 
-    const setupChannel = async () => {
-      // First get maleta IDs
-      const { data: maletasData } = await supabase
-        .from('maletas')
-        .select('id')
-        .eq('revendedora_id', revendedoraId);
-
-      if (!maletasData || maletasData.length === 0) return;
-
-      const maletaIds = maletasData.map(m => m.id);
-
-      // Subscribe to new interests in these maletas
-      channel = supabase
-        .channel(`portal-notifications-${revendedoraId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'maleta_interesses',
-          },
-          async (payload) => {
-            // Check if this interesse is for one of our maletas
-            if (maletaIds.includes(payload.new.maleta_id)) {
-              handleNewInteresse(payload);
-            }
-          }
-        )
-        .subscribe();
-    };
-
-    setupChannel();
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [enabled, revendedoraId, handleNewInteresse]);
-
-  // Initial fetch and request permission
-  useEffect(() => {
-    if (enabled && revendedoraId) {
-      fetchNotifications();
-      requestNotificationPermission();
-    }
+    const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
   }, [enabled, revendedoraId, fetchNotifications, requestNotificationPermission]);
 
   return {

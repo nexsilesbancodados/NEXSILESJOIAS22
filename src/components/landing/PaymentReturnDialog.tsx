@@ -33,10 +33,14 @@ export function PaymentReturnDialog() {
       if (cancelled) return;
       attempts++;
       try {
-        const { data } = await supabase.rpc('get_pending_access_code', { p_email: email.toLowerCase() });
-        const row = Array.isArray(data) ? data[0] : data;
-        if (row?.codigo && !cancelled) {
-          setCodigo(row.codigo);
+        // Edge Function com rate limit por IP. A RPC anterior
+        // (get_pending_access_code) era aberta a anon e permitia varrer e-mails
+        // para descobrir quem comprou e capturar o código antes do comprador.
+        const { data } = await supabase.functions.invoke('consultar-codigo-pendente', {
+          body: { email: email.toLowerCase() },
+        });
+        if (data?.codigo && !cancelled) {
+          setCodigo(data.codigo);
           setPolling(false);
           return;
         }

@@ -2,6 +2,7 @@ import { useState, memo, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, supabase } from '@/lib/supabase-db';
 import { translateDatabaseError } from '@/lib/error-utils';
+import { ajustarEstoque } from '@/lib/estoque';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -126,19 +127,8 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
 
         if (itens) {
           for (const item of itens as any[]) {
-            // Buscar estoque atual
-            const { data: peca } = await db
-              .from('pecas')
-              .select('estoque')
-              .eq('id', item.peca_id)
-              .single();
-              
-            if (peca) {
-              await db
-                .from('pecas')
-                .update({ estoque: Math.max(0, (peca as any).estoque - item.quantidade) })
-                .eq('id', item.peca_id);
-            }
+            // Baixa atômica no banco (evita perder baixas concorrentes)
+            await ajustarEstoque(item.peca_id, -item.quantidade);
           }
         }
       }

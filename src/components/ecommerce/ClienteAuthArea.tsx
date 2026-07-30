@@ -1,5 +1,12 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase-db';
+import {
+  ClienteSessionExpired,
+  clienteLogin,
+  clienteLogout,
+  clienteRegistrar,
+  clienteRpc,
+  getClienteSession,
+} from '@/lib/cliente-session';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -62,31 +69,22 @@ export function ClienteAuthArea({ organizationId, roseGold, roseGoldLight, textD
   const [expandedPedido, setExpandedPedido] = useState<string | null>(null);
   const [pedidoItens, setPedidoItens] = useState<Record<string, PedidoItem[]>>({});
 
-  // Persist session in localStorage
+  // Restaura a sessão (token opaco emitido pelo banco)
   useEffect(() => {
-    const saved = localStorage.getItem(`cliente_session_${organizationId}`);
-    if (saved) {
-      try { setSession(JSON.parse(saved)); } catch { /* ignore */ }
-    }
+    const saved = getClienteSession(organizationId);
+    if (saved) setSession(saved.cliente);
   }, [organizationId]);
 
   const handleLogin = async () => {
     if (!form.email.trim() || !form.senha.trim()) { toast.error('Preencha email e senha'); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('verify_cliente_login', {
-        p_email: form.email,
-        p_password: form.senha,
-        p_organization_id: organizationId,
-      });
-      if (error) throw error;
-      if (!data || data.length === 0) { toast.error('Email ou senha inválidos'); setLoading(false); return; }
-      const s: ClienteSession = { id: data[0].cliente_id, nome: data[0].cliente_nome, email: form.email.toLowerCase().trim() };
-      setSession(s);
-      localStorage.setItem(`cliente_session_${organizationId}`, JSON.stringify(s));
+      const s = await clienteLogin(organizationId, form.email, form.senha);
+      if (!s) { toast.error('Email ou senha inválidos'); setLoading(false); return; }
+      setSession(s.cliente);
       setAuthOpen(false);
       setForm({ nome: '', email: '', senha: '', telefone: '' });
-      toast.success(`Bem-vinda, ${s.nome}! ✨`);
+      toast.success(`Bem-vinda, ${s.cliente.nome}! ✨`);
     } catch (err: any) {
       toast.error(err.message || 'Erro ao fazer login');
     } finally {
@@ -101,17 +99,13 @@ export function ClienteAuthArea({ organizationId, roseGold, roseGoldLight, textD
     if (form.senha.length < 6) { toast.error('Senha deve ter no mínimo 6 caracteres'); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('registrar_cliente_loja', {
-        p_nome: form.nome,
-        p_email: form.email,
-        p_senha: form.senha,
-        p_telefone: form.telefone || null,
-        p_organization_id: organizationId,
+      const s = await clienteRegistrar(organizationId, {
+        nome: form.nome,
+        email: form.email,
+        senha: form.senha,
+        telefone: form.telefone || null,
       });
-      if (error) throw error;
-      const s: ClienteSession = { id: data, nome: form.nome, email: form.email.toLowerCase().trim() };
-      setSession(s);
-      localStorage.setItem(`cliente_session_${organizationId}`, JSON.stringify(s));
+      setSession(s.cliente);
       setAuthOpen(false);
       setForm({ nome: '', email: '', senha: '', telefone: '' });
       toast.success('Conta criada com sucesso! ✨');
@@ -123,33 +117,42 @@ export function ClienteAuthArea({ organizationId, roseGold, roseGoldLight, textD
   };
 
   const logout = () => {
+    void clienteLogout(organizationId);
     setSession(null);
-    localStorage.removeItem(`cliente_session_${organizationId}`);
     setPedidos([]);
     toast.success('Sessão encerrada');
+  };
+
+  const encerrarSessaoExpirada = () => {
+    setSession(null);
+    setPedidos([]);
+    setMeusPedidosOpen(false);
+    toast.error('Sua sessão expirou. Entre novamente.');
   };
 
   const loadPedidos = async () => {
     if (!session) return;
     setLoadingPedidos(true);
     try {
-      const { data, error } = await supabase.rpc('fetch_cliente_pedidos', {
-        p_cliente_email: session.email,
-        p_organization_id: organizationId,
-      });
-      if (error) throw error;
-      setPedidos((data || []) as Pedido[]);
-    } catch { toast.error('Erro ao carregar pedidos'); }
+      const data = await clienteRpc<Pedido[]>(organizationId, 'cliente_fetch_pedidos');
+      setPedidos(data || []);
+    } catch (err) {
+      if (err instanceof ClienteSessionExpired) return encerrarSessaoExpirada();
+      toast.error('Erro ao carregar pedidos');
+    }
     finally { setLoadingPedidos(false); }
   };
 
   const loadPedidoItens = async (pedidoId: string) => {
     if (pedidoItens[pedidoId]) return;
     try {
-      const { data, error } = await supabase.rpc('fetch_cliente_pedido_itens', { p_pedido_id: pedidoId });
-      if (error) throw error;
-      setPedidoItens(prev => ({ ...prev, [pedidoId]: (data || []) as PedidoItem[] }));
-    } catch { /* ignore */ }
+      const data = await clienteRpc<PedidoItem[]>(organizationId, 'cliente_fetch_pedido_itens', {
+        p_pedido_id: pedidoId,
+      });
+      setPedidoItens(prev => ({ ...prev, [pedidoId]: data || [] }));
+    } catch (err) {
+      if (err instanceof ClienteSessionExpired) encerrarSessaoExpirada();
+    }
   };
 
   const togglePedido = (pedidoId: string) => {
