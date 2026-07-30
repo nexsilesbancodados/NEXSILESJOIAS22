@@ -224,6 +224,9 @@ CREATE POLICY "Users can view org pecas" ON public.pecas
   FOR SELECT USING (organization_id = public.get_user_organization_id() OR organization_id IS NULL);
 CREATE POLICY pecas_select_org_only ON public.pecas
   FOR SELECT TO authenticated USING (organization_id = public.get_user_organization_id());
+-- vitrine da loja (produção): a migration mantém esta policy
+CREATE POLICY "Acesso anônimo às peças da loja" ON public.pecas
+  FOR SELECT TO anon USING (disponivel_loja = true AND ativo = true AND estoque > 0);
 
 -- funcionario_permissoes: qualquer membro reescreve (o furo)
 CREATE POLICY "Users can update permissoes of their org funcionarios" ON public.funcionario_permissoes
