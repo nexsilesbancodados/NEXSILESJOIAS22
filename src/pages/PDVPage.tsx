@@ -56,6 +56,7 @@ import {
   Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ajustarEstoque } from '@/lib/estoque';
 import { ReciboVenda } from '@/components/recibo/ReciboVenda';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePDVShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -1497,37 +1498,28 @@ export default function PDVPage() {
         pecas={pecas}
         onConfirmarTroca={async (dados) => {
           if (dados.tipo === 'devolucao') {
-            // Return item to stock
+            // Devolve ao estoque de forma atômica (o valor em `pecas` vem do
+            // cache do React Query e pode estar desatualizado).
             const peca = pecas.find(p => p.id === dados.pecaOriginal.id);
             if (peca) {
-              const { error } = await supabase
-                .from('pecas')
-                .update({ estoque: peca.estoque + 1 })
-                .eq('id', peca.id);
-              
-              if (!error) {
+              try {
+                await ajustarEstoque(peca.id, 1);
                 queryClient.invalidateQueries({ queryKey: ['pecas'] });
                 toast.success(`Devolução registrada. ${dados.pecaOriginal.nome} devolvido ao estoque.`);
+              } catch {
+                toast.error('Erro ao devolver a peça ao estoque');
               }
             }
           } else if (dados.tipo === 'troca' && dados.pecaNova) {
             // Handle exchange
             const pecaOriginal = pecas.find(p => p.id === dados.pecaOriginal.id);
             const pecaNova = pecas.find(p => p.id === dados.pecaNova!.id);
-            
+
             if (pecaOriginal && pecaNova) {
-              // Return original to stock
-              await supabase
-                .from('pecas')
-                .update({ estoque: pecaOriginal.estoque + 1 })
-                .eq('id', pecaOriginal.id);
-              
-              // Remove new from stock
-              await supabase
-                .from('pecas')
-                .update({ estoque: pecaNova.estoque - 1 })
-                .eq('id', pecaNova.id);
-              
+              // Volta a original e dá baixa na nova — as duas atômicas.
+              await ajustarEstoque(pecaOriginal.id, 1);
+              await ajustarEstoque(pecaNova.id, -1);
+
               queryClient.invalidateQueries({ queryKey: ['pecas'] });
               
               const diferenca = pecaNova.preco_venda - pecaOriginal.preco_venda;

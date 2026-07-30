@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# artefatos dos testes da migration (supabase/tests)
+supabase/tests/schema-sintetico.sql

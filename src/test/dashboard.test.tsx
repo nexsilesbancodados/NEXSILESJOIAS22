@@ -1,5 +1,16 @@
+import type { ReactElement } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// A DashboardPage monta filhos que chamam useQuery direto (ex.: MetasRankingWidget),
+// então o render precisa de um QueryClientProvider.
+const renderComProviders = (ui: ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 // Mock all heavy dependencies
 vi.mock("@/contexts/AuthContext", () => ({
@@ -10,12 +21,18 @@ vi.mock("@/contexts/AuthContext", () => ({
   }),
 }));
 
+// Todos os hooks consumidos pela DashboardPage E pelos seus filhos precisam
+// estar aqui — o mock substitui o módulo inteiro, então um hook ausente vira
+// undefined e derruba a renderização (era o caso de useClientes/useMaletas,
+// usados pelo AcoesDeHojeCard).
 vi.mock("@/hooks/useSupabaseData", () => ({
   usePecas: () => ({ data: [{ id: "1", nome: "Anel", codigo: "A001", preco_venda: 100, estoque: 10, categoria: "Aneis" }], isLoading: false }),
   useVendas: () => ({ data: [{ id: "v1", valor_total: 250, created_at: new Date().toISOString() }], isLoading: false }),
   useRevendedoras: () => ({ data: [{ id: "r1", nome: "Maria", ativo: true }], isLoading: false }),
   useRomaneios: () => ({ data: [], isLoading: false }),
   useCaixaAtual: () => ({ data: null, isLoading: false }),
+  useClientes: () => ({ data: [], isLoading: false }),
+  useMaletas: () => ({ data: [], isLoading: false }),
 }));
 
 vi.mock("@/hooks/useTourManager", () => ({
@@ -67,7 +84,7 @@ vi.mock("react-router-dom", () => ({
 describe("DashboardPage", () => {
   it("renders stat cards with correct data", async () => {
     const DashboardPage = (await import("@/pages/DashboardPage")).default;
-    render(<DashboardPage />);
+    renderComProviders(<DashboardPage />);
 
     expect(screen.getByText("Vendas Hoje")).toBeInTheDocument();
     expect(screen.getByText("Total Vendas")).toBeInTheDocument();
@@ -77,7 +94,7 @@ describe("DashboardPage", () => {
 
   it("renders quick action buttons", async () => {
     const DashboardPage = (await import("@/pages/DashboardPage")).default;
-    render(<DashboardPage />);
+    renderComProviders(<DashboardPage />);
 
     expect(screen.getByText("Peças")).toBeInTheDocument();
     expect(screen.getByText("PDV")).toBeInTheDocument();
@@ -87,14 +104,14 @@ describe("DashboardPage", () => {
 
   it("shows 'Abrir Caixa' when no active session", async () => {
     const DashboardPage = (await import("@/pages/DashboardPage")).default;
-    render(<DashboardPage />);
+    renderComProviders(<DashboardPage />);
 
     expect(screen.getAllByText("Abrir Caixa").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders greeting based on time of day", async () => {
     const DashboardPage = (await import("@/pages/DashboardPage")).default;
-    render(<DashboardPage />);
+    renderComProviders(<DashboardPage />);
 
     const hour = new Date().getHours();
     const expectedGreeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";

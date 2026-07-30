@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db, supabase } from '@/lib/supabase-db';
+import { ajustarEstoque } from '@/lib/estoque';
 import { toast } from 'sonner';
 
 // Helper function to translate database errors to user-friendly messages
@@ -1128,19 +1129,8 @@ export function useAddMaletaItem() {
         result = data;
       }
 
-      // Decrease stock (only if available)
-      const { data: pecaData } = await supabase
-        .from('pecas')
-        .select('estoque')
-        .eq('id', pecaId)
-        .single();
-      
-      if (pecaData && (pecaData.estoque || 0) > 0) {
-        await supabase
-          .from('pecas')
-          .update({ estoque: Math.max(0, (pecaData.estoque || 0) - quantidade) })
-          .eq('id', pecaId);
-      }
+      // Decrease stock (atômico, no banco)
+      await ajustarEstoque(pecaId, -quantidade);
 
       return result;
     },
@@ -1202,18 +1192,7 @@ export function useUpdateMaletaItem() {
         const quantidadeToReturn = itemData?.quantidade ?? quantidade ?? 1;
 
         if (quantidadeToReturn > 0) {
-          const { data: pecaData } = await supabase
-            .from('pecas')
-            .select('estoque')
-            .eq('id', pecaId)
-            .single();
-
-          if (pecaData) {
-            await supabase
-              .from('pecas')
-              .update({ estoque: (pecaData.estoque || 0) + quantidadeToReturn })
-              .eq('id', pecaId);
-          }
+          await ajustarEstoque(pecaId, quantidadeToReturn);
         }
 
         // Then delete the item from maleta
@@ -1335,18 +1314,7 @@ export function useDeleteMaletaItem() {
 
       // Return item to stock if requested
       if (returnToStock) {
-        const { data: pecaData } = await supabase
-          .from('pecas')
-          .select('estoque')
-          .eq('id', pecaId)
-          .single();
-        
-        if (pecaData) {
-          await supabase
-            .from('pecas')
-            .update({ estoque: (pecaData.estoque || 0) + quantidadeToReturn })
-            .eq('id', pecaId);
-        }
+        await ajustarEstoque(pecaId, quantidadeToReturn);
       }
     },
     onSuccess: () => {
@@ -1396,29 +1364,12 @@ export function useCloseMaleta() {
             const qty = item.quantidade || 0;
             if (qty <= 0) continue;
 
-            const { data: pecaData, error: pecaError } = await supabase
-              .from('pecas')
-              .select('estoque')
-              .eq('id', item.peca_id)
-              .single();
-
-            if (pecaError) {
-              console.error(`Error fetching piece ${item.peca_id}:`, pecaError);
-              continue;
-            }
-
-            if (pecaData) {
-              const { error: updateError } = await supabase
-                .from('pecas')
-                .update({ estoque: (pecaData.estoque || 0) + qty })
-                .eq('id', item.peca_id);
-
-              if (updateError) {
-                console.error(`Error updating stock for piece ${item.peca_id}:`, updateError);
-              } else {
-                totalUnitsReturned += qty;
-                itemsReturned++;
-              }
+            try {
+              await ajustarEstoque(item.peca_id, qty);
+              totalUnitsReturned += qty;
+              itemsReturned++;
+            } catch (stockErr) {
+              console.error(`Error updating stock for piece ${item.peca_id}:`, stockErr);
             }
           }
 
@@ -1728,20 +1679,9 @@ export function useAddVenda() {
           });
       }
 
-      // Update stock for each item
+      // Update stock for each item (atômico, no banco)
       for (const item of items) {
-        const { data: pecaData } = await supabase
-          .from('pecas')
-          .select('estoque')
-          .eq('id', item.peca_id)
-          .single();
-        
-        if (pecaData) {
-          await supabase
-            .from('pecas')
-            .update({ estoque: Math.max(0, (pecaData.estoque || 0) - item.quantidade) })
-            .eq('id', item.peca_id);
-        }
+        await ajustarEstoque(item.peca_id, -item.quantidade);
       }
 
       return vendaData;

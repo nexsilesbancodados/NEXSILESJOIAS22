@@ -17,6 +17,17 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { usePortalNotifications } from '@/hooks/usePortalNotifications';
 import { usePortalPWA } from '@/hooks/usePortalPWA';
+import {
+  getPortalSession,
+  portalLogin,
+  portalLogout,
+  portalRpc,
+  PortalSessionExpired,
+  type PortalInteresseItemRow,
+  type PortalInteresseRow,
+  type PortalMaletaPecaRow,
+  type PortalMaletaRow,
+} from '@/lib/portal-session';
 
 interface Revendedora {
   id: string;
@@ -115,20 +126,26 @@ export default function PortalRevendedoraPage() {
   // PWA
   const { canInstall, isInstalled, isOnline, installApp } = usePortalPWA();
 
-  // Check session storage for existing login
+  // Encerra a sessão local quando o token expira (12h) ou é inválido.
+  const encerrarSessaoExpirada = useCallback(() => {
+    setIsAuthenticated(false);
+    setRevendedora(null);
+    setMaletas([]);
+    setPecasMaleta([]);
+    setInteresses([]);
+    toast.error('Sua sessão expirou. Entre novamente.');
+    navigate('/portal/login', { replace: true });
+  }, [navigate]);
+
+  // Restaura a sessão (token opaco emitido pelo banco no login)
   useEffect(() => {
-    const session = sessionStorage.getItem(`portal_session`);
+    const session = getPortalSession();
     if (session) {
-      try {
-        const data = JSON.parse(session);
-        setRevendedora(data.revendedora);
-        setIsAuthenticated(true);
-        // If URL has no ID, redirect to correct portal
-        if (!revendedoraId || revendedoraId === 'login') {
-          navigate(`/portal/${data.revendedora.id}`, { replace: true });
-        }
-      } catch (e) {
-        sessionStorage.removeItem(`portal_session`);
+      setRevendedora(session.revendedora);
+      setIsAuthenticated(true);
+      // If URL has no ID, redirect to correct portal
+      if (!revendedoraId || revendedoraId === 'login') {
+        navigate(`/portal/${session.revendedora.id}`, { replace: true });
       }
     }
   }, [revendedoraId, navigate]);
@@ -136,18 +153,9 @@ export default function PortalRevendedoraPage() {
   const fetchPecasMaleta = useCallback(async (maletaId: string) => {
     if (!revendedora) return;
     try {
-      console.log('[Portal] Fetching pecas for maleta:', maletaId, 'revendedora:', revendedora.id);
-      const { data, error } = await supabase
-        .rpc('portal_fetch_maleta_pecas', { p_maleta_id: maletaId, p_revendedora_id: revendedora.id });
+      const data = await portalRpc<PortalMaletaPecaRow[]>('portal_fetch_maleta_pecas', { p_maleta_id: maletaId });
 
-      if (error) {
-        console.error('[Portal] Error from RPC:', error);
-        throw error;
-      }
-      
-      console.log('[Portal] Pecas received:', data?.length || 0);
-      
-      const formattedData = (data || []).map((item: any) => ({
+      const formattedData = (data || []).map((item) => ({
         id: item.id,
         quantidade: item.quantidade,
         quantidade_vendida: item.quantidade_vendida,
@@ -165,9 +173,10 @@ export default function PortalRevendedoraPage() {
       
       setPecasMaleta(formattedData);
     } catch (error) {
+      if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error fetching pecas:', error);
     }
-  }, [revendedora]);
+  }, [revendedora, encerrarSessaoExpirada]);
 
   // Fetch data when authenticated
   useEffect(() => {
@@ -192,60 +201,31 @@ export default function PortalRevendedoraPage() {
 
     setLoginLoading(true);
     try {
-      // Step 1: Use secure RPC function to find user by email (bypasses RLS safely)
-      const { data: lookupData, error: lookupError } = await supabase
-        .rpc('portal_login_lookup', { p_email: loginEmail.trim().toLowerCase() });
+      // Uma única chamada: o banco verifica a senha (bcrypt), aplica rate limit
+      // por e-mail e devolve o token de sessão. Resposta idêntica para e-mail
+      // inexistente e senha errada — não serve como oráculo de enumeração.
+      const session = await portalLogin(loginEmail, senha);
 
-      const publicData = Array.isArray(lookupData) ? lookupData[0] : lookupData;
-
-      if (lookupError || !publicData) {
-        toast.error('E-mail não encontrado');
+      if (!session) {
+        toast.error('E-mail ou senha incorretos');
         setLoginLoading(false);
         return;
       }
 
-      // Step 2: Verify password via edge function (never expose password hash to client)
-      const { data: authResult, error: authError } = await supabase.functions.invoke('verificar-senha-portal', {
-        body: { 
-          revendedora_id: publicData.id,
-          senha: senha
-        }
-      });
-
-      if (authError || !authResult?.success) {
-        toast.error(authResult?.message || 'Senha incorreta');
-        setLoginLoading(false);
-        return;
-      }
-
-      // Step 3: Use data from login lookup (already has all needed fields)
-      const revendedoraData = {
-        id: publicData.id,
-        nome: publicData.nome,
-        comissao_percentual: publicData.comissao_percentual || 30,
-        telefone: publicData.telefone || undefined,
-        email: publicData.email || undefined,
-      };
-
-      setRevendedora(revendedoraData);
-      
-      sessionStorage.setItem(`portal_session`, JSON.stringify({
-        revendedora: revendedoraData
-      }));
-      
+      setRevendedora(session.revendedora);
       setIsAuthenticated(true);
-      navigate(`/portal/${revendedoraData.id}`, { replace: true });
-      toast.success(`Bem-vinda, ${revendedoraData.nome}!`);
+      navigate(`/portal/${session.revendedora.id}`, { replace: true });
+      toast.success(`Bem-vinda, ${session.revendedora.nome}!`);
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Erro ao fazer login');
+      toast.error(error?.message || 'Erro ao fazer login');
     } finally {
       setLoginLoading(false);
     }
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem(`portal_session`);
+    void portalLogout();
     setIsAuthenticated(false);
     setRevendedora(null);
     setMaletas([]);
@@ -260,16 +240,14 @@ export default function PortalRevendedoraPage() {
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .rpc('portal_fetch_maletas', { p_revendedora_id: revendedora.id });
-
-      if (error) throw error;
+      const data = await portalRpc<PortalMaletaRow[]>('portal_fetch_maletas');
       setMaletas(data || []);
-      
+
       if (data && data.length > 0 && !maletaSelecionada) {
         setMaletaSelecionada(data[0]);
       }
     } catch (error) {
+      if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error fetching maletas:', error);
     } finally {
       setLoading(false);
@@ -281,17 +259,13 @@ export default function PortalRevendedoraPage() {
     if (!revendedora) return;
     
     try {
-      const { data, error } = await supabase
-        .rpc('portal_fetch_interesses', { p_revendedora_id: revendedora.id });
-
-      if (error) throw error;
+      const data = await portalRpc<PortalInteresseRow[]>('portal_fetch_interesses');
 
       // Group interesses and fetch items via RPC
       const interessesWithItems = await Promise.all(
-        (data || []).map(async (interesse: any) => {
+        (data || []).map(async (interesse) => {
           // Fetch items for each interesse using RPC
-          const { data: itens } = await supabase
-            .rpc('portal_fetch_interesse_itens', { p_interesse_id: interesse.id, p_revendedora_id: revendedora.id });
+          const itens = await portalRpc<PortalInteresseItemRow[]>('portal_fetch_interesse_itens', { p_interesse_id: interesse.id });
 
           // Find maleta name from our loaded maletas
           const maletaInfo = maletas.find(m => m.id === interesse.maleta_id);
@@ -299,7 +273,7 @@ export default function PortalRevendedoraPage() {
           return {
             ...interesse,
             maleta: { id: interesse.maleta_id, nome: maletaInfo?.nome || 'Maleta' },
-            itens: (itens || []).map((item: any) => ({
+            itens: (itens || []).map((item) => ({
               id: item.id,
               quantidade: item.quantidade,
               peca: {
@@ -315,6 +289,7 @@ export default function PortalRevendedoraPage() {
 
       setInteresses(interessesWithItems);
     } catch (error) {
+      if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error fetching interesses:', error);
     }
   };
@@ -323,30 +298,25 @@ export default function PortalRevendedoraPage() {
     if (!revendedora) return;
     setProcessando(true);
     try {
-      // Mark all items as sold via RPC
+      // Uma leitura só das peças da maleta, reaproveitada para todos os itens.
+      const pecas = await portalRpc<PortalMaletaPecaRow[]>('portal_fetch_maleta_pecas', {
+        p_maleta_id: interesse.maleta.id,
+      });
+
       for (const item of interesse.itens) {
-        // We need to find the maleta_peca by maleta_id + peca_id via a dedicated lookup
-        // For now, use portal_marcar_vendida_by_peca RPC or fetch via existing RPC
-        const pecas = await supabase.rpc('portal_fetch_maleta_pecas', { 
-          p_maleta_id: interesse.maleta.id, 
-          p_revendedora_id: revendedora.id 
-        });
-        
-        const matchingPeca = (pecas.data || []).find((p: any) => p.peca_id === item.peca.id);
+        const matchingPeca = (pecas || []).find((p) => p.peca_id === item.peca.id);
         if (matchingPeca) {
-          await supabase.rpc('portal_marcar_vendida', {
-            p_revendedora_id: revendedora.id,
+          await portalRpc('portal_marcar_vendida', {
             p_maleta_peca_id: matchingPeca.id,
-            p_quantidade_venda: item.quantidade || 1
+            p_quantidade_venda: item.quantidade || 1,
           });
         }
       }
 
       // Update interesse status
-      await supabase.rpc('portal_update_interesse_status', {
-        p_revendedora_id: revendedora.id,
+      await portalRpc('portal_update_interesse_status', {
         p_interesse_id: interesse.id,
-        p_status: 'atendido'
+        p_status: 'atendido',
       });
 
       toast.success('Venda aprovada! Itens marcados como vendidos.');
@@ -356,8 +326,9 @@ export default function PortalRevendedoraPage() {
         fetchPecasMaleta(maletaSelecionada.id);
       }
     } catch (error) {
+      if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error approving interesse:', error);
-      toast.error('Erro ao aprovar venda');
+      toast.error(error?.message || 'Erro ao aprovar venda');
     } finally {
       setProcessando(false);
     }
@@ -367,16 +338,16 @@ export default function PortalRevendedoraPage() {
     if (!revendedora) return;
     setProcessando(true);
     try {
-      await supabase.rpc('portal_update_interesse_status', {
-        p_revendedora_id: revendedora.id,
+      await portalRpc('portal_update_interesse_status', {
         p_interesse_id: interesseId,
-        p_status: 'cancelado'
+        p_status: 'cancelado',
       });
 
       toast.success('Interesse rejeitado');
       setInteresseModal(null);
       fetchInteresses();
     } catch (error) {
+      if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error rejecting interesse:', error);
       toast.error('Erro ao rejeitar interesse');
     } finally {
@@ -389,25 +360,24 @@ export default function PortalRevendedoraPage() {
 
     setProcessando(true);
     try {
-      const { data: result, error } = await supabase.rpc('portal_marcar_vendida', {
-        p_revendedora_id: revendedora.id,
+      const result = await portalRpc<boolean>('portal_marcar_vendida', {
         p_maleta_peca_id: vendaModal.id,
-        p_quantidade_venda: quantidadeVenda
+        p_quantidade_venda: quantidadeVenda,
       });
 
-      if (error) throw error;
       if (!result) throw new Error('Não autorizado');
 
-      toast.success(quantidadeVenda > 1 
-        ? `${quantidadeVenda} peças marcadas como vendidas!` 
+      toast.success(quantidadeVenda > 1
+        ? `${quantidadeVenda} peças marcadas como vendidas!`
         : 'Peça marcada como vendida!'
       );
       setVendaModal(null);
       setQuantidadeVenda(1);
       fetchPecasMaleta(maletaSelecionada.id);
     } catch (error) {
+      if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error marking as sold:', error);
-      toast.error('Erro ao marcar como vendida');
+      toast.error(error?.message || 'Erro ao marcar como vendida');
     } finally {
       setProcessando(false);
     }
@@ -418,22 +388,19 @@ export default function PortalRevendedoraPage() {
 
     setProcessando(true);
     try {
-      const { data: result, error } = await supabase.rpc('portal_desfazer_venda' as any, {
-        p_revendedora_id: revendedora.id,
+      await portalRpc('portal_desfazer_venda', {
         p_maleta_peca_id: desfazerModal.id,
-        p_quantidade_desfazer: quantidadeDesfazer
+        p_quantidade_desfazer: quantidadeDesfazer,
       });
 
-      if (error) throw error;
-
-      toast.success(quantidadeDesfazer > 1 
+      toast.success(quantidadeDesfazer > 1
         ? `${quantidadeDesfazer} peças devolvidas ao estoque da maleta!` 
         : 'Venda desfeita com sucesso!'
       );
       setDesfazerModal(null);
       setQuantidadeDesfazer(1);
       fetchPecasMaleta(maletaSelecionada.id);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error undoing sale:', error);
       toast.error(error.message || 'Erro ao desfazer venda');
     } finally {
