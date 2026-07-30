@@ -1,5 +1,19 @@
 # Correções de segurança — como aplicar
 
+> **Status da verificação.** A migration foi aplicada e testada num Postgres real
+> (PGlite, sem Docker) contra um banco montado a partir de `types.ts`: **69
+> testes de segurança passando**, incluindo isolamento entre revendedoras e entre
+> tenants, escalada de privilégio, rate limit e estoque atômico. Também foram
+> cruzadas as **216 operações de tabela** e as **32 RPCs** do app com o conjunto
+> final de policies para garantir que nenhuma tela ficou sem acesso. Ver
+> `supabase/tests/README.md`. O banco de produção estava fora do ar
+> (PostgREST `PGRST002`) durante todo o trabalho, então **nada foi validado
+> contra os dados reais**.
+>
+> Essa validação achou dois bugs na própria correção, já consertados:
+> subconsulta em policy também passa por RLS (ia derrubar as telas de equipe), e
+> `REVOKE ... FROM anon` não tira o acesso herdado de `PUBLIC`.
+
 Este pacote corrige as falhas encontradas na análise do app. São duas partes que
 **precisam ir juntas**: o SQL no banco e o código (frontend + Edge Functions).
 

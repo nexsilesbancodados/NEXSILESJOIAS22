@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { portalRpc, PortalSessionExpired } from '@/lib/portal-session';
+import {
+  portalRpc,
+  PortalSessionExpired,
+  type PortalNotificacaoRow,
+} from '@/lib/portal-session';
 
 interface PortalNotification {
   id: string;
@@ -117,23 +121,23 @@ export function usePortalNotifications({ revendedoraId, enabled }: UsePortalNoti
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await portalRpc<any[]>('portal_fetch_notificacoes');
+      const data = await portalRpc<PortalNotificacaoRow[]>('portal_fetch_notificacoes');
+      const linhas = data || [];
 
-      const formatted: PortalNotification[] = (data || []).map((row: any) => ({
+      const formatted: PortalNotification[] = linhas.map((row) => ({
         id: row.id,
         tipo: 'novo_pedido',
         titulo: row.status === 'pendente' ? '🛒 Novo Pedido!' : '📦 Pedido',
         mensagem: `${row.cliente_nome} fez um pedido na maleta "${row.maleta_nome || 'Maleta'}"`,
         lida: row.status !== 'pendente',
         created_at: row.created_at || new Date().toISOString(),
-        clienteNome: row.cliente_nome,
-      })) as PortalNotification[];
+      }));
 
       // Avisa apenas o que chegou depois da primeira carga.
       if (!primeiraCargaRef.current) {
-        for (const n of formatted) {
-          if (!knownIdsRef.current.has(n.id) && !n.lida) {
-            avisarNovoPedido((n as any).clienteNome || 'Cliente');
+        for (const row of linhas) {
+          if (!knownIdsRef.current.has(row.id) && row.status === 'pendente') {
+            avisarNovoPedido(row.cliente_nome || 'Cliente');
           }
         }
       }

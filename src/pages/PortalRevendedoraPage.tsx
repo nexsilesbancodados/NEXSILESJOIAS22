@@ -23,6 +23,10 @@ import {
   portalLogout,
   portalRpc,
   PortalSessionExpired,
+  type PortalInteresseItemRow,
+  type PortalInteresseRow,
+  type PortalMaletaPecaRow,
+  type PortalMaletaRow,
 } from '@/lib/portal-session';
 
 interface Revendedora {
@@ -149,9 +153,9 @@ export default function PortalRevendedoraPage() {
   const fetchPecasMaleta = useCallback(async (maletaId: string) => {
     if (!revendedora) return;
     try {
-      const data = await portalRpc<any[]>('portal_fetch_maleta_pecas', { p_maleta_id: maletaId });
+      const data = await portalRpc<PortalMaletaPecaRow[]>('portal_fetch_maleta_pecas', { p_maleta_id: maletaId });
 
-      const formattedData = (data || []).map((item: any) => ({
+      const formattedData = (data || []).map((item) => ({
         id: item.id,
         quantidade: item.quantidade,
         quantidade_vendida: item.quantidade_vendida,
@@ -212,7 +216,7 @@ export default function PortalRevendedoraPage() {
       setIsAuthenticated(true);
       navigate(`/portal/${session.revendedora.id}`, { replace: true });
       toast.success(`Bem-vinda, ${session.revendedora.nome}!`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Login error:', error);
       toast.error(error?.message || 'Erro ao fazer login');
     } finally {
@@ -236,7 +240,7 @@ export default function PortalRevendedoraPage() {
     
     setLoading(true);
     try {
-      const data = await portalRpc<any[]>('portal_fetch_maletas');
+      const data = await portalRpc<PortalMaletaRow[]>('portal_fetch_maletas');
       setMaletas(data || []);
 
       if (data && data.length > 0 && !maletaSelecionada) {
@@ -255,13 +259,13 @@ export default function PortalRevendedoraPage() {
     if (!revendedora) return;
     
     try {
-      const data = await portalRpc<any[]>('portal_fetch_interesses');
+      const data = await portalRpc<PortalInteresseRow[]>('portal_fetch_interesses');
 
       // Group interesses and fetch items via RPC
       const interessesWithItems = await Promise.all(
-        (data || []).map(async (interesse: any) => {
+        (data || []).map(async (interesse) => {
           // Fetch items for each interesse using RPC
-          const itens = await portalRpc<any[]>('portal_fetch_interesse_itens', { p_interesse_id: interesse.id });
+          const itens = await portalRpc<PortalInteresseItemRow[]>('portal_fetch_interesse_itens', { p_interesse_id: interesse.id });
 
           // Find maleta name from our loaded maletas
           const maletaInfo = maletas.find(m => m.id === interesse.maleta_id);
@@ -269,7 +273,7 @@ export default function PortalRevendedoraPage() {
           return {
             ...interesse,
             maleta: { id: interesse.maleta_id, nome: maletaInfo?.nome || 'Maleta' },
-            itens: (itens || []).map((item: any) => ({
+            itens: (itens || []).map((item) => ({
               id: item.id,
               quantidade: item.quantidade,
               peca: {
@@ -295,12 +299,12 @@ export default function PortalRevendedoraPage() {
     setProcessando(true);
     try {
       // Uma leitura só das peças da maleta, reaproveitada para todos os itens.
-      const pecas = await portalRpc<any[]>('portal_fetch_maleta_pecas', {
+      const pecas = await portalRpc<PortalMaletaPecaRow[]>('portal_fetch_maleta_pecas', {
         p_maleta_id: interesse.maleta.id,
       });
 
       for (const item of interesse.itens) {
-        const matchingPeca = (pecas || []).find((p: any) => p.peca_id === item.peca.id);
+        const matchingPeca = (pecas || []).find((p) => p.peca_id === item.peca.id);
         if (matchingPeca) {
           await portalRpc('portal_marcar_vendida', {
             p_maleta_peca_id: matchingPeca.id,
@@ -321,7 +325,7 @@ export default function PortalRevendedoraPage() {
       if (maletaSelecionada) {
         fetchPecasMaleta(maletaSelecionada.id);
       }
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error approving interesse:', error);
       toast.error(error?.message || 'Erro ao aprovar venda');
@@ -342,7 +346,7 @@ export default function PortalRevendedoraPage() {
       toast.success('Interesse rejeitado');
       setInteresseModal(null);
       fetchInteresses();
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error rejecting interesse:', error);
       toast.error('Erro ao rejeitar interesse');
@@ -370,7 +374,7 @@ export default function PortalRevendedoraPage() {
       setVendaModal(null);
       setQuantidadeVenda(1);
       fetchPecasMaleta(maletaSelecionada.id);
-    } catch (error: any) {
+    } catch (error) {
       if (error instanceof PortalSessionExpired) return encerrarSessaoExpirada();
       console.error('Error marking as sold:', error);
       toast.error(error?.message || 'Erro ao marcar como vendida');
@@ -396,7 +400,7 @@ export default function PortalRevendedoraPage() {
       setDesfazerModal(null);
       setQuantidadeDesfazer(1);
       fetchPecasMaleta(maletaSelecionada.id);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error undoing sale:', error);
       toast.error(error.message || 'Erro ao desfazer venda');
     } finally {

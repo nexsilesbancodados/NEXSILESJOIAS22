@@ -35,6 +35,62 @@ export class PortalSessionExpired extends Error {
   }
 }
 
+/** Linhas devolvidas pelas RPCs do portal (formato plano, vindo do banco). */
+export interface PortalMaletaRow {
+  id: string;
+  nome: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  is_public: boolean;
+  slug: string | null;
+  observacoes: string | null;
+}
+
+export interface PortalMaletaPecaRow {
+  id: string;
+  quantidade: number;
+  quantidade_vendida: number;
+  vendida: boolean;
+  preco_unitario: number | null;
+  data_venda: string | null;
+  peca_id: string;
+  peca_nome: string;
+  peca_codigo: string;
+  peca_preco_venda: number | null;
+  peca_imagem_url: string | null;
+}
+
+export interface PortalInteresseRow {
+  id: string;
+  maleta_id: string;
+  cliente_nome: string;
+  cliente_telefone: string | null;
+  cliente_email: string | null;
+  status: string;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PortalInteresseItemRow {
+  id: string;
+  quantidade: number;
+  peca_id: string;
+  peca_nome: string;
+  peca_codigo: string;
+  peca_preco_venda: number | null;
+}
+
+export interface PortalNotificacaoRow {
+  id: string;
+  cliente_nome: string;
+  status: string;
+  created_at: string;
+  maleta_id: string;
+  maleta_nome: string;
+}
+
 export function getPortalSession(): StoredSession | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);

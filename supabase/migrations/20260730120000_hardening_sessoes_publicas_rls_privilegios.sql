@@ -677,6 +677,34 @@ END $$;
 -- SEÇÃO 5 — ESCALADA DE PRIVILÉGIO
 -- =============================================================================
 
+-- 5.0 Helper de "mesma organização".
+--
+-- IMPORTANTE: subconsultas dentro de uma policy também passam por RLS. Como as
+-- policies de `memberships` só deixam o usuário ver a PRÓPRIA linha (exceto o
+-- owner da organização), uma policy que faça `EXISTS (SELECT ... FROM
+-- memberships WHERE user_id = <outro usuário>)` retorna falso para qualquer
+-- pessoa que não seja owner — e derrubaria as telas de equipe. Por isso a
+-- checagem vai numa função SECURITY DEFINER, que enxerga a tabela inteira.
+CREATE OR REPLACE FUNCTION public.usuarios_mesma_organizacao(_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+      FROM public.memberships m_self
+      JOIN public.memberships m_other
+        ON m_other.organization_id = m_self.organization_id
+     WHERE m_self.user_id = auth.uid()
+       AND m_other.user_id = _user_id
+  )
+$$;
+
+REVOKE ALL ON FUNCTION public.usuarios_mesma_organizacao(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.usuarios_mesma_organizacao(UUID) TO authenticated, service_role;
+
 -- 5.1 user_roles: ninguém dá role a si mesmo.
 -- O bootstrap do primeiro admin continua funcionando: é feito pelo trigger
 -- handle_new_user() (SECURITY DEFINER, não passa por RLS), e funcionários são
@@ -690,12 +718,7 @@ CREATE POLICY roles_admin_grant_same_org ON public.user_roles
   FOR INSERT TO authenticated
   WITH CHECK (
     public.has_role(auth.uid(), 'admin')
-    AND EXISTS (
-      SELECT 1 FROM public.memberships m_target
-       JOIN public.memberships m_self ON m_self.organization_id = m_target.organization_id
-      WHERE m_target.user_id = user_roles.user_id
-        AND m_self.user_id = auth.uid()
-    )
+    AND public.usuarios_mesma_organizacao(user_roles.user_id)
   );
 
 -- 5.2 profiles.is_super_admin não pode ser alterado pelo próprio usuário.
@@ -744,13 +767,7 @@ CREATE POLICY profiles_select_same_org ON public.profiles
   FOR SELECT TO authenticated
   USING (
     user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1
-        FROM public.memberships m_self
-        JOIN public.memberships m_other ON m_other.organization_id = m_self.organization_id
-       WHERE m_self.user_id = auth.uid()
-         AND m_other.user_id = profiles.user_id
-    )
+    OR public.usuarios_mesma_organizacao(profiles.user_id)
   );
 
 -- 5.4 funcionario_permissoes: só admin/gerente da organização altera.
@@ -1052,13 +1069,7 @@ CREATE POLICY notificacoes_insert_self ON public.notificacoes
   FOR INSERT TO authenticated
   WITH CHECK (
     user_id = auth.uid()
-    OR EXISTS (
-      SELECT 1
-        FROM public.memberships m_self
-        JOIN public.memberships m_target ON m_target.organization_id = m_self.organization_id
-       WHERE m_self.user_id = auth.uid()
-         AND m_target.user_id = notificacoes.user_id
-    )
+    OR public.usuarios_mesma_organizacao(notificacoes.user_id)
   );
 
 -- 7.10 agente_mensagens — INSERT só checava que a conversa existe.
@@ -1250,12 +1261,16 @@ GRANT EXECUTE ON FUNCTION public.ajustar_estoque_peca(UUID, INTEGER, BOOLEAN) TO
 -- Em 213 migrations havia UM único REVOKE: todas as demais funções SECURITY
 -- DEFINER mantinham o EXECUTE default para PUBLIC. Estas só são chamadas por
 -- Edge Functions (service_role) ou por usuários logados.
+--
+-- ATENÇÃO ao detalhe do Postgres: `REVOKE ... FROM anon` NÃO resolve, porque o
+-- EXECUTE default é concedido a PUBLIC — e anon herda de PUBLIC. É preciso
+-- revogar de PUBLIC e devolver o GRANT só para quem deve ter.
 
 DO $$
 DECLARE
   v_sig TEXT;
-  v_anon_only TEXT[] := ARRAY[
-    -- só service_role (Edge Functions)
+  -- Grupo 1: só as Edge Functions (service_role) chamam.
+  v_so_service TEXT[] := ARRAY[
     'public.check_rate_limit(text, text, integer, integer)',
     'public.debitar_estoque_ecommerce(uuid, integer)',
     'public.gerar_codigo_acesso()',
@@ -1263,11 +1278,12 @@ DECLARE
     'public.cleanup_webhook_queue()',
     'public.cleanup_edge_function_errors()',
     'public.hash_portal_password(text)',
-    'public.hash_cliente_password()',
     'public.provisionar_ecommerce_config(uuid, text)',
-    'public.criar_dados_exemplo(uuid)',
+    'public.criar_dados_exemplo(uuid)'
+  ];
+  -- Grupo 2: telas do app, logado.
+  v_so_logado TEXT[] := ARRAY[
     'public.seed_default_email_templates(uuid)',
-    -- só usuário logado
     'public.maleta_adicionar_peca(uuid, uuid, integer)',
     'public.maleta_conferir(uuid, jsonb)',
     'public.maleta_fechar_v2(uuid)',
@@ -1284,9 +1300,10 @@ DECLARE
     'public.log_activity(text, text, uuid, jsonb)'
   ];
 BEGIN
-  FOREACH v_sig IN ARRAY v_anon_only LOOP
+  FOREACH v_sig IN ARRAY v_so_service LOOP
     BEGIN
-      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', v_sig);
+      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated', v_sig);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO service_role', v_sig);
     EXCEPTION WHEN OTHERS THEN
       -- Assinatura diferente nesta base (ou função inexistente): ignora, para não
       -- abortar a migration inteira. A query de conferência da Seção 10 lista o
@@ -1294,7 +1311,23 @@ BEGIN
       RAISE NOTICE 'REVOKE ignorado (%): %', SQLERRM, v_sig;
     END;
   END LOOP;
+
+  FOREACH v_sig IN ARRAY v_so_logado LOOP
+    BEGIN
+      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon', v_sig);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role', v_sig);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'REVOKE ignorado (%): %', SQLERRM, v_sig;
+    END;
+  END LOOP;
 END $$;
+
+-- As funções de verificação de senha e a de consulta de código: revogar de
+-- PUBLIC (não só de anon) pelo mesmo motivo acima.
+REVOKE ALL ON FUNCTION public.get_pending_access_code(TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.get_pending_access_code(TEXT) TO service_role;
+REVOKE ALL ON FUNCTION public.verify_portal_password_by_id(UUID, TEXT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.verify_portal_password_by_id(UUID, TEXT) TO service_role;
 
 -- =============================================================================
 -- SEÇÃO 10 — CONFERÊNCIA (rodar depois, no SQL Editor)

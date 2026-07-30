@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { dbRpc } from '@/lib/supabase-db';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { enviarNotificacaoEmail } from '@/lib/email-notifications';
@@ -97,10 +98,9 @@ export function useActivateSubscription() {
         // Antes isso era feito daqui com SELECT + UPDATE direto em
         // codigos_acesso, sem amarrar o código ao e-mail — quem conhecesse um
         // código válido ativava o plano na própria conta.
-        const { data: result, error: rpcError } = await (supabase as any).rpc(
-          'ativar_codigo_acesso',
-          { p_codigo: pendingCode! }
-        );
+        const { data: result, error: rpcError } = await dbRpc('ativar_codigo_acesso', {
+          p_codigo: pendingCode!,
+        });
 
         if (rpcError) {
           console.error('Error activating access code:', rpcError);
