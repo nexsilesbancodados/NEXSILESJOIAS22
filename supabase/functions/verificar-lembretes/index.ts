@@ -1,15 +1,28 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-cron-secret, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Esta função estava publicada sem conferência nenhuma. Rodava com
+  // service_role, varria `agendamentos` de TODAS as organizações e disparava
+  // WhatsApp e e-mail. Qualquer pessoa na internet podia chamá-la em sequência:
+  // os clientes de todos os lojistas recebiam a mesma mensagem repetida, na
+  // conta do dono do sistema, com risco real de o número do WhatsApp ser
+  // bloqueado por spam. E cada disparo marca `lembrete_enviado`, então o
+  // lembrete legítimo deixava de sair depois.
+  //
+  // As outras cinco rotinas já usavam esta guarda; esta ficou de fora.
+  const cronError = requireCronSecret(req);
+  if (cronError) return cronError;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
