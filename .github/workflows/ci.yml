@@ -1,0 +1,52 @@
+name: CI
+
+# O projeto tem 9 arquivos de teste, 80 testes, e uma pasta supabase/tests com
+# verificação de cobertura — e nada rodava. Como o Lovable envia commits direto
+# para a main, uma quebra ia para produção sem nenhum passo no caminho.
+#
+# Este arquivo é esse passo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # Um push novo na mesma branch cancela a execução anterior, que já não
+  # interessa.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificacao:
+    name: Testes, tipos e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # --legacy-peer-deps é necessário: há um conflito de peer dependency que
+      # faz o `npm ci` puro falhar. Sem a flag, o CI nunca chega a rodar nada.
+      - name: Instalar
+        run: npm ci --legacy-peer-deps
+
+      - name: Tipos
+        run: npx tsc --noEmit
+
+      - name: Testes
+        run: npx vitest run --reporter=verbose
+
+      - name: Build
+        run: npm run build
+
+      # Roda por último: quando algo quebra, é mais útil ver o erro de teste ou
+      # de tipo primeiro do que uma lista de lint.
+      - name: Lint (não pode piorar)
+        run: node scripts/lint-orcamento.mjs

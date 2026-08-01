@@ -158,7 +158,6 @@ export function useVerificarMaletasVencendo(userId: string | undefined, diasAler
       console.error('Error checking maletas:', error);
     }
     // Intentionally omit criarNotificacao from deps — using ref to keep this stable.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, diasAlerta]);
 
   // Run once per session load, then every hour. Guard prevents duplicate intervals on remount storms.

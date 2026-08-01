@@ -10,11 +10,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint:orcamento": "node scripts/lint-orcamento.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.2",
-    "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -44,7 +44,6 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@supabase/supabase-js": "^2.91.1",
     "@tanstack/react-query": "^5.83.0",
-    "@testing-library/dom": "^10.4.1",
     "@zxing/browser": "^0.2.0",
     "@zxing/library": "^0.23.0",
     "class-variance-authority": "^0.7.1",
@@ -52,7 +51,6 @@
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
-    "firebase": "^12.8.0",
     "framer-motion": "^12.26.2",
     "gsap": "^3.14.2",
     "input-otp": "^1.4.2",
@@ -70,7 +68,6 @@
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.4",
-    "serve": "^14.2.5",
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
@@ -81,6 +78,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.16.5",
