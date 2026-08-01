@@ -33,9 +33,26 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=(self)
-  # Mantida em Report-Only, igual ao vercel.json. Ela nunca bloqueou nada em
-  # produção, então não há como saber quais origens o app realmente usa hoje —
-  # ligar agora derrubaria alguma tela sem aviso. Para passar a bloquear:
-  # acompanhe os relatórios por alguns dias, complete as origens que faltarem, e
-  # só então troque o nome do cabeçalho para Content-Security-Policy.
-  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://www.googletagmanager.com https://connect.facebook.net https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.gpteng.co; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mercadopago.com https://viacep.com.br https://receitaws.com.br https://www.google-analytics.com https://*.facebook.com; frame-src https://sdk.mercadopago.com https://www.mercadopago.com.br; object-src 'none'; base-uri 'self'; form-action 'self'
+  # CSP que BLOQUEIA. Era Report-Only e, sem report-uri, não reportava a
+  # ninguém: não protegia nem avisava. As origens abaixo saíram da varredura do
+  # código, não de relatórios — que nunca existiram.
+  #
+  # Três correções em relação à versão anterior, sem as quais ligar derrubaria
+  # tela:
+  #   http2.mlstatic.com   — o SDK do Mercado Pago busca recursos ali; sem isso,
+  #                          o checkout quebra
+  #   *.google-analytics.com e *.analytics.google.com — o GA4 manda os eventos
+  #                          para subdomínios regionais, não só para www
+  #   worker-src 'self' blob: — bundlers criam workers a partir de blob
+  #
+  # Ficam de fora de propósito: wa.me, linkcorreios e google.com/search são
+  # window.open (navegação, que a CSP não restringe), e a Evolution API do
+  # WhatsApp é chamada pela Edge Function evolution-instance, não pelo
+  # navegador — por isso o endereço configurável do cliente não precisa estar
+  # aqui.
+  #
+  # Limite honesto: com 'unsafe-inline' e 'unsafe-eval' no script-src, esta CSP
+  # não é uma boa defesa contra XSS. Tirá-los exige nonce ou hash no build, que
+  # é outro trabalho. O que ela entrega hoje é limitar PARA ONDE os dados podem
+  # sair (connect-src) e quem pode emoldurar a página (frame-ancestors).
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://http2.mlstatic.com https://www.googletagmanager.com https://connect.facebook.net https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.gpteng.co; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mercadopago.com https://viacep.com.br https://receitaws.com.br https://*.google-analytics.com https://*.analytics.google.com https://*.facebook.com; frame-src https://sdk.mercadopago.com https://www.mercadopago.com.br; worker-src 'self' blob:; media-src 'self' blob: data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'
