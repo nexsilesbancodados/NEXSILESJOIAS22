@@ -275,7 +275,7 @@ export default function LojaPublicaPage() {
       if (agentData && (agentData as any).ativo) {
         setAgentConfig(agentData);
       }
-      let query = supabase
+      const query = supabase
         .from('pecas_loja_public' as any).select('*')
         .eq('organization_id', (configData as any).organization_id).order('nome');
       const { data: pecasData } = await query;
@@ -329,7 +329,7 @@ export default function LojaPublicaPage() {
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
 
   const filteredPecas = useMemo(() => {
-    let result = pecas.filter(p => {
+    const result = pecas.filter(p => {
       if (showWishlistOnly && !wishlist.has(p.id)) return false;
       const matchSearch = !search || p.nome.toLowerCase().includes(search.toLowerCase()) || p.codigo?.toLowerCase().includes(search.toLowerCase());
       const matchCategoria = categoriaFilter === 'todas' || p.categoria === categoriaFilter;
