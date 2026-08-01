@@ -1,0 +1,41 @@
+# Cabeçalhos para o Cloudflare Pages.
+#
+# O app saiu da Vercel e passou a ser servido pelo Cloudflare Pages, mas os
+# cabeçalhos continuaram só no vercel.json — que a Cloudflare não lê. Resultado:
+# www.nexsiles.com.br e app.nexsiles.com.br estavam sendo servidos SEM nenhum
+# cabeçalho de segurança.
+#
+# O que isso abria: sem X-Frame-Options, qualquer site consegue embutir o ERP
+# num iframe invisível e capturar os cliques de quem está logado — estoque,
+# vendas, revendedoras, cadastro de cliente.
+#
+# Este arquivo espelha o vercel.json. Ao mexer em um, mexa no outro.
+#
+# Formato: um padrão de caminho por bloco, cabeçalhos indentados abaixo. Vale o
+# bloco MAIS ESPECÍFICO que casa — por isso /assets/* e os service workers vêm
+# antes de /*. O arquivo mora em public/ porque o Vite copia essa pasta para a
+# raiz do dist, que é o diretório publicado.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service worker nunca pode ficar em cache: é ele que descobre que saiu versão
+# nova. Em cache, o usuário fica preso na versão antiga sem saber.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/portal-sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=(self)
+  # Mantida em Report-Only, igual ao vercel.json. Ela nunca bloqueou nada em
+  # produção, então não há como saber quais origens o app realmente usa hoje —
+  # ligar agora derrubaria alguma tela sem aviso. Para passar a bloquear:
+  # acompanhe os relatórios por alguns dias, complete as origens que faltarem, e
+  # só então troque o nome do cabeçalho para Content-Security-Policy.
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://www.googletagmanager.com https://connect.facebook.net https://cdn.gpteng.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdn.gpteng.co; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mercadopago.com https://viacep.com.br https://receitaws.com.br https://www.google-analytics.com https://*.facebook.com; frame-src https://sdk.mercadopago.com https://www.mercadopago.com.br; object-src 'none'; base-uri 'self'; form-action 'self'
