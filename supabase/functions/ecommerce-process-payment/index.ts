@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computeOrderTotals } from "../_shared/pricing.ts";
+import { captureError } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -149,6 +150,8 @@ serve(async (req: Request) => {
     );
   } catch (error: any) {
     console.error("Error in ecommerce-process-payment:", error);
+
+    await captureError({ functionName: "ecommerce-process-payment", error, statusCode: 500 });
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

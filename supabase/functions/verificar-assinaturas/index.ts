@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireCronSecret } from "../_shared/auth.ts";
+import { captureError } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,6 +230,8 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Error:", error);
+
+    await captureError({ functionName: "verificar-assinaturas", error, statusCode: 500 });
     return new Response(JSON.stringify({ success: false, error: msg }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500,
     });
