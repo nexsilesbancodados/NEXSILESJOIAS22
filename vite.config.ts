@@ -29,4 +29,12 @@ export default defineConfig(({ mode }) => ({
   build: {
     chunkSizeWarningLimit: 1000,
   },
+  // Tira os console.log do site publicado sem mexer no código-fonte: em
+  // desenvolvimento eles continuam (o driver da impressora, por exemplo, tem 26
+  // deles e são úteis para diagnosticar problema de impressão no balcão).
+  // console.warn e console.error ficam — são o que o suporte pede quando algo
+  // dá errado.
+  esbuild: {
+    pure: mode === "production" ? ["console.log", "console.debug"] : [],
+  },
 }));

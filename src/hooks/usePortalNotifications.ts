@@ -21,7 +21,7 @@ interface UsePortalNotificationsProps {
   enabled: boolean;
 }
 
-const POLL_INTERVAL_MS = 60_000;
+const POLL_INTERVAL_MS = 30_000;
 
 /**
  * Notificações do portal (pedidos feitos nas maletas da revendedora).
@@ -159,7 +159,10 @@ export function usePortalNotifications({ revendedoraId, enabled }: UsePortalNoti
     }
   }, [avisarNovoPedido]);
 
-  // Carga inicial + polling
+  // Carga inicial + verificação periódica.
+  // Só consulta com a aba visível: no celular da revendedora, ficar buscando com
+  // o app em segundo plano gasta bateria e dados à toa. Ao voltar para a aba,
+  // busca na hora — que é quando ela vai olhar as notificações.
   useEffect(() => {
     if (!enabled || !revendedoraId) return;
 
@@ -167,8 +170,33 @@ export function usePortalNotifications({ revendedoraId, enabled }: UsePortalNoti
     fetchNotifications();
     requestNotificationPermission();
 
-    const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+    let timer: ReturnType<typeof setInterval> | null = null;
+
+    const iniciar = () => {
+      if (timer) return;
+      timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
+    };
+    const parar = () => {
+      if (!timer) return;
+      clearInterval(timer);
+      timer = null;
+    };
+    const aoMudarVisibilidade = () => {
+      if (document.hidden) {
+        parar();
+      } else {
+        fetchNotifications();
+        iniciar();
+      }
+    };
+
+    if (!document.hidden) iniciar();
+    document.addEventListener('visibilitychange', aoMudarVisibilidade);
+
+    return () => {
+      parar();
+      document.removeEventListener('visibilitychange', aoMudarVisibilidade);
+    };
   }, [enabled, revendedoraId, fetchNotifications, requestNotificationPermission]);
 
   return {

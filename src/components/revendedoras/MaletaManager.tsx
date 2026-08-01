@@ -1,4 +1,4 @@
-import { useState, useMemo, forwardRef } from 'react';
+import { useState, useMemo, forwardRef, lazy, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -56,8 +56,11 @@ import {
   Camera,
   Wallet,
 } from 'lucide-react';
-import { BarcodeScannerDialog } from './BarcodeScannerDialog';
-import { EtiquetasBarcodeDialog } from './EtiquetasBarcodeDialog';
+// Leitor de código de barras (@zxing) e gerador de etiquetas (jsbarcode) pesam
+// centenas de KB e só são usados quando a pessoa abre o diálogo — por isso
+// entram sob demanda, e não no pacote da tela.
+const BarcodeScannerDialog = lazy(() => import('./BarcodeScannerDialog').then(m => ({ default: m.BarcodeScannerDialog })));
+const EtiquetasBarcodeDialog = lazy(() => import('./EtiquetasBarcodeDialog').then(m => ({ default: m.EtiquetasBarcodeDialog })));
 import { HistoricoMaletaDialog } from './HistoricoMaletaDialog';
 import { TimelineAtividades } from '@/components/timeline/TimelineAtividades';
 import { TransferirPecaDialog } from './TransferirPecaDialog';
@@ -82,8 +85,7 @@ import {
   type Peca,
 } from '@/hooks/useSupabaseData';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { carregarPdf, type DocPdf } from '@/lib/pdf';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -407,7 +409,8 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
   };
 
 
-  const buildPdfDoc = () => {
+  const buildPdfDoc = async () => {
+    const { jsPDF, autoTable } = await carregarPdf();
     const dados = gerarDadosResumo();
     const doc = new jsPDF();
 
@@ -463,7 +466,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         margin: { left: 14, right: 14 },
       });
 
-      yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
+      yPos = (doc as DocPdf).lastAutoTable?.finalY || yPos + 40;
       yPos += 10;
     }
 
@@ -490,7 +493,7 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         margin: { left: 14, right: 14 },
       });
 
-      yPos = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY || yPos + 40;
+      yPos = (doc as DocPdf).lastAutoTable?.finalY || yPos + 40;
       yPos += 10;
     }
 
@@ -530,14 +533,14 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
     return doc;
   };
 
-  const handleExportarPDF = () => {
-    const doc = buildPdfDoc();
+  const handleExportarPDF = async () => {
+    const doc = await buildPdfDoc();
     doc.save(`fechamento-maleta-${maleta.id.slice(-6)}.pdf`);
     toast.success('PDF exportado com sucesso!');
   };
 
   const handleCompartilharPDF = async () => {
-    const doc = buildPdfDoc();
+    const doc = await buildPdfDoc();
     const blob = doc.output('blob') as Blob;
     const fileName = `fechamento-maleta-${maleta.id.slice(-6)}.pdf`;
     const file = new File([blob], fileName, { type: 'application/pdf' });
