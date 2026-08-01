@@ -224,6 +224,9 @@ CREATE POLICY "Users can view org pecas" ON public.pecas
   FOR SELECT USING (organization_id = public.get_user_organization_id() OR organization_id IS NULL);
 CREATE POLICY pecas_select_org_only ON public.pecas
   FOR SELECT TO authenticated USING (organization_id = public.get_user_organization_id());
+-- vitrine da loja (produção): a migration mantém esta policy
+CREATE POLICY "Acesso anônimo às peças da loja" ON public.pecas
+  FOR SELECT TO anon USING (disponivel_loja = true AND ativo = true AND estoque > 0);
 
 -- funcionario_permissoes: qualquer membro reescreve (o furo)
 CREATE POLICY "Users can update permissoes of their org funcionarios" ON public.funcionario_permissoes
@@ -232,6 +235,46 @@ CREATE POLICY "Users can update permissoes of their org funcionarios" ON public.
 -- codigos_acesso: UPDATE anônimo (o furo)
 CREATE POLICY codigos_acesso_update_on_use ON public.codigos_acesso
   FOR UPDATE USING (usado = false) WITH CHECK (usado = true);
+
+-- tabela criada na migration de LGPD (não está no types.ts usado para gerar o
+-- schema sintético)
+CREATE TABLE IF NOT EXISTS public.user_consents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  finalidade text NOT NULL,
+  versao text NOT NULL,
+  aceito boolean NOT NULL DEFAULT true,
+  user_agent text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.user_consents ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.user_consents TO anon, authenticated, service_role;
+CREATE POLICY "Users read own consents" ON public.user_consents
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users insert own consents" ON public.user_consents
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.user_is_member_of_org(_org_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM public.memberships
+                  WHERE user_id = auth.uid() AND organization_id = _org_id)
+$$;
+
+-- organizations (produção)
+CREATE POLICY org_select_policy ON public.organizations
+  FOR SELECT USING (owner_id = auth.uid() OR public.user_is_member_of_org(id));
+CREATE POLICY org_insert_policy ON public.organizations
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY org_update_policy ON public.organizations
+  FOR UPDATE TO authenticated USING (owner_id = auth.uid());
+
+-- assinaturas (produção)
+CREATE POLICY "Users can view own subscription" ON public.assinaturas
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own subscription" ON public.assinaturas
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own subscription" ON public.assinaturas
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- memberships: em produção o usuário só vê a PRÓPRIA linha (o owner vê as da
 -- organização). Isso é essencial no teste: policies que consultam memberships

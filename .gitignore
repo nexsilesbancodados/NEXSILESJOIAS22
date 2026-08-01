@@ -30,3 +30,4 @@ dist-ssr
 
 # artefatos dos testes da migration (supabase/tests)
 supabase/tests/schema-sintetico.sql
+triggers-signup.sql

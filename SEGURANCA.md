@@ -1,4 +1,34 @@
-# Correções de segurança — como aplicar
+# Correções de segurança — APLICADO em 30/07/2026
+
+> **Situação: concluído e verificado em produção.** As quatro migrations foram
+> aplicadas, o site foi republicado pelo Lovable e a Edge Function nova está no
+> ar. Verificação externa final: 19/19 (a única "falha" registrada era o próprio
+> limite de tentativas bloqueando o teste — ou seja, funcionando).
+>
+> | Antes | Depois |
+> |---|---|
+> | `purchases` com 18 compradores (16 CPFs) legível por qualquer visitante | 401 Unauthorized |
+> | `preco_custo` das peças legível por qualquer visitante | permission denied |
+> | 4 funções do portal/loja respondendo sem login | removidas ou bloqueadas |
+> | Endpoint que testava senha sem limite de tentativas | desativado |
+> | Auto-promoção a admin e a super admin | bloqueadas |
+>
+> O que continua funcionando, conferido: vitrine da loja, catálogo público,
+> maleta compartilhada, login do portal (com limite de 10 tentativas por e-mail
+> a cada 10 min), validação de código no cadastro e a tela pós-pagamento.
+
+## Histórico das migrations aplicadas
+
+| Arquivo | O que faz |
+|---|---|
+| `20260730120000_hardening_sessoes_publicas_rls_privilegios.sql` | Sessão por token no portal e na loja, `purchases` fechada, escalada de privilégio, ~25 policies permissivas, códigos de acesso, estoque atômico |
+| `20260730180000_pecas_colunas_publicas.sql` | Visitante enxerga só as colunas de vitrine das peças (não o custo) |
+| `20260730190000_session_subject_sem_escrita.sql` | Corrige o erro 25006 (função STABLE não pode escrever) |
+| `20260730200000_desativa_oraculo_de_senha.sql` | Remove as funções que sustentavam o endpoint antigo de teste de senha |
+
+---
+
+# Como foi aplicado (referência)
 
 > **Status da verificação.** A migration foi aplicada e testada num Postgres real
 > (PGlite, sem Docker) contra um banco montado a partir de `types.ts`: **69

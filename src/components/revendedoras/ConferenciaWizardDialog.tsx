@@ -4,7 +4,7 @@
  * e permite distribuir cada peça entre Vendida / Devolvida / Perdida com
  * totais ao vivo. Integra o scanner para incrementar devolução por bipe.
  */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { AlertTriangle, CheckCircle2, Loader2, PackageCheck, RotateCcw, ScanBarc
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useMaletaRPC, type ConferenciaItemInput } from '@/hooks/maleta/useMaletaRPC';
-import { BarcodeScannerDialog } from './BarcodeScannerDialog';
+const BarcodeScannerDialog = lazy(() => import('./BarcodeScannerDialog').then(m => ({ default: m.BarcodeScannerDialog })));
 import { cn } from '@/lib/utils';
 
 interface Row {

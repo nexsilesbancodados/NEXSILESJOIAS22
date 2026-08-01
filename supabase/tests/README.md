@@ -7,7 +7,16 @@ testam a segurança de verdade: login do portal, isolamento entre revendedoras e
 entre tenants, escalada de privilégio, ativação de código de acesso e estoque
 atômico.
 
-Foi assim que dois bugs da própria correção apareceram antes de ir para o ar:
+Foi assim que os bugs da própria correção apareceram — dois antes de ir ao ar e
+um terceiro, achado só em produção, que virou o `teste-readonly.mjs`:
+
+3. Pela API do PostgREST, função `STABLE` roda em transação **READ ONLY**. As
+   funções de leitura do portal chamavam `session_subject()`, que atualizava
+   `last_seen_at` — escrita proibida ali. Dava erro 25006 e a revendedora
+   entrava sem ver maleta nenhuma. Chamando a função direto no banco (como eu
+   fazia, e como o SQL Editor faz) o erro não aparece.
+
+Os dois primeiros:
 
 1. Policies que consultavam `memberships` por dentro não funcionavam — subconsulta
    dentro de policy também passa por RLS, e `memberships` só expõe a própria
@@ -23,10 +32,16 @@ Foi assim que dois bugs da própria correção apareceram antes de ir para o ar:
 npm i -D @electric-sql/pglite      # ~30 MB, só para os testes
 cd supabase/tests
 node gen-schema.mjs                # gera o schema sintético a partir de types.ts
-node run.mjs                       # aplica a migration + 69 testes de segurança
+node extrai-triggers.mjs           # extrai das migrations os gatilhos de cadastro
+node run.mjs                       # migration + 69 testes de segurança
+node teste-colunas.mjs             # 12 testes: vitrine sim, custo não
+node teste-readonly.mjs            #  9 testes: função STABLE em transação READ ONLY
+node teste-cadastro.mjs            # 22 testes: cadastro → conta criada → login
 node cobertura.mjs                 # toda operação do app tem policy que a cobre?
 node rpcs.mjs                      # toda RPC chamada existe e está no alcance?
 ```
+
+Total: **112 verificações** de banco, além dos 80 testes do app (`npm test`).
 
 ## O que cada arquivo faz
 

@@ -77,8 +77,7 @@ import { QuantidadeVendaModal } from '@/components/revendedoras/QuantidadeVendaM
 import { MaletaManager } from '@/components/revendedoras/MaletaManager';
 import { MaletaListRow } from '@/components/revendedoras/MaletaListRow';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { carregarPdf, type DocPdf } from '@/lib/pdf';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -708,10 +707,11 @@ export default function RevendedorasPage() {
     }
   };
 
-  const exportarResumoPDF = () => {
+  const exportarResumoPDF = async () => {
     if (!maletaFechada) return;
 
     const { maleta, revendedora, items, acerto } = maletaFechada;
+    const { jsPDF, autoTable } = await carregarPdf();
     const doc = new jsPDF();
     
     // Header
@@ -750,7 +750,7 @@ export default function RevendedorasPage() {
     }
     
     // Summary
-    const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 100;
+    const finalY = (doc as DocPdf).lastAutoTable?.finalY || 100;
     
     doc.setFontSize(14);
     doc.text('Resumo Financeiro', 14, finalY + 15);
@@ -792,9 +792,10 @@ export default function RevendedorasPage() {
   };
 
   // Export pieces list to PDF
-  const exportarPecasMaletaPDF = () => {
+  const exportarPecasMaletaPDF = async () => {
     if (!selectedMaleta || !viewingRevendedora) return;
     
+    const { jsPDF, autoTable } = await carregarPdf();
     const doc = new jsPDF();
     
     // Header
@@ -827,7 +828,7 @@ export default function RevendedorasPage() {
     });
     
     // Summary
-    const finalY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || 100;
+    const finalY = (doc as DocPdf).lastAutoTable?.finalY || 100;
     const totalPecas = maletaItems.reduce((acc, item) => acc + (item.quantidade || 1), 0);
     const totalValor = maletaItems.reduce((acc, item) => acc + ((item.peca?.preco_venda || 0) * (item.quantidade || 1)), 0);
     
