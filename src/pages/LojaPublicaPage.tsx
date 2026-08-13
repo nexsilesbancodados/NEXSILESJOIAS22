@@ -33,8 +33,18 @@ import { CheckoutProgress } from '@/components/ecommerce/CheckoutProgress';
 import heroSlide1 from '@/assets/hero-slide-1.jpg';
 import heroSlide2 from '@/assets/hero-slide-2.jpg';
 import heroSlide3 from '@/assets/hero-slide-3.jpg';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config';
 
-const MP_PUBLIC_KEY_FALLBACK = 'APP_USR-080297dc-b2f8-4e1b-9a31-d445004700dc';
+// Não existe mais fallback para a chave da plataforma aqui.
+//
+// Antes, loja sem `mercadopago_public_key` própria caía na chave da Nexsiles:
+// a venda do lojista era cobrada na conta da plataforma, sem erro visível para
+// ninguém. Como o botão "Conectar Mercado Pago" também estava quebrado (montava
+// a URL de OAuth com client_id vazio), nenhuma loja conseguia configurar a
+// própria conta — então o dinheiro simplesmente ia para o lugar errado.
+//
+// Agora o checkout exige a chave da loja. Se faltar, o comprador vê uma
+// mensagem clara em vez de pagar para a conta errada.
 
 interface SectionConfig {
   id: string;
@@ -48,6 +58,8 @@ interface StoreConfig {
   id: string; slug: string; nome_loja: string; logo_url: string | null;
   cor_primaria: string; cor_secundaria: string; descricao: string | null;
   frete_gratis_acima: number | null; taxa_entrega: number;
+  /** CEP de onde a loja despacha, configurado em Loja Virtual → Entrega. */
+  cep_origem: string | null;
   whatsapp: string | null; instagram: string | null; organization_id: string;
   apenas_com_foto: boolean | null;
   banner_ativo: boolean | null; banner_texto: string | null; banner_cor: string | null;
@@ -73,6 +85,8 @@ interface StoreConfig {
   mensagem_whatsapp: string | null;
   mercadopago_public_key: string | null;
   pix_chave: string | null; pix_nome: string | null; pix_tipo: string | null; pix_cidade: string | null;
+  custom_domain: string | null; custom_domain_status: string | null;
+  seo_title: string | null; seo_description: string | null; seo_keywords: string | null; og_image_url: string | null;
   // Marketing
   banners_carousel: any[] | null;
   colecoes_destaque: any[] | null;
@@ -170,6 +184,18 @@ export default function LojaPublicaPage() {
 
   useEffect(() => { if (slug) loadStore(); }, [slug]);
 
+  // O editor usa a mesma página em um iframe. As alterações chegam sem
+  // recarregar a vitrine, mantendo o preview realmente instantâneo.
+  useEffect(() => {
+    const handlePreviewMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.data?.type !== 'nexsiles-store-preview') return;
+      if (!event.data.config) return;
+      setConfig(previous => previous ? { ...previous, ...event.data.config } : previous);
+    };
+    window.addEventListener('message', handlePreviewMessage);
+    return () => window.removeEventListener('message', handlePreviewMessage);
+  }, []);
+
   useEffect(() => {
     const pagamento = searchParams.get('pagamento');
     if (pagamento === 'sucesso') toast.success('Pagamento aprovado! 🎉');
@@ -254,9 +280,36 @@ export default function LojaPublicaPage() {
     if (selectedPeca && config) {
       document.title = `${selectedPeca.nome} - ${config.nome_loja}`;
     } else if (config) {
-      document.title = `${config.nome_loja} - Semijoias Exclusivas`;
+      document.title = config.seo_title || `${config.nome_loja} - Semijoias Exclusivas`;
     }
   }, [selectedPeca, config]);
+
+  useEffect(() => {
+    if (!config) return;
+    const title = config.seo_title || `${config.nome_loja} - Semijoias Exclusivas`;
+    const description = config.seo_description || config.descricao || `Loja ${config.nome_loja} - Semijoias exclusivas.`;
+    const ensureMeta = (selector: string, attributes: Record<string, string>) => {
+      let element = document.head.querySelector(selector) as HTMLMetaElement | null;
+      if (!element) {
+        element = document.createElement('meta');
+        document.head.appendChild(element);
+      }
+      Object.entries(attributes).forEach(([key, value]) => element?.setAttribute(key, value));
+    };
+    ensureMeta('meta[name="description"]', { name: 'description', content: description });
+    if (config.seo_keywords) ensureMeta('meta[name="keywords"]', { name: 'keywords', content: config.seo_keywords });
+    ensureMeta('meta[property="og:title"]', { property: 'og:title', content: title });
+    ensureMeta('meta[property="og:description"]', { property: 'og:description', content: description });
+    if (config.og_image_url) ensureMeta('meta[property="og:image"]', { property: 'og:image', content: config.og_image_url });
+    ensureMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' });
+    let canonical = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = window.location.href;
+  }, [config]);
 
   const loadStore = async () => {
     try {
@@ -275,7 +328,7 @@ export default function LojaPublicaPage() {
       if (agentData && (agentData as any).ativo) {
         setAgentConfig(agentData);
       }
-      let query = supabase
+      const query = supabase
         .from('pecas_loja_public' as any).select('*')
         .eq('organization_id', (configData as any).organization_id).order('nome');
       const { data: pecasData } = await query;
@@ -329,7 +382,7 @@ export default function LojaPublicaPage() {
   const [showWishlistOnly, setShowWishlistOnly] = useState(false);
 
   const filteredPecas = useMemo(() => {
-    let result = pecas.filter(p => {
+    const result = pecas.filter(p => {
       if (showWishlistOnly && !wishlist.has(p.id)) return false;
       const matchSearch = !search || p.nome.toLowerCase().includes(search.toLowerCase()) || p.codigo?.toLowerCase().includes(search.toLowerCase());
       const matchCategoria = categoriaFilter === 'todas' || p.categoria === categoriaFilter;
@@ -445,7 +498,10 @@ export default function LojaPublicaPage() {
     try {
       const { data, error } = await supabase.functions.invoke('calcular-frete', {
         body: {
-          cepOrigem: '01001000', // CEP padrão origem
+          // O lojista configura este CEP em Loja Virtual → Entrega. Antes o
+          // valor era ignorado e todo frete saía como se a loja ficasse na Sé,
+          // em São Paulo — errado para qualquer loja fora da capital.
+          cepOrigem: (config.cep_origem || '').replace(/\D/g, '') || '01001000',
           cepDestino: cep.replace(/\D/g, ''),
           peso: cart.reduce((sum, i) => sum + (i.peso || 0.05) * i.quantidade, 0),
           comprimento: 20, largura: 15, altura: 10,
@@ -460,7 +516,22 @@ export default function LojaPublicaPage() {
     finally { setFreteCalculando(false); }
   };
 
+  const validateCartForCheckout = () => {
+    if (cart.length === 0) {
+      toast.error('Seu carrinho está vazio.');
+      return false;
+    }
+    const invalidItem = cart.find(item => !Number.isInteger(item.quantidade) || item.quantidade <= 0 || item.quantidade > item.estoque);
+    if (invalidItem) {
+      toast.error(`A quantidade disponível de ${invalidItem.nome} mudou. Revise seu carrinho.`);
+      setCart(previous => previous.filter(item => item.id !== invalidItem.id || item.estoque > 0));
+      return false;
+    }
+    return true;
+  };
+
   const handleCheckout = async () => {
+    if (!validateCartForCheckout()) return;
     if (!cliente.nome.trim()) { toast.error('Informe seu nome'); return; }
     if (!config) return;
     if (config.pedido_minimo && subtotal < config.pedido_minimo) {
@@ -489,6 +560,7 @@ export default function LojaPublicaPage() {
 
   const handlePixPayment = async () => {
     if (!config) return;
+    if (!validateCartForCheckout()) return;
     setProcessing(true);
     try {
       // Create order with status 'aguardando_pix'
@@ -511,6 +583,7 @@ export default function LojaPublicaPage() {
 
   const handleMpCheckout = async () => {
     if (!config) return;
+    if (!validateCartForCheckout()) return;
     setProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('ecommerce-checkout', {
@@ -518,6 +591,7 @@ export default function LojaPublicaPage() {
           items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
           organization_id: config.organization_id, cliente,
           endereco: endereco.cep ? endereco : undefined, valor_frete: valorFrete,
+          cupom_id: cupomId || undefined,
         },
       });
       if (error || !data?.preferenceId) { toast.error(data?.error || 'Erro ao iniciar pagamento'); setProcessing(false); return; }
@@ -534,7 +608,14 @@ export default function LojaPublicaPage() {
         script.async = true;
         await new Promise((resolve, reject) => { script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
       }
-      const mpPublicKey = config?.mercadopago_public_key || MP_PUBLIC_KEY_FALLBACK;
+      const mpPublicKey = config?.mercadopago_public_key;
+      if (!mpPublicKey) {
+        setProcessing(false);
+        toast.error('Pagamento indisponível nesta loja', {
+          description: 'A loja ainda não conectou a conta de pagamentos. Entre em contato com o vendedor.',
+        });
+        return;
+      }
       const mp = new (window as any).MercadoPago(mpPublicKey, { locale: 'pt-BR' });
       const bricksBuilder = mp.bricks();
       await bricksBuilder.create('payment', 'ecommerce-brick-container', {
@@ -549,10 +630,10 @@ export default function LojaPublicaPage() {
             setProcessing(true);
             try {
               const response = await fetch(
-                `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/ecommerce-process-payment`,
+                `${SUPABASE_URL}/functions/v1/ecommerce-process-payment`,
                 {
                   method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc' },
+                  headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
                   body: JSON.stringify({
                     formData, organization_id: config!.organization_id,
                     items: cart.map(i => ({ peca_id: i.id, quantidade: i.quantidade, preco_unitario: i.preco_venda, nome: i.nome })),
@@ -1656,7 +1737,7 @@ export default function LojaPublicaPage() {
                           const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
                           const data = await resp.json();
                           if (!data.erro) setEndereco(p => ({ ...p, rua: data.logradouro || '', bairro: data.bairro || '', cidade: data.localidade || '', estado: data.uf || '' }));
-                        } catch {}
+                        } catch { /* ignora falha não crítica */ }
                         // Calcular frete dinâmico
                         calcularFreteDinamico(cep);
                       }
@@ -1695,6 +1776,15 @@ export default function LojaPublicaPage() {
               {freteOpcoes && !(config.frete_gratis_acima && (subtotal - cupomDesconto) >= config.frete_gratis_acima) && (
                 <div className="border-t pt-3 space-y-2" style={{ borderColor: '#F0E6E0' }}>
                   <Label className="text-xs uppercase tracking-wider" style={{ color: textMuted }}>Opção de envio</Label>
+                  {/*
+                    calcular-frete usa uma estimativa por faixa de CEP, não a
+                    cotação oficial dos Correios (que exige contrato). Dizer
+                    isso aqui evita cobrar do comprador um valor apresentado
+                    como definitivo e diferente do que a loja vai pagar.
+                  */}
+                  <p className="text-[10px] leading-snug" style={{ color: textMuted, fontFamily: "'Inter', sans-serif" }}>
+                    Valores estimados. O frete final é confirmado no envio.
+                  </p>
                   {freteOpcoes.pac && (
                     <label className="flex items-center gap-3 p-3 border cursor-pointer transition-all" style={{ borderColor: freteEscolhido === 'pac' ? roseGold : '#E0D5CF', backgroundColor: freteEscolhido === 'pac' ? '#FFF5F5' : 'transparent' }}>
                       <input type="radio" name="frete" checked={freteEscolhido === 'pac'} onChange={() => setFreteEscolhido('pac')} style={{ accentColor: roseGold }} />

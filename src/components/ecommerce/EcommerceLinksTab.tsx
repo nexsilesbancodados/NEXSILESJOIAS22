@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-db';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,20 +15,45 @@ import { useOrganization } from '@/hooks/useOrganization';
 
 export function EcommerceLinksTab() {
   const [copied, setCopied] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
   const { organizationId } = useOrganization();
+  const queryClient = useQueryClient();
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['ecommerce-config-links', organizationId],
     queryFn: async () => {
       if (!organizationId) return null;
       const { data } = await supabase
-        .from('ecommerce_config' as any)
-        .select('slug, nome_loja, ativo')
+        .from('ecommerce_config')
+        .select('id, slug, nome_loja, ativo, custom_domain, custom_domain_status')
         .eq('organization_id', organizationId)
         .maybeSingle();
       return data as any;
     },
     enabled: !!organizationId,
+  });
+
+  useEffect(() => {
+    setCustomDomain(config?.custom_domain || '');
+  }, [config?.custom_domain]);
+
+  const saveDomainMutation = useMutation({
+    mutationFn: async () => {
+      if (!organizationId) throw new Error('Organização não encontrada');
+      const normalized = customDomain.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+      if (normalized && !/^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(normalized)) {
+        throw new Error('Informe um domínio válido, como www.sualoja.com.br.');
+      }
+      const { error } = await supabase.from('ecommerce_config')
+        .update({ custom_domain: normalized || null, custom_domain_status: normalized ? 'pending' : 'disabled' })
+        .eq('organization_id', organizationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-config-links', organizationId] });
+      toast.success(customDomain.trim() ? 'Domínio salvo. Aguardando apontamento DNS.' : 'Domínio próprio removido.');
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -98,6 +123,26 @@ export function EcommerceLinksTab() {
         </CardContent>
       </Card>
 
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2"><Globe className="w-4 h-4 text-primary" />Domínio próprio</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">Use um domínio seu para passar mais confiança. Depois de salvar, crie um registro CNAME apontando para o endereço publicado da Nexsiles.</p>
+          <div className="flex gap-2">
+            <Input value={customDomain} onChange={event => setCustomDomain(event.target.value)} placeholder="www.sualoja.com.br" className="font-mono text-sm" />
+            <Button onClick={() => saveDomainMutation.mutate()} disabled={saveDomainMutation.isPending} className="flex-shrink-0">{saveDomainMutation.isPending ? 'Salvando...' : 'Salvar'}</Button>
+          </div>
+          {config.custom_domain && (
+            <div className="rounded-lg bg-muted/50 p-3 text-xs space-y-1">
+              <p>Status: <strong className={config.custom_domain_status === 'verified' ? 'text-emerald-600' : 'text-amber-600'}>{config.custom_domain_status === 'verified' ? 'verificado' : 'aguardando DNS'}</strong></p>
+              <p>DNS: CNAME <code className="font-mono">{config.custom_domain.split('.')[0]}</code> → <code className="font-mono">{window.location.host}</code></p>
+              <p className="text-muted-foreground">Use o host publicado acima como destino (ou o target informado pelo seu provedor de hosting). A ativação depende da propagação DNS.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* QR Code */}
         <Card className="border-0 shadow-sm">
@@ -108,7 +153,7 @@ export function EcommerceLinksTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
-            <div className="bg-white p-4 rounded-xl shadow-inner">
+            <div className="qr-container bg-white p-4 rounded-xl shadow-inner">
               <QRCodeSVG value={lojaUrl} size={180} level="H" includeMargin />
             </div>
             <p className="text-xs text-muted-foreground mt-3 text-center">

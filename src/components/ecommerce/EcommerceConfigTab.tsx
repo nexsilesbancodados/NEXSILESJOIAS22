@@ -30,6 +30,10 @@ import {
 import { useOrganization } from '@/hooks/useOrganization';
 import { QRCodeSVG } from 'qrcode.react';
 import { cn } from '@/lib/utils';
+import { appendLayoutHistory, createLayoutSnapshot, DEFAULT_HOME_SECTIONS, cloneHomeSections, getTemplateSections, normalizeHomeSections, normalizeLayoutHistory, type HomeSectionConfig } from '@/lib/ecommerce-sections';
+import heroSlide1 from '@/assets/hero-slide-1.jpg';
+import heroSlide2 from '@/assets/hero-slide-2.jpg';
+import heroSlide3 from '@/assets/hero-slide-3.jpg';
 
 const COLOR_PRESETS = [
   { name: 'Rose Gold', primary: '#B76E79', secondary: '#8B4F57' },
@@ -102,10 +106,106 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
+  { id: 'templates', label: 'Modelos prontos', icon: Sparkles },
   { id: 'logo', label: 'Imagem da sua marca', icon: Image },
   { id: 'cores', label: 'Cores da sua marca', icon: Palette },
   { id: 'tipografia', label: 'Tipo de Letra', icon: Type },
   { id: 'design', label: 'Opções de design', icon: Settings2 },
+];
+
+type StoreTemplate = {
+  id: string;
+  label: string;
+  description: string;
+  category: string;
+  primary: string;
+  secondary: string;
+  preview: string;
+  values: Record<string, unknown>;
+};
+
+const STORE_TEMPLATES: StoreTemplate[] = [
+  {
+    id: 'editorial-rose',
+    label: 'Editorial Rose',
+    description: 'Elegante e acolhedor para semijoias, moda e presentes.',
+    category: 'Mais escolhido',
+    primary: '#B76E79',
+    secondary: '#8B4F57',
+    preview: heroSlide1,
+    values: {
+      template_id: 'editorial-rose', secoes_homepage: getTemplateSections('editorial-rose'),
+      cor_primaria: '#B76E79', cor_secundaria: '#8B4F57', fonte_titulos: 'Cormorant Garamond', fonte_corpo: 'Inter',
+      layout_produtos: 'grid', colunas_desktop: '4', colunas_mobile: '2', mostrar_categorias: true, mostrar_filtros: true,
+      header_sticky: true, header_transparente_hero: true, hero_imagem_url: heroSlide1, hero_titulo: 'Peças que contam histórias',
+      hero_subtitulo: 'Design atemporal para acompanhar todos os momentos.', hero_cta_texto: 'Explorar coleção', hero_overlay_opacity: '0.42',
+      banner_ativo: true, banner_texto: 'Frete grátis nas compras acima de R$ 199', banner_cor: '#8B4F57',
+      mostrar_parcelamento: true, parcelamento_max: '10', mostrar_whatsapp_float: true,
+      selos_confianca: ['compra_segura', 'frete_gratis', 'troca_facil'], badges_produto: ['novo', 'mais_vendido'],
+      texto_rodape: 'Feito para celebrar você. Atendimento próximo e envio cuidadoso.',
+    },
+  },
+  {
+    id: 'minimal-gold',
+    label: 'Minimal Gold',
+    description: 'Visual limpo com foco no produto e percepção premium.',
+    category: 'Premium',
+    primary: '#B8860B',
+    secondary: '#6B4F0A',
+    preview: heroSlide2,
+    values: {
+      template_id: 'minimal-gold', secoes_homepage: getTemplateSections('minimal-gold'),
+      cor_primaria: '#B8860B', cor_secundaria: '#6B4F0A', fonte_titulos: 'Playfair Display', fonte_corpo: 'Lato',
+      layout_produtos: 'grid', colunas_desktop: '3', colunas_mobile: '2', mostrar_categorias: false, mostrar_filtros: true,
+      header_sticky: true, header_transparente_hero: false, hero_imagem_url: heroSlide2, hero_titulo: 'O detalhe transforma tudo',
+      hero_subtitulo: 'Descubra sua próxima peça favorita.', hero_cta_texto: 'Ver novidades', hero_overlay_opacity: '0.28',
+      banner_ativo: true, banner_texto: 'Parcele em até 10x sem juros', banner_cor: '#6B4F0A',
+      mostrar_parcelamento: true, parcelamento_max: '10', mostrar_whatsapp_float: true,
+      selos_confianca: ['compra_segura', 'garantia', 'parcelamento'], badges_produto: ['exclusivo', 'destaque'],
+      texto_rodape: 'Curadoria especial, acabamento impecável e compra segura.',
+    },
+  },
+  {
+    id: 'sunset-boutique',
+    label: 'Sunset Boutique',
+    description: 'Vibrante e comercial para lançamentos e campanhas sazonais.',
+    category: 'Conversão',
+    primary: '#E76F51',
+    secondary: '#C1121F',
+    preview: heroSlide3,
+    values: {
+      template_id: 'sunset-boutique', secoes_homepage: getTemplateSections('sunset-boutique'),
+      cor_primaria: '#E76F51', cor_secundaria: '#C1121F', fonte_titulos: 'DM Serif Display', fonte_corpo: 'Nunito',
+      layout_produtos: 'grid', colunas_desktop: '4', colunas_mobile: '2', mostrar_categorias: true, mostrar_filtros: false,
+      header_sticky: true, header_transparente_hero: true, hero_imagem_url: heroSlide3, hero_titulo: 'Seu próximo brilho está aqui',
+      hero_subtitulo: 'Lançamentos, presentes e achados para chamar de seus.', hero_cta_texto: 'Comprar agora', hero_overlay_opacity: '0.36',
+      banner_ativo: true, banner_texto: 'Últimas peças da coleção — aproveite', banner_cor: '#C1121F',
+      mostrar_parcelamento: true, parcelamento_max: '12', mostrar_whatsapp_float: true,
+      selos_confianca: ['frete_gratis', 'envio_rapido', 'satisfacao'], badges_produto: ['lancamento', 'ultima_peca'],
+      countdown_ativo: true, countdown_titulo: 'Oferta de lançamento', countdown_subtitulo: 'Condições especiais por tempo limitado',
+      texto_rodape: 'Uma boutique digital feita para deixar cada compra mais especial.',
+    },
+  },
+  {
+    id: 'midnight-studio',
+    label: 'Midnight Studio',
+    description: 'Contraste sofisticado para marcas autorais e coleções exclusivas.',
+    category: 'Autoral',
+    primary: '#1A1A2E',
+    secondary: '#16213E',
+    preview: heroSlide1,
+    values: {
+      template_id: 'midnight-studio', secoes_homepage: getTemplateSections('midnight-studio'),
+      cor_primaria: '#1A1A2E', cor_secundaria: '#16213E', fonte_titulos: 'Josefin Sans', fonte_corpo: 'Open Sans',
+      layout_produtos: 'grid', colunas_desktop: '4', colunas_mobile: '2', mostrar_categorias: true, mostrar_filtros: true,
+      header_sticky: true, header_transparente_hero: true, hero_imagem_url: heroSlide1, hero_titulo: 'Feito para ser lembrado',
+      hero_subtitulo: 'Uma seleção autoral, feita para durar.', hero_cta_texto: 'Conheça a coleção', hero_overlay_opacity: '0.58',
+      banner_ativo: true, banner_texto: 'Compra segura • Envio para todo o Brasil', banner_cor: '#16213E',
+      mostrar_parcelamento: true, parcelamento_max: '12', mostrar_whatsapp_float: true,
+      selos_confianca: ['compra_segura', 'garantia', 'troca_facil'], badges_produto: ['exclusivo', 'novo'],
+      texto_rodape: 'Design, cuidado e autenticidade em cada detalhe.',
+    },
+  },
 ];
 
 const MENU_AVANCADO: MenuItem[] = [
@@ -142,6 +242,8 @@ export function EcommerceConfigTab() {
   });
 
   const [form, setForm] = useState({
+    template_id: '',
+    secoes_homepage: cloneHomeSections(DEFAULT_HOME_SECTIONS) as HomeSectionConfig[],
     slug: '',
     nome_loja: '',
     logo_url: '',
@@ -234,13 +336,22 @@ export function EcommerceConfigTab() {
     zoom_imagem_ativo: true,
     produtos_relacionados_ativo: true,
     barra_frete_ativo: false,
+    templates_personalizados: [] as Array<{ id: string; nome: string; created_at: string; snapshot: Record<string, unknown> }>,
+    layout_historico: [] as Array<{ id: string; label: string; created_at: string; snapshot: Record<string, unknown> }>,
   });
   const [showMpToken, setShowMpToken] = useState(false);
+  const [conectandoMp, setConectandoMp] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) {
       const horario = config.horario_funcionamento || {};
+      setSelectedTemplate(config.template_id || null);
       setForm({
+        template_id: config.template_id || '',
+        secoes_homepage: normalizeHomeSections(config.secoes_homepage),
+        templates_personalizados: Array.isArray(config.templates_personalizados) ? config.templates_personalizados : [],
+        layout_historico: normalizeLayoutHistory(config.layout_historico),
         slug: config.slug || '',
         nome_loja: config.nome_loja || '',
         logo_url: config.logo_url || '',
@@ -381,6 +492,12 @@ export function EcommerceConfigTab() {
       
       const payload = {
         organization_id: organizationId,
+        template_id: form.template_id || null,
+        secoes_homepage: form.secoes_homepage,
+        templates_personalizados: form.templates_personalizados,
+        layout_historico: isAutoSaveRef.current
+          ? form.layout_historico
+          : appendLayoutHistory(form.layout_historico, form as unknown as Record<string, unknown>),
         slug,
         nome_loja: form.nome_loja,
         logo_url: form.logo_url || null,
@@ -489,10 +606,6 @@ export function EcommerceConfigTab() {
         toast.success('Alterações publicadas!');
       }
       isAutoSaveRef.current = false;
-      setTimeout(() => {
-        const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
-        if (iframe) iframe.src = iframe.src;
-      }, 500);
     },
     onError: (e: any) => {
       isAutoSaveRef.current = false;
@@ -525,6 +638,20 @@ export function EcommerceConfigTab() {
 
   const lojaUrl = form.slug ? `${window.location.origin}/loja/${form.slug}` : '';
 
+  const sendPreview = useCallback(() => {
+    const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement | null;
+    if (!iframe?.contentWindow || !lojaUrl) return;
+    iframe.contentWindow.postMessage({
+      type: 'nexsiles-store-preview',
+      config: createLayoutSnapshot(form as unknown as Record<string, unknown>),
+    }, window.location.origin);
+  }, [form, lojaUrl]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(sendPreview, 100);
+    return () => window.clearTimeout(timer);
+  }, [sendPreview]);
+
   const toggleMetodoPagamento = (id: string) => {
     setForm(p => ({
       ...p,
@@ -556,6 +683,72 @@ export function EcommerceConfigTab() {
     }));
   };
 
+  const applyTemplate = (template: StoreTemplate) => {
+    setForm(previous => ({
+      ...previous,
+      ...template.values,
+      template_id: template.id,
+      secoes_homepage: getTemplateSections(template.id),
+    }));
+    setSelectedTemplate(template.id);
+    toast.success(`${template.label} aplicado`, {
+      description: 'Você pode ajustar cada detalhe nos painéis ao lado e publicar quando quiser.',
+    });
+  };
+
+  const [customTemplateName, setCustomTemplateName] = useState('');
+
+  const saveCustomTemplateMutation = useMutation({
+    mutationFn: async () => {
+      if (!config?.id) throw new Error('Publique a loja antes de salvar um modelo personalizado.');
+      const nome = customTemplateName.trim();
+      if (!nome) throw new Error('Informe um nome para o modelo.');
+      const customTemplate = {
+        id: `custom-${Date.now()}`,
+        nome,
+        created_at: new Date().toISOString(),
+        snapshot: createLayoutSnapshot(form as unknown as Record<string, unknown>),
+      };
+      const templates = [...(form.templates_personalizados || []), customTemplate].slice(-12);
+      const { error } = await supabase.from('ecommerce_config' as any).update({ templates_personalizados: templates }).eq('id', config.id);
+      if (error) throw error;
+      return customTemplate;
+    },
+    onSuccess: (template) => {
+      setForm(previous => ({ ...previous, templates_personalizados: [...previous.templates_personalizados, template].slice(-12) }));
+      setCustomTemplateName('');
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-config'] });
+      toast.success('Modelo personalizado salvo.');
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const applyCustomTemplate = (template: { id: string; nome: string; snapshot: Record<string, unknown> }) => {
+    setForm(previous => ({
+      ...previous,
+      ...template.snapshot,
+      secoes_homepage: normalizeHomeSections(template.snapshot.secoes_homepage),
+      template_id: template.id,
+    }));
+    setSelectedTemplate(template.id);
+    toast.success(`${template.nome} aplicado`);
+  };
+
+  const restoreLastVersion = () => {
+    const history = normalizeLayoutHistory(form.layout_historico);
+    const last = history.at(-1);
+    if (!last) {
+      toast.info('Ainda não há uma versão anterior salva.');
+      return;
+    }
+    setForm(previous => ({
+      ...previous,
+      ...last.snapshot,
+      secoes_homepage: normalizeHomeSections(last.snapshot.secoes_homepage),
+    }));
+    toast.success('Última versão restaurada. Publique para confirmar.');
+  };
+
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center py-16 gap-3">
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -576,10 +769,93 @@ export function EcommerceConfigTab() {
   // Section content renderer
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
+      case 'templates':
+        return (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-primary/15 bg-primary/5 p-3">
+              <div className="flex items-start gap-2.5">
+                <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                <div>
+                  <p className="text-xs font-semibold text-foreground">Comece com um modelo editável</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    Escolha uma direção visual e personalize logo, textos, cores, produtos, banners e checkout nos outros painéis.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {STORE_TEMPLATES.map(template => {
+                const isSelected = selectedTemplate === template.id;
+                return (
+                  <motion.button
+                    key={template.id}
+                    type="button"
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => applyTemplate(template)}
+                    className={cn(
+                      'group w-full overflow-hidden rounded-xl border text-left transition-all',
+                      isSelected ? 'border-primary ring-2 ring-primary/15' : 'border-border hover:border-primary/50 hover:shadow-sm',
+                    )}
+                  >
+                    <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${template.primary}, ${template.secondary})` }}>
+                      <img src={template.preview} alt="" className="absolute inset-0 h-full w-full object-cover mix-blend-soft-light opacity-75 transition-transform duration-500 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/45 to-transparent" />
+                      <div className="absolute inset-x-3 bottom-2 flex items-end justify-between gap-2">
+                        <div>
+                          <span className="mb-1 inline-flex rounded-full bg-white/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm">{template.category}</span>
+                          <p className="text-sm font-semibold text-white">{template.label}</p>
+                        </div>
+                        {isSelected && <CheckCircle2 className="h-5 w-5 text-white" />}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-3">
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">{template.description}</p>
+                      <span className="flex-shrink-0 text-[10px] font-semibold text-primary">Usar modelo</span>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            <div className="rounded-xl border border-border p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold">Meus modelos</p>
+                  <p className="text-[10px] text-muted-foreground">Salve esta composição para reutilizar depois.</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={restoreLastVersion} className="h-7 text-[10px] gap-1">
+                  <RefreshCw className="h-3 w-3" /> Desfazer
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Input value={customTemplateName} onChange={event => setCustomTemplateName(event.target.value)} placeholder="Ex.: Campanha Dia das Mães" className="h-8 text-xs" />
+                <Button type="button" size="sm" onClick={() => saveCustomTemplateMutation.mutate()} disabled={saveCustomTemplateMutation.isPending} className="h-8 text-xs flex-shrink-0">
+                  {saveCustomTemplateMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Salvar
+                </Button>
+              </div>
+              {form.templates_personalizados.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {form.templates_personalizados.map(template => (
+                    <Button key={template.id} type="button" variant="secondary" size="sm" onClick={() => applyCustomTemplate(template)} className="h-7 text-[10px]">
+                      {template.nome}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
+              O modelo altera apenas a aparência e as mensagens da loja. Seu catálogo, estoque, pedidos e integrações permanecem intactos.
+            </p>
+          </div>
+        );
+
       case 'logo':
         return (
           <div className="space-y-4">
-            <ImageUpload value={form.logo_url} onChange={(url) => setForm(p => ({ ...p, logo_url: url }))} label="Logo da Loja" />
+            <ImageUpload value={form.logo_url} onChange={(url) => setForm(p => ({ ...p, logo_url: url }))} label="Logo da Loja" bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Nome da Loja <span className="text-destructive">*</span></Label>
@@ -767,7 +1043,7 @@ export function EcommerceConfigTab() {
             <p className="text-xs text-muted-foreground">Configure o Hero Banner e elementos da homepage.</p>
             <Separator />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Hero Banner</p>
-            <ImageUpload value={form.hero_imagem_url} onChange={(url) => setForm(p => ({ ...p, hero_imagem_url: url }))} label="Imagem do Hero" />
+            <ImageUpload value={form.hero_imagem_url} onChange={(url) => setForm(p => ({ ...p, hero_imagem_url: url }))} label="Imagem do Hero" bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Título</Label>
@@ -809,7 +1085,7 @@ export function EcommerceConfigTab() {
             </div>
             <Separator />
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Banner Secundário</p>
-            <ImageUpload value={form.banner_url} onChange={(url) => setForm(p => ({ ...p, banner_url: url }))} label="Imagem do Banner" />
+            <ImageUpload value={form.banner_url} onChange={(url) => setForm(p => ({ ...p, banner_url: url }))} label="Imagem do Banner" bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Posição</Label>
               <Select value={form.banner_posicao} onValueChange={v => setForm(p => ({ ...p, banner_posicao: v }))}>
@@ -840,7 +1116,7 @@ export function EcommerceConfigTab() {
                 {form.lookbook_imagens.map((img: any, idx: number) => (
                   <div key={idx} className="p-2 border rounded-lg relative">
                     <Button variant="ghost" size="sm" className="absolute top-1 right-1 h-6 w-6 p-0 text-destructive" onClick={() => setForm(p => ({ ...p, lookbook_imagens: p.lookbook_imagens.filter((_: any, i: number) => i !== idx) }))}>×</Button>
-                    <ImageUpload value={img.url || ''} onChange={(url) => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], url }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} label={`Imagem ${idx + 1}`} />
+                    <ImageUpload value={img.url || ''} onChange={(url) => { const arr = [...form.lookbook_imagens]; arr[idx] = { ...arr[idx], url }; setForm(p => ({ ...p, lookbook_imagens: arr })); }} label={`Imagem ${idx + 1}`} bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
                   </div>
                 ))}
                 <Button variant="outline" size="sm" onClick={() => setForm(p => ({ ...p, lookbook_imagens: [...p.lookbook_imagens, { url: '', legenda: '' }] }))}>
@@ -854,7 +1130,7 @@ export function EcommerceConfigTab() {
                 <Input placeholder="Título" value={form.popup_titulo} onChange={e => setForm(p => ({ ...p, popup_titulo: e.target.value }))} className="h-9 text-sm" />
                 <Textarea placeholder="Texto" value={form.popup_texto} onChange={e => setForm(p => ({ ...p, popup_texto: e.target.value }))} rows={2} className="text-sm resize-none" />
                 <Input placeholder="Cupom de desconto" value={form.popup_cupom} onChange={e => setForm(p => ({ ...p, popup_cupom: e.target.value }))} className="h-9 text-sm" />
-                <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} label="Imagem (opcional)" />
+                <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} label="Imagem (opcional)" bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Delay (segundos)</Label>
                   <Input type="number" value={form.popup_delay_segundos} onChange={e => setForm(p => ({ ...p, popup_delay_segundos: e.target.value }))} className="h-9 text-sm" min="1" max="60" />
@@ -1119,11 +1395,27 @@ export function EcommerceConfigTab() {
                 </p>
                 <Button
                   className="w-full bg-[#009ee3] hover:bg-[#007eb5] text-white"
-                  onClick={() => {
-                    const clientId = import.meta.env.VITE_MP_CLIENT_ID || '';
-                    const redirectUri = encodeURIComponent(`${window.location.origin}/loja-virtual?mp_oauth=1`);
-                    const oauthUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
-                    window.location.href = oauthUrl;
+                  disabled={conectandoMp}
+                  onClick={async () => {
+                    // A URL vem do servidor: o client_id mora lá, junto do
+                    // secret. O frontend não tem como montá-la sozinho.
+                    setConectandoMp(true);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('mercadopago-oauth', {
+                        body: {
+                          action: 'authorize-url',
+                          redirect_uri: `${window.location.origin}/loja-virtual?mp_oauth=1`,
+                        },
+                      });
+                      if (error || !data?.url) throw error || new Error('URL não retornada');
+                      window.location.href = data.url;
+                    } catch (err) {
+                      console.error('Erro ao iniciar conexão com o Mercado Pago:', err);
+                      toast.error('Não foi possível abrir o Mercado Pago', {
+                        description: 'Tente de novo em instantes ou use o Access Token manual abaixo.',
+                      });
+                      setConectandoMp(false);
+                    }
                   }}
                 >
                   <img src="https://http2.mlstatic.com/frontend-assets/mp-web-navigation/ui-navigation/6.6.92/mercadopago/logo__small@2x.png" alt="MP" className="w-5 h-5 mr-2 brightness-200" />
@@ -1352,7 +1644,7 @@ export function EcommerceConfigTab() {
                 className="absolute -top-8 right-0 text-xs h-6 gap-1 text-muted-foreground z-10"
                 onClick={() => {
                   const iframe = document.getElementById('store-preview-iframe') as HTMLIFrameElement;
-                  if (iframe) iframe.src = iframe.src;
+                  if (iframe) { const url = iframe.src; iframe.src = url; }
                 }}
               >
                 <RefreshCw className="w-3 h-3" /> Recarregar
@@ -1386,6 +1678,7 @@ export function EcommerceConfigTab() {
                   className="w-full border-0"
                   style={{ height: previewDevice === 'mobile' ? '640px' : '573px' }}
                   title="Preview da Loja"
+                  onLoad={sendPreview}
                 />
               </motion.div>
             </div>

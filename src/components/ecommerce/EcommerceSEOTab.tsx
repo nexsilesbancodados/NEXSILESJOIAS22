@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useOrganization } from '@/hooks/useOrganization';
 import { db } from '@/lib/supabase-db';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Globe, CheckCircle2, XCircle, AlertTriangle, Eye, FileText, Share2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,8 @@ interface SEOCheck {
 
 export function EcommerceSEOTab() {
   const { organization } = useOrganization();
+  const queryClient = useQueryClient();
+  const [seoForm, setSeoForm] = useState({ title: '', description: '', keywords: '', image: '' });
 
   const { data: config } = useQuery({
     queryKey: ['ecommerce-seo', organization?.id],
@@ -46,6 +48,36 @@ export function EcommerceSEOTab() {
       return data || [];
     },
     enabled: !!organization?.id,
+  });
+
+  useEffect(() => {
+    if (!config) return;
+    setSeoForm({
+      title: config.seo_title || '',
+      description: config.seo_description || '',
+      keywords: config.seo_keywords || '',
+      image: config.og_image_url || '',
+    });
+  }, [config]);
+
+  const saveSeoMutation = useMutation({
+    mutationFn: async () => {
+      if (!organization?.id) throw new Error('Organização não encontrada');
+      const { error } = await db.from('ecommerce_config')
+        .update({
+          seo_title: seoForm.title.trim() || null,
+          seo_description: seoForm.description.trim() || null,
+          seo_keywords: seoForm.keywords.trim() || null,
+          og_image_url: seoForm.image.trim() || null,
+        })
+        .eq('organization_id', organization.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ecommerce-seo', organization?.id] });
+      toast.success('SEO atualizado.');
+    },
+    onError: (error: Error) => toast.error(error.message || 'Não foi possível salvar o SEO.'),
   });
 
   const checks: SEOCheck[] = [
@@ -142,6 +174,33 @@ export function EcommerceSEOTab() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Globe className="h-4 w-4" />SEO da página e compartilhamento</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Título SEO</Label>
+            <Input value={seoForm.title} onChange={event => setSeoForm(previous => ({ ...previous, title: event.target.value }))} placeholder={config?.nome_loja || 'Nome da loja'} maxLength={60} />
+            <p className="text-[10px] text-muted-foreground">Até 60 caracteres. Se vazio, usamos o nome da loja.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Descrição SEO</Label>
+            <Textarea value={seoForm.description} onChange={event => setSeoForm(previous => ({ ...previous, description: event.target.value }))} placeholder="Descreva sua loja em uma frase clara" rows={3} maxLength={160} />
+            <p className="text-[10px] text-muted-foreground">{seoForm.description.length}/160 caracteres. Aparece no Google e ao compartilhar o link.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Palavras-chave (opcional)</Label>
+            <Input value={seoForm.keywords} onChange={event => setSeoForm(previous => ({ ...previous, keywords: event.target.value }))} placeholder="semijoias, joias, presentes" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Imagem ao compartilhar (OG image)</Label>
+            <Input value={seoForm.image} onChange={event => setSeoForm(previous => ({ ...previous, image: event.target.value }))} placeholder="https://.../imagem.jpg" type="url" />
+          </div>
+          <Button onClick={() => saveSeoMutation.mutate()} disabled={saveSeoMutation.isPending} className="gap-2">
+            <Save className="h-4 w-4" /> {saveSeoMutation.isPending ? 'Salvando...' : 'Salvar SEO'}
+          </Button>
         </CardContent>
       </Card>
 

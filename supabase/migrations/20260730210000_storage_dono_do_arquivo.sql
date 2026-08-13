@@ -53,7 +53,7 @@ DROP POLICY IF EXISTS objetos_update_dono_ou_org ON storage.objects;
 CREATE POLICY objetos_update_dono_ou_org ON storage.objects
   FOR UPDATE TO authenticated
   USING (
-    bucket_id IN ('pecas', 'pecas-images', 'avatars', 'catalogos',
+    bucket_id IN ('pecas', 'pecas-images', 'avatars', 'catalogos', 'lojas',
                   'maletas-images', 'maleta-vendas-fotos')
     AND (
       owner = auth.uid()
@@ -65,7 +65,7 @@ DROP POLICY IF EXISTS objetos_delete_dono_ou_org ON storage.objects;
 CREATE POLICY objetos_delete_dono_ou_org ON storage.objects
   FOR DELETE TO authenticated
   USING (
-    bucket_id IN ('pecas', 'pecas-images', 'avatars', 'catalogos',
+    bucket_id IN ('pecas', 'pecas-images', 'avatars', 'catalogos', 'lojas',
                   'maletas-images', 'maleta-vendas-fotos')
     AND (
       owner = auth.uid()

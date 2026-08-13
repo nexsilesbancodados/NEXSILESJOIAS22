@@ -5,15 +5,18 @@ import { Label } from '@/components/ui/label';
 import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ImageUploadProps {
   value: string;
   onChange: (url: string) => void;
   label?: string;
   className?: string;
+  bucket?: string;
+  folder?: string;
 }
 
-export function ImageUpload({ value, onChange, label = 'Imagem', className }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, label = 'Imagem', className, bucket = 'pecas', folder = 'pecas' }: ImageUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadImage, uploading } = useImageUpload();
   const [urlInput, setUrlInput] = useState('');
@@ -25,15 +28,17 @@ export function ImageUpload({ value, onChange, label = 'Imagem', className }: Im
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
+      toast.error('Escolha um arquivo de imagem.');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
+      toast.error('A imagem deve ter no máximo 5 MB.');
       return;
     }
 
-    const url = await uploadImage(file);
+    const url = await uploadImage(file, folder, bucket);
     if (url) {
       onChange(url);
     }

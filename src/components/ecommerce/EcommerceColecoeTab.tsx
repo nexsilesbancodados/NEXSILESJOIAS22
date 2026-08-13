@@ -141,7 +141,7 @@ export function EcommerceColecoeTab() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Imagem da Coleção</Label>
-                <ImageUpload value={editItem.imagem_url} onChange={(url) => setEditItem({ ...editItem, imagem_url: url })} />
+                <ImageUpload value={editItem.imagem_url} onChange={(url) => setEditItem({ ...editItem, imagem_url: url })} bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Título</Label>
