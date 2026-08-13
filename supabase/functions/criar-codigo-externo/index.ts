@@ -3,6 +3,7 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { parseJson, z } from "../_shared/validate.ts";
 import { captureError } from "../_shared/logger.ts";
+import { timingSafeEqual } from "../_shared/auth.ts";
 
 const FUNCTION_NAME = "criar-codigo-externo";
 
@@ -36,7 +37,7 @@ Deno.serve(async (req) => {
     const secret = req.headers.get("x-cross-secret");
     const expectedSecret = Deno.env.get("CROSS_PROJECT_SECRET");
 
-    if (!secret || !expectedSecret || secret !== expectedSecret) {
+    if (!secret || !expectedSecret || !timingSafeEqual(secret, expectedSecret)) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }

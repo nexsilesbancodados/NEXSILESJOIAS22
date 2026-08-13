@@ -150,6 +150,8 @@ describe("sessão do cliente da loja", () => {
     });
     expect(s?.cliente.nome).toBe("Ana");
     expect(getClienteSession(ORG)?.token).toBe("tok-cli");
+    expect(sessionStorage.getItem(`cliente_session_${ORG}`)).toContain("tok-cli");
+    expect(localStorage.getItem(`cliente_session_${ORG}`)).toBeNull();
     expect(getClienteSession("outra-org")).toBeNull();
   });
 
@@ -169,6 +171,17 @@ describe("sessão do cliente da loja", () => {
   it("sessão antiga (só e-mail) é descartada", () => {
     localStorage.setItem(`cliente_session_${ORG}`, JSON.stringify({ id: "cli-1", email: "ana@x.com" }));
     expect(getClienteSession(ORG)).toBeNull();
+  });
+
+  it("migra uma sessão válida antiga para sessionStorage", () => {
+    localStorage.setItem(`cliente_session_${ORG}`, JSON.stringify({
+      token: "tok-legacy",
+      cliente: { id: "cli-1", nome: "Ana", email: "ana@x.com" },
+    }));
+
+    expect(getClienteSession(ORG)?.token).toBe("tok-legacy");
+    expect(sessionStorage.getItem(`cliente_session_${ORG}`)).toContain("tok-legacy");
+    expect(localStorage.getItem(`cliente_session_${ORG}`)).toBeNull();
   });
 
   it("sem sessão, a área de pedidos não consulta o banco", async () => {

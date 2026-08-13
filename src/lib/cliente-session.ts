@@ -31,10 +31,9 @@ export class ClienteSessionExpired extends Error {
 
 const key = (organizationId: string) => `cliente_session_${organizationId}`;
 
-export function getClienteSession(organizationId: string): StoredSession | null {
+const parseStoredSession = (raw: string | null): StoredSession | null => {
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(key(organizationId));
-    if (!raw) return null;
     const parsed = JSON.parse(raw);
     // Sessões do formato antigo (só e-mail, sem token) não valem mais.
     if (!parsed?.token || !parsed?.cliente?.id) return null;
@@ -42,13 +41,33 @@ export function getClienteSession(organizationId: string): StoredSession | null 
   } catch {
     return null;
   }
+};
+
+export function getClienteSession(organizationId: string): StoredSession | null {
+  try {
+    const storageKey = key(organizationId);
+    const current = parseStoredSession(sessionStorage.getItem(storageKey));
+    if (current) return current;
+
+    // Migrate one legacy localStorage session so existing customers are not
+    // logged out, then remove the long-lived copy from the public origin.
+    const legacyRaw = localStorage.getItem(storageKey);
+    const legacy = parseStoredSession(legacyRaw);
+    if (!legacy) return null;
+    sessionStorage.setItem(storageKey, JSON.stringify(legacy));
+    localStorage.removeItem(storageKey);
+    return legacy;
+  } catch {
+    return null;
+  }
 }
 
 export function setClienteSession(organizationId: string, session: StoredSession) {
-  localStorage.setItem(key(organizationId), JSON.stringify(session));
+  sessionStorage.setItem(key(organizationId), JSON.stringify(session));
 }
 
 export function clearClienteSession(organizationId: string) {
+  sessionStorage.removeItem(key(organizationId));
   localStorage.removeItem(key(organizationId));
 }
 
