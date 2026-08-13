@@ -1,9 +1,35 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase-db';
+import { supabase, dbRpc } from '@/lib/supabase-db';
 import { toast } from 'sonner';
 import { translateDatabaseError } from '@/lib/error-utils';
 
 const db = supabase;
+
+/**
+ * Organização do usuário atual.
+ *
+ * O programa de fidelidade é da LOJA, não de cada vendedor. Antes, tudo aqui
+ * filtrava e gravava por `user_id`, e o RLS acompanhava
+ * (`USING (user_id = auth.uid())`). Numa loja com mais de uma pessoa, isso
+ * fragmentava o saldo do cliente: a vendedora A creditava 100 pontos, a
+ * vendedora B não enxergava nada e criava um segundo saldo com 50 — e o cliente
+ * ficava com dois saldos que ninguém somava.
+ *
+ * Ver `supabase/migrations/20260812200500_fidelidade_por_organizacao.sql`, que
+ * consolida os saldos duplicados e move o RLS para a organização.
+ */
+async function getOrganizationId(): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await db
+    .from('memberships')
+    .select('organization_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  return data?.organization_id ?? null;
+}
 
 export interface NivelFidelidade {
   id: string;
@@ -58,13 +84,13 @@ export function useNiveisFidelidade() {
   return useQuery({
     queryKey: ['niveis-fidelidade'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      const organizationId = await getOrganizationId();
+      if (!organizationId) return [];
       
       const { data, error } = await db
         .from('niveis_fidelidade')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
         .order('pontos_minimos');
       
       if (error) throw error;
@@ -78,12 +104,12 @@ export function useAddNivelFidelidade() {
   
   return useMutation({
     mutationFn: async (nivel: Omit<NivelFidelidade, 'id' | 'user_id' | 'created_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const organizationId = await getOrganizationId();
+      if (!organizationId) throw new Error('Organização não encontrada');
       
       const { data, error } = await db
         .from('niveis_fidelidade')
-        .insert({ ...nivel, user_id: user.id })
+        .insert({ ...nivel, organization_id: organizationId })
         .select()
         .single();
       
@@ -152,14 +178,14 @@ export function usePontosFidelidade(clienteId?: string) {
   return useQuery({
     queryKey: ['pontos-fidelidade', clienteId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return clienteId ? null : [];
+      const organizationId = await getOrganizationId();
+      if (!organizationId) return clienteId ? null : [];
       
       if (clienteId) {
         const { data, error } = await db
           .from('pontos_fidelidade')
           .select('*, nivel:niveis_fidelidade(*)')
-          .eq('user_id', user.id)
+          .eq('organization_id', organizationId)
           .eq('cliente_id', clienteId)
           .maybeSingle();
         
@@ -169,7 +195,7 @@ export function usePontosFidelidade(clienteId?: string) {
         const { data, error } = await db
           .from('pontos_fidelidade')
           .select('*, nivel:niveis_fidelidade(*)')
-          .eq('user_id', user.id)
+          .eq('organization_id', organizationId)
           .order('pontos_totais', { ascending: false });
         
         if (error) throw error;
@@ -197,68 +223,28 @@ export function useAddPontos() {
       descricao?: string;
       tipo?: 'credito' | 'debito' | 'bonus';
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-      
-      // Check if client has points record
-      const { data: existingPontos } = await db
-        .from('pontos_fidelidade')
-        .select('*')
-        .eq('cliente_id', clienteId)
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      let pontosId = existingPontos?.id;
-      
-      if (!existingPontos) {
-        // Create new points record
-        const { data: newPontos, error: createError } = await db
-          .from('pontos_fidelidade')
-          .insert({
-            user_id: user.id,
-            cliente_id: clienteId,
-            pontos_totais: tipo === 'credito' || tipo === 'bonus' ? quantidade : 0,
-            pontos_disponiveis: tipo === 'credito' || tipo === 'bonus' ? quantidade : 0,
-          })
-          .select()
-          .single();
-        
-        if (createError) throw createError;
-        pontosId = newPontos.id;
-      } else {
-        // Update existing points
-        const novoTotal = tipo === 'debito' 
-          ? existingPontos.pontos_disponiveis - quantidade
-          : existingPontos.pontos_disponiveis + quantidade;
-        
-        const { error: updateError } = await db
-          .from('pontos_fidelidade')
-          .update({
-            pontos_totais: tipo !== 'debito' 
-              ? existingPontos.pontos_totais + quantidade 
-              : existingPontos.pontos_totais,
-            pontos_disponiveis: Math.max(0, novoTotal),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', existingPontos.id);
-        
-        if (updateError) throw updateError;
-      }
-      
-      // Add movement record
-      const { error: movError } = await db
-        .from('movimentos_pontos')
-        .insert({
-          pontos_fidelidade_id: pontosId,
-          venda_id: vendaId || null,
-          tipo,
-          quantidade,
-          descricao: descricao || null,
-        });
-      
-      if (movError) throw movError;
-      
-      return { pontosId, quantidade };
+      // Saldo, movimento e criação da linha acontecem no banco, numa transação.
+      //
+      // Antes era SELECT do saldo → cálculo em JavaScript → UPDATE do valor
+      // absoluto. Com uma venda no PDV e um resgate no CRM ao mesmo tempo, a
+      // segunda gravação sobrescrevia a primeira e o saldo saía errado — o
+      // mesmo problema que `ajustar_estoque_peca` já resolve para o estoque.
+      const { data, error } = await dbRpc('ajustar_pontos_fidelidade', {
+        p_cliente_id: clienteId,
+        p_quantidade: quantidade,
+        p_tipo: tipo,
+        p_venda_id: vendaId || null,
+        p_descricao: descricao || null,
+      });
+
+      if (error) throw error;
+
+      const saldo = Array.isArray(data) ? data[0] : data;
+      return {
+        quantidade,
+        pontosTotais: saldo?.pontos_totais ?? null,
+        pontosDisponiveis: saldo?.pontos_disponiveis ?? null,
+      };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pontos-fidelidade'] });
@@ -279,13 +265,13 @@ export function useRecompensas() {
   return useQuery({
     queryKey: ['recompensas-fidelidade'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      const organizationId = await getOrganizationId();
+      if (!organizationId) return [];
       
       const { data, error } = await db
         .from('recompensas_fidelidade')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
         .eq('ativo', true)
         .order('pontos_necessarios');
       
@@ -300,12 +286,12 @@ export function useAddRecompensa() {
   
   return useMutation({
     mutationFn: async (recompensa: Omit<RecompensaFidelidade, 'id' | 'user_id' | 'created_at'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const organizationId = await getOrganizationId();
+      if (!organizationId) throw new Error('Organização não encontrada');
       
       const { data, error } = await db
         .from('recompensas_fidelidade')
-        .insert({ ...recompensa, user_id: user.id })
+        .insert({ ...recompensa, organization_id: organizationId })
         .select()
         .single();
       
@@ -333,8 +319,8 @@ export function useResgatarRecompensa() {
       clienteId: string; 
       recompensaId: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      const organizationId = await getOrganizationId();
+      if (!organizationId) throw new Error('Organização não encontrada');
       
       // Get reward details
       const { data: recompensa, error: rError } = await db
@@ -350,7 +336,7 @@ export function useResgatarRecompensa() {
         .from('pontos_fidelidade')
         .select('*')
         .eq('cliente_id', clienteId)
-        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
         .single();
       
       if (pError) throw pError;

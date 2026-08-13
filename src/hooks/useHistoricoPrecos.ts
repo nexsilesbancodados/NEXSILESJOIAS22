@@ -27,10 +27,17 @@ export function useHistoricoPrecos(pecaId?: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
       
+      // Sem filtro por usuário: o histórico é da loja.
+      //
+      // Quando a tabela nasceu, o RLS era por usuário e este filtro fazia
+      // sentido. O hardening de RLS moveu `historico_precos` para escopo de
+      // organização (`historico_precos_select_org`), mas o filtro ficou — então
+      // cada pessoa via apenas as alterações que ela própria fez. Um histórico
+      // de preços que só mostra o que você mesmo mudou não responde a pergunta
+      // que ele existe para responder.
       let query = db
         .from('historico_precos')
         .select('*, peca:pecas(id, nome, codigo)')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       
       if (pecaId) {
@@ -103,7 +110,6 @@ export function useEstatisticasPrecos(pecaId: string) {
       const { data, error } = await db
         .from('historico_precos')
         .select('*')
-        .eq('user_id', user.id)
         .eq('peca_id', pecaId)
         .order('created_at', { ascending: true });
       
