@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { computeOrderTotals } from "../_shared/pricing.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,15 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Checkout da loja pública: o comprador não tem conta, então o acesso anônimo
+  // é por desenho. O que faltava era limite — era a única das funções de
+  // pagamento sem nenhum, e ela cobra no Mercado Pago e cria pedido.
+  const rl = await rateLimit(req, "ecommerce-process-payment", {
+    maxRequests: 10,
+    windowSeconds: 60,
+  });
+  if (rl) return rl;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -98,18 +108,35 @@ serve(async (req: Request) => {
         const { error: itensError } = await supabase.from("ecommerce_pedido_itens").insert(orderItems);
         if (itensError) console.error("Error inserting items:", itensError);
 
-        // Debit stock atomically
+        // Baixa de estoque — só pela RPC atômica.
+        //
+        // Havia aqui um fallback que, quando a RPC falhava, fazia
+        // SELECT estoque → subtrai no JavaScript → UPDATE do valor absoluto.
+        // Ou seja: exatamente o padrão que `debitar_estoque_ecommerce` existe
+        // para eliminar, acionado justamente quando algo já está dando errado.
+        // Dois pedidos simultâneos caindo no fallback perdiam uma das baixas e
+        // a loja vendia estoque que não tinha — em silêncio, porque o fallback
+        // não registrava nada.
+        const falhasEstoque: string[] = [];
         for (const item of totals.items) {
           const { error: stockError } = await supabase.rpc("debitar_estoque_ecommerce" as any, {
             p_peca_id: item.peca_id,
             p_quantidade: item.quantidade,
           });
           if (stockError) {
-            const { data: peca } = await supabase.from("pecas").select("estoque").eq("id", item.peca_id).single();
-            if (peca) {
-              await supabase.from("pecas").update({ estoque: Math.max(0, (peca.estoque || 0) - item.quantidade) }).eq("id", item.peca_id);
-            }
+            console.error("Falha ao debitar estoque", item.peca_id, stockError);
+            falhasEstoque.push(item.peca_id);
           }
+        }
+        if (falhasEstoque.length > 0) {
+          // O pedido foi pago e criado; o estoque é que ficou para trás.
+          // Registrar em vez de mascarar, para a loja conseguir corrigir.
+          await supabase.from("edge_function_errors").insert({
+            function_name: "ecommerce-process-payment",
+            error_message: `Estoque não debitado para ${falhasEstoque.length} peça(s)`,
+            organization_id,
+            request_payload: { pedido_id: pedido?.id, pecas: falhasEstoque },
+          }).then(undefined, (e: unknown) => console.error("log falhou", e));
         }
       }
 

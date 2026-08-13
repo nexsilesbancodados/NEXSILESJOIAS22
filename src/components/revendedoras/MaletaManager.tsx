@@ -1804,7 +1804,8 @@ export const MaletaManager = forwardRef<HTMLDivElement, MaletaManagerProps>(
         maletaId={maleta.id}
         revendedoraId={maleta.revendedora_id ?? null}
         organizationId={maleta.organization_id ?? null}
-        valorEsperado={valorVendido}
+        valorVendido={valorVendido}
+        comissao={comissaoEstimada}
       />
 
       <ConferenciaWizardDialog

@@ -53,27 +53,50 @@ export function useOfflineSync() {
 
     try {
       const pending = await getAllPendingVendas();
-      const replayable = pending.filter((v) => !!v.payload && !v.syncError);
+      // Itens com erro anterior continuam na fila: um erro transitório (rede
+      // caindo no meio) não pode parquear a venda para sempre. Antes o filtro
+      // era `!v.syncError`, então bastava uma falha para a venda nunca mais ser
+      // tentada — e o contador de pendentes nunca zerava, sem explicação.
+      const replayable = pending.filter((v) => !!v.payload);
 
       for (const item of replayable) {
         const payload = item.payload as OfflineVendaPayload;
         try {
+          // A venda vai com o id gerado no PDV. Se o item já tiver sido gravado
+          // numa tentativa anterior que morreu antes de marcar `synced`, o banco
+          // devolve violação de unicidade (23505) e nós tratamos como sucesso —
+          // é a mesma venda, não uma nova. Sem isso, qualquer interrupção entre
+          // gravar e marcar produzia uma venda duplicada no próximo sync.
+          const venda = await addVenda
+            .mutateAsync({
+              venda: { ...(payload.venda as any), id: item.id },
+              items: payload.items,
+              caixaSessaoId: payload.caixaSessaoId,
+            })
+            .catch((err: any) => {
+              const jaExiste = err?.code === '23505'
+                || /duplicate key|já existe um registro/i.test(err?.message || '');
+              if (jaExiste) return { id: item.id };
+              throw err;
+            });
+
+          // Cupom e fiado vêm DEPOIS da venda. Antes o cupom era consumido
+          // primeiro: se a venda falhasse, o cupom ficava queimado sem venda
+          // nenhuma no lugar.
           if (payload.cupomId) {
             await usarCupom.mutateAsync(payload.cupomId).catch(() => null);
           }
-          const venda = await addVenda.mutateAsync({
-            venda: payload.venda as any,
-            items: payload.items,
-            caixaSessaoId: payload.caixaSessaoId,
-          });
           if (payload.fiado) {
             await addFiado
-              .mutateAsync({ ...payload.fiado, venda_id: venda?.id || null } as any)
+              .mutateAsync({ ...payload.fiado, venda_id: venda?.id || item.id } as any)
               .catch(() => null);
           }
+
           await markVendaSynced(item.id);
           ok += 1;
         } catch (err: any) {
+          // Registra o erro para o painel mostrar, mas o item segue elegível
+          // para a próxima tentativa.
           await markVendaFailed(item.id, err?.message || 'Falha ao sincronizar');
           fail += 1;
         }

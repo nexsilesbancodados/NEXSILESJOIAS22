@@ -1334,6 +1334,8 @@ export function useCloseMaleta() {
     mutationFn: async ({ maletaId, returnPendingToStock = true }: { maletaId: string; returnPendingToStock?: boolean }) => {
       let totalUnitsReturned = 0;
       let itemsReturned = 0;
+      /** Itens cuja devolução ao estoque falhou — não podem ser limpos da maleta. */
+      const falhasDeEstoque: string[] = [];
 
       if (returnPendingToStock) {
         // Get ALL items where there is still pending quantity to return.
@@ -1369,32 +1371,48 @@ export function useCloseMaleta() {
               totalUnitsReturned += qty;
               itemsReturned++;
             } catch (stockErr) {
+              // A peça NÃO volta para o estoque, então a linha dela também não
+              // pode ser zerada nem apagada abaixo — senão as unidades somem do
+              // inventário sem deixar rastro e sem ninguém ser avisado.
               console.error(`Error updating stock for piece ${item.peca_id}:`, stockErr);
+              falhasDeEstoque.push(item.id);
             }
           }
 
           // Zero out the pending quantity but KEEP rows that had partial sales
           // so the maleta history (quantidade_vendida) is preserved.
           // Fully-pending items (quantidade_vendida = 0 or null) can be deleted.
-          const { error: zeroError } = await supabase
+          //
+          // Itens cuja devolução ao estoque falhou ficam de fora das duas
+          // operações: continuam na maleta, com a quantidade intacta, para
+          // poderem ser devolvidos de novo. É preferível uma maleta fechada com
+          // pendência visível a uma peça que evaporou do inventário.
+          let zeroQuery = supabase
             .from('maletas_pecas')
             .update({ quantidade: 0 })
             .eq('maleta_id', maletaId)
             .eq('vendida', false)
             .gt('quantidade', 0);
-
+          if (falhasDeEstoque.length > 0) {
+            zeroQuery = zeroQuery.not('id', 'in', `(${falhasDeEstoque.join(',')})`);
+          }
+          const { error: zeroError } = await zeroQuery;
 
           if (zeroError) {
             console.error('Error zeroing pending quantities:', zeroError);
           }
 
           // Delete rows that never had any sale (clean up "pure pending" items)
-          const { error: deleteError } = await supabase
+          let deleteQuery = supabase
             .from('maletas_pecas')
             .delete()
             .eq('maleta_id', maletaId)
             .eq('vendida', false)
             .or('quantidade_vendida.is.null,quantidade_vendida.eq.0');
+          if (falhasDeEstoque.length > 0) {
+            deleteQuery = deleteQuery.not('id', 'in', `(${falhasDeEstoque.join(',')})`);
+          }
+          const { error: deleteError } = await deleteQuery;
 
           if (deleteError) {
             console.error('Error deleting fully-pending items:', deleteError);
@@ -1413,15 +1431,26 @@ export function useCloseMaleta() {
         console.error('Error closing maleta:', error);
         throw new Error('Erro ao fechar maleta: ' + (error.message || 'Erro desconhecido'));
       }
-      return { ...data, totalUnitsReturned, itemsReturned };
+      return { ...data, totalUnitsReturned, itemsReturned, falhasDeEstoque: falhasDeEstoque.length };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['maletas'] });
       queryClient.invalidateQueries({ queryKey: ['maleta-items'] });
       queryClient.invalidateQueries({ queryKey: ['pecas'] });
       const units = (result as { totalUnitsReturned?: number })?.totalUnitsReturned ?? 0;
+      const falhas = (result as { falhasDeEstoque?: number })?.falhasDeEstoque ?? 0;
+      if (falhas > 0) {
+        // Antes essa falha só ia para o console e as unidades sumiam do
+        // inventário. Agora as peças continuam na maleta e o usuário sabe.
+        toast.error(`${falhas} peça(s) não voltaram ao estoque`, {
+          description: 'Elas continuam na maleta. Tente devolver de novo pela tela da maleta.',
+          duration: 10000,
+        });
+      }
       if (units > 0) {
         toast.success(`Maleta fechada! ${units} unidade(s) devolvida(s) ao estoque.`);
+      } else if (falhas > 0) {
+        // Já avisamos acima; não mostra o "nenhuma peça pendente".
       } else {
         toast.success('Maleta fechada!');
       }
@@ -1608,6 +1637,12 @@ export function useAddVenda() {
       caixaSessaoId,
     }: {
       venda: {
+        /**
+         * Id da venda, gerado no cliente. Serve de chave de idempotência: se a
+         * mesma venda for enviada duas vezes (replay da fila offline), a
+         * segunda tentativa bate na unicidade da PK em vez de criar duplicata.
+         */
+        id?: string;
         valor_total: number;
         subtotal: number;
         desconto?: number | null;
@@ -1632,6 +1667,7 @@ export function useAddVenda() {
       const { data: vendaData, error: vendaError } = await supabase
         .from('vendas')
         .insert({
+          ...(venda.id ? { id: venda.id } : {}),
           organization_id: organizationId,
           valor_total: venda.valor_total,
           subtotal: venda.subtotal,
