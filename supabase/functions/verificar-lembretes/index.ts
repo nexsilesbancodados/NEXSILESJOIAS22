@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Job agendado (a cada 15 min). Não tem chamador no app.
+  //
+  // Estava com verify_jwt=false e sem nenhuma guarda: qualquer requisição
+  // anônima executava o processamento de lembretes de TODAS as organizações e
+  // disparava WhatsApp pela Evolution e e-mail pela Brevo, sem limite.
+  const cronError = requireCronSecret(req);
+  if (cronError) return cronError;
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

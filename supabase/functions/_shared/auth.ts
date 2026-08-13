@@ -96,17 +96,39 @@ export async function requireAuth(
 }
 
 /**
- * Proteção para funções agendadas (cron). Compara o header `x-cron-secret` com a
- * env `CRON_SECRET`.
+ * Proteção para funções agendadas (cron).
  *
- * - Se `CRON_SECRET` está setado: exige o header correto (fail-closed).
- * - Se NÃO está setado: registra aviso e libera (fail-open), para não quebrar
- *   jobs existentes antes de você configurar o segredo. CONFIGURE o segredo em
- *   produção para efetivamente fechar o endpoint.
+ * Aceita duas formas de provar que a chamada é do agendador:
+ *   1. Header `x-cron-secret` igual à env `CRON_SECRET`.
+ *   2. `Authorization: Bearer <SERVICE_ROLE_KEY>` (chamada interna).
  *
  * Retorna null quando permitido, ou uma Response 401 quando bloqueado.
+ *
+ * ⚠️ Cuidado com o histórico deste arquivo. A versão anterior fazia:
+ *
+ *     const provided = req.headers.get("x-cron-secret") ||
+ *       (req.headers.get("Authorization")?.startsWith("Bearer ") ? "" : ...)
+ *
+ * ou seja: qualquer requisição com `Authorization: Bearer ...` era comparada
+ * como string vazia. E os `cron.schedule` das migrations mandam exatamente
+ * isso — `Bearer <anon_key>` — e nenhum `x-cron-secret`. Resultado: configurar
+ * CRON_SECRET (como o SEGURANCA.md recomenda) fazia TODOS os jobs passarem a
+ * responder 401 em silêncio; assinatura nenhuma expirava e nenhum aviso de
+ * vencimento saía. Só "funcionava" enquanto o segredo estava ausente — que é
+ * justamente quando o endpoint fica aberto.
+ *
+ * Agora o header é lido de verdade, e a migration de cron passa a enviá-lo
+ * (ver `20260812000000_cron_com_segredo.sql`), então configurar o segredo é
+ * seguro.
+ *
+ * Continua liberando quando `CRON_SECRET` não está configurado, para não
+ * derrubar os jobs de quem ainda não configurou — mas agora configurar é o
+ * caminho sem efeito colateral. Faça isso.
  */
 export function requireCronSecret(req: Request): Response | null {
+  // Chamada interna servidor-a-servidor sempre vale.
+  if (isInternalServiceCall(req)) return null;
+
   const secret = Deno.env.get("CRON_SECRET");
   if (!secret) {
     console.warn(
@@ -114,13 +136,9 @@ export function requireCronSecret(req: Request): Response | null {
     );
     return null;
   }
-  const provided =
-    req.headers.get("x-cron-secret") ||
-    (req.headers.get("Authorization")?.startsWith("Bearer ")
-      ? ""
-      : req.headers.get("Authorization")) ||
-    "";
-  if (provided !== secret) {
+
+  const provided = req.headers.get("x-cron-secret") ?? "";
+  if (!provided || !timingSafeEqual(provided, secret)) {
     return jsonResponse({ error: "Não autorizado" }, 401);
   }
   return null;

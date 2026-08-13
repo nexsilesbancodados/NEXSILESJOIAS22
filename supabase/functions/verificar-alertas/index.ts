@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { requireCronSecret } from "../_shared/auth.ts";
+import { requireAuth, requireCronSecret } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,14 +70,34 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const cronError = requireCronSecret(req);
-  if (cronError) return cronError;
+  // Esta função tem dois chamadores legítimos, e eles precisam de escopos
+  // diferentes:
+  //
+  //   1. O cron diário, que varre TODAS as organizações.
+  //   2. O botão "Verificar Agora" do painel (SmartAlertsManager), que só pode
+  //      olhar a organização de quem clicou.
+  //
+  // Antes só existia a guarda de cron. Como ela libera geral quando CRON_SECRET
+  // não está configurado, qualquer usuário logado que clicasse no botão
+  // disparava a varredura completa — criando notificações e enviando WhatsApp e
+  // e-mail para os donos das outras 18 lojas.
+  let scopedOrg: string | null = null;
+  if (!requireCronSecret(req)) {
+    // Passou como cron/serviço: lote completo, sem escopo.
+  } else {
+    const auth = await requireAuth(req);
+    if (auth.error) return auth.error;
+    scopedOrg = auth.ctx.organizationId;
+  }
+
+  /** Restringe a consulta à organização do usuário, quando houver escopo. */
+  const scope = (q: any) => (scopedOrg ? q.eq('organization_id', scopedOrg) : q);
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const brevoKey = Deno.env.get('BREVO_API_KEY');
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const alertsCreated: string[] = [];
@@ -92,8 +112,8 @@ Deno.serve(async (req) => {
 
     // Pre-load configs and owners in parallel
     const [configsRes, membershipsRes, existingNotifsRes] = await Promise.all([
-      supabase.from('agente_ia_config').select('organization_id, whatsapp_instancia, dono_email, dono_nome, dono_whatsapp'),
-      supabase.from('memberships').select('organization_id, user_id, role').eq('role', 'owner'),
+      scope(supabase.from('agente_ia_config').select('organization_id, whatsapp_instancia, dono_email, dono_nome, dono_whatsapp')),
+      scope(supabase.from('memberships').select('organization_id, user_id, role').eq('role', 'owner')),
       supabase.from('notificacoes').select('tipo, mensagem').gte('created_at', todayISO),
     ]);
     
@@ -121,10 +141,10 @@ Deno.serve(async (req) => {
     }
 
     // ═══ 1. ESTOQUE BAIXO ═══
-    const { data: lowStockPieces } = await supabase
+    const { data: lowStockPieces } = await scope(supabase
       .from('pecas')
       .select('id, nome, codigo, estoque, estoque_minimo, organization_id')
-      .eq('ativo', true);
+      .eq('ativo', true));
 
     const orgStockAlerts = new Map<string, Array<{ nome: string; codigo: string; estoque: number }>>();
     const notifInserts: any[] = [];
@@ -213,11 +233,11 @@ Deno.serve(async (req) => {
     const birthdayNotifs: any[] = [];
 
     // 2a. Clientes
-    const { data: clientes } = await supabase
+    const { data: clientes } = await scope(supabase
       .from('clientes')
       .select('id, nome, data_nascimento, telefone, whatsapp, email, organization_id')
       .eq('ativo', true)
-      .not('data_nascimento', 'is', null);
+      .not('data_nascimento', 'is', null));
 
     for (const cliente of clientes || []) {
       if (!cliente.data_nascimento || !cliente.organization_id) continue;
@@ -270,11 +290,11 @@ Deno.serve(async (req) => {
     }
 
     // 2b. Revendedoras
-    const { data: revendedoras } = await supabase
+    const { data: revendedoras } = await scope(supabase
       .from('revendedoras')
       .select('id, nome, data_nascimento, telefone, whatsapp, email, organization_id')
       .eq('ativo', true)
-      .not('data_nascimento', 'is', null);
+      .not('data_nascimento', 'is', null));
 
     for (const rev of revendedoras || []) {
       if (!rev.data_nascimento || !rev.organization_id) continue;
@@ -314,13 +334,13 @@ Deno.serve(async (req) => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + defaultConfig.dias_maleta_vencendo);
     
-    const { data: maletas } = await supabase
+    const { data: maletas } = await scope(supabase
       .from('maletas')
       .select('id, codigo, nome, data_devolucao, revendedora_id, organization_id, revendedoras(nome, telefone, whatsapp, email)')
       .eq('status', 'emprestada')
       .not('data_devolucao', 'is', null)
       .lte('data_devolucao', futureDate.toISOString().split('T')[0])
-      .gte('data_devolucao', today.toISOString().split('T')[0]);
+      .gte('data_devolucao', today.toISOString().split('T')[0]));
 
     const maletaNotifs: any[] = [];
     for (const maleta of maletas || []) {
@@ -383,11 +403,11 @@ Deno.serve(async (req) => {
     const oldDate = new Date();
     oldDate.setDate(oldDate.getDate() - defaultConfig.dias_romaneio_pendente);
     
-    const { data: romaneios } = await supabase
+    const { data: romaneios } = await scope(supabase
       .from('romaneios')
       .select('id, numero, revendedora_id, organization_id, revendedoras(nome)')
       .eq('status', 'pendente')
-      .lte('created_at', oldDate.toISOString());
+      .lte('created_at', oldDate.toISOString()));
 
     const romaneioNotifs: any[] = [];
     for (const romaneio of romaneios || []) {
