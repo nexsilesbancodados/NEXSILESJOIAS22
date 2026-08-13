@@ -45,7 +45,7 @@ Claude fez uma auditoria somente leitura da arquitetura, 38 Edge Functions, migr
 ## Git, push e deploy
 
 - Commits: `fb998a4` (`fix: harden public config and payment processing`), `930f760` (`docs: record autonomous engineering run`) e `78354cc` (`fix: protect public session storage`).
-- Push: concluído para `origin/main`; a branch local está alinhada ao remoto em `78354cc`.
+- Push: concluído para `origin/main`; a branch local está alinhada ao remoto em `0dad47c`.
 - CI: não há workflow detectável no repositório para acompanhar.
 - Deploy remoto Supabase/Lovable: não foi executado automaticamente, pois não há CLI/credencial/painel autorizado neste ambiente. O código pode ser sincronizado pelo fluxo existente do repositório, mas a aplicação publicada e as Edge Functions não foram presumidas como atualizadas.
 - Health check público: `https://nexsiles2567.lovable.app/?nightly=fb998a4` respondeu HTTP 200 com título `Nexsiles`.
