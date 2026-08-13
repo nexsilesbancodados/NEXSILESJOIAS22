@@ -16,6 +16,20 @@ falta de segredo configurado:
 | `ecommerce-webhook` | 500 "Server misconfigured" | confirmação de pagamento de **pedido da loja** |
 | `webhook-whatsapp` | 503 "Webhook secret not configured" | **agente de IA não recebe mensagem** |
 
+O processador interno `process-webhook-queue` também exige `CRON_SECRET` para
+chamadas do agendador. O webhook de Mercado Pago o chama internamente com
+`SUPABASE_SERVICE_ROLE_KEY`; o job do `pg_cron` usa o segredo salvo no Vault pela
+migration `20260812190000_cron_com_segredo.sql`. Sem `CRON_SECRET`, a fila fica
+parada com resposta 503 até o segredo ser configurado.
+
+O hardening também remove o acesso anônimo às tabelas-base de configurações,
+mantendo somente as views públicas e suas colunas seguras. Depois de aplicar a
+migration `20260813000000_hardening_agent_config_and_webhook_queue.sql`, trate os
+tokens Mercado Pago existentes e a chave Gemini como potencialmente expostos e
+faça a rotação no painel dos provedores. A migration cria ainda índices únicos
+para impedir o processamento duplicado de pagamentos; se o banco já tiver
+duplicatas históricas, a criação do índice deve ser tratada antes da aplicação.
+
 Do lado da segurança está certo: sem o segredo, o sistema recusa em vez de aceitar
 qualquer um. O problema é que **o segredo nunca foi configurado** — então nenhuma
 confirmação de pagamento chega.

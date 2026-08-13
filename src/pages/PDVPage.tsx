@@ -80,6 +80,7 @@ import { useAddFiado } from '@/hooks/useFiado';
 import { useFullscreen } from '@/hooks/useFullscreen';
 import { useSubscriptionSafe } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/lib/supabase-db';
+import { cachePecas } from '@/lib/indexeddb';
 import { 
   usePecas, 
   useCaixaAtual, 
@@ -137,19 +138,17 @@ export default function PDVPage() {
   // Prefetch peças pro IndexedDB (permite PDV usar catálogo em cold-start offline)
   useEffect(() => {
     if (!pecas.length) return;
-    import('@/lib/indexeddb').then(({ cachePecas }) => {
-      cachePecas(
-        pecas.map((p) => ({
-          id: p.id,
-          codigo: p.codigo || '',
-          nome: p.nome,
-          preco_venda: p.preco_venda || 0,
-          quantidade: (p as any).estoque || 0,
-          categoria: p.categoria || '',
-          imagem_url: p.imagem_url || null,
-        })) as any,
-      ).catch(() => null);
-    });
+    cachePecas(
+      pecas.map((p) => ({
+        id: p.id,
+        codigo: p.codigo || '',
+        nome: p.nome,
+        preco_venda: p.preco_venda || 0,
+        quantidade: (p as any).estoque || 0,
+        categoria: p.categoria || '',
+        imagem_url: p.imagem_url || null,
+      })) as any,
+    ).catch(() => null);
   }, [pecas]);
 
   const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
@@ -224,6 +223,26 @@ export default function PDVPage() {
     },
   });
 
+  const addToCarrinho = useCallback((peca: Peca) => {
+    if ((peca.estoque ?? 0) <= 0) {
+      toast.error(`${peca.nome} sem estoque`);
+      return;
+    }
+
+    setCarrinho((currentCart) => {
+      const existingItem = currentCart.find(item => item.peca.id === peca.id);
+      if (existingItem) {
+        if (existingItem.quantidade >= peca.estoque) return currentCart;
+        return currentCart.map(item =>
+          item.peca.id === peca.id
+            ? { ...item, quantidade: item.quantidade + 1 }
+            : item
+        );
+      }
+      return [...currentCart, { peca, quantidade: 1 }];
+    });
+  }, []);
+
   // Handle barcode scanner
   const handleBarcodeScanned = useCallback((code: string) => {
     const normalizedCode = code.trim().toLowerCase();
@@ -238,7 +257,7 @@ export default function PDVPage() {
     } else {
       toast.error(`Produto não encontrado: ${code}`);
     }
-  }, [pecas]);
+  }, [pecas, addToCarrinho]);
 
   // Calculate discount from manual discount
   const calcularDescontoManual = useMemo(() => {
@@ -322,25 +341,6 @@ export default function PDVPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
-
-  const addToCarrinho = (peca: Peca) => {
-    if ((peca.estoque ?? 0) <= 0) {
-      toast.error(`${peca.nome} sem estoque`);
-      return;
-    }
-    const existingItem = carrinho.find(item => item.peca.id === peca.id);
-    if (existingItem) {
-      if (existingItem.quantidade < peca.estoque) {
-        setCarrinho(carrinho.map(item =>
-          item.peca.id === peca.id
-            ? { ...item, quantidade: item.quantidade + 1 }
-            : item
-        ));
-      }
-    } else {
-      setCarrinho([...carrinho, { peca, quantidade: 1 }]);
-    }
   };
 
   const removeFromCarrinho = (pecaId: string) => {

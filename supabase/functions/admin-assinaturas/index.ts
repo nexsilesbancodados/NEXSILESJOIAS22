@@ -49,14 +49,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!SUPER_ADMIN_EMAILS.includes(user.email || '')) {
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('is_super_admin')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const isSuperAdmin = profile?.is_super_admin === true
+      || SUPER_ADMIN_EMAILS.includes((user.email || '').toLowerCase());
+
+    if (!isSuperAdmin) {
       return new Response(JSON.stringify({ error: 'Acesso negado' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
     if (req.method === 'GET') {
       const url = new URL(req.url);

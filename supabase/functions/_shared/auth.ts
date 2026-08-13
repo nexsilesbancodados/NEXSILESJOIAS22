@@ -143,3 +143,24 @@ export function requireCronSecret(req: Request): Response | null {
   }
   return null;
 }
+
+/**
+ * Proteção estrita para jobs que alteram estado financeiro ou processam filas.
+ * Diferente de requireCronSecret(), não libera quando CRON_SECRET está ausente:
+ * a ausência de configuração precisa parar o job, não abrir um endpoint.
+ */
+export function requireConfiguredCronSecret(req: Request): Response | null {
+  if (isInternalServiceCall(req)) return null;
+
+  const secret = Deno.env.get("CRON_SECRET") ?? "";
+  if (!secret) {
+    return jsonResponse({ error: "Cron secret not configured" }, 503);
+  }
+
+  const provided = req.headers.get("x-cron-secret") ?? "";
+  if (!provided || !timingSafeEqual(provided, secret)) {
+    return jsonResponse({ error: "Não autorizado" }, 401);
+  }
+
+  return null;
+}

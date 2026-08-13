@@ -180,16 +180,27 @@ serve(async (req: Request) => {
           .eq("organization_id", organization_id)
           .single();
 
-        if (orgConfig?.mercadopago_access_token && orgConfig.mercadopago_access_token !== mpToken) {
+        if (!orgConfig?.mercadopago_access_token) {
+          log.warn("Organization Mercado Pago token unavailable; refusing order creation", { organization_id });
+          return new Response("ok", { status: 200, headers: corsHeaders });
+        }
+
+        if (orgConfig.mercadopago_access_token !== mpToken) {
           const orgMpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
             headers: { Authorization: `Bearer ${orgConfig.mercadopago_access_token}` },
           });
-          if (orgMpResponse.ok) {
-            const orgPayment = await orgMpResponse.json();
-            if (orgPayment.status !== "approved") {
-              console.log("Payment not approved with org token");
-              return new Response("ok", { status: 200, headers: corsHeaders });
-            }
+          if (!orgMpResponse.ok) {
+            log.warn("Payment could not be verified with organization token; refusing order creation", {
+              organization_id,
+              status: orgMpResponse.status,
+            });
+            return new Response("ok", { status: 200, headers: corsHeaders });
+          }
+
+          const orgPayment = await orgMpResponse.json();
+          if (orgPayment.status !== "approved") {
+            console.log("Payment not approved with org token");
+            return new Response("ok", { status: 200, headers: corsHeaders });
           }
         }
       }
@@ -217,6 +228,9 @@ serve(async (req: Request) => {
         .single();
 
       if (pedidoError) {
+        if (pedidoError.code === "23505") {
+          log.info("Payment already processed concurrently", { payment_id: payment.id });
+        }
         console.error("Error creating order:", pedidoError);
         return new Response("ok", { status: 200, headers: corsHeaders });
       }

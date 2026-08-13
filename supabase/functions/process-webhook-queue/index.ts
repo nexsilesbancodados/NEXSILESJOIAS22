@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { createLogger, captureError } from "../_shared/logger.ts";
+import { requireConfiguredCronSecret } from "../_shared/auth.ts";
 
 const log = createLogger("process-webhook-queue");
 const FUNCTION_NAME = "process-webhook-queue";
@@ -91,7 +92,13 @@ async function processMercadoPago(supabase: any, payload: any, query: Record<str
     mercadopago_payment_id: String(paymentId),
     valido_ate: validoAte.toISOString(),
   });
-  if (insErr) throw insErr;
+  if (insErr) {
+    if (insErr.code === "23505") {
+      log.info("Payment already processed concurrently", { payment_id: paymentId });
+      return;
+    }
+    throw insErr;
+  }
 
   // Email
   const brevoKey = Deno.env.get("BREVO_API_KEY");
@@ -105,7 +112,10 @@ async function processMercadoPago(supabase: any, payload: any, query: Record<str
   log.info("Code generated", { codigo: codigoData, email: payerEmail });
 }
 
-serve(async (_req: Request) => {
+serve(async (req: Request) => {
+  const authError = requireConfiguredCronSecret(req);
+  if (authError) return authError;
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -130,8 +140,19 @@ serve(async (_req: Request) => {
   let ok = 0, fail = 0;
   for (const it of items) {
     try {
-      // Mark as processing (optimistic — same row, no lock since cron is single instance)
-      await supabase.from("webhook_queue").update({ attempts: it.attempts + 1 }).eq("id", it.id);
+      // Atomically claim the row. Webhooks can trigger this function while
+      // pg_cron is running, so the old optimistic update could process twice.
+      const { data: claimed, error: claimError } = await supabase
+        .from("webhook_queue")
+        .update({ attempts: it.attempts + 1 })
+        .eq("id", it.id)
+        .eq("status", "pending")
+        .eq("attempts", it.attempts)
+        .select("id")
+        .maybeSingle();
+
+      if (claimError) throw claimError;
+      if (!claimed) continue;
 
       if (it.source === "mercadopago") {
         await processMercadoPago(supabase, it.payload, it.payload?.query || {});
