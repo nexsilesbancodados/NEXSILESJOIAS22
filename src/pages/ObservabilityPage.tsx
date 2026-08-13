@@ -61,7 +61,7 @@ export default function ObservabilityPage() {
     uniqueFns: functionNames.length,
   };
 
-  const copyDetail = (e: EdgeError) => {
+  const copyDetail = async (e: EdgeError) => {
     const txt = JSON.stringify(
       {
         function: e.function_name,
@@ -75,8 +75,13 @@ export default function ObservabilityPage() {
       null,
       2,
     );
-    navigator.clipboard.writeText(txt);
-    toast.success('Detalhes copiados');
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(txt);
+      toast.success('Detalhes copiados');
+    } catch {
+      toast.error('Não foi possível copiar os detalhes.');
+    }
   };
 
   if (!isSuperAdmin) return <Navigate to="/" replace />;

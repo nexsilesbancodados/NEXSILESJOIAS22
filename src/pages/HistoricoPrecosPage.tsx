@@ -96,11 +96,12 @@ export default function HistoricoPrecosPage() {
   const reducoes = historico.filter(h => h.preco_novo < h.preco_anterior).length;
   
   // Calculate average variation
-  const variacaoMedia = historico.length > 0
-    ? historico.reduce((acc, h) => {
+  const variacoesValidas = historico.filter((h) => h.preco_anterior !== 0);
+  const variacaoMedia = variacoesValidas.length > 0
+    ? variacoesValidas.reduce((acc, h) => {
         const variacao = ((h.preco_novo - h.preco_anterior) / h.preco_anterior) * 100;
         return acc + variacao;
-      }, 0) / historico.length
+      }, 0) / variacoesValidas.length
     : 0;
   
   const formatCurrency = (value: number) => {

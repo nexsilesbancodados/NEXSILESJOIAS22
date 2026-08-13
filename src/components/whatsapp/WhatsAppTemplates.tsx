@@ -245,12 +245,17 @@ export function WhatsAppTemplates({ open, onOpenChange }: WhatsAppTemplatesProps
     }
   };
 
-  const handleCopyMessage = () => {
+  const handleCopyMessage = async () => {
     const message = getFormattedMessage();
-    navigator.clipboard.writeText(message);
-    setCopiedId(selectedTemplate?.id || null);
-    toast.success('Mensagem copiada!');
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(message);
+      setCopiedId(selectedTemplate?.id || null);
+      toast.success('Mensagem copiada!');
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error('Não foi possível copiar a mensagem.');
+    }
   };
 
   const getCategoryLabel = (category: string) => {

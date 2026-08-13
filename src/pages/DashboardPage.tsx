@@ -124,14 +124,14 @@ export default function DashboardPage() {
   }, [vendas, pecas, romaneios]);
 
   // Map vendas to include 'total' alias for components that expect it
-  const vendasWithTotal = useMemo(() => 
-    vendas.map(v => ({ ...v, total: v.valor_total })),
+  const vendasWithTotal = useMemo(() =>
+    (vendas || []).map(v => ({ ...v, total: v.valor_total })),
     [vendas]
   );
 
   // Map romaneios to include 'total' alias for components that expect it
-  const romaneiosWithTotal = useMemo(() => 
-    romaneios.map(r => ({ ...r, total: r.valor_frete || 0, reseller_id: r.revendedora_id })),
+  const romaneiosWithTotal = useMemo(() =>
+    (romaneios || []).map(r => ({ ...r, total: r.valor_frete || 0, reseller_id: r.revendedora_id })),
     [romaneios]
   );
 

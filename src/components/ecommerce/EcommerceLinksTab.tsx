@@ -59,11 +59,16 @@ export function EcommerceLinksTab() {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const lojaUrl = config?.slug ? `${baseUrl}/loja/${config.slug}` : '';
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(label);
-    toast.success('Link copiado!');
-    setTimeout(() => setCopied(''), 2000);
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopied(''), 2000);
+    } catch {
+      toast.error('Não foi possível copiar o link.');
+    }
   };
 
   const shareLink = async () => {

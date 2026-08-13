@@ -199,9 +199,14 @@ export default function EntregasPage() {
     }
   };
   
-  const handleCopyRastreio = (codigo: string) => {
-    navigator.clipboard.writeText(codigo);
-    toast.success('Código copiado!');
+  const handleCopyRastreio = async (codigo: string) => {
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(codigo);
+      toast.success('Código copiado!');
+    } catch {
+      toast.error('Não foi possível copiar o código de rastreio.');
+    }
   };
   
   const handleOpenDetails = (envio: Envio) => {

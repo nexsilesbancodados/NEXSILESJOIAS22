@@ -74,7 +74,11 @@ export default function FiadoPage() {
 
   const handleConfirmarBaixa = async () => {
     if (!selectedFiado) return;
-    const valor = parseFloat(valorBaixa) || 0;
+    const valor = Number(valorBaixa.replace(',', '.')) || 0;
+    if (valor <= 0) {
+      toast.error('Informe um valor de baixa maior que zero');
+      return;
+    }
     const novoPago = Math.min(selectedFiado.valor_pago + valor, selectedFiado.valor_total);
     await darBaixa.mutateAsync({
       id: selectedFiado.id,
@@ -98,10 +102,11 @@ export default function FiadoPage() {
       const msg = `Olá ${fiado.clientes?.nome}! 👋\n\nPassamos para lembrar que você tem um valor de *${formatCurrency(restante)}* em aberto conosco com vencimento em *${vencimento}*.\n\nPor favor, entre em contato para regularizar. Obrigado! 🙏`;
 
       // Marcar notificação enviada
-      await supabase
+      const { error } = await supabase
         .from('fiado')
         .update({ notificacao_enviada: true, notificacao_enviada_at: new Date().toISOString() })
         .eq('id', fiado.id);
+      if (error) throw error;
 
       // Abrir WhatsApp
       const numeroLimpo = tel.replace(/\D/g, '');

@@ -45,21 +45,31 @@ export function AcoesDeHojeCard() {
   const { data: vendas = [] } = useVendas();
 
   const items = useMemo<ActionItem[]>(() => {
-    const estoqueCritico = (pecas as any[]).filter((p) => (p?.estoque ?? 0) > 0 && (p?.estoque ?? 0) <= 3).length;
-    const estoqueZero = (pecas as any[]).filter((p) => (p?.estoque ?? 0) === 0).length;
-    const romaneiosPendentes = (romaneios as any[]).filter((r) => r?.status === 'pendente').length;
-    const aniversariantes = (clientes as any[]).filter((c) => isBirthdayThisWeek(c?.aniversario || c?.data_nascimento)).length;
+    const safePecas = Array.isArray(pecas) ? pecas : [];
+    const safeRomaneios = Array.isArray(romaneios) ? romaneios : [];
+    const safeClientes = Array.isArray(clientes) ? clientes : [];
+    const safeMaletas = Array.isArray(maletas) ? maletas : [];
+    const safeVendas = Array.isArray(vendas) ? vendas : [];
+
+    const estoqueCritico = safePecas.filter((p: any) => {
+      const estoque = Number(p?.estoque ?? 0);
+      return estoque > 0 && estoque <= 3;
+    }).length;
+    const estoqueZero = safePecas.filter((p: any) => Number(p?.estoque ?? 0) === 0).length;
+    const romaneiosPendentes = safeRomaneios.filter((r: any) => r?.status === 'pendente').length;
+    const aniversariantes = safeClientes.filter((c: any) => isBirthdayThisWeek(c?.aniversario || c?.data_nascimento)).length;
 
     const hoje = new Date();
-    const maletasVencendo = (maletas as any[]).filter((m) => {
+    const maletasVencendo = safeMaletas.filter((m: any) => {
       if (!m?.prazo_devolucao || m?.status === 'fechada') return false;
       const prazo = new Date(m.prazo_devolucao);
+      if (isNaN(prazo.getTime())) return false;
       const diff = Math.ceil((prazo.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
       return diff <= 3;
     }).length;
 
     const hojeStr = hoje.toDateString();
-    const vendasHoje = (vendas as any[]).filter((v) => v?.created_at && new Date(v.created_at).toDateString() === hojeStr).length;
+    const vendasHoje = safeVendas.filter((v: any) => v?.created_at && new Date(v.created_at).toDateString() === hojeStr).length;
 
     const list: ActionItem[] = [];
     if (estoqueZero > 0) list.push({

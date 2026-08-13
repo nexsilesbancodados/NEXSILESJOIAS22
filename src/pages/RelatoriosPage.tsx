@@ -127,6 +127,7 @@ export default function RelatoriosPage() {
     return safeVendas.filter((venda) => {
       if (!venda?.created_at) return false;
       const vendaDate = new Date(venda.created_at);
+      if (Number.isNaN(vendaDate.getTime())) return false;
       return isWithinInterval(vendaDate, {
         start: startOfDay(dateRange.from!),
         end: endOfDay(dateRange.to!),
@@ -202,9 +203,9 @@ export default function RelatoriosPage() {
 
   const categoriaData = useMemo(() => {
     const categorias: { [key: string]: number } = {};
-    pecas.forEach(peca => {
+    (pecas || []).forEach(peca => {
       const cat = peca.categoria || 'Sem categoria';
-      categorias[cat] = (categorias[cat] || 0) + peca.estoque;
+      categorias[cat] = (categorias[cat] || 0) + Number(peca.estoque ?? 0);
     });
     
     return Object.entries(categorias).map(([name, value]) => ({
@@ -214,9 +215,10 @@ export default function RelatoriosPage() {
   }, [pecas]);
 
   const estoqueData = useMemo(() => {
-    const estoqueBaixo = pecas.filter(p => p.estoque <= 5).length;
-    const estoqueNormal = pecas.filter(p => p.estoque > 5 && p.estoque <= 20).length;
-    const estoqueAlto = pecas.filter(p => p.estoque > 20).length;
+    const safePecas = pecas || [];
+    const estoqueBaixo = safePecas.filter(p => (p.estoque ?? 0) <= 5).length;
+    const estoqueNormal = safePecas.filter(p => (p.estoque ?? 0) > 5 && (p.estoque ?? 0) <= 20).length;
+    const estoqueAlto = safePecas.filter(p => (p.estoque ?? 0) > 20).length;
     
     return [
       { name: 'Estoque Baixo (≤5)', value: estoqueBaixo, color: 'hsl(0 70% 50%)' },
@@ -228,7 +230,7 @@ export default function RelatoriosPage() {
   const topRevendedoras = useMemo(() => {
     const vendaPorRevendedora: { [key: string]: { nome: string; total: number; vendas: number } } = {};
     
-    romaneios.filter(r => r.status === 'confirmado').forEach(romaneio => {
+    (romaneios || []).filter(r => r.status === 'confirmado').forEach(romaneio => {
       const resellerId = romaneio.reseller_id || '';
       if (!vendaPorRevendedora[resellerId]) {
         vendaPorRevendedora[resellerId] = {
@@ -254,6 +256,7 @@ export default function RelatoriosPage() {
     return safeEnvios.filter((envio) => {
       if (!envio) return false;
       const envioDate = new Date(envio.data_envio || envio.created_at);
+      if (Number.isNaN(envioDate.getTime())) return false;
       return isWithinInterval(envioDate, {
         start: startOfDay(dateRange.from!),
         end: endOfDay(dateRange.to!),
@@ -336,8 +339,10 @@ export default function RelatoriosPage() {
   const galvanicaMensalData = useMemo(() => {
     const mensal: { [key: string]: { mes: string; custo: number; peso: number } } = {};
     
-    enviosGalvanica.forEach((envio) => {
-      const mesKey = format(new Date(envio.data_envio || envio.created_at), 'MMM/yy', { locale: ptBR });
+    (enviosGalvanica || []).forEach((envio) => {
+      const date = new Date(envio.data_envio || envio.created_at);
+      if (Number.isNaN(date.getTime())) return;
+      const mesKey = format(date, 'MMM/yy', { locale: ptBR });
       if (!mensal[mesKey]) {
         mensal[mesKey] = { mes: mesKey, custo: 0, peso: 0 };
       }

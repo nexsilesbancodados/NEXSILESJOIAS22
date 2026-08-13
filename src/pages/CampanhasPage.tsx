@@ -137,12 +137,29 @@ export default function CampanhasPage() {
       return;
     }
 
+    if (formData.data_inicio && formData.data_fim && formData.data_fim < formData.data_inicio) {
+      toast.error('A data final não pode ser anterior à data inicial');
+      return;
+    }
+
+    const desconto = formData.desconto_percentual ? Number(formData.desconto_percentual.replace(',', '.')) : null;
+    if (desconto !== null && (!Number.isFinite(desconto) || desconto < 0 || desconto > 100)) {
+      toast.error('O desconto deve estar entre 0% e 100%');
+      return;
+    }
+
+    const metaValor = formData.meta_valor ? Number(formData.meta_valor.replace(',', '.')) : null;
+    if (metaValor !== null && (!Number.isFinite(metaValor) || metaValor < 0)) {
+      toast.error('A meta deve ser um valor válido');
+      return;
+    }
+
     const campanhaData = {
       nome: formData.nome.trim(),
       descricao: formData.descricao.trim() || null,
       tipo: formData.tipo,
-      desconto_percentual: formData.desconto_percentual ? parseFloat(formData.desconto_percentual) : null,
-      meta_valor: formData.meta_valor ? parseFloat(formData.meta_valor) : null,
+      desconto_percentual: desconto,
+      meta_valor: metaValor,
       premio: formData.premio.trim() || null,
       data_inicio: formData.data_inicio?.toISOString().split('T')[0] || null,
       data_fim: formData.data_fim?.toISOString().split('T')[0] || null,

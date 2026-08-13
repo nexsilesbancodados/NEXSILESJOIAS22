@@ -306,7 +306,7 @@ export default function RevendedorasPage() {
           
           if (maletaPeriodoFilter === 'vencidas' && diasRestantes >= 0) return false;
           if (maletaPeriodoFilter === 'vencendo' && (diasRestantes < 0 || diasRestantes > 3)) return false;
-          if (maletaPeriodoFilter === 'em_dia' && diasRestantes < 3) return false;
+          if (maletaPeriodoFilter === 'em_dia' && diasRestantes <= 3) return false;
         }
       }
       
@@ -776,12 +776,17 @@ export default function RevendedorasPage() {
     setMaletaFechada(null);
   };
 
-  const handleCopyLink = (revendedoraId: string) => {
+  const handleCopyLink = async (revendedoraId: string) => {
     const link = `${window.location.origin}/portal/${revendedoraId}`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    toast.success('Link copiado!');
-    setTimeout(() => setCopiedLink(false), 2000);
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(link);
+      setCopiedLink(true);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      toast.error('Não foi possível copiar o link. Copie-o pela barra do navegador.');
+    }
   };
 
   const formatCurrency = (value: number) => {

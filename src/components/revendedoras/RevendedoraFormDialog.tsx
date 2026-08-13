@@ -118,11 +118,16 @@ export function RevendedoraFormDialog({
     }
   };
 
-  const copyPortalLink = () => {
+  const copyPortalLink = async () => {
     if (revendedora?.id) {
       const link = `${window.location.origin}/portal/${revendedora.id}`;
-      navigator.clipboard.writeText(link);
-      toast.success('Link do portal copiado!');
+      try {
+        if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+        await navigator.clipboard.writeText(link);
+        toast.success('Link do portal copiado!');
+      } catch {
+        toast.error('Não foi possível copiar o link do portal.');
+      }
     }
   };
 

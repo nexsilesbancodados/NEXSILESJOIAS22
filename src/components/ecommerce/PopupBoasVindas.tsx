@@ -41,12 +41,17 @@ export function PopupBoasVindas({ ativo, titulo, texto, imagemUrl, cupom, delayS
     setSubmitted(true);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (cupom) {
-      navigator.clipboard.writeText(cupom);
-      setCopied(true);
-      toast.success('Cupom copiado!');
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+        await navigator.clipboard.writeText(cupom);
+        setCopied(true);
+        toast.success('Cupom copiado!');
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast.error('Não foi possível copiar o cupom.');
+      }
     }
   };
 

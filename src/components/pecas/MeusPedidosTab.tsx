@@ -185,10 +185,15 @@ export const MeusPedidosTab = memo(function MeusPedidosTab() {
     return STATUS_PEDIDO.find(s => s.value === status) || STATUS_PEDIDO[0];
   };
 
-  const handleCopyLink = (catalogoId: string) => {
+  const handleCopyLink = async (catalogoId: string) => {
     const link = `${window.location.origin}/catalogo/${catalogoId}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Link do catálogo copiado!');
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(link);
+      toast.success('Link do catálogo copiado!');
+    } catch {
+      toast.error('Não foi possível copiar o link do catálogo.');
+    }
   };
 
   const handleShareWhatsApp = (catalogo: { id: string; nome: string }) => {

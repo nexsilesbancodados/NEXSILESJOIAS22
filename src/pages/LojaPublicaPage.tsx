@@ -429,16 +429,23 @@ export default function LojaPublicaPage() {
   };
 
   const addToCart = useCallback((peca: Peca) => {
+    if (peca.estoque <= 0) {
+      toast.error('Produto sem estoque');
+      return;
+    }
+    const existing = cart.find(i => i.id === peca.id);
+    if (existing && existing.quantidade >= peca.estoque) {
+      toast.error('Estoque insuficiente');
+      return;
+    }
     setCart(prev => {
-      const existing = prev.find(i => i.id === peca.id);
-      if (existing) {
-        if (existing.quantidade >= peca.estoque) { toast.error('Estoque insuficiente'); return prev; }
+      if (prev.some(i => i.id === peca.id)) {
         return prev.map(i => i.id === peca.id ? { ...i, quantidade: i.quantidade + 1 } : i);
       }
       return [...prev, { ...peca, quantidade: 1 }];
     });
     toast.success('Adicionado ao carrinho ✨');
-  }, []);
+  }, [cart]);
 
   const updateQuantity = useCallback((pecaId: string, delta: number) => {
     setCart(prev => prev.map(item => {
@@ -456,7 +463,7 @@ export default function LojaPublicaPage() {
   const subtotal = useMemo(() => cart.reduce((sum, i) => sum + i.preco_venda * i.quantidade, 0), [cart]);
   const valorFrete = useMemo(() => {
     if (!config) return 0;
-    const sub = subtotal - cupomDesconto;
+    const sub = Math.max(0, subtotal - cupomDesconto);
     if (config.frete_gratis_acima && sub >= config.frete_gratis_acima) return 0;
     // Se frete dinâmico calculado
     if (freteOpcoes && freteEscolhido !== 'taxa_fixa') {
@@ -465,7 +472,7 @@ export default function LojaPublicaPage() {
     }
     return config.taxa_entrega || 0;
   }, [config, subtotal, cupomDesconto, freteOpcoes, freteEscolhido]);
-  const total = subtotal - cupomDesconto + valorFrete;
+  const total = Math.max(0, subtotal - cupomDesconto + valorFrete);
   const cartCount = useMemo(() => cart.reduce((sum, i) => sum + i.quantidade, 0), [cart]);
 
   const aplicarCupom = async () => {
@@ -480,6 +487,9 @@ export default function LojaPublicaPage() {
         setCupomDesconto(data[0].desconto); setCupomId(data[0].cupom_id);
         setCupomApplied(cupomCode.toUpperCase());
         toast.success(`Cupom aplicado! Desconto: ${formatCurrency(data[0].desconto)}`);
+      } else {
+        setCupomDesconto(0); setCupomId(null); setCupomApplied('');
+        toast.error('Cupom inválido ou não encontrado');
       }
     } catch (err: any) {
       toast.error(err.message || 'Cupom inválido');
@@ -1935,17 +1945,22 @@ export default function LojaPublicaPage() {
                     style={{ borderColor: roseGoldLight, backgroundColor: warmWhite }}
                   />
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatePixPayload({
-                        chave: config.pix_chave!,
-                        nome: config.pix_nome!,
-                        cidade: config.pix_cidade || 'SAO PAULO',
-                        valor: total,
-                        tipo: (config.pix_tipo as any) || 'cpf',
-                      }));
-                      setPixCopied(true);
-                      toast.success('Código PIX copiado!');
-                      setTimeout(() => setPixCopied(false), 3000);
+                    onClick={async () => {
+                      try {
+                        if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+                        await navigator.clipboard.writeText(generatePixPayload({
+                          chave: config.pix_chave!,
+                          nome: config.pix_nome!,
+                          cidade: config.pix_cidade || 'SAO PAULO',
+                          valor: total,
+                          tipo: (config.pix_tipo as any) || 'cpf',
+                        }));
+                        setPixCopied(true);
+                        toast.success('Código PIX copiado!');
+                        setTimeout(() => setPixCopied(false), 3000);
+                      } catch {
+                        toast.error('Não foi possível copiar o código PIX.');
+                      }
                     }}
                     className="px-3 py-2 text-xs rounded-lg border transition-all"
                     style={{ borderColor: roseGold, color: pixCopied ? 'white' : roseGold, backgroundColor: pixCopied ? roseGold : 'transparent' }}

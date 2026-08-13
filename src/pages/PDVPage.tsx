@@ -191,6 +191,11 @@ export default function PDVPage() {
   const reciboRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const parseNumericInput = (value: string) => {
+    const parsed = Number(value.replace(',', '.'));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   // Keyboard shortcuts
   usePDVShortcuts({
     onNovaVenda: () => {
@@ -221,7 +226,8 @@ export default function PDVPage() {
 
   // Handle barcode scanner
   const handleBarcodeScanned = useCallback((code: string) => {
-    const peca = pecas.find(p => p.codigo.toLowerCase() === code.toLowerCase());
+    const normalizedCode = code.trim().toLowerCase();
+    const peca = pecas.find(p => (p.codigo || '').toLowerCase() === normalizedCode);
     if (peca) {
       if (peca.estoque > 0) {
         addToCarrinho(peca);
@@ -260,13 +266,21 @@ export default function PDVPage() {
     return 0;
   }, [cupomAplicado, carrinho, calcularDescontoManual]);
 
-  const totalDesconto = calcularDescontoManual + calcularDescontoCupom;
+  const subtotalCarrinho = carrinho.reduce(
+    (acc, item) => acc + item.peca.preco_venda * item.quantidade,
+    0
+  );
+
+  const totalDesconto = Math.min(
+    Math.max(0, subtotalCarrinho),
+    Math.max(0, calcularDescontoManual + calcularDescontoCupom),
+  );
 
   const filteredPecas = useMemo(() => {
     return pecas.filter((peca) => {
       const matchesSearch =
         peca.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        peca.codigo.toLowerCase().includes(searchTerm.toLowerCase());
+        (peca.codigo || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       // Filtro de estoque
       let matchesEstoque = true;
@@ -280,12 +294,7 @@ export default function PDVPage() {
     });
   }, [pecas, searchTerm, filterEstoque]);
 
-  const subtotalCarrinho = carrinho.reduce(
-    (acc, item) => acc + item.peca.preco_venda * item.quantidade,
-    0
-  );
-
-  const totalCarrinho = subtotalCarrinho - totalDesconto;
+  const totalCarrinho = Math.max(0, subtotalCarrinho - Math.max(0, totalDesconto));
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const troco = Math.max(0, totalPago - totalCarrinho);
@@ -316,6 +325,10 @@ export default function PDVPage() {
   };
 
   const addToCarrinho = (peca: Peca) => {
+    if ((peca.estoque ?? 0) <= 0) {
+      toast.error(`${peca.nome} sem estoque`);
+      return;
+    }
     const existingItem = carrinho.find(item => item.peca.id === peca.id);
     if (existingItem) {
       if (existingItem.quantidade < peca.estoque) {
@@ -349,9 +362,14 @@ export default function PDVPage() {
 
   const handleAbrirCaixa = async () => {
     if (!user) return;
+    const fundoTrocoValor = parseNumericInput(fundoTroco);
+    if (fundoTrocoValor < 0) {
+      toast.error('O fundo de troco não pode ser negativo');
+      return;
+    }
     await abrirCaixa.mutateAsync({ 
       userId: user.id, 
-      fundoTroco: parseFloat(fundoTroco) || 0 
+      fundoTroco: fundoTrocoValor
     });
     setFundoTroco('');
     setIsAbrirCaixaOpen(false);
@@ -364,13 +382,16 @@ export default function PDVPage() {
   };
 
   const handleAddPagamento = () => {
-    if (novoPagamentoValor) {
-      setPagamentos([
-        ...pagamentos,
-        { metodo: novoPagamentoMetodo, valor: parseFloat(novoPagamentoValor) }
-      ]);
-      setNovoPagamentoValor('');
+    const valor = parseNumericInput(novoPagamentoValor);
+    if (valor <= 0) {
+      toast.error('Informe um valor de pagamento maior que zero');
+      return;
     }
+    setPagamentos([
+      ...pagamentos,
+      { metodo: novoPagamentoMetodo, valor }
+    ]);
+    setNovoPagamentoValor('');
   };
 
   const handleRemovePagamento = (index: number) => {
@@ -397,6 +418,8 @@ export default function PDVPage() {
     const vendaId = crypto.randomUUID();
 
     const vendaPayload = {
+      // Reuse the local id online and offline so a retry cannot create a duplicate sale.
+      id: vendaId,
       valor_total: totalCarrinho,
       subtotal: subtotalCarrinho,
       desconto: totalDesconto,
@@ -499,10 +522,15 @@ export default function PDVPage() {
 
   const handleSangria = async () => {
     if (!caixaAtual) return;
+    const valor = parseNumericInput(movimentoValor);
+    if (valor <= 0) {
+      toast.error('Informe um valor de sangria maior que zero');
+      return;
+    }
     await addMovimento.mutateAsync({
       caixa_sessao_id: caixaAtual.id,
       tipo: 'sangria',
-      valor: parseFloat(movimentoValor) || 0,
+      valor,
       descricao: movimentoDescricao,
     });
     setMovimentoValor('');
@@ -512,10 +540,15 @@ export default function PDVPage() {
 
   const handleSuprimento = async () => {
     if (!caixaAtual) return;
+    const valor = parseNumericInput(movimentoValor);
+    if (valor <= 0) {
+      toast.error('Informe um valor de suprimento maior que zero');
+      return;
+    }
     await addMovimento.mutateAsync({
       caixa_sessao_id: caixaAtual.id,
       tipo: 'suprimento',
-      valor: parseFloat(movimentoValor) || 0,
+      valor,
       descricao: movimentoDescricao,
     });
     setMovimentoValor('');

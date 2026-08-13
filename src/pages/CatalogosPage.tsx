@@ -186,8 +186,14 @@ export default function CatalogosPage() {
   };
 
   const handleSubmit = async () => {
+    const nome = formData.nome.trim();
+    if (!nome) {
+      toast.error('Nome do catálogo é obrigatório');
+      return;
+    }
+
     const data = {
-      nome: formData.nome,
+      nome,
       status: formData.status,
       observacao: formData.observacao || null,
       custo_separacao: parseFloat(formData.custo_separacao) || 0,
@@ -263,10 +269,15 @@ export default function CatalogosPage() {
     await updateCatalogo.mutateAsync({ id: catalogoId, status: newStatus });
   };
 
-  const handleCopyLink = (catalogoId: string) => {
+  const handleCopyLink = async (catalogoId: string) => {
     const link = `${window.location.origin}/catalogo/${catalogoId}`;
-    navigator.clipboard.writeText(link);
-    toast.success('Link copiado!');
+    try {
+      if (!navigator.clipboard) throw new Error('Clipboard indisponível');
+      await navigator.clipboard.writeText(link);
+      toast.success('Link copiado!');
+    } catch {
+      toast.error('Não foi possível copiar o link. Copie-o pela barra do navegador.');
+    }
   };
 
   const formatCurrency = (value: number) => {

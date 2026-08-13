@@ -108,7 +108,8 @@ export function MetasRankingWidget() {
             <p className="text-sm text-muted-foreground text-center py-6">Sem revendedoras.</p>
           ) : (
             data.map((r) => {
-              const badge = BADGE_STYLES[r.badge];
+              const badge = BADGE_STYLES[r.badge] ?? BADGE_STYLES.sem_meta;
+              const percentualMeta = Number(r.percentual_meta) || 0;
               return (
                 <div key={r.revendedora_id} className="rounded-lg border bg-card p-3 space-y-2">
                   <div className="flex items-center gap-2">
@@ -128,7 +129,7 @@ export function MetasRankingWidget() {
                     <span>{formatCurrency(r.total_vendido)} de {formatCurrency(r.meta_valor || 0)}</span>
                     <span>{r.total_pecas} peça(s) · {r.percentual_meta}%</span>
                   </div>
-                  <Progress value={Math.min(100, r.percentual_meta)} className="h-1.5" />
+                  <Progress value={Math.min(100, percentualMeta)} className="h-1.5" />
                 </div>
               );
             })

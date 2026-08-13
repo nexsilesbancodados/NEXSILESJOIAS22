@@ -492,7 +492,7 @@ function Personas() {
               transition={{ duration: 0.8, ease: EASE, delay: i * 0.1 }}
               className="group relative rounded-3xl overflow-hidden aspect-[4/5] md:aspect-[3/4]"
             >
-              <img src={p.img} alt={p.tag} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1200ms]" />
+              <img src={p.img} alt={p.tag} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a0f0a] via-[#1a0f0a]/40 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-8 md:p-10 text-white">
                 <div className="text-xs uppercase tracking-[0.2em] text-white/70 mb-3">{p.tag}</div>
