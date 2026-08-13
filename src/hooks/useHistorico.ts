@@ -22,8 +22,8 @@ export interface HistoricoAtividade {
   entidade_id: string | null; // alias for registro_id
   descricao: string; // generated description
   usuario_id: string | null; // alias for user_id
-  usuario_nome: string | null; // not stored, placeholder
-  valor: number | null; // not stored, placeholder
+  usuario_nome: string | null; // resolvido de profiles.nome via user_id
+  valor: number | null; // extraído de dados_novos/dados_anteriores quando houver
 }
 
 export type EntidadeFilter = 
@@ -61,6 +61,37 @@ function mapAcaoToTipo(acao: string): string {
     'exclusao': 'exclusao',
   };
   return mapping[acao] || acao;
+}
+
+/**
+ * Extrai o valor monetário do registro.
+ *
+ * A coluna `valor` não existe em `historico_atividades` e o hook devolvia
+ * sempre `null` — a tela de histórico mostrava a coluna vazia em toda linha,
+ * parecendo uma trilha de auditoria que não respondia "quanto". Os valores
+ * estão dentro do snapshot em `dados_novos` (ou `dados_anteriores`, para
+ * exclusões), com nomes diferentes por tabela.
+ */
+const CAMPOS_DE_VALOR = [
+  'valor_total',
+  'valor_final',
+  'total',
+  'valor',
+  'preco_venda',
+  'valor_pago',
+];
+
+function extrairValor(dadosNovos: Json | null, dadosAnteriores: Json | null): number | null {
+  for (const fonte of [dadosNovos, dadosAnteriores]) {
+    if (!fonte || typeof fonte !== 'object' || Array.isArray(fonte)) continue;
+    const registro = fonte as Record<string, unknown>;
+    for (const campo of CAMPOS_DE_VALOR) {
+      const bruto = registro[campo];
+      const num = typeof bruto === 'string' ? Number(bruto) : bruto;
+      if (typeof num === 'number' && Number.isFinite(num)) return num;
+    }
+  }
+  return null;
 }
 
 // Helper to generate description
@@ -137,7 +168,7 @@ export function useHistorico(options: UseHistoricoOptions = {}) {
         descricao: generateDescricao(item.tabela, item.acao),
         usuario_id: item.user_id,
         usuario_nome: item.user_id ? (profileMap[item.user_id] || null) : null,
-        valor: null,
+        valor: extrairValor(item.dados_novos, item.dados_anteriores),
       })) as HistoricoAtividade[];
     },
   });

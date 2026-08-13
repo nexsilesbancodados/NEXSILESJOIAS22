@@ -47,7 +47,7 @@ export default function TermosDeUsoPage() {
             <h2 className="text-xl font-semibold text-foreground">4. Plano e Preço</h2>
             <p>
               Plano único <strong>{LGPD_INFO.planoNome}</strong>, {LGPD_INFO.precoMensal}/mês, com todos os recursos incluídos.
-              Sem taxas ocultas. Faturamento mensal recorrente via Mercado Pago ou Stripe.
+              Sem taxas ocultas. Faturamento mensal recorrente via Mercado Pago.
             </p>
           </section>
 

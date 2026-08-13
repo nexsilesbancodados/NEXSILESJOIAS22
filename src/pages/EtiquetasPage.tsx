@@ -1205,9 +1205,10 @@ export default function EtiquetasPage() {
       case 'catalogo':
         // URL do catálogo público
         return `https://nexsiles.com.br/catalogo/${peca?.id || 'preview'}`;
-      case 'preco':
+      case 'preco': {
         const preco = peca?.preco_venda || 199.90;
         return `R$ ${preco.toFixed(2).replace('.', ',')}`;
+      }
       case 'custom':
         return modelo.qrcode_custom_text || 'Texto personalizado';
       default:

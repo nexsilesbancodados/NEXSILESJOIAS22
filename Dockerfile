@@ -2,13 +2,14 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files (package-lock.json é obrigatório para o npm ci abaixo)
+COPY package.json package-lock.json ./
 
 # Install dependencies
-# --legacy-peer-deps: @zxing/browser exige @zxing/library@^0.22, mas o projeto usa
-# 0.23; sem a flag o `npm install` falha com ERESOLVE e o build do Docker quebra.
-RUN npm install --legacy-peer-deps
+# A flag --legacy-peer-deps não é mais necessária: @zxing/library saiu das
+# dependências diretas (nunca era importado — o código só usa @zxing/browser,
+# que traz a versão compatível por conta própria) e o conflito de peer sumiu.
+RUN npm ci
 
 # Copy source code
 COPY . .

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -78,6 +78,32 @@ function LojaSubdomainRedirect() {
 // Wrapper que detecta subdomínio loja.* na raiz — mostra 404 se sem slug
 function LojaRootRedirect() {
   return null;
+}
+
+// Permite que um domínio próprio entregue a mesma vitrine sem exigir que o
+// cliente conheça o slug. O DNS/hosting precisa encaminhar o domínio para a
+// aplicação antes deste lookup.
+function CustomDomainStoreRedirect() {
+  const [slug, setSlug] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const hostname = window.location.hostname.toLowerCase();
+    supabase
+      .from('ecommerce_config_public')
+      .select('slug')
+      .eq('custom_domain', hostname)
+      .in('custom_domain_status', ['pending', 'verified'])
+      .maybeSingle()
+      .then(({ data }) => {
+        setSlug((data as { slug?: string } | null)?.slug || null);
+        setLoaded(true);
+      });
+  }, []);
+
+  if (!loaded) return <PageLoader />;
+  if (slug) return <Navigate to={`/loja/${slug}`} replace />;
+  return <NotFound />;
 }
 
 const queryClient = new QueryClient({
@@ -162,6 +188,30 @@ function AppRoutes() {
   const isMaletaSubdomain = hostname.startsWith('maleta.');
   const isAdminSubdomain = hostname.startsWith('admin.');
   const isLpSubdomain = hostname.startsWith('lp.');
+  const isKnownPlatformHost = hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname.includes('nexsiles')
+    || hostname.includes('lovable')
+    || hostname.endsWith('.vercel.app')
+    || hostname.endsWith('.netlify.app');
+  const isCustomDomainCandidate = !isKnownPlatformHost
+    && !isLojaSubdomain
+    && !isCatalogoSubdomain
+    && !isPortalSubdomain
+    && !isMaletaSubdomain
+    && !isAdminSubdomain
+    && !isLpSubdomain
+    && !window.location.pathname.startsWith('/loja/');
+
+  if (isCustomDomainCandidate) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="*" element={<CustomDomainStoreRedirect />} />
+        </Routes>
+      </Suspense>
+    );
+  }
   
   // Subdomínio lp.* → landing page direta
   if (isLpSubdomain) {

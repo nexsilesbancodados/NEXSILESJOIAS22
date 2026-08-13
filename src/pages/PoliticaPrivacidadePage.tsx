@@ -40,7 +40,7 @@ export default function PoliticaPrivacidadePage() {
             <ul className="list-disc pl-6 space-y-1">
               <li><strong>Cadastro:</strong> nome, e-mail, telefone, CPF/CNPJ, endereço.</li>
               <li><strong>Uso:</strong> logs de acesso, IP, dispositivo, páginas visitadas.</li>
-              <li><strong>Financeiros:</strong> dados de pagamento processados pelo Mercado Pago/Stripe (não armazenamos dados de cartão).</li>
+              <li><strong>Financeiros:</strong> dados de pagamento processados pelo Mercado Pago (não armazenamos dados de cartão).</li>
               <li><strong>Operacionais:</strong> produtos, clientes, vendas e demais dados inseridos por você para gestão do seu negócio.</li>
             </ul>
           </section>
@@ -60,7 +60,7 @@ export default function PoliticaPrivacidadePage() {
             <p>Compartilhamos dados apenas com operadores essenciais à prestação do serviço:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Supabase (hospedagem e banco de dados)</li>
-              <li>Mercado Pago e Stripe (processamento de pagamento)</li>
+              <li>Mercado Pago (processamento de pagamento)</li>
               <li>Brevo e Resend (envio de e-mails transacionais)</li>
               <li>Evolution API (integração WhatsApp, quando ativada)</li>
               <li>DeepSeek (IA de atendimento, quando ativada)</li>

@@ -275,7 +275,7 @@ export function usePrinter() {
         await port.close();
       } catch (error) {
         // Try to close if open
-        try { await port.close(); } catch {}
+        try { await port.close(); } catch { /* porta já fechada */ }
         continue;
       }
     }
