@@ -160,7 +160,7 @@ export function EcommercePromocoesTab() {
               <CardContent className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Imagem (opcional)</Label>
-                  <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} />
+                  <ImageUpload value={form.popup_imagem_url} onChange={(url) => setForm(p => ({ ...p, popup_imagem_url: url }))} bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -205,7 +205,7 @@ export function EcommercePromocoesTab() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Adicionar foto</Label>
-                  <ImageUpload value="" onChange={addLookbookImage} />
+                  <ImageUpload value="" onChange={addLookbookImage} bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
                 </div>
                 {form.lookbook_imagens.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">

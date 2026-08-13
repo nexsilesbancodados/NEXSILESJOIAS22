@@ -392,7 +392,7 @@ serve(async (req) => {
       const imagemUrlRegex = /IMAGEM_URL:\s*(https?:\/\/[^\s\n]+)/gi;
       const imagemMatches = [...content.matchAll(imagemUrlRegex)];
       // Also check markdown image syntax and storage URLs
-      const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s\)]+)\)/gi;
+      const imageUrlRegex = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/gi;
       const imageMatches = [...content.matchAll(imageUrlRegex)];
       const storageUrlRegex = /(https?:\/\/[^\s]+\/storage\/v1\/object\/public\/[^\s]+)/gi;
       const storageMatches = [...content.matchAll(storageUrlRegex)];
@@ -403,9 +403,9 @@ serve(async (req) => {
       for (const match of storageMatches) allImageUrls.add(match[1].replace(/#$/, '').trim());
       
       // Clean text content - remove IMAGEM_URL lines and markdown images
-      let textContent = content
+      const textContent = content
         .replace(/IMAGEM_URL:\s*https?:\/\/[^\s\n]+/gi, '')
-        .replace(/!\[.*?\]\(https?:\/\/[^\s\)]+\)/gi, '')
+        .replace(/!\[.*?\]\(https?:\/\/[^\s)]+\)/gi, '')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 

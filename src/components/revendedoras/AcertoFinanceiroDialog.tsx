@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Wallet, Plus, Trash2, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,7 +30,10 @@ interface Props {
   maletaId: string;
   revendedoraId: string | null;
   organizationId: string | null;
-  valorEsperado: number;
+  /** Total vendido da maleta, a preço de venda. */
+  valorVendido: number;
+  /** Comissão da revendedora sobre o valor vendido. */
+  comissao: number;
 }
 
 const FORMAS = [
@@ -42,8 +49,11 @@ const FORMAS = [
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v ?? 0);
 
+/** Formas que representam dinheiro efetivamente recebido. */
+const FORMAS_EM_DINHEIRO = FORMAS.map((f) => f.value).filter((v) => v !== 'fiado');
+
 export function AcertoFinanceiroDialog({
-  open, onOpenChange, maletaId, revendedoraId, organizationId, valorEsperado,
+  open, onOpenChange, maletaId, revendedoraId, organizationId, valorVendido, comissao,
 }: Props) {
   const qc = useQueryClient();
   const [forma, setForma] = useState('dinheiro');
@@ -64,13 +74,30 @@ export function AcertoFinanceiroDialog({
     enabled: open,
   });
 
-  const totalPago = pagamentos.reduce((acc, p) => acc + Number(p.valor ?? 0), 0);
+  // A revendedora repassa o líquido: fica com a comissão e entrega o resto.
+  // Antes o diálogo pedia o valor bruto vendido, contradizendo a tela de
+  // fechamento — que mostra "Comissão a pagar" sobre o mesmo valor. Quem
+  // pagasse o líquido corretamente ficava com saldo devedor eterno.
+  const valorEsperado = Math.max(0, valorVendido - comissao);
+
+  // Fiado é dívida, não dinheiro recebido. Somá-lo ao total pago zerava o
+  // saldo e fazia a maleta parecer quitada sem nada ter entrado no caixa.
+  const totalPago = pagamentos
+    .filter((p) => FORMAS_EM_DINHEIRO.includes(p.forma_pagamento))
+    .reduce((acc, p) => acc + Number(p.valor ?? 0), 0);
+  const totalFiado = pagamentos
+    .filter((p) => p.forma_pagamento === 'fiado')
+    .reduce((acc, p) => acc + Number(p.valor ?? 0), 0);
   const saldo = valorEsperado - totalPago;
 
   const adicionar = async () => {
-    const v = Number(valor.replace(',', '.'));
-    if (!v || v <= 0) {
-      toast.error('Informe um valor válido');
+    // Aceita o formato que a pessoa realmente digita: "1.500,00", "1500,00" e
+    // "1500.00". Antes era só `replace(',', '.')`, então digitar o separador de
+    // milhar virava "1.500.00" → NaN → "informe um valor válido", sem explicar
+    // o que estava errado.
+    const v = Number(valor.trim().replace(/\./g, '').replace(',', '.'));
+    if (!Number.isFinite(v) || v <= 0) {
+      toast.error('Informe um valor válido', { description: 'Exemplo: 1.500,00' });
       return;
     }
     if (!organizationId) return;
@@ -98,10 +125,16 @@ export function AcertoFinanceiroDialog({
     }
   };
 
-  const excluir = async (id: string) => {
-    const { error } = await supabase.from('maleta_acertos' as any).delete().eq('id', id);
-    if (error) { toast.error('Erro'); return; }
-    toast.success('Removido');
+  // Registro financeiro não some com um clique: a lixeira ficava ao lado do
+  // valor e apagava a prova de que a revendedora pagou, sem perguntar nada.
+  const [aExcluir, setAExcluir] = useState<Pagamento | null>(null);
+
+  const confirmarExclusao = async () => {
+    if (!aExcluir) return;
+    const { error } = await supabase.from('maleta_acertos' as any).delete().eq('id', aExcluir.id);
+    setAExcluir(null);
+    if (error) { toast.error('Não foi possível remover o pagamento'); return; }
+    toast.success('Pagamento removido');
     qc.invalidateQueries({ queryKey: ['maleta-acertos', maletaId] });
   };
 
@@ -116,14 +149,36 @@ export function AcertoFinanceiroDialog({
           <DialogDescription>Registre como a revendedora pagou. Múltiplas formas permitidas.</DialogDescription>
         </DialogHeader>
 
+        {/* Como se chega ao valor esperado — sem isso, a pessoa no balcão não
+            sabe se o número já desconta a comissão. */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Vendido na maleta</span>
+            <span className="font-medium">{formatCurrency(valorVendido)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">− Comissão da revendedora</span>
+            <span className="font-medium text-primary">{formatCurrency(comissao)}</span>
+          </div>
+          <div className="flex justify-between border-t pt-1 mt-1">
+            <span className="font-medium">A repassar para a loja</span>
+            <span className="font-semibold">{formatCurrency(valorEsperado)}</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-lg border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Valor esperado</p>
+            <p className="text-xs text-muted-foreground">A repassar</p>
             <p className="text-lg font-semibold">{formatCurrency(valorEsperado)}</p>
           </div>
           <div className="rounded-lg border bg-card p-3">
-            <p className="text-xs text-muted-foreground">Total pago</p>
+            <p className="text-xs text-muted-foreground">Recebido</p>
             <p className="text-lg font-semibold text-green-600">{formatCurrency(totalPago)}</p>
+            {totalFiado > 0 && (
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+                + {formatCurrency(totalFiado)} em fiado (não entrou)
+              </p>
+            )}
           </div>
           <div className={`rounded-lg border p-3 ${saldo > 0 ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/20' : 'bg-card'}`}>
             <p className="text-xs text-muted-foreground">Saldo</p>
@@ -176,7 +231,7 @@ export function AcertoFinanceiroDialog({
                   {p.observacao && <p className="text-xs text-muted-foreground truncate">{p.observacao}</p>}
                 </div>
                 {(p.parcelas ?? 1) > 1 && <Badge variant="secondary">{p.parcelas}x</Badge>}
-                <Button size="icon" variant="ghost" onClick={() => excluir(p.id)} className="h-7 w-7">
+                <Button size="icon" variant="ghost" onClick={() => setAExcluir(p)} className="h-7 w-7">
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </Button>
               </div>
@@ -189,6 +244,27 @@ export function AcertoFinanceiroDialog({
             <Check className="w-4 h-4 mr-2" /> Concluir
           </Button>
         </DialogFooter>
+
+        <AlertDialog open={!!aExcluir} onOpenChange={(v) => !v && setAExcluir(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover este pagamento?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {aExcluir && (
+                  <>
+                    {formatCurrency(Number(aExcluir.valor))} em{' '}
+                    {FORMAS.find((f) => f.value === aExcluir.forma_pagamento)?.label ?? aExcluir.forma_pagamento}.
+                    {' '}O saldo da maleta volta a subir esse valor. Não dá para desfazer.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmarExclusao}>Remover</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

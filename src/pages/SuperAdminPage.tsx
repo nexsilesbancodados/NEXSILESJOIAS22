@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { SUPABASE_URL } from '@/lib/config';
 import {
   Shield, Users, DollarSign, Crown, Search, Ban, CheckCircle, Edit,
   TrendingUp, Calendar, AlertTriangle, RefreshCw, Loader2, Eye, Trash2,
@@ -104,7 +105,7 @@ function WhatsAppConfigPanel() {
       const { data: { session } } = await supabase.auth.getSession();
       // Use edge function to fetch global configs
       const res = await fetch(
-        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas?stats=whatsapp_config`,
+        `${SUPABASE_URL}/functions/v1/admin-assinaturas?stats=whatsapp_config`,
         { headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' } }
       );
       if (!res.ok) return null;
@@ -127,7 +128,7 @@ function WhatsAppConfigPanel() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas`,
+        `${SUPABASE_URL}/functions/v1/admin-assinaturas`,
         {
           method: 'PUT',
           headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
@@ -230,7 +231,7 @@ export default function SuperAdminPage() {
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas?stats=platform`,
+        `${SUPABASE_URL}/functions/v1/admin-assinaturas?stats=platform`,
         { headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' } }
       );
       if (!res.ok) throw new Error('Erro ao buscar stats');
@@ -244,7 +245,7 @@ export default function SuperAdminPage() {
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas`,
+        `${SUPABASE_URL}/functions/v1/admin-assinaturas`,
         {
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
@@ -258,7 +259,7 @@ export default function SuperAdminPage() {
     enabled: !!isSuperAdmin,
   });
 
-  const edgeFnUrl = `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/admin-assinaturas`;
+  const edgeFnUrl = `${SUPABASE_URL}/functions/v1/admin-assinaturas`;
 
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession();

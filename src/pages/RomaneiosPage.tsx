@@ -68,6 +68,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useRealtimeRomaneios } from '@/hooks/useRealtimeRomaneios';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config';
 
 export default function RomaneiosPage() {
   // Enable realtime updates for romaneios
@@ -569,7 +570,7 @@ function RomaneioDetailDialog({
     setIsSendingWhatsApp(true);
     
     try {
-      const response = await fetch('https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/enviar-whatsapp', {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/enviar-whatsapp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

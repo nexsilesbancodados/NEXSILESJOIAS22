@@ -164,7 +164,7 @@ export function EcommerceBannersTab() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Imagem do Banner</Label>
-                <ImageUpload value={editBanner.imagem_url} onChange={(url) => setEditBanner({ ...editBanner, imagem_url: url })} />
+                <ImageUpload value={editBanner.imagem_url} onChange={(url) => setEditBanner({ ...editBanner, imagem_url: url })} bucket="lojas" folder={`${organizationId || 'shared'}/assets`} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">

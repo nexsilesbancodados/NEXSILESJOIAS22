@@ -1684,7 +1684,7 @@ ${palavrasProibidas.length > 0 ? `## Palavras a Evitar\nNunca use estas palavras
       });
     };
 
-    let aiResponse = await makeAiCall();
+    const aiResponse = await makeAiCall();
 
 
 

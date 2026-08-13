@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isInternalServiceCall } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +33,17 @@ async function sendEmailBrevo(apiKey: string, to: { email: string; name?: string
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Só é chamada por outras Edge Functions (ecommerce-checkout,
+  // ecommerce-process-payment e ecommerce-webhook), sempre com a service role
+  // key. Antes aceitava qualquer requisição anônima: bastava chutar um
+  // `pedido_id` para disparar e-mail em nome da loja.
+  if (!isInternalServiceCall(req)) {
+    return new Response(
+      JSON.stringify({ error: "Não autorizado" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   try {

@@ -32,6 +32,7 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { SUPABASE_URL } from '@/lib/config';
 
 const FILTROS = [
   { value: 'todos', label: 'Todos os contatos', icon: Users, color: 'text-blue-500' },
@@ -142,7 +143,7 @@ export function BroadcastPanel() {
       const token = sessionData?.session?.access_token;
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL || 'https://ljofnwcvpzqlhagejgbk.supabase.co'}/functions/v1/broadcast-whatsapp`,
+        `${SUPABASE_URL}/functions/v1/broadcast-whatsapp`,
         {
           method: 'POST',
           headers: {

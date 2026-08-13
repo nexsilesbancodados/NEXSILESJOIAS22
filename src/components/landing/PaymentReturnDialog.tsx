@@ -12,9 +12,14 @@ export function PaymentReturnDialog() {
   const navigate = useNavigate();
   const status = searchParams.get('pagamento') as Status | null;
   const email = searchParams.get('email') || '';
+  // O Mercado Pago anexa estes à back_url no retorno. Servem de prova de que
+  // quem está na tela é mesmo o comprador — sem isso a Edge Function não
+  // devolve o código (ver consultar-codigo-pendente).
+  const paymentId = searchParams.get('payment_id') || searchParams.get('collection_id') || '';
   const [open, setOpen] = useState(false);
   const [codigo, setCodigo] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
+  const [soPorEmail, setSoPorEmail] = useState(false);
 
   useEffect(() => {
     if (status === 'sucesso' || status === 'pendente' || status === 'erro') {
@@ -33,14 +38,22 @@ export function PaymentReturnDialog() {
       if (cancelled) return;
       attempts++;
       try {
-        // Edge Function com rate limit por IP. A RPC anterior
-        // (get_pending_access_code) era aberta a anon e permitia varrer e-mails
-        // para descobrir quem comprou e capturar o código antes do comprador.
+        // O código só vem de volta com o payment_id do retorno do Mercado Pago.
+        // Só o e-mail não basta: era possível varrer e-mails e capturar o
+        // código de quem tinha acabado de comprar.
         const { data } = await supabase.functions.invoke('consultar-codigo-pendente', {
-          body: { email: email.toLowerCase() },
+          body: { email: email.toLowerCase(), payment_id: paymentId || undefined },
         });
-        if (data?.codigo && !cancelled) {
+        if (cancelled) return;
+        if (data?.codigo) {
           setCodigo(data.codigo);
+          setPolling(false);
+          return;
+        }
+        if (data?.enviado_por_email) {
+          // O código existe, mas esta sessão não provou ser a do comprador.
+          // Nada a esperar — o e-mail já saiu.
+          setSoPorEmail(true);
           setPolling(false);
           return;
         }
@@ -55,13 +68,17 @@ export function PaymentReturnDialog() {
     };
     tick();
     return () => { cancelled = true; };
-  }, [status, email]);
+  }, [status, email, paymentId]);
 
   const close = () => {
     setOpen(false);
     const p = new URLSearchParams(searchParams);
     p.delete('pagamento');
     p.delete('email');
+    // Tira os identificadores do pagamento da barra de endereço para o link
+    // não circular já servindo de prova de posse.
+    p.delete('payment_id');
+    p.delete('collection_id');
     setSearchParams(p, { replace: true });
   };
 
@@ -118,6 +135,18 @@ export function PaymentReturnDialog() {
                     <div className="font-medium">Gerando seu código de acesso...</div>
                     <div className="text-xs text-muted-foreground">
                       Isso leva alguns segundos após a confirmação do pagamento.
+                    </div>
+                  </div>
+                </div>
+              ) : soPorEmail ? (
+                <div className="rounded-xl border bg-muted/40 p-4 flex items-start gap-3 text-sm">
+                  <Mail className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  <div>
+                    <div className="font-medium text-foreground">Seu código está no e-mail</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Por segurança, o código só aparece nesta tela quando você chega direto do
+                      pagamento. Abra o e-mail que enviamos para {email || 'seu endereço'} e use
+                      o código de lá.
                     </div>
                   </div>
                 </div>

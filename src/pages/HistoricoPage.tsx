@@ -113,28 +113,35 @@ const getChangeDescription = (item: HistoricoAtividade): string => {
   switch (item.entidade) {
     case 'vendas':
       return `Venda ${item.tipo === 'criacao' ? 'registrada' : item.tipo === 'exclusao' ? 'removida' : 'atualizada'} - ${formatCurrency(item.valor) || 'Valor não informado'}`;
-    case 'romaneios':
+    case 'romaneios': {
       const resellerNome = (dados as { reseller_nome?: string }).reseller_nome;
       return `Romaneio ${item.tipo === 'criacao' ? 'criado' : item.tipo === 'exclusao' ? 'removido' : 'atualizado'} - ${resellerNome || 'Revendedora'}`;
-    case 'maletas':
+    }
+    case 'maletas': {
       const status = (dados as { status?: string }).status;
       return `Maleta ${status === 'fechada' ? 'fechada' : item.tipo === 'criacao' ? 'criada' : 'atualizada'}`;
-    case 'pecas':
+    }
+    case 'pecas': {
       const pecaNome = (dados as { nome?: string }).nome;
       return `Peça "${pecaNome || 'Sem nome'}" ${item.tipo === 'criacao' ? 'cadastrada' : item.tipo === 'exclusao' ? 'removida' : 'atualizada'}`;
-    case 'catalogos':
+    }
+    case 'catalogos': {
       const catalogoNome = (dados as { nome?: string }).nome;
       return `Catálogo "${catalogoNome || 'Sem nome'}" ${item.tipo === 'criacao' ? 'criado' : item.tipo === 'exclusao' ? 'removido' : 'atualizado'}`;
-    case 'pedidos_catalogo':
+    }
+    case 'pedidos_catalogo': {
       const clienteNome = (dados as { cliente_nome?: string }).cliente_nome;
       return `Pedido de ${clienteNome || 'Cliente'} ${item.tipo === 'criacao' ? 'recebido' : item.tipo === 'exclusao' ? 'removido' : 'atualizado'}`;
-    case 'caixa_sessoes':
+    }
+    case 'caixa_sessoes': {
       const caixaStatus = (dados as { status?: string }).status;
       return `Caixa ${caixaStatus === 'aberto' ? 'aberto' : 'fechado'}`;
-    case 'profiles':
+    }
+    case 'profiles': {
       const profileNome = (dados as { nome?: string }).nome;
       const role = (dados as { role?: string }).role;
       return `${role === 'reseller' ? 'Revendedora' : 'Usuário'} "${profileNome || 'Sem nome'}" ${item.tipo === 'criacao' ? 'cadastrado(a)' : item.tipo === 'exclusao' ? 'removido(a)' : 'atualizado(a)'}`;
+    }
     default:
       return item.descricao;
   }

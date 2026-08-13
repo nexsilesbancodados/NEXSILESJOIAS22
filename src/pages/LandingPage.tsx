@@ -791,6 +791,16 @@ function Footer() {
 
 /* ============ PAGE ============ */
 export default function LandingPage() {
+  // A página é carregada sob demanda, então o salto nativo do navegador para a
+  // âncora acontece antes das seções existirem no DOM. Sem isto, chegar em
+  // /landing#preco deixa o visitante no topo.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const alvo = document.getElementById(id);
+    if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
   return (
     <div className="min-h-screen bg-white text-[#1a0f0a] font-body antialiased overflow-x-hidden">
       <Cursor />

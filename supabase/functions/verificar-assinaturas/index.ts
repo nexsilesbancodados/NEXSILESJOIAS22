@@ -153,7 +153,8 @@ Deno.serve(async (req) => {
         if (userEmail) {
           const html = generateEmailHtml("expirado", userName, assinatura.plano, assinatura.data_vencimento);
           emailEnviado = await sendBrevoEmail(userEmail, `⚠️ Seu plano expirou - Nexsiles`, html);
-          emailEnviado ? results.emailsEnviados++ : results.emailsFalhados++;
+          if (emailEnviado) results.emailsEnviados++;
+          else results.emailsFalhados++;
         }
 
         await supabase.from("notificacoes_assinatura").insert({
@@ -178,7 +179,8 @@ Deno.serve(async (req) => {
         if (userEmail) {
           const html = generateEmailHtml("vencimento", userName, assinatura.plano, assinatura.data_vencimento);
           emailEnviado = await sendBrevoEmail(userEmail, `🔔 Seu plano vence HOJE! - Nexsiles`, html);
-          emailEnviado ? results.emailsEnviados++ : results.emailsFalhados++;
+          if (emailEnviado) results.emailsEnviados++;
+          else results.emailsFalhados++;
         }
         await supabase.from("notificacoes_assinatura").insert({
           user_id: assinatura.user_id, tipo: "aviso_vencimento",
@@ -203,7 +205,8 @@ Deno.serve(async (req) => {
         if (userEmail) {
           const html = generateEmailHtml("3dias", userName, assinatura.plano, assinatura.data_vencimento, diffDays);
           emailEnviado = await sendBrevoEmail(userEmail, `⏰ Seu plano vence em ${diffDays} dia${diffDays > 1 ? "s" : ""} - Nexsiles`, html);
-          emailEnviado ? results.emailsEnviados++ : results.emailsFalhados++;
+          if (emailEnviado) results.emailsEnviados++;
+          else results.emailsFalhados++;
         }
         await supabase.from("notificacoes_assinatura").insert({
           user_id: assinatura.user_id, tipo: "aviso_3dias",

@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { ArrowUp, ArrowDown, GripVertical, Loader2, Save, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { normalizeHomeSections } from '@/lib/ecommerce-sections';
 
 interface Section {
   id: string;
@@ -41,6 +42,7 @@ export function EcommerceSectionOrderTab() {
   const queryClient = useQueryClient();
   const { organizationId } = useOrganization();
   const [sections, setSections] = useState<Section[]>(DEFAULT_SECTIONS);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['ecommerce-config-sections', organizationId],
@@ -54,7 +56,7 @@ export function EcommerceSectionOrderTab() {
 
   useEffect(() => {
     if (config?.secoes_homepage && Array.isArray(config.secoes_homepage) && config.secoes_homepage.length > 0) {
-      setSections(config.secoes_homepage);
+      setSections(normalizeHomeSections(config.secoes_homepage));
     }
   }, [config]);
 
@@ -88,6 +90,17 @@ export function EcommerceSectionOrderTab() {
     saveToDb(reordered);
   };
 
+  const handleDrop = (targetIndex: number) => {
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+    const arr = [...sections];
+    const [moved] = arr.splice(draggedIndex, 1);
+    arr.splice(targetIndex, 0, moved);
+    const reordered = arr.map((s, i) => ({ ...s, ordem: i }));
+    setSections(reordered);
+    setDraggedIndex(null);
+    saveToDb(reordered);
+  };
+
   const handleToggle = (idx: number) => {
     const updated = sections.map((s, i) => i === idx ? { ...s, visivel: !s.visivel } : s);
     setSections(updated);
@@ -118,7 +131,14 @@ export function EcommerceSectionOrderTab() {
         <AnimatePresence>
           {sections.map((section, idx) => (
             <motion.div key={section.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <Card className={`transition-opacity ${!section.visivel ? 'opacity-50' : ''}`}>
+              <Card
+                draggable
+                onDragStart={() => setDraggedIndex(idx)}
+                onDragOver={event => event.preventDefault()}
+                onDrop={() => handleDrop(idx)}
+                onDragEnd={() => setDraggedIndex(null)}
+                className={`cursor-grab transition-opacity active:cursor-grabbing ${!section.visivel ? 'opacity-50' : ''} ${draggedIndex === idx ? 'ring-2 ring-primary/30' : ''}`}
+              >
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="flex flex-col gap-0.5">
                     <button onClick={() => handleMove(idx, -1)} className="p-0.5 hover:bg-muted rounded disabled:opacity-30" disabled={idx === 0}><ArrowUp className="w-3 h-3" /></button>

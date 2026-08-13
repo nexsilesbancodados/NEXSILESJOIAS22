@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { rateLimit } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +39,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Chamada pelo cliente anônimo ao fechar o pedido na maleta pública — login
+  // aqui quebraria a venda. Faltava o limite: sem ele, dava para gerar
+  // notificação e e-mail de "novo pedido" em série para qualquer revendedora.
+  const rl = await rateLimit(req, 'notificar-novo-pedido-revendedora', {
+    maxRequests: 10,
+    windowSeconds: 60,
+  });
+  if (rl) return rl;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -1750,6 +1750,15 @@ export type Database = {
           rodape_endereco: string | null
           rodape_exibir_mapa: boolean | null
           secoes_homepage: Json | null
+          template_id: string | null
+          templates_personalizados: Json | null
+          layout_historico: Json | null
+          custom_domain: string | null
+          custom_domain_status: string | null
+          seo_title: string | null
+          seo_description: string | null
+          seo_keywords: string | null
+          og_image_url: string | null
           selos_confianca: string[] | null
           slug: string
           taxa_entrega: number | null
@@ -1853,6 +1862,15 @@ export type Database = {
           rodape_endereco?: string | null
           rodape_exibir_mapa?: boolean | null
           secoes_homepage?: Json | null
+          template_id?: string | null
+          templates_personalizados?: Json | null
+          layout_historico?: Json | null
+          custom_domain?: string | null
+          custom_domain_status?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          og_image_url?: string | null
           selos_confianca?: string[] | null
           slug: string
           taxa_entrega?: number | null
@@ -1956,6 +1974,15 @@ export type Database = {
           rodape_endereco?: string | null
           rodape_exibir_mapa?: boolean | null
           secoes_homepage?: Json | null
+          template_id?: string | null
+          templates_personalizados?: Json | null
+          layout_historico?: Json | null
+          custom_domain?: string | null
+          custom_domain_status?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          og_image_url?: string | null
           selos_confianca?: string[] | null
           slug?: string
           taxa_entrega?: number | null
@@ -5582,6 +5609,12 @@ export type Database = {
           rodape_endereco: string | null
           rodape_exibir_mapa: boolean | null
           secoes_homepage: Json | null
+          custom_domain: string | null
+          custom_domain_status: string | null
+          seo_title: string | null
+          seo_description: string | null
+          seo_keywords: string | null
+          og_image_url: string | null
           selos_confianca: string[] | null
           slug: string | null
           taxa_entrega: number | null
@@ -5682,6 +5715,12 @@ export type Database = {
           rodape_endereco?: string | null
           rodape_exibir_mapa?: boolean | null
           secoes_homepage?: Json | null
+          custom_domain?: string | null
+          custom_domain_status?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          og_image_url?: string | null
           selos_confianca?: string[] | null
           slug?: string | null
           taxa_entrega?: number | null
@@ -5782,6 +5821,12 @@ export type Database = {
           rodape_endereco?: string | null
           rodape_exibir_mapa?: boolean | null
           secoes_homepage?: Json | null
+          custom_domain?: string | null
+          custom_domain_status?: string | null
+          seo_title?: string | null
+          seo_description?: string | null
+          seo_keywords?: string | null
+          og_image_url?: string | null
           selos_confianca?: string[] | null
           slug?: string | null
           taxa_entrega?: number | null

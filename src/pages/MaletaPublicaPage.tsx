@@ -217,7 +217,7 @@ export default function MaletaPublicaPage() {
         await supabase.functions.invoke('notificar-novo-pedido-revendedora', {
           body: { interesse_id: interesseId },
         });
-      } catch {}
+      } catch { /* ignora falha não crítica */ }
 
       return { id: interesseId };
     },

@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Plus, Users, Shield, Loader2, KeyRound, AlertTriangle } from 'lucide-react';
 import { ReadOnlyGuard } from '@/components/subscription/ReadOnlyGuard';
+import { SUPABASE_URL } from '@/lib/config';
 
 // Plano único Nexsiles Prime: 25 funcionários por organização
 const PLAN_LIMITS: Record<string, number> = {
@@ -129,7 +130,7 @@ export function FuncionariosTab() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
-        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/criar-funcionario`,
+        `${SUPABASE_URL}/functions/v1/criar-funcionario`,
         {
           method: 'POST',
           headers: {

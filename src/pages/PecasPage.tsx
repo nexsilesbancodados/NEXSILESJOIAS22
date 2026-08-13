@@ -187,11 +187,12 @@ export default function PecasPage() {
         case 'estoque':
           comparison = (a.estoque ?? 0) - (b.estoque ?? 0);
           break;
-        case 'created_at':
+        case 'created_at': {
           const dateA = a.created_at || '';
           const dateB = b.created_at || '';
           comparison = dateA.localeCompare(dateB);
           break;
+        }
       }
       
       return sortDirection === 'asc' ? comparison : -comparison;

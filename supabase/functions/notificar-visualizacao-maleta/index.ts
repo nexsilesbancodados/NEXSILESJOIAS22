@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { rateLimit } from '../_shared/rate-limit.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +19,16 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Quem chama é o visitante anônimo da maleta pública (MaletaPublicaPage), então
+  // exigir login quebraria a funcionalidade. O que faltava era limite: sem ele,
+  // dava para disparar notificação de visualização em massa para qualquer
+  // maleta_id, enchendo o sino da revendedora de avisos falsos.
+  const rl = await rateLimit(req, 'notificar-visualizacao-maleta', {
+    maxRequests: 20,
+    windowSeconds: 60,
+  });
+  if (rl) return rl;
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

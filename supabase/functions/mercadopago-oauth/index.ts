@@ -26,7 +26,32 @@ serve(async (req: Request) => {
     const organization_id = auth.ctx.organizationId;
 
     const body = await req.json();
-    const { code, redirect_uri } = body;
+    const { code, redirect_uri, action } = body;
+
+    // Monta a URL de autorização aqui, no servidor.
+    //
+    // Antes o frontend montava essa URL com `import.meta.env.VITE_MP_CLIENT_ID`,
+    // variável que nunca existiu no build — o botão "Conectar Mercado Pago"
+    // mandava o lojista para `authorization?client_id=` vazio, ou seja, para
+    // uma página de erro do Mercado Pago. O client_id já mora aqui como
+    // MERCADOPAGO_CLIENT_ID, junto do secret que ele acompanha, então não há
+    // motivo para duplicá-lo no navegador.
+    if (action === "authorize-url") {
+      if (!clientId) {
+        return new Response(
+          JSON.stringify({ error: "MERCADOPAGO_CLIENT_ID não configurado no projeto" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const redirect = redirect_uri || `${req.headers.get("origin")}/loja-virtual?mp_oauth=1`;
+      const url = `https://auth.mercadopago.com/authorization?client_id=${
+        encodeURIComponent(clientId)
+      }&response_type=code&platform_id=mp&redirect_uri=${encodeURIComponent(redirect)}`;
+      return new Response(
+        JSON.stringify({ url }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     if (!code) throw new Error("Authorization code is required");
 

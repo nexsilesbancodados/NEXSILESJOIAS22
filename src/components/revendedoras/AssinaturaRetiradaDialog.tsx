@@ -140,7 +140,7 @@ export function AssinaturaRetiradaDialog({
     const totalPecas = items.reduce((s, it) => s + it.quantidade, 0);
     const totalValor = items.reduce((s, it) => s + (it.preco_unitario ?? 0) * it.quantidade, 0);
 
-    // @ts-ignore
+    // @ts-expect-error lastAutoTable é injetado em runtime pelo jspdf-autotable
     const finalY = doc.lastAutoTable.finalY + 8;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -159,7 +159,7 @@ export function AssinaturaRetiradaDialog({
     // Signature
     try {
       doc.addImage(assinaturaDataUrl, 'PNG', 60, termoY + 16, 90, 30);
-    } catch {}
+    } catch { /* falha ao gerar PDF não deve travar a tela */ }
     doc.setLineWidth(0.3);
     doc.line(60, termoY + 48, 150, termoY + 48);
     doc.setFontSize(9);

@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 
 const STATUS_MAP: Record<string, { label: string; icon: typeof Clock; color: string; bg: string }> = {
   pendente: { label: 'Pendente', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+  aguardando_pix: { label: 'Aguardando PIX', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-600/10' },
   pago: { label: 'Pago', icon: CreditCard, color: 'text-primary', bg: 'bg-primary/10' },
   enviado: { label: 'Enviado', icon: Truck, color: 'text-blue-500', bg: 'bg-blue-500/10' },
   entregue: { label: 'Entregue', icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
