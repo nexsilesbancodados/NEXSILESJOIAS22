@@ -10,8 +10,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PlanoKey } from '@/hooks/useAssinatura';
-
-const MP_PUBLIC_KEY = import.meta.env.VITE_MP_PUBLIC_KEY || '';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, MP_PUBLIC_KEY } from '@/lib/config';
 
 interface MercadoPagoCheckoutProps {
   open: boolean;
@@ -116,13 +115,13 @@ export function MercadoPagoCheckout({
             setStatus('processing');
             try {
               const response = await fetch(
-                `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/mercadopago-process-payment`,
+                `${SUPABASE_URL}/functions/v1/mercadopago-process-payment`,
                 {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-                    'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxqb2Zud2N2cHpxbGhhZ2VqZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkyNjIwMDAsImV4cCI6MjA4NDgzODAwMH0.kCxv9nbZ7eph4T09WYgbUednAQeW0Slutet08G9svXc',
+                    'apikey': SUPABASE_ANON_KEY,
                   },
                   body: JSON.stringify({ ...formData, plano, periodo }),
                 }
@@ -167,7 +166,7 @@ export function MercadoPagoCheckout({
     }
     return () => {
       if (brickControllerRef.current) {
-        try { brickControllerRef.current.unmount(); } catch (e) {}
+        try { brickControllerRef.current.unmount(); } catch { /* brick já desmontado */ }
         brickControllerRef.current = null;
       }
     };

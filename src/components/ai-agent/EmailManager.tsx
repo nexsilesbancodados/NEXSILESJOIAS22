@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/hooks/useOrganization';
 import { toast } from 'sonner';
+import { SUPABASE_URL } from '@/lib/config';
 
 interface EmailTemplate {
   id: string;
@@ -201,7 +202,7 @@ export function EmailManager() {
       if (sendForm.destinatario_email) variaveis['{cliente_email}'] = sendForm.destinatario_email;
 
       const response = await fetch(
-        `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/enviar-email-template`,
+        `${SUPABASE_URL}/functions/v1/enviar-email-template`,
         {
           method: 'POST',
           headers: {

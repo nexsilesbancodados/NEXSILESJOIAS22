@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase-db';
+import { SUPABASE_URL } from '@/lib/config';
 
 type EventoTipo = 'venda_realizada' | 'estoque_baixo' | 'maleta_vencendo' | 'novo_pedido_catalogo' | 'envio_atualizado' | 'pos_venda' | 'reativacao_cliente' | 'novo_pedido_ecommerce';
 
@@ -12,7 +13,7 @@ export async function enviarNotificacaoEmail(tipo: EventoTipo, dados: EventoDado
     if (!session) return;
 
     const response = await fetch(
-      `https://ljofnwcvpzqlhagejgbk.supabase.co/functions/v1/notificar-eventos`,
+      `${SUPABASE_URL}/functions/v1/notificar-eventos`,
       {
         method: 'POST',
         headers: {

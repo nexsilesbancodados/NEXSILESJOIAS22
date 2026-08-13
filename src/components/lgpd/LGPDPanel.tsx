@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/config';
 
 export function LGPDPanel() {
   const [exporting, setExporting] = useState(false);
@@ -35,10 +36,10 @@ export function LGPDPanel() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Sessão expirada");
 
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-user-data`;
+      const url = `${SUPABASE_URL}/functions/v1/export-user-data`;
       const res = await fetch(url, {
         method: "POST",
-        headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_ANON_KEY },
       });
       if (!res.ok) throw new Error(`Erro ${res.status}`);
       const blob = await res.blob();
