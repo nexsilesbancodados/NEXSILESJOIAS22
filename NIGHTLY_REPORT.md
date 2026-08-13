@@ -27,12 +27,14 @@ Claude fez uma auditoria somente leitura da arquitetura, 38 Edge Functions, migr
 - `ecommerce-webhook` recusa criar pedido quando não consegue verificar o pagamento com o token da organização.
 - `admin-assinaturas` aceita o sinalizador servidor-side `profiles.is_super_admin`, preservando compatibilidade com a lista histórica de e-mails.
 - `PDVPage` usa `cachePecas` estaticamente e estabiliza `addToCarrinho`, eliminando o warning de chunk/import e o warning de dependência do hook.
+- Sessões públicas do cliente agora ficam em `sessionStorage`; sessões válidas antigas são migradas uma vez e removidas do `localStorage`, com teste automatizado.
+- `criar-codigo-externo` usa comparação em tempo constante para o segredo cross-project.
 - Documentação de pendências atualizada com o segredo da fila, a necessidade de rotação e a condição de duplicatas históricas antes dos índices.
 
 ## Testes executados
 
 - `npx tsc --noEmit -p tsconfig.app.json`: passou.
-- `npm test -- --reporter=dot`: passou — 10 arquivos, 60 testes.
+- `npm test -- --reporter=dot`: passou — 10 arquivos, 61 testes.
 - `npm run lint -- --quiet`: passou sem erros.
 - `npm run build`: passou — 5.043 módulos transformados.
 - ESLint direcionado nos arquivos modificados: passou sem erros.
@@ -42,8 +44,8 @@ Claude fez uma auditoria somente leitura da arquitetura, 38 Edge Functions, migr
 
 ## Git, push e deploy
 
-- Commit: `fb998a4` (`fix: harden public config and payment processing`).
-- Push: concluído para `origin/main`; `git ls-remote` confirmou `fb998a43b5e0893855a34d373799cb1daca8ece1` em `refs/heads/main`.
+- Commits: `fb998a4` (`fix: harden public config and payment processing`), `930f760` (`docs: record autonomous engineering run`) e `78354cc` (`fix: protect public session storage`).
+- Push: concluído para `origin/main`; a branch local está alinhada ao remoto em `78354cc`.
 - CI: não há workflow detectável no repositório para acompanhar.
 - Deploy remoto Supabase/Lovable: não foi executado automaticamente, pois não há CLI/credencial/painel autorizado neste ambiente. O código pode ser sincronizado pelo fluxo existente do repositório, mas a aplicação publicada e as Edge Functions não foram presumidas como atualizadas.
 - Health check público: `https://nexsiles2567.lovable.app/?nightly=fb998a4` respondeu HTTP 200 com título `Nexsiles`.
