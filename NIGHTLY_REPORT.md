@@ -42,9 +42,12 @@ Claude fez uma auditoria somente leitura da arquitetura, 38 Edge Functions, migr
 
 ## Git, push e deploy
 
-- Commit/push: será preenchido após a revisão final deste relatório.
+- Commit: `fb998a4` (`fix: harden public config and payment processing`).
+- Push: concluído para `origin/main`; `git ls-remote` confirmou `fb998a43b5e0893855a34d373799cb1daca8ece1` em `refs/heads/main`.
 - CI: não há workflow detectável no repositório para acompanhar.
 - Deploy remoto Supabase/Lovable: não foi executado automaticamente, pois não há CLI/credencial/painel autorizado neste ambiente. O código pode ser sincronizado pelo fluxo existente do repositório, mas a aplicação publicada e as Edge Functions não foram presumidas como atualizadas.
+- Health check público: `https://nexsiles2567.lovable.app/?nightly=fb998a4` respondeu HTTP 200 com título `Nexsiles`.
+- A página pública ainda referencia `index-D3iIUKA7.js`/`index-DxQ5ZiGz.css`, enquanto o build local deste commit gera `index-BRY17Wwv.js`/`index-IDOT2vUN.css`; portanto o publish da versão deste commit não foi confirmado.
 
 ## Bloqueios que dependem de acesso externo
 
