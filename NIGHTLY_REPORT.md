@@ -56,7 +56,7 @@ Claude fez uma auditoria somente leitura da arquitetura, 38 Edge Functions, migr
 1. Aplicar a migration no projeto Supabase `ljofnwcvpzqlhagejgbk` e confirmar o estado real das policies/índices; migrations aplicadas somente pelo painel precisam ser comparadas.
 2. Configurar `MERCADOPAGO_WEBHOOK_SECRET`, `WHATSAPP_WEBHOOK_SECRET` e `CRON_SECRET` nos secrets das Edge Functions.
 3. Rotacionar tokens Mercado Pago e a chave Gemini, pois o histórico de policies indica exposição potencial anterior. Isso não foi feito automaticamente para não quebrar pagamentos nem alterar credenciais sem autorização.
-4. Confirmar no painel Lovable o publish da branch `main` e executar smoke test autenticado. A verificação automatizada disponível nesta sessão limita-se ao HTTP público; não houve navegador disponível para login/console.
+4. Confirmar no painel Lovable o publish da branch `main` e executar smoke test autenticado. O navegador do ambiente redirecionou para `lovable.dev/login`, sem sessão autenticada; a verificação automatizada disponível limita-se ao HTTP público.
 5. Se a migration de índices encontrar duplicatas históricas, identificar e resolver manualmente os registros antes de criar os índices, sem apagar dados automaticamente.
 
 ## Próximos passos recomendados
